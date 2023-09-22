@@ -15,7 +15,7 @@ namespace OnnxStack.Core
         /// <param name="serviceCollection">The service collection.</param>
         public static void AddOnnxStackStableDiffusion(this IServiceCollection serviceCollection)
         {
-            serviceCollection.AddSingleton<IImageService, ImageService>();
+            serviceCollection.AddOnnxStack();
             serviceCollection.AddSingleton<IInferenceService, InferenceService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
         }

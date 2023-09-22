@@ -30,7 +30,7 @@ git clone https://huggingface.co/runwayml/stable-diffusion-v1-5 -b onnx
 
 # Projects
 
-## `OnnxStack.StableDiffusion`
+## **[OnnxStack.StableDiffusion](OnnxStack.StableDiffusion/README.md)**
 Inference Stable Diffusion with C# and ONNX Runtime
 
 Stable Diffusion models take a text prompt and create an image that represents the text.
@@ -48,6 +48,9 @@ Scheduler Output Examples:
 | LMSScheduler | EulerAncestralScheduler|
 | :--- | :--- |
 <img src="https://i.imgur.com/Ptaai09.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> | <img src="https://i.imgur.com/6nZNi7A.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> |
+
+
+More information and Examples can be found in the `OnnxStack.StableDiffusion` project **[README](OnnxStack.StableDiffusion/README.md)**
 
 __________________________
 

@@ -78,5 +78,16 @@ namespace OnnxStack.Core.Services
                 _ => default
             };
         }
+
+
+        public void Dispose()
+        {
+            _sessionOptions?.Dispose();
+            _onnxUnetInferenceSession?.Dispose();
+            _onnxTokenizerInferenceSession?.Dispose();
+            _onnxVaeDecoderInferenceSession?.Dispose();
+            _onnxTextEncoderInferenceSession?.Dispose();
+            _onnxSafetyModelInferenceSession?.Dispose();
+        }
     }
 }
