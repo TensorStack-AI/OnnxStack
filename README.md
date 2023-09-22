@@ -11,7 +11,7 @@ Other `Microsoft.ML.OnnxRuntime.*` executors like `Cuda` may work but are untest
 
 
 ## ONNX Model Download
-You will need an ONNX compatable model to use, Hugging Face is a greaty place to download the Stable Diffusion models
+You will need an ONNX compatible model to use, Hugging Face is a great place to download the Stable Diffusion models
 
 Download the [ONNX Stable Diffusion models from Hugging Face](https://huggingface.co/models?sort=downloads&search=Stable+Diffusion).
 
@@ -30,11 +30,30 @@ git clone https://huggingface.co/runwayml/stable-diffusion-v1-5 -b onnx
 
 # Projects
 
-## OnnxStack.StableDiffusion
+## `OnnxStack.StableDiffusion`
 Inference Stable Diffusion with C# and ONNX Runtime
 
+Stable Diffusion models take a text prompt and create an image that represents the text.
 
-### Basic C# Example of using OnnxStack.StableDiffusion
+Prompt Example:
+```text
+"Renaissance-style portrait of an astronaut in space, detailed starry background, reflective helmet." 
+```
+
+Many different scheduler algorithms can be used for this computation, each having its pro- and cons. 
+So far `OnnxStack.StableDiffusion` as included `LMSScheduler` and `EulerAncestralScheduler` options with more in the works.
+
+
+Scheduler Output Examples:
+| LMSScheduler | EulerAncestralScheduler|
+| :--- | :--- |
+<img src="https://i.imgur.com/Ptaai09.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> | <img src="https://i.imgur.com/6nZNi7A.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> |
+
+
+__________________________
+
+
+### C# Example of using `OnnxStack.StableDiffusion`
 ```csharp
 
 // Create Configuration
@@ -72,8 +91,25 @@ using (var stableDiffusionService = new StableDiffusionService(onnxStackConfig))
 }
 ```
 
+__________________________
+## `OnnxStack.ImageRecognition`
+Image recognition with ResNet50v2 with C# and ONNX Runtime
+
+~WIP~
+__________________________
 
 
+__________________________
+## `OnnxStack.ObjectDetection`
+Object detection with Faster RCNN Deep Learning with C# and ONNX Runtime
+
+~WIP~
+__________________________
+
+
+## Contribution
+
+We welcome contributions to OnnxStack! If you have any ideas, bug reports, or improvements, feel free to open an issue or submit a pull request.
 
 
 
