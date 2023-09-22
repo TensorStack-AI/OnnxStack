@@ -2,13 +2,12 @@
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public class SchedulerConfig
+    public class SchedulerOptions
     {
         public int TrainTimesteps { get; set; } = 1000;
         public float BetaStart { get; set; } = 0.00085f;
         public float BetaEnd { get; set; } = 0.012f;
         public IEnumerable<float> TrainedBetas { get; set; }
         public SchedulerBetaSchedule BetaSchedule { get; set; } = SchedulerBetaSchedule.ScaledLinear;
-        public SchedulerType SchedulerType { get; set; } = SchedulerType.LMSScheduler;
     }
 }

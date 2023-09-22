@@ -20,65 +20,43 @@ namespace OnnxStack.StableDiffusion.Services
             _inferenceService = new InferenceService(_configuration);
         }
 
-        public Task<Image<Rgba32>> TextToImage(string prompt)
+        public Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options)
         {
-            return TextToImageInternal(prompt, null, new SchedulerConfig());
+            return TextToImageInternal(options, new SchedulerOptions());
         }
 
-        public Task<Image<Rgba32>> TextToImage(string prompt, string negativePrompt)
+        public Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options, SchedulerOptions schedulerOptions)
         {
-            return TextToImageInternal(prompt, negativePrompt, new SchedulerConfig());
+            return TextToImageInternal(options, schedulerOptions);
         }
 
-        public Task<Image<Rgba32>> TextToImage(string prompt, SchedulerConfig schedulerConfig)
+        public Task<bool> TextToImageFile(StableDiffusionOptions options, string outputFile)
         {
-            return TextToImageInternal(prompt, null, schedulerConfig);
+            return TextToImageFileInternal(options, new SchedulerOptions(), outputFile);
         }
 
-        public Task<Image<Rgba32>> TextToImage(string prompt, string negativePrompt, SchedulerConfig schedulerConfig)
+        public Task<bool> TextToImageFile(StableDiffusionOptions options, SchedulerOptions schedulerOptions, string outputFile)
         {
-            return TextToImageInternal(prompt, negativePrompt, schedulerConfig);
-        }
-
-
-        public Task<bool> TextToImageFile(string prompt, string filename)
-        {
-            return TextToImageFileInternal(prompt, null, filename, new SchedulerConfig());
-        }
-
-        public Task<bool> TextToImageFile(string prompt, string negativePrompt, string filename)
-        {
-            return TextToImageFileInternal(prompt, negativePrompt, filename, new SchedulerConfig());
-        }
-
-        public Task<bool> TextToImageFile(string prompt, string filename, SchedulerConfig schedulerConfig)
-        {
-            return TextToImageFileInternal(prompt, null, filename, schedulerConfig);
-        }
-
-        public Task<bool> TextToImageFile(string prompt, string negativePrompt, string filename, SchedulerConfig schedulerConfig)
-        {
-            return TextToImageFileInternal(prompt, negativePrompt, filename, schedulerConfig);
+            return TextToImageFileInternal(options, schedulerOptions, outputFile);
         }
 
 
-
-        private async Task<Image<Rgba32>> TextToImageInternal(string prompt, string negativePrompt, SchedulerConfig schedulerConfig)
+        private async Task<Image<Rgba32>> TextToImageInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
             return await Task.Run(() =>
             {
-                var imageTensorData = _inferenceService.RunInference(prompt, negativePrompt, schedulerConfig);
-                return _imageService.TensorToImage(imageTensorData, _configuration.Width, _configuration.Height);
+                var imageTensorData = _inferenceService.RunInference(options, schedulerConfig);
+                return _imageService.TensorToImage(options, imageTensorData);
             }).ConfigureAwait(false);
         }
 
-        private async Task<bool> TextToImageFileInternal(string prompt, string negativePrompt, string filename, SchedulerConfig schedulerConfig)
+        private async Task<bool> TextToImageFileInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig, string outputFile)
         {
-            var image = await TextToImageInternal(prompt, negativePrompt, schedulerConfig);
+            var image = await TextToImageInternal(options, schedulerConfig);
             if (image is null)
                 return false;
 
-            await image.SaveAsync(filename);
+            await image.SaveAsync(outputFile);
             return true;
         }
 
@@ -86,7 +64,5 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _inferenceService.Dispose();
         }
-
-
     }
 }

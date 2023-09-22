@@ -10,7 +10,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 {
     public abstract class SchedulerBase
     {
-        protected readonly SchedulerConfig _configuration;
+        protected readonly SchedulerOptions _configuration;
 
         protected List<int> _timesteps;
         protected float _initNoiseSigma;
@@ -19,7 +19,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected List<float> _alphasCumulativeProducts;
         protected List<double> _computedSigmas;
 
-        public SchedulerBase(SchedulerConfig schedulerConfig)
+        public SchedulerBase(SchedulerOptions schedulerConfig)
         {
             _configuration = schedulerConfig;
             Initialize();

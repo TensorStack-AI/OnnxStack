@@ -16,7 +16,7 @@ namespace OnnxStack.Console.Runner
         {
             _configuration = configuration;
             _generationPrompts = GeneratePrompts();
-            _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Generator");
+            _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionGenerator));
         }
 
         public string Name => "Stable Diffusion Generator";
@@ -28,37 +28,36 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
-            // Create directories
             Directory.CreateDirectory(_outputDirectory);
-            foreach (var scheduler in Enum.GetNames<SchedulerType>())
-                Directory.CreateDirectory(Path.Combine(_outputDirectory, scheduler));
 
-            while (true)
+            using (var stableDiffusionService = new StableDiffusionService(_configuration))
             {
-                using (var stableDiffusionService = new StableDiffusionService(_configuration))
+                while (true)
                 {
                     foreach (var generationPrompt in _generationPrompts)
                     {
-                        // Generate image using LMSScheduler
-                        await GenerateImage(stableDiffusionService, generationPrompt, SchedulerType.LMSScheduler, _configuration.Seed);
+                        var options = new StableDiffusionOptions
+                        {
+                            Prompt = generationPrompt.Value
+                        };
+                        foreach (var schedulerType in Enum.GetValues<SchedulerType>())
+                        {
+                            options.SchedulerType = schedulerType;
 
-                        // Generate image using EulerAncestralScheduler
-                        await GenerateImage(stableDiffusionService, generationPrompt, SchedulerType.EulerAncestralScheduler, _configuration.Seed);
+                            OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
+                            await GenerateImage(stableDiffusionService, options, generationPrompt.Key);
+                        }
                     }
                 }
             }
         }
 
-        private async Task<bool> GenerateImage(IStableDiffusionService stableDiffusionService, KeyValuePair<string, string> prompt, SchedulerType schedulerType, int iteration)
+        private async Task<bool> GenerateImage(IStableDiffusionService stableDiffusionService, StableDiffusionOptions options, string key)
         {
-            var outputFilename = Path.Combine(_outputDirectory, schedulerType.ToString(), $"{prompt.Key}_{iteration}.png");
-            var schedulerConfig = new SchedulerConfig
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}_{key}.png");
+            if (await stableDiffusionService.TextToImageFile(options, outputFilename))
             {
-                SchedulerType = schedulerType
-            };
-            if (await stableDiffusionService.TextToImageFile(prompt.Value, outputFilename, schedulerConfig))
-            {
-                OutputHelpers.WriteConsole($"{schedulerType} Image Created, FilePath: {outputFilename}", ConsoleColor.Green);
+                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created, FilePath: {outputFilename}", ConsoleColor.Green);
                 return true;
             }
             return false;

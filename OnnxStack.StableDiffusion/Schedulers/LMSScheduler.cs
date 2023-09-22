@@ -12,9 +12,9 @@ namespace OnnxStack.StableDiffusion.Schedulers
     {
         private readonly List<Tensor<float>> _derivatives;
        
-        public LMSScheduler() : this(new SchedulerConfig()) { }
+        public LMSScheduler() : this(new SchedulerOptions()) { }
 
-        public LMSScheduler(SchedulerConfig configuration) : base(configuration)
+        public LMSScheduler(SchedulerOptions configuration) : base(configuration)
         {
             _derivatives = new List<Tensor<float>>();
         }

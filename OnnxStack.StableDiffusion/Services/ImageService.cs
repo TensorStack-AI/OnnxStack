@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.StableDiffusion.Common;
+using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
@@ -8,12 +9,12 @@ namespace OnnxStack.StableDiffusion.Services
 {
     public class ImageService : IImageService
     {
-        public Image<Rgba32> TensorToImage(Tensor<float> imageTensor, int width, int height)
+        public Image<Rgba32> TensorToImage(StableDiffusionOptions options, Tensor<float> imageTensor)
         {
-            var result = new Image<Rgba32>(width, height);
-            for (var y = 0; y < height; y++)
+            var result = new Image<Rgba32>(options.Width, options.Height);
+            for (var y = 0; y < options.Height; y++)
             {
-                for (var x = 0; x < width; x++)
+                for (var x = 0; x < options.Width; x++)
                 {
                     result[x, y] = new Rgba32(
                         CalculateByte(imageTensor, 0, y, x),

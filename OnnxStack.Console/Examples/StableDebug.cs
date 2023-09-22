@@ -8,11 +8,13 @@ namespace OnnxStack.Console.Runner
 {
     public class StableDebug : IExampleRunner
     {
+        private readonly string _outputDirectory;
         private readonly OnnxStackConfig _configuration;
 
         public StableDebug(OnnxStackConfig configuration)
         {
             _configuration = configuration;
+            _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDebug));
         }
 
         public string Name => "Stable Diffusion Debug";
@@ -24,37 +26,41 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
+            Directory.CreateDirectory(_outputDirectory);
+
             var prompt = "an apple wearing a hat";
             using (var stableDiffusionService = new StableDiffusionService(_configuration))
             {
                 while (true)
                 {
-                    // Generate image using LMSScheduler
-                    await GenerateImage(stableDiffusionService, prompt, null, SchedulerType.LMSScheduler);
+                    var options = new StableDiffusionOptions
+                    {
+                        Prompt = prompt
+                    };
+                    foreach (var schedulerType in Enum.GetValues<SchedulerType>())
+                    {
+                        options.SchedulerType = schedulerType;
 
-
-                    // Generate image using EulerAncestralScheduler
-                    await GenerateImage(stableDiffusionService, prompt, null, SchedulerType.EulerAncestralScheduler);
+                        OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
+                        await GenerateImage(stableDiffusionService, options);
+                    }
                 }
             }
         }
 
-        private async Task<bool> GenerateImage(IStableDiffusionService stableDiffusionService, string prompt, string negativePrompt, SchedulerType schedulerType)
+
+        private async Task<bool> GenerateImage(IStableDiffusionService stableDiffusionService, StableDiffusionOptions options)
         {
             var timestamp = Stopwatch.GetTimestamp();
-            var outputPath = Path.Combine(Directory.GetCurrentDirectory(), "Images", $"{schedulerType}_{DateTime.Now.ToString("yyyyMMddHHmmSS")}.png");
-            var schedulerConfig = new SchedulerConfig
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
+            if (await stableDiffusionService.TextToImageFile(options, outputFilename))
             {
-                SchedulerType = schedulerType
-            };
-            if (await stableDiffusionService.TextToImageFile(prompt, negativePrompt, outputPath, schedulerConfig))
-            {
-                OutputHelpers.WriteConsole($"{schedulerType} Image Created, FilePath: {outputPath}", ConsoleColor.Green);
+                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created, FilePath: {outputFilename}", ConsoleColor.Green);
                 OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);
                 return true;
             }
 
-
+            OutputHelpers.WriteConsole($"Failed to create image", ConsoleColor.Red);
             return false;
         }
     }

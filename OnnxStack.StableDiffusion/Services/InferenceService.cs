@@ -37,30 +37,27 @@ namespace OnnxStack.StableDiffusion.Services
             _onnxTextEncoderInferenceSession = new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions);
         }
 
-        public Tensor<float> RunInference(string prompt, SchedulerConfig schedulerConfig)
-        {
-            return RunInference(prompt, null, schedulerConfig);
-        }
 
-        public Tensor<float> RunInference(string prompt, string negativePrompt, SchedulerConfig schedulerConfig)
+
+        public Tensor<float> RunInference(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
             // Get Scheduler
-            var scheduler = GetScheduler(schedulerConfig);
+            var scheduler = GetScheduler(options, schedulerConfig);
 
             // Get timesteps
-            var timesteps = scheduler.SetTimesteps(_configuration.NumInferenceSteps);
+            var timesteps = scheduler.SetTimesteps(options.NumInferenceSteps);
 
             // Preprocess text
-            var textEmbeddings = PreprocessText(prompt, negativePrompt);
+            var textEmbeddings = PreprocessText(options.Prompt, options.NegativePrompt);
 
             // create latent tensor
-            var latents = GenerateLatentSample(_configuration.Seed, scheduler.GetInitNoiseSigma());
+            var latents = GenerateLatentSample(options, scheduler.GetInitNoiseSigma());
 
 
             foreach (var timestep in timesteps)
             {
                 // torch.cat([latents] * 2)
-                var latentModelInput = TensorHelper.Duplicate(latents, new[] { 2, 4, _configuration.Height / 8, _configuration.Width / 8 });
+                var latentModelInput = TensorHelper.Duplicate(latents, new[] { 2, 4, options.Height / 8, options.Width / 8 });
 
                 // latent_model_input = scheduler.scale_model_input(latent_model_input, timestep = t)
                 latentModelInput = scheduler.ScaleInput(latentModelInput, timestep);
@@ -74,12 +71,12 @@ namespace OnnxStack.StableDiffusion.Services
                     var outputTensor = output.FirstElementAs<DenseTensor<float>>();
 
                     // Split tensors from 2,4,64,64 to 1,4,64,64
-                    var splitTensors = TensorHelper.SplitTensor(outputTensor, new[] { 1, 4, _configuration.Height / 8, _configuration.Width / 8 });
+                    var splitTensors = TensorHelper.SplitTensor(outputTensor, new[] { 1, 4, options.Height / 8, options.Width / 8 });
                     var noisePred = splitTensors.Item1;
                     var noisePredText = splitTensors.Item2;
 
                     // Perform guidance
-                    noisePred = PerformGuidance(noisePred, noisePredText, _configuration.GuidanceScale);
+                    noisePred = PerformGuidance(noisePred, noisePredText, options.GuidanceScale);
 
                     // LMS Scheduler Step
                     latents = scheduler.Step(noisePred, timestep, latents);
@@ -161,10 +158,10 @@ namespace OnnxStack.StableDiffusion.Services
         }
 
 
-        private Tensor<float> GenerateLatentSample(int seed, float initNoiseSigma)
+        private Tensor<float> GenerateLatentSample(StableDiffusionOptions options, float initNoiseSigma)
         {
-            var random = new Random(seed);
-            var latents = new DenseTensor<float>(new[] { 1, 4, _configuration.Height / 8, _configuration.Width / 8 });
+            var random = new Random(options.Seed);
+            var latents = new DenseTensor<float>(new[] { 1, 4, options.Height / 8, options.Width / 8 });
             for (int i = 0; i < latents.Length; i++)
             {
                 // Generate a random number from a normal distribution with mean 0 and variance 1
@@ -214,9 +211,9 @@ namespace OnnxStack.StableDiffusion.Services
 
 
 
-        private SchedulerBase GetScheduler(SchedulerConfig schedulerConfig)
+        private SchedulerBase GetScheduler(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
-            return schedulerConfig.SchedulerType switch
+            return options.SchedulerType switch
             {
                 SchedulerType.LMSScheduler => new LMSScheduler(schedulerConfig),
                 SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(schedulerConfig),

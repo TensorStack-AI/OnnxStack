@@ -7,8 +7,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
 {
     public class EulerAncestralScheduler : SchedulerBase
     {
-        public EulerAncestralScheduler() : base(new SchedulerConfig()) { }
-        public EulerAncestralScheduler(SchedulerConfig schedulerConfig) : base(schedulerConfig) { }
+        public EulerAncestralScheduler() : base(new SchedulerOptions()) { }
+        public EulerAncestralScheduler(SchedulerOptions schedulerConfig) : base(schedulerConfig) { }
 
         public override DenseTensor<float> Step(Tensor<float> modelOutput, int timestep, Tensor<float> sample, int order = 4)
         {

@@ -8,14 +8,10 @@ namespace OnnxStack.StableDiffusion.Common
 {
     public interface IStableDiffusionService : IDisposable
     {
-        Task<Image<Rgba32>> TextToImage(string prompt);
-        Task<Image<Rgba32>> TextToImage(string prompt, string negativePrompt);
-        Task<Image<Rgba32>> TextToImage(string prompt, SchedulerConfig schedulerConfig);
-        Task<Image<Rgba32>> TextToImage(string prompt, string negativePrompt, SchedulerConfig schedulerConfig);
+        Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options);
+        Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options, SchedulerOptions schedulerOptions);
 
-        Task<bool> TextToImageFile(string prompt, string filename);
-        Task<bool> TextToImageFile(string prompt, string negativePrompt, string filename);
-        Task<bool> TextToImageFile(string prompt, string filename, SchedulerConfig schedulerConfig);
-        Task<bool> TextToImageFile(string prompt, string negativePrompt, string filename, SchedulerConfig schedulerConfig);
+        Task<bool> TextToImageFile(StableDiffusionOptions options, string outputFile);
+        Task<bool> TextToImageFile(StableDiffusionOptions options, SchedulerOptions schedulerOptions, string outputFile);
     }
 }
