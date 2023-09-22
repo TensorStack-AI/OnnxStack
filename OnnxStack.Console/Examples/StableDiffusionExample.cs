@@ -8,11 +8,11 @@ namespace OnnxStack.Console.Runner
     public class StableDiffusionExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly OnnxStackConfig _configuration;
+        private readonly IStableDiffusionService _stableDiffusionService;
 
-        public StableDiffusionExample(OnnxStackConfig configuration)
+        public StableDiffusionExample(IStableDiffusionService stableDiffusionService)
         {
-            _configuration = configuration;
+            _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionExample));
         }
 
@@ -27,37 +27,34 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
-            using (var stableDiffusionService = new StableDiffusionService(_configuration))
+            while (true)
             {
-                while (true)
+                OutputHelpers.WriteConsole("Please type a prompt and press ENTER", ConsoleColor.Yellow);
+                var prompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
+
+                OutputHelpers.WriteConsole("Please type a negative prompt and press ENTER (optional)", ConsoleColor.Yellow);
+                var negativePrompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
+
+                var options = new StableDiffusionOptions
                 {
-                    OutputHelpers.WriteConsole("Please type a prompt and press ENTER", ConsoleColor.Yellow);
-                    var prompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
+                    Prompt = prompt,
+                    NegativePrompt = negativePrompt,
+                    Seed = Random.Shared.Next()
+                };
+                foreach (var schedulerType in Enum.GetValues<SchedulerType>())
+                {
+                    options.SchedulerType = schedulerType;
 
-                    OutputHelpers.WriteConsole("Please type a negative prompt and press ENTER (optional)", ConsoleColor.Yellow);
-                    var negativePrompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
-
-                    var options = new StableDiffusionOptions
-                    {
-                        Prompt = prompt,
-                        NegativePrompt = negativePrompt,
-                        Seed = Random.Shared.Next()
-                    };
-                    foreach (var schedulerType in Enum.GetValues<SchedulerType>())
-                    {
-                        options.SchedulerType = schedulerType;
-
-                        OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                        await GenerateImage(stableDiffusionService, options);
-                    }
+                    OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
+                    await GenerateImage(options);
                 }
             }
         }
 
-        private async Task<bool> GenerateImage(IStableDiffusionService stableDiffusionService, StableDiffusionOptions options)
+        private async Task<bool> GenerateImage(StableDiffusionOptions options)
         {
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            if (await stableDiffusionService.TextToImageFile(options, outputFilename))
+            if (await _stableDiffusionService.TextToImageFile(options, outputFilename))
             {
                 OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created, FilePath: {outputFilename}", ConsoleColor.Green);
                 return true;

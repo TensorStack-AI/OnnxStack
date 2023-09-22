@@ -1,7 +1,5 @@
-﻿using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Services;
 using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
@@ -9,11 +7,11 @@ namespace OnnxStack.Console.Runner
     public class StableDebug : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly OnnxStackConfig _configuration;
+        private readonly IStableDiffusionService _stableDiffusionService;
 
-        public StableDebug(OnnxStackConfig configuration)
+        public StableDebug(IStableDiffusionService stableDiffusionService)
         {
-            _configuration = configuration;
+            _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDebug));
         }
 
@@ -29,33 +27,30 @@ namespace OnnxStack.Console.Runner
             Directory.CreateDirectory(_outputDirectory);
 
             var prompt = "an apple wearing a hat";
-            using (var stableDiffusionService = new StableDiffusionService(_configuration))
+            while (true)
             {
-                while (true)
+                var options = new StableDiffusionOptions
                 {
-                    var options = new StableDiffusionOptions
-                    {
-                        Prompt = prompt,
-                        //Seed = 42069
-                        Seed = Random.Shared.Next()
-                    };
-                    foreach (var schedulerType in Enum.GetValues<SchedulerType>())
-                    {
-                        options.SchedulerType = schedulerType;
-
-                        OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                        await GenerateImage(stableDiffusionService, options);
-                    }
+                    Prompt = prompt,
+                    //Seed = 42069
+                    Seed = Random.Shared.Next()
+                };
+                foreach (var schedulerType in Enum.GetValues<SchedulerType>())
+                {
+                    options.SchedulerType = schedulerType;
+                    OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
+                    await GenerateImage(options);
                 }
             }
+
         }
 
 
-        private async Task<bool> GenerateImage(IStableDiffusionService stableDiffusionService, StableDiffusionOptions options)
+        private async Task<bool> GenerateImage(StableDiffusionOptions options)
         {
             var timestamp = Stopwatch.GetTimestamp();
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            if (await stableDiffusionService.TextToImageFile(options, outputFilename))
+            if (await _stableDiffusionService.TextToImageFile(options, outputFilename))
             {
                 OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created, FilePath: {outputFilename}", ConsoleColor.Green);
                 OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);

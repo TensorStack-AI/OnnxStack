@@ -4,7 +4,7 @@ using System;
 
 namespace OnnxStack.StableDiffusion.Common
 {
-    public interface IInferenceService : IDisposable
+    public interface IInferenceService
     {
         int[] TokenizeText(string text);
         DenseTensor<float> PreprocessText(string prompt, string negativePrompt);

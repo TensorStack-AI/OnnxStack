@@ -16,6 +16,7 @@ namespace OnnxStack.Console
 
             // Add OnnxStack
             builder.Services.AddOnnxStack();
+            builder.Services.AddOnnxStackStableDiffusion();
 
             // Add AppService
             builder.Services.AddHostedService<AppService>();

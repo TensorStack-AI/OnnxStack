@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Common
 {
-    public interface IStableDiffusionService : IDisposable
+    public interface IStableDiffusionService
     {
         Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options);
         Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options, SchedulerOptions schedulerOptions);

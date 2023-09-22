@@ -11,6 +11,7 @@ using System.Linq;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using OnnxStack.Core.Services;
 
 namespace OnnxStack.StableDiffusion.Services
 {
@@ -21,29 +22,15 @@ namespace OnnxStack.StableDiffusion.Services
         private const int BlankTokenValue = 49407;
 
         private readonly int[] _emptyUncondInput;
-        private readonly SessionOptions _sessionOptions;
         private readonly OnnxStackConfig _configuration;
-        private readonly InferenceSession _onnxUnetInferenceSession;
-        private readonly InferenceSession _onnxTokenizerInferenceSession;
-        private readonly InferenceSession _onnxVaeDecoderInferenceSession;
-        private readonly InferenceSession _onnxTextEncoderInferenceSession;
-        private readonly InferenceSession _onnxSafetyModelInferenceSession;
+        private readonly IOnnxModelService _onnxModelService;
 
-        public InferenceService(OnnxStackConfig configuration)
+        public InferenceService(OnnxStackConfig configuration, IOnnxModelService onnxModelService)
         {
             _configuration = configuration;
-            _sessionOptions = _configuration.GetSessionOptions();
-            _sessionOptions.RegisterOrtExtensions();
+            _onnxModelService = onnxModelService;
             _emptyUncondInput = Enumerable.Repeat(BlankTokenValue, ModelMaxLength).ToArray();
-            _onnxUnetInferenceSession = new InferenceSession(_configuration.OnnxUnetPath, _sessionOptions);
-            _onnxTokenizerInferenceSession = new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions);
-            _onnxVaeDecoderInferenceSession = new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions);
-            _onnxTextEncoderInferenceSession = new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions);
-            if (_configuration.IsSafetyModelEnabled)
-                _onnxSafetyModelInferenceSession = new InferenceSession(_configuration.OnnxSafetyModelPath, _sessionOptions);
         }
-
-
 
         public Tensor<float> RunInference(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
@@ -71,11 +58,11 @@ namespace OnnxStack.StableDiffusion.Services
                 // latent_model_input = scheduler.scale_model_input(latent_model_input, timestep = t)
                 latentModelInput = scheduler.ScaleInput(latentModelInput, timestep);
 
-               // Console.WriteLine($"scaled model input {latentModelInput[0]} at step {timestep}. Max {latentModelInput.Max()} Min {latentModelInput.Min()}");
+                // Console.WriteLine($"scaled model input {latentModelInput[0]} at step {timestep}. Max {latentModelInput.Max()} Min {latentModelInput.Min()}");
                 var input = CreateUnetModelInput(textEmbeddings, latentModelInput, timestep);
 
                 // Run Inference
-                using (var output = _onnxUnetInferenceSession.Run(input))
+                using (var output = _onnxModelService.RunInference( OnnxModelType.Unet, input))
                 {
                     var outputTensor = output.FirstElementAs<DenseTensor<float>>();
 
@@ -102,7 +89,7 @@ namespace OnnxStack.StableDiffusion.Services
             };
 
             // Decode Latents
-            using (var decoderOutput = _onnxVaeDecoderInferenceSession.Run(decoderInput))
+            using (var decoderOutput = _onnxModelService.RunInference( OnnxModelType.VaeDecoder, decoderInput))
             {
                 var imageResultTensor = decoderOutput.FirstElementAs<Tensor<float>>();
                 if (_configuration.IsSafetyModelEnabled)
@@ -150,7 +137,7 @@ namespace OnnxStack.StableDiffusion.Services
 
             // Create an InferenceSession from the onnx clip tokenizer.
             // Run session and send the input data in to get inference output. 
-            using (var tokens = _onnxTokenizerInferenceSession.Run(inputString))
+            using (var tokens = _onnxModelService.RunInference(  OnnxModelType.Tokenizer, inputString))
             {
                 var resultTensor = tokens.FirstElementAs<Tensor<long>>();
                 Console.WriteLine(string.Join(" ", resultTensor));
@@ -209,7 +196,7 @@ namespace OnnxStack.StableDiffusion.Services
             var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input_ids", input_ids) };
 
             // Run inference.
-            using (var encoded = _onnxTextEncoderInferenceSession.Run(input))
+            using (var encoded = _onnxModelService.RunInference( OnnxModelType.TextEncoder, input))
             {
                 return encoded.FirstElementAs<DenseTensor<float>>().Clone();
             }
@@ -254,7 +241,7 @@ namespace OnnxStack.StableDiffusion.Services
             };
 
             // Run session and send the input data in to get inference output. 
-            using (var output = _onnxSafetyModelInferenceSession.Run(input))
+            using (var output = _onnxModelService.RunInference( OnnxModelType.SafetyModel, input))
             {
                 var result = output.LastElementAs<IEnumerable<bool>>();
                 return !result.First();
@@ -333,16 +320,6 @@ namespace OnnxStack.StableDiffusion.Services
             }
 
             return input;
-        }
-
-        public void Dispose()
-        {
-            _sessionOptions.Dispose();
-            _onnxUnetInferenceSession.Dispose();
-            _onnxTokenizerInferenceSession.Dispose();
-            _onnxVaeDecoderInferenceSession.Dispose();
-            _onnxTextEncoderInferenceSession.Dispose();
-            _onnxSafetyModelInferenceSession?.Dispose();
         }
     }
 }

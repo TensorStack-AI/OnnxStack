@@ -17,13 +17,7 @@
     <PackageReference Include="NumSharp" Version="0.30.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
     <PackageReference Include="Microsoft.ML" Version="2.0.1" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.15.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="cliptokenizer.onnx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.16.0" />
   </ItemGroup>
   
 </Project>

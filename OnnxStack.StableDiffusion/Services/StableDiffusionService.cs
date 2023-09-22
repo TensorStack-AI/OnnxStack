@@ -1,5 +1,4 @@
-﻿using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,13 +10,11 @@ namespace OnnxStack.StableDiffusion.Services
     {
         private readonly IImageService _imageService;
         private readonly IInferenceService _inferenceService;
-        private readonly OnnxStackConfig _configuration;
 
-        public StableDiffusionService(OnnxStackConfig configuration)
+        public StableDiffusionService(IInferenceService inferenceService, IImageService imageService)
         {
-            _configuration = configuration;
-            _imageService = new ImageService();
-            _inferenceService = new InferenceService(_configuration);
+            _imageService = imageService;
+            _inferenceService = inferenceService;
         }
 
         public Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options)
@@ -58,11 +55,6 @@ namespace OnnxStack.StableDiffusion.Services
 
             await image.SaveAsync(outputFile);
             return true;
-        }
-
-        public void Dispose()
-        {
-            _inferenceService.Dispose();
         }
     }
 }
