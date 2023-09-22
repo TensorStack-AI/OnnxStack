@@ -1,6 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Services
@@ -13,11 +14,7 @@ namespace OnnxStack.Core.Services
     {
         private readonly SessionOptions _sessionOptions;
         private readonly OnnxStackConfig _configuration;
-        private readonly InferenceSession _onnxUnetInferenceSession;
-        private readonly InferenceSession _onnxTokenizerInferenceSession;
-        private readonly InferenceSession _onnxVaeDecoderInferenceSession;
-        private readonly InferenceSession _onnxTextEncoderInferenceSession;
-        private readonly InferenceSession _onnxSafetyModelInferenceSession;
+        private readonly ImmutableDictionary<OnnxModelType, InferenceSession> _modelInferenceSessions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxModelService"/> class.
@@ -28,12 +25,17 @@ namespace OnnxStack.Core.Services
             _configuration = configuration;
             _sessionOptions = _configuration.GetSessionOptions();
             _sessionOptions.RegisterOrtExtensions();
-            _onnxUnetInferenceSession = new InferenceSession(_configuration.OnnxUnetPath, _sessionOptions);
-            _onnxTokenizerInferenceSession = new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions);
-            _onnxVaeDecoderInferenceSession = new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions);
-            _onnxTextEncoderInferenceSession = new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions);
+            var modelInferenceSessions = new Dictionary<OnnxModelType, InferenceSession>
+            {
+                {OnnxModelType.Unet,new InferenceSession(_configuration.OnnxUnetPath, _sessionOptions) },
+                {OnnxModelType.Tokenizer,new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions) },
+                {OnnxModelType.VaeDecoder,new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions) },
+                {OnnxModelType.TextEncoder,new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions)}
+            };
             if (_configuration.IsSafetyModelEnabled)
-                _onnxSafetyModelInferenceSession = new InferenceSession(_configuration.OnnxSafetyModelPath, _sessionOptions);
+                modelInferenceSessions.Add(OnnxModelType.SafetyModel, new InferenceSession(_configuration.OnnxSafetyModelPath, _sessionOptions));
+
+            _modelInferenceSessions = modelInferenceSessions.ToImmutableDictionary();
         }
 
 
@@ -68,26 +70,17 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInternal(OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
         {
-            return modelType switch
-            {
-                OnnxModelType.Unet => _onnxUnetInferenceSession.Run(inputs),
-                OnnxModelType.Tokenizer => _onnxTokenizerInferenceSession.Run(inputs),
-                OnnxModelType.VaeDecoder => _onnxVaeDecoderInferenceSession.Run(inputs),
-                OnnxModelType.TextEncoder => _onnxTextEncoderInferenceSession.Run(inputs),
-                OnnxModelType.SafetyModel => _onnxSafetyModelInferenceSession.Run(inputs),
-                _ => default
-            };
+            return _modelInferenceSessions[modelType]?.Run(inputs);
         }
 
 
         public void Dispose()
         {
             _sessionOptions?.Dispose();
-            _onnxUnetInferenceSession?.Dispose();
-            _onnxTokenizerInferenceSession?.Dispose();
-            _onnxVaeDecoderInferenceSession?.Dispose();
-            _onnxTextEncoderInferenceSession?.Dispose();
-            _onnxSafetyModelInferenceSession?.Dispose();
+            foreach (var modelInferenceSession in _modelInferenceSessions.Values)
+            {
+                modelInferenceSession?.Dispose();
+            }
         }
     }
 }
