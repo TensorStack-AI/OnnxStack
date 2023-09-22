@@ -7,8 +7,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
 {
     public class EulerAncestralScheduler : SchedulerBase
     {
-        public EulerAncestralScheduler() : base(new SchedulerOptions()) { }
-        public EulerAncestralScheduler(SchedulerOptions schedulerConfig) : base(schedulerConfig) { }
+        public EulerAncestralScheduler(StableDiffusionOptions stableDiffusionOptions)
+            : this(stableDiffusionOptions, new SchedulerOptions()) { }
+
+        public EulerAncestralScheduler(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
+            : base(stableDiffusionOptions, schedulerOptions) { }
 
         public override DenseTensor<float> Step(Tensor<float> modelOutput, int timestep, Tensor<float> sample, int order = 4)
         {
@@ -38,7 +41,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var dt = sigmaDown - sigma;
             var prevSample = TensorHelper.AddTensors(sample, TensorHelper.MultipleTensorByFloat(derivative, dt));
 
-            var noise = TensorHelper.GetRandomTensor(prevSample.Dimensions);
+            var noise = TensorHelper.GetRandomTensor(_random, prevSample.Dimensions);
             var noiseSigmaUpProduct = TensorHelper.MultipleTensorByFloat(noise, sigmaUp);
             prevSample = TensorHelper.AddTensors(prevSample, noiseSigmaUpProduct);
             return prevSample;

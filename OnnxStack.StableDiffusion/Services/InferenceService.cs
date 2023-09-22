@@ -41,6 +41,9 @@ namespace OnnxStack.StableDiffusion.Services
 
         public Tensor<float> RunInference(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
+            // Create random seed if none was set
+            options.Seed = options.Seed > 0 ? options.Seed : Random.Shared.Next();
+
             // Get Scheduler
             var scheduler = GetScheduler(options, schedulerConfig);
 
@@ -161,21 +164,7 @@ namespace OnnxStack.StableDiffusion.Services
         private Tensor<float> GenerateLatentSample(StableDiffusionOptions options, float initNoiseSigma)
         {
             var random = new Random(options.Seed);
-            var latents = new DenseTensor<float>(new[] { 1, 4, options.Height / 8, options.Width / 8 });
-            for (int i = 0; i < latents.Length; i++)
-            {
-                // Generate a random number from a normal distribution with mean 0 and variance 1
-                var u1 = random.NextDouble(); // Uniform(0,1) random number
-                var u2 = random.NextDouble(); // Uniform(0,1) random number
-                var radius = Math.Sqrt(-2.0 * Math.Log(u1)); // Radius of polar coordinates
-                var theta = 2.0 * Math.PI * u2; // Angle of polar coordinates
-                var standardNormalRand = radius * Math.Cos(theta); // Standard normal random number
-
-                // add noise to latents with * scheduler.init_noise_sigma
-                // generate randoms that are negative and positive
-                latents.SetValue(i, (float)standardNormalRand * initNoiseSigma);
-            }
-            return latents;
+            return TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.Height / 8, options.Width / 8 }, initNoiseSigma);
         }
 
         private Tensor<float> PerformGuidance(Tensor<float> noisePred, Tensor<float> noisePredText, double guidanceScale)
@@ -215,8 +204,8 @@ namespace OnnxStack.StableDiffusion.Services
         {
             return options.SchedulerType switch
             {
-                SchedulerType.LMSScheduler => new LMSScheduler(schedulerConfig),
-                SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(schedulerConfig),
+                SchedulerType.LMSScheduler => new LMSScheduler(options, schedulerConfig),
+                SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(options, schedulerConfig),
                 _ => default
             };
         }

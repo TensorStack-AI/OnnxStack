@@ -1,26 +1,22 @@
-﻿using System;
-
-namespace OnnxStack.StableDiffusion.Config
+﻿namespace OnnxStack.StableDiffusion.Config
 {
     public class StableDiffusionOptions
     {
-        private int _seed;
-
         /// <summary>
-        /// Gets or sets the height.
+        /// Gets or sets the height. (Fixed to 512 at the moment)
         /// </summary>
         /// <value>
         ///  The height of the image. Default is 512 and must be a multiple of 8.
         /// </value>
-        public int Height { get; set; } = 512;
+        public int Height { get; } = 512;
 
         /// <summary>
-        /// Gets or sets the width.
+        /// Gets or sets the width. (Fixed to 512 at the moment)
         /// </summary>
         /// <value>
         /// The width of the image. Default is 512 and must be a multiple of 8.
         /// </value>
-        public int Width { get; set; } = 512;
+        public int Width { get; } = 512;
 
         /// <summary>
         /// Gets or sets the number inference steps.
@@ -38,27 +34,13 @@ namespace OnnxStack.StableDiffusion.Config
         /// </value>
         public double GuidanceScale { get; set; } = 7.5;
 
-
-
         /// <summary>
         /// Gets or sets the seed.
         /// </summary>
         /// <value>
-        /// If value is set to 0 a random seed is returned.
+        /// If value is set to 0 a random seed is used.
         /// </value>
-        public int Seed
-        {
-            get
-            { 
-                if(_seed > 0)
-                    return _seed;
-
-                _seed = Random.Shared.Next();
-                return _seed;
-            }
-            set { _seed = value; }
-        }
-
+        public int Seed { get; set; }
 
         public string Prompt { get; set; }
 
@@ -68,9 +50,6 @@ namespace OnnxStack.StableDiffusion.Config
 
         public void Initialize()
         {
-           
         }
-
-
     }
 }

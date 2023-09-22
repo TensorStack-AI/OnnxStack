@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.StableDiffusion.Config;
 using System;
 using System.Linq;
 
@@ -97,9 +98,8 @@ namespace OnnxStack.StableDiffusion.Helpers
             return SubtractTensors(sample, subTensor, sample.Dimensions);
         }
 
-        public static DenseTensor<float> GetRandomTensor(ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> GetRandomTensor(Random random, ReadOnlySpan<int> dimensions, float initNoiseSigma = 1f)
         {
-            var random = new Random();
             var latents = new DenseTensor<float>(dimensions);
             for (int i = 0; i < latents.Length; i++)
             {
@@ -109,7 +109,7 @@ namespace OnnxStack.StableDiffusion.Helpers
                 var radius = Math.Sqrt(-2.0 * Math.Log(u1)); // Radius of polar coordinates
                 var theta = 2.0 * Math.PI * u2; // Angle of polar coordinates
                 var standardNormalRand = radius * Math.Cos(theta); // Standard normal random number
-                latents.SetValue(i, (float)standardNormalRand);
+                latents.SetValue(i, (float)standardNormalRand * initNoiseSigma);
             }
             return latents;
         }

@@ -10,7 +10,9 @@ namespace OnnxStack.StableDiffusion.Schedulers
 {
     public abstract class SchedulerBase
     {
-        protected readonly SchedulerOptions _configuration;
+        protected readonly Random _random;
+        protected readonly SchedulerOptions _schedulerOptions;
+        protected readonly StableDiffusionOptions _stableDiffusionOptions;
 
         protected List<int> _timesteps;
         protected float _initNoiseSigma;
@@ -19,9 +21,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected List<float> _alphasCumulativeProducts;
         protected List<double> _computedSigmas;
 
-        public SchedulerBase(SchedulerOptions schedulerConfig)
+        public SchedulerBase(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
         {
-            _configuration = schedulerConfig;
+            _schedulerOptions = schedulerOptions;
+            _stableDiffusionOptions = stableDiffusionOptions;
+            _random = new Random(_stableDiffusionOptions.Seed);
             Initialize();
         }
 
@@ -32,7 +36,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         public virtual int[] SetTimesteps(int inferenceSteps)
         {
             double start = 0;
-            double stop = _configuration.TrainTimesteps - 1;
+            double stop = _schedulerOptions.TrainTimesteps - 1;
             double[] timesteps = np.linspace(start, stop, inferenceSteps).ToArray<double>();
 
             _timesteps = timesteps.Select(x => (int)x)
@@ -70,21 +74,21 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var alphas = new List<float>();
             var betas = new List<float>();
 
-            if (_configuration.TrainedBetas != null)
+            if (_schedulerOptions.TrainedBetas != null)
             {
-                betas = _configuration.TrainedBetas.ToList();
+                betas = _schedulerOptions.TrainedBetas.ToList();
             }
-            else if (_configuration.BetaSchedule == SchedulerBetaSchedule.Linear)
+            else if (_schedulerOptions.BetaSchedule == SchedulerBetaSchedule.Linear)
             {
-                betas = Enumerable.Range(0, _configuration.TrainTimesteps)
-                    .Select(i => _configuration.BetaStart + (_configuration.BetaEnd - _configuration.BetaStart) * i / (_configuration.TrainTimesteps - 1))
+                betas = Enumerable.Range(0, _schedulerOptions.TrainTimesteps)
+                    .Select(i => _schedulerOptions.BetaStart + (_schedulerOptions.BetaEnd - _schedulerOptions.BetaStart) * i / (_schedulerOptions.TrainTimesteps - 1))
                     .ToList();
             }
-            else if (_configuration.BetaSchedule == SchedulerBetaSchedule.ScaledLinear)
+            else if (_schedulerOptions.BetaSchedule == SchedulerBetaSchedule.ScaledLinear)
             {
-                var start = (float)Math.Sqrt(_configuration.BetaStart);
-                var end = (float)Math.Sqrt(_configuration.BetaEnd);
-                betas = np.linspace(start, end, _configuration.TrainTimesteps)
+                var start = (float)Math.Sqrt(_schedulerOptions.BetaStart);
+                var end = (float)Math.Sqrt(_schedulerOptions.BetaEnd);
+                betas = np.linspace(start, end, _schedulerOptions.TrainTimesteps)
                     .ToArray<float>()
                     .Select(x => x * x)
                     .ToList();
