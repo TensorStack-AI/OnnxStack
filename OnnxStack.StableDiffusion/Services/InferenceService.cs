@@ -8,6 +8,9 @@ using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace OnnxStack.StableDiffusion.Services
 {
@@ -24,6 +27,7 @@ namespace OnnxStack.StableDiffusion.Services
         private readonly InferenceSession _onnxTokenizerInferenceSession;
         private readonly InferenceSession _onnxVaeDecoderInferenceSession;
         private readonly InferenceSession _onnxTextEncoderInferenceSession;
+        private readonly InferenceSession _onnxSafetyModelInferenceSession;
 
         public InferenceService(OnnxStackConfig configuration)
         {
@@ -35,6 +39,8 @@ namespace OnnxStack.StableDiffusion.Services
             _onnxTokenizerInferenceSession = new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions);
             _onnxVaeDecoderInferenceSession = new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions);
             _onnxTextEncoderInferenceSession = new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions);
+            if (_configuration.IsSafetyModelEnabled)
+                _onnxSafetyModelInferenceSession = new InferenceSession(_configuration.OnnxSafetyModelPath, _sessionOptions);
         }
 
 
@@ -56,7 +62,7 @@ namespace OnnxStack.StableDiffusion.Services
             // create latent tensor
             var latents = GenerateLatentSample(options, scheduler.GetInitNoiseSigma());
 
-
+            // Loop though the timesteps
             foreach (var timestep in timesteps)
             {
                 // torch.cat([latents] * 2)
@@ -95,11 +101,22 @@ namespace OnnxStack.StableDiffusion.Services
                 NamedOnnxValue.CreateFromTensor("latent_sample", latents)
             };
 
+            // Decode Latents
             using (var decoderOutput = _onnxVaeDecoderInferenceSession.Run(decoderInput))
             {
-                return decoderOutput.FirstElementAs<Tensor<float>>().Clone();
+                var imageResultTensor = decoderOutput.FirstElementAs<Tensor<float>>();
+                if (_configuration.IsSafetyModelEnabled)
+                {
+                    // Check if image contains NSFW content, if it does return empty tensor (grey image)
+                    if (!IsImageSafe(options, imageResultTensor))
+                        return imageResultTensor.CloneEmpty();
+                }
+
+                // Clone output so it does not get disposed
+                return imageResultTensor.Clone();
             }
         }
+
 
         public DenseTensor<float> PreprocessText(string prompt, string negativePrompt)
         {
@@ -209,6 +226,115 @@ namespace OnnxStack.StableDiffusion.Services
                 _ => default
             };
         }
+
+
+        /// <summary>
+        /// Determines whether the specified result image is not NSFW.
+        /// </summary>
+        /// <param name="resultImage">The result image.</param>
+        /// <param name="config">The configuration.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified result image is safe; otherwise, <c>false</c>.
+        /// </returns>
+        private bool IsImageSafe(StableDiffusionOptions options, Tensor<float> resultImage)
+        {
+            //clip input
+            var inputTensor = ClipImageFeatureExtractor(options, resultImage);
+
+            //images input
+            var inputImagesTensor = ReorderTensor(inputTensor, new[] { 1, 224, 224, 3 });
+
+            var input = new List<NamedOnnxValue>
+            {
+                //batch channel height width
+                 NamedOnnxValue.CreateFromTensor("clip_input", inputTensor),
+
+                 //batch, height, width, channel
+                 NamedOnnxValue.CreateFromTensor("images", inputImagesTensor)
+            };
+
+            // Run session and send the input data in to get inference output. 
+            using (var output = _onnxSafetyModelInferenceSession.Run(input))
+            {
+                var result = output.LastElementAs<IEnumerable<bool>>();
+                return !result.First();
+            }
+        }
+
+
+        /// <summary>
+        /// Reorders the tensor.
+        /// </summary>
+        /// <param name="inputTensor">The input tensor.</param>
+        /// <returns></returns>
+        private DenseTensor<float> ReorderTensor(Tensor<float> inputTensor, ReadOnlySpan<int> dimensions)
+        {
+            //reorder from batch channel height width to batch height width channel
+            var inputImagesTensor = new DenseTensor<float>(dimensions);
+            for (int y = 0; y < inputTensor.Dimensions[2]; y++)
+            {
+                for (int x = 0; x < inputTensor.Dimensions[3]; x++)
+                {
+                    inputImagesTensor[0, y, x, 0] = inputTensor[0, 0, y, x];
+                    inputImagesTensor[0, y, x, 1] = inputTensor[0, 1, y, x];
+                    inputImagesTensor[0, y, x, 2] = inputTensor[0, 2, y, x];
+                }
+            }
+            return inputImagesTensor;
+        }
+
+
+        /// <summary>
+        /// Image feature extractor.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <returns></returns>
+        private DenseTensor<float> ClipImageFeatureExtractor(StableDiffusionOptions options, Tensor<float> imageTensor)
+        {
+            //convert tensor result to image
+            var image = new Image<Rgba32>(options.Width, options.Height);
+
+            for (var y = 0; y < options.Height; y++)
+            {
+                for (var x = 0; x < options.Width; x++)
+                {
+                    image[x, y] = new Rgba32(
+                        (byte)Math.Round(Math.Clamp(imageTensor[0, 0, y, x] / 2 + 0.5, 0, 1) * 255),
+                        (byte)Math.Round(Math.Clamp(imageTensor[0, 1, y, x] / 2 + 0.5, 0, 1) * 255),
+                        (byte)Math.Round(Math.Clamp(imageTensor[0, 2, y, x] / 2 + 0.5, 0, 1) * 255)
+                    );
+                }
+            }
+
+            // Resize image
+            image.Mutate(x =>
+            {
+                x.Resize(new ResizeOptions
+                {
+                    Size = new Size(224, 224),
+                    Mode = ResizeMode.Crop
+                });
+            });
+
+            // Preprocess image
+            var input = new DenseTensor<float>(new[] { 1, 3, 224, 224 });
+            var mean = new[] { 0.485f, 0.456f, 0.406f };
+            var stddev = new[] { 0.229f, 0.224f, 0.225f };
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> pixelSpan = image.GetPixelRowSpan(y);
+
+                for (int x = 0; x < image.Width; x++)
+                {
+                    input[0, 0, y, x] = (pixelSpan[x].R / 255f - mean[0]) / stddev[0];
+                    input[0, 1, y, x] = (pixelSpan[x].G / 255f - mean[1]) / stddev[1];
+                    input[0, 2, y, x] = (pixelSpan[x].B / 255f - mean[2]) / stddev[2];
+                }
+            }
+
+            return input;
+        }
+
         public void Dispose()
         {
             _sessionOptions.Dispose();
@@ -216,6 +342,7 @@ namespace OnnxStack.StableDiffusion.Services
             _onnxTokenizerInferenceSession.Dispose();
             _onnxVaeDecoderInferenceSession.Dispose();
             _onnxTextEncoderInferenceSession.Dispose();
+            _onnxSafetyModelInferenceSession?.Dispose();
         }
     }
 }

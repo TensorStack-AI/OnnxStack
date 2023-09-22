@@ -40,7 +40,8 @@ namespace OnnxStack.Console.Runner
                     var options = new StableDiffusionOptions
                     {
                         Prompt = prompt,
-                        NegativePrompt = negativePrompt
+                        NegativePrompt = negativePrompt,
+                        Seed = Random.Shared.Next()
                     };
                     foreach (var schedulerType in Enum.GetValues<SchedulerType>())
                     {

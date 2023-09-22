@@ -24,6 +24,8 @@ namespace OnnxStack.Core.Config
         public string OnnxUnetPath { get; set; }
         public string OnnxVaeDecoderPath { get; set; }
         public string OnnxTextEncoderPath { get; set; }
+        public string OnnxSafetyModelPath { get; set; }
+        public bool IsSafetyModelEnabled { get; set; }
 
         public void Initialize()
         {

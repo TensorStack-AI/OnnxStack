@@ -35,7 +35,9 @@ namespace OnnxStack.Console.Runner
                 {
                     var options = new StableDiffusionOptions
                     {
-                        Prompt = prompt
+                        Prompt = prompt,
+                        //Seed = 42069
+                        Seed = Random.Shared.Next()
                     };
                     foreach (var schedulerType in Enum.GetValues<SchedulerType>())
                     {
