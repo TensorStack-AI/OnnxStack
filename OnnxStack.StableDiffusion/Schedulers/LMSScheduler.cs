@@ -8,9 +8,9 @@ using System;
 
 namespace OnnxStack.StableDiffusion.Schedulers
 {
-    public class LMSScheduler : SchedulerBase
+    public sealed class LMSScheduler : SchedulerBase
     {
-        private readonly List<Tensor<float>> _derivatives;
+        private readonly List<DenseTensor<float>> _derivatives;
        
         public LMSScheduler(StableDiffusionOptions stableDiffusionOptions) 
             : this(stableDiffusionOptions, new SchedulerOptions()) { }
@@ -18,10 +18,10 @@ namespace OnnxStack.StableDiffusion.Schedulers
         public LMSScheduler(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions) 
             : base(stableDiffusionOptions, schedulerOptions)
         {
-            _derivatives = new List<Tensor<float>>();
+            _derivatives = new List<DenseTensor<float>>();
         }
 
-        public override DenseTensor<float> Step(Tensor<float> modelOutput, int timestep, Tensor<float> sample, int order = 4)
+        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             int stepIndex = _timesteps.IndexOf(timestep);
             var sigma = _sigmasTensor[stepIndex];
@@ -61,7 +61,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 .ToArray();
 
             // Create tensor for product of lmscoeffs and derivatives
-            var lmsDerProduct = new Tensor<float>[_derivatives.Count];
+            var lmsDerProduct = new DenseTensor<float>[_derivatives.Count];
 
             for (int i = 0; i < lmsCoeffsAndDerivatives.Length; i++)
             {

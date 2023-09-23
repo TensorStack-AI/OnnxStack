@@ -5,7 +5,7 @@ using System;
 
 namespace OnnxStack.StableDiffusion.Schedulers
 {
-    public class EulerAncestralScheduler : SchedulerBase
+    public sealed class EulerAncestralScheduler : SchedulerBase
     {
         public EulerAncestralScheduler(StableDiffusionOptions stableDiffusionOptions)
             : this(stableDiffusionOptions, new SchedulerOptions()) { }
@@ -13,7 +13,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         public EulerAncestralScheduler(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
             : base(stableDiffusionOptions, schedulerOptions) { }
 
-        public override DenseTensor<float> Step(Tensor<float> modelOutput, int timestep, Tensor<float> sample, int order = 4)
+        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             if (!_isScaleInputCalled)
                 throw new Exception("The `scale_model_input` function should be called before `step` to ensure correct denoising. ");

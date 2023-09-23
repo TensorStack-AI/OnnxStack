@@ -7,7 +7,12 @@ namespace OnnxStack.Core
     {
         public static SessionOptions GetSessionOptions(this OnnxStackConfig configuration)
         {
-            var sessionOptions = new SessionOptions();
+            var sessionOptions = new SessionOptions
+            {
+                ExecutionMode = configuration.ExecutionMode,
+                InterOpNumThreads = configuration.InterOpNumThreads,
+                IntraOpNumThreads = configuration.InterOpNumThreads
+            };
             switch (configuration.ExecutionProviderTarget)
             {
                 case ExecutionProvider.DirectML:

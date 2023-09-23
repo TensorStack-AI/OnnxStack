@@ -1,4 +1,5 @@
-﻿using OnnxStack.Common.Config;
+﻿using Microsoft.ML.OnnxRuntime;
+using OnnxStack.Common.Config;
 using System;
 using System.Text.Json.Serialization;
 
@@ -26,6 +27,9 @@ namespace OnnxStack.Core.Config
         public string OnnxTextEncoderPath { get; set; }
         public string OnnxSafetyModelPath { get; set; }
         public bool IsSafetyModelEnabled { get; set; }
+        public ExecutionMode ExecutionMode { get; set; }
+        public int InterOpNumThreads { get; set; }
+        public int IntraOpNumThreads { get; set; }
 
         public void Initialize()
         {

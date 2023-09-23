@@ -1,11 +1,9 @@
-﻿using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Services;
 
 namespace OnnxStack.Console.Runner
 {
-    public class StableDiffusionExample : IExampleRunner
+    public sealed class StableDiffusionExample : IExampleRunner
     {
         private readonly string _outputDirectory;
         private readonly IStableDiffusionService _stableDiffusionService;

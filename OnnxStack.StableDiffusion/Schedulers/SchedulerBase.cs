@@ -17,7 +17,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected List<int> _timesteps;
         protected float _initNoiseSigma;
         protected bool _isScaleInputCalled;
-        protected Tensor<float> _sigmasTensor;
+        protected DenseTensor<float> _sigmasTensor;
         protected List<float> _alphasCumulativeProducts;
         protected List<double> _computedSigmas;
 
@@ -31,7 +31,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
         public float GetInitNoiseSigma() => _initNoiseSigma;
 
-        public abstract DenseTensor<float> Step(Tensor<float> modelOutput, int timestep, Tensor<float> sample, int order = 4);
+        public abstract DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
 
         public virtual int[] SetTimesteps(int inferenceSteps)
         {

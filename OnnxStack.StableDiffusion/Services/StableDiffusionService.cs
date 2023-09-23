@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Services
 {
-    public class StableDiffusionService : IStableDiffusionService
+    public sealed class StableDiffusionService : IStableDiffusionService
     {
         private readonly IInferenceService _inferenceService;
 
@@ -40,11 +40,8 @@ namespace OnnxStack.StableDiffusion.Services
 
         private async Task<Image<Rgba32>> TextToImageInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
-            return await Task.Run(() =>
-            {
-                var imageTensorData = _inferenceService.RunInference(options, schedulerConfig);
-                return TensorToImage(options, imageTensorData);
-            }).ConfigureAwait(false);
+            var imageTensorData = await _inferenceService.RunInference(options, schedulerConfig).ConfigureAwait(false);
+            return TensorToImage(options, imageTensorData);
         }
 
         private async Task<bool> TextToImageFileInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig, string outputFile)
@@ -53,12 +50,12 @@ namespace OnnxStack.StableDiffusion.Services
             if (image is null)
                 return false;
 
-            await image.SaveAsync(outputFile);
+            await image.SaveAsync(outputFile).ConfigureAwait(false);
             return true;
         }
 
 
-        private Image<Rgba32> TensorToImage(StableDiffusionOptions options, Tensor<float> imageTensor)
+        private Image<Rgba32> TensorToImage(StableDiffusionOptions options, DenseTensor<float> imageTensor)
         {
             var result = new Image<Rgba32>(options.Width, options.Height);
             for (var y = 0; y < options.Height; y++)

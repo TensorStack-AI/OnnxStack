@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
 {
-    public class StableDebug : IExampleRunner
+    public sealed class StableDebug : IExampleRunner
     {
         private readonly string _outputDirectory;
         private readonly IStableDiffusionService _stableDiffusionService;

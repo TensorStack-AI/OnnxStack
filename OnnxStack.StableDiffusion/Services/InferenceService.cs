@@ -1,21 +1,22 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Schedulers;
 using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Schedulers;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using OnnxStack.Core.Services;
+using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Services
 {
-    public class InferenceService : IInferenceService
+    public sealed class InferenceService : IInferenceService
     {
         private const int ModelMaxLength = 77;
         private const int EmbeddingsLength = 768;
@@ -32,7 +33,8 @@ namespace OnnxStack.StableDiffusion.Services
             _emptyUncondInput = Enumerable.Repeat(BlankTokenValue, ModelMaxLength).ToArray();
         }
 
-        public Tensor<float> RunInference(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
+
+        public async Task<DenseTensor<float>> RunInference(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
             // Create random seed if none was set
             options.Seed = options.Seed > 0 ? options.Seed : Random.Shared.Next();
@@ -44,7 +46,7 @@ namespace OnnxStack.StableDiffusion.Services
             var timesteps = scheduler.SetTimesteps(options.NumInferenceSteps);
 
             // Preprocess text
-            var textEmbeddings = PreprocessText(options.Prompt, options.NegativePrompt);
+            var promptEmbeddings = await GetPromptEmbeddings(options.Prompt, options.NegativePrompt);
 
             // create latent tensor
             var latents = GenerateLatentSample(options, scheduler.GetInitNoiseSigma());
@@ -59,20 +61,20 @@ namespace OnnxStack.StableDiffusion.Services
                 latentModelInput = scheduler.ScaleInput(latentModelInput, timestep);
 
                 // Console.WriteLine($"scaled model input {latentModelInput[0]} at step {timestep}. Max {latentModelInput.Max()} Min {latentModelInput.Min()}");
-                var input = CreateUnetModelInput(textEmbeddings, latentModelInput, timestep);
+                var input = CreateUnetModelInput(promptEmbeddings, latentModelInput, timestep);
 
                 // Run Inference
-                using (var output = _onnxModelService.RunInference( OnnxModelType.Unet, input))
+                using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, input))
                 {
-                    var outputTensor = output.FirstElementAs<DenseTensor<float>>();
+                    var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
 
                     // Split tensors from 2,4,64,64 to 1,4,64,64
-                    var splitTensors = TensorHelper.SplitTensor(outputTensor, new[] { 1, 4, options.Height / 8, options.Width / 8 });
+                    var splitTensors = TensorHelper.SplitTensor(resultTensor, new[] { 1, 4, options.Height / 8, options.Width / 8 });
                     var noisePred = splitTensors.Item1;
                     var noisePredText = splitTensors.Item2;
 
                     // Perform guidance
-                    noisePred = PerformGuidance(noisePred, noisePredText, options.GuidanceScale);
+                    noisePred = TensorHelper.PerformGuidance(noisePred, noisePredText, options.GuidanceScale);
 
                     // LMS Scheduler Step
                     latents = scheduler.Step(noisePred, timestep, latents);
@@ -83,51 +85,13 @@ namespace OnnxStack.StableDiffusion.Services
             // Scale and decode the image latents with vae.
             // latents = 1 / 0.18215 * latents
             latents = TensorHelper.MultipleTensorByFloat(latents, 1.0f / 0.18215f);
-            var decoderInput = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("latent_sample", latents)
-            };
-
+          
             // Decode Latents
-            using (var decoderOutput = _onnxModelService.RunInference( OnnxModelType.VaeDecoder, decoderInput))
-            {
-                var imageResultTensor = decoderOutput.FirstElementAs<Tensor<float>>();
-                if (_configuration.IsSafetyModelEnabled)
-                {
-                    // Check if image contains NSFW content, if it does return empty tensor (grey image)
-                    if (!IsImageSafe(options, imageResultTensor))
-                        return imageResultTensor.CloneEmpty();
-                }
-
-                // Clone output so it does not get disposed
-                return imageResultTensor.Clone();
-            }
+            return await DecodeLatents(options, latents);
         }
 
 
-        public DenseTensor<float> PreprocessText(string prompt, string negativePrompt)
-        {
-            // Load the tokenizer and text encoder to tokenize and encode the text.
-            var textTokenized = TokenizeText(prompt);
-            var textPromptEmbeddings = TextEncoder(textTokenized);
-
-            // Create uncond_input of blank tokens
-            var uncondInputTokens = string.IsNullOrEmpty(negativePrompt)
-                ? _emptyUncondInput
-                : TokenizeText(negativePrompt);
-            var uncondEmbedding = TextEncoder(uncondInputTokens);
-
-            // Concat textEmeddings and uncondEmbedding
-            var textEmbeddings = new DenseTensor<float>(new[] { 2, ModelMaxLength, EmbeddingsLength });
-            for (var i = 0; i < textPromptEmbeddings.Length; i++)
-            {
-                textEmbeddings[0, i / EmbeddingsLength, i % EmbeddingsLength] = uncondEmbedding.GetValue(i);
-                textEmbeddings[1, i / EmbeddingsLength, i % EmbeddingsLength] = textPromptEmbeddings.GetValue(i);
-            }
-            return textEmbeddings;
-        }
-
-        public int[] TokenizeText(string text)
+        public async Task<int[]> GetTokens(string text)
         {
             var inputTensor = new DenseTensor<string>(new string[] { text }, new int[] { 1 });
             var inputString = new List<NamedOnnxValue>
@@ -137,9 +101,9 @@ namespace OnnxStack.StableDiffusion.Services
 
             // Create an InferenceSession from the onnx clip tokenizer.
             // Run session and send the input data in to get inference output. 
-            using (var tokens = _onnxModelService.RunInference(  OnnxModelType.Tokenizer, inputString))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Tokenizer, inputString))
             {
-                var resultTensor = tokens.FirstElementAs<Tensor<long>>();
+                var resultTensor = inferResult.FirstElementAs<DenseTensor<long>>();
                 Console.WriteLine(string.Join(" ", resultTensor));
 
                 // Cast inputIds to Int32
@@ -154,64 +118,67 @@ namespace OnnxStack.StableDiffusion.Services
         }
 
 
-        private List<NamedOnnxValue> CreateUnetModelInput(Tensor<float> encoderHiddenStates, Tensor<float> sample, long timeStep)
+        private async Task<DenseTensor<float>> GetPromptEmbeddings(string prompt, string negativePrompt)
         {
-            return new List<NamedOnnxValue>
+            // Concat promptEmbeddings and negativePromptEmbeddings
+            var promptEmbeddings = await GetTextEmbeddings(prompt);
+            var negativePromptEmbeddings = await GetTextEmbeddings(negativePrompt, true);
+            var textEmbeddings = new DenseTensor<float>(new[] { 2, ModelMaxLength, EmbeddingsLength });
+            for (var i = 0; i < promptEmbeddings.Length; i++)
             {
-                NamedOnnxValue.CreateFromTensor("encoder_hidden_states", encoderHiddenStates),
-                NamedOnnxValue.CreateFromTensor("sample", sample),
-                NamedOnnxValue.CreateFromTensor("timestep", new DenseTensor<long>(new long[] { timeStep }, new int[] { 1 }))
-            };
-        }
-
-
-        private Tensor<float> GenerateLatentSample(StableDiffusionOptions options, float initNoiseSigma)
-        {
-            var random = new Random(options.Seed);
-            return TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.Height / 8, options.Width / 8 }, initNoiseSigma);
-        }
-
-        private Tensor<float> PerformGuidance(Tensor<float> noisePred, Tensor<float> noisePredText, double guidanceScale)
-        {
-            for (int i = 0; i < noisePred.Dimensions[0]; i++)
-            {
-                for (int j = 0; j < noisePred.Dimensions[1]; j++)
-                {
-                    for (int k = 0; k < noisePred.Dimensions[2]; k++)
-                    {
-                        for (int l = 0; l < noisePred.Dimensions[3]; l++)
-                        {
-                            noisePred[i, j, k, l] = noisePred[i, j, k, l] + (float)guidanceScale * (noisePredText[i, j, k, l] - noisePred[i, j, k, l]);
-                        }
-                    }
-                }
+                textEmbeddings[0, i / EmbeddingsLength, i % EmbeddingsLength] = negativePromptEmbeddings.GetValue(i);
+                textEmbeddings[1, i / EmbeddingsLength, i % EmbeddingsLength] = promptEmbeddings.GetValue(i);
             }
-            return noisePred;
+            return textEmbeddings;
         }
 
-        private Tensor<float> TextEncoder(int[] tokenizedInput)
+
+        private async Task<DenseTensor<float>> GetTextEmbeddings(string text, bool allowEmpty = false)
+        {
+           var tokens = string.IsNullOrEmpty(text) && allowEmpty
+                ? _emptyUncondInput
+                : await GetTokens(text);
+            return await EncodeTokens(tokens);
+        }
+
+
+        private async Task<DenseTensor<float>> EncodeTokens(int[] tokenizedInput)
         {
             // Create input tensor.
             var input_ids = TensorHelper.CreateTensor(tokenizedInput, new[] { 1, tokenizedInput.Length });
             var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input_ids", input_ids) };
 
             // Run inference.
-            using (var encoded = _onnxModelService.RunInference( OnnxModelType.TextEncoder, input))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.TextEncoder, input))
             {
-                return encoded.FirstElementAs<DenseTensor<float>>().Clone();
+                var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
+
+                // Clone output so it does not get disposed
+                return resultTensor.ToDenseTensor();
             }
         }
 
 
-
-        private SchedulerBase GetScheduler(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
+        private async Task<DenseTensor<float>> DecodeLatents(StableDiffusionOptions options, DenseTensor<float> latents)
         {
-            return options.SchedulerType switch
+            var decoderInput = new List<NamedOnnxValue>
             {
-                SchedulerType.LMSScheduler => new LMSScheduler(options, schedulerConfig),
-                SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(options, schedulerConfig),
-                _ => default
+                NamedOnnxValue.CreateFromTensor("latent_sample", latents)
             };
+
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.VaeDecoder, decoderInput))
+            {
+                var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
+                if (_configuration.IsSafetyModelEnabled)
+                {
+                    // Check if image contains NSFW content, if it does return empty tensor (grey image)
+                    if (!await IsImageSafe(options, resultTensor))
+                        return resultTensor.CloneEmpty().ToDenseTensor();
+                }
+
+                // Clone output so it does not get disposed
+                return resultTensor.ToDenseTensor();
+            }
         }
 
 
@@ -223,13 +190,13 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns>
         ///   <c>true</c> if the specified result image is safe; otherwise, <c>false</c>.
         /// </returns>
-        private bool IsImageSafe(StableDiffusionOptions options, Tensor<float> resultImage)
+        private async Task<bool> IsImageSafe(StableDiffusionOptions options, DenseTensor<float> resultImage)
         {
             //clip input
             var inputTensor = ClipImageFeatureExtractor(options, resultImage);
 
             //images input
-            var inputImagesTensor = ReorderTensor(inputTensor, new[] { 1, 224, 224, 3 });
+            var inputImagesTensor = TensorHelper.ReorderTensor(inputTensor, new[] { 1, 224, 224, 3 });
 
             var input = new List<NamedOnnxValue>
             {
@@ -241,33 +208,11 @@ namespace OnnxStack.StableDiffusion.Services
             };
 
             // Run session and send the input data in to get inference output. 
-            using (var output = _onnxModelService.RunInference( OnnxModelType.SafetyModel, input))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.SafetyModel, input))
             {
-                var result = output.LastElementAs<IEnumerable<bool>>();
+                var result = inferResult.LastElementAs<IEnumerable<bool>>();
                 return !result.First();
             }
-        }
-
-
-        /// <summary>
-        /// Reorders the tensor.
-        /// </summary>
-        /// <param name="inputTensor">The input tensor.</param>
-        /// <returns></returns>
-        private DenseTensor<float> ReorderTensor(Tensor<float> inputTensor, ReadOnlySpan<int> dimensions)
-        {
-            //reorder from batch channel height width to batch height width channel
-            var inputImagesTensor = new DenseTensor<float>(dimensions);
-            for (int y = 0; y < inputTensor.Dimensions[2]; y++)
-            {
-                for (int x = 0; x < inputTensor.Dimensions[3]; x++)
-                {
-                    inputImagesTensor[0, y, x, 0] = inputTensor[0, 0, y, x];
-                    inputImagesTensor[0, y, x, 1] = inputTensor[0, 1, y, x];
-                    inputImagesTensor[0, y, x, 2] = inputTensor[0, 2, y, x];
-                }
-            }
-            return inputImagesTensor;
         }
 
 
@@ -276,7 +221,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <returns></returns>
-        private DenseTensor<float> ClipImageFeatureExtractor(StableDiffusionOptions options, Tensor<float> imageTensor)
+        private static DenseTensor<float> ClipImageFeatureExtractor(StableDiffusionOptions options, DenseTensor<float> imageTensor)
         {
             //convert tensor result to image
             var image = new Image<Rgba32>(options.Width, options.Height);
@@ -320,6 +265,35 @@ namespace OnnxStack.StableDiffusion.Services
             }
 
             return input;
+        }
+
+
+        private static List<NamedOnnxValue> CreateUnetModelInput(DenseTensor<float> encoderHiddenStates, DenseTensor<float> sample, long timeStep)
+        {
+            return new List<NamedOnnxValue>
+            {
+                NamedOnnxValue.CreateFromTensor("encoder_hidden_states", encoderHiddenStates),
+                NamedOnnxValue.CreateFromTensor("sample", sample),
+                NamedOnnxValue.CreateFromTensor("timestep", new DenseTensor<long>(new long[] { timeStep }, new int[] { 1 }))
+            };
+        }
+
+
+        private static DenseTensor<float> GenerateLatentSample(StableDiffusionOptions options, float initNoiseSigma)
+        {
+            var random = new Random(options.Seed);
+            return TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.Height / 8, options.Width / 8 }, initNoiseSigma);
+        }
+
+
+        private static SchedulerBase GetScheduler(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
+        {
+            return options.SchedulerType switch
+            {
+                SchedulerType.LMSScheduler => new LMSScheduler(options, schedulerConfig),
+                SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(options, schedulerConfig),
+                _ => default
+            };
         }
     }
 }

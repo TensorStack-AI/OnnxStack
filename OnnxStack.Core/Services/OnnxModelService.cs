@@ -10,10 +10,11 @@ namespace OnnxStack.Core.Services
     /// Service to cache the ONNX model instances for faster inference
     /// </summary>
     /// <seealso cref="OnnxStack.Core.Services.IOnnxModelService" />
-    public class OnnxModelService : IOnnxModelService
+    public sealed class OnnxModelService : IOnnxModelService
     {
         private readonly SessionOptions _sessionOptions;
         private readonly OnnxStackConfig _configuration;
+        private readonly PrePackedWeightsContainer _prePackedWeightsContainer;
         private readonly ImmutableDictionary<OnnxModelType, InferenceSession> _modelInferenceSessions;
 
         /// <summary>
@@ -25,12 +26,13 @@ namespace OnnxStack.Core.Services
             _configuration = configuration;
             _sessionOptions = _configuration.GetSessionOptions();
             _sessionOptions.RegisterOrtExtensions();
+            _prePackedWeightsContainer = new PrePackedWeightsContainer();
             var modelInferenceSessions = new Dictionary<OnnxModelType, InferenceSession>
             {
-                {OnnxModelType.Unet,new InferenceSession(_configuration.OnnxUnetPath, _sessionOptions) },
-                {OnnxModelType.Tokenizer,new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions) },
-                {OnnxModelType.VaeDecoder,new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions) },
-                {OnnxModelType.TextEncoder,new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions)}
+                {OnnxModelType.Unet,new InferenceSession(_configuration.OnnxUnetPath, _sessionOptions, _prePackedWeightsContainer) },
+                {OnnxModelType.Tokenizer,new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions, _prePackedWeightsContainer) },
+                {OnnxModelType.VaeDecoder,new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions, _prePackedWeightsContainer) },
+                {OnnxModelType.TextEncoder,new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions, _prePackedWeightsContainer)}
             };
             if (_configuration.IsSafetyModelEnabled)
                 modelInferenceSessions.Add(OnnxModelType.SafetyModel, new InferenceSession(_configuration.OnnxSafetyModelPath, _sessionOptions));
@@ -73,7 +75,6 @@ namespace OnnxStack.Core.Services
             return _modelInferenceSessions[modelType]?.Run(inputs);
         }
 
-
         public void Dispose()
         {
             _sessionOptions?.Dispose();
@@ -81,6 +82,7 @@ namespace OnnxStack.Core.Services
             {
                 modelInferenceSession?.Dispose();
             }
+            _prePackedWeightsContainer?.Dispose();
         }
     }
 }
