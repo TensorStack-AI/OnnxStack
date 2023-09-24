@@ -59,9 +59,9 @@ So far `OnnxStack.StableDiffusion` as included `LMSScheduler` and `EulerAncestra
 *Example:*
 | LMSScheduler | EulerAncestralScheduler|
 | :--- | :--- |
-<img src="https://i.imgur.com/plsRi2K.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> | <img src="https://i.imgur.com/mDxIEg2.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> |
+<img src="https://i.imgur.com/osoEqGk.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> | <img src="https://i.imgur.com/Xs30KgJ.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> |
 
-     Seed: 393371621     GuidanceScale: 8     NumInferenceSteps: 30
+     Seed: 624461087     GuidanceScale: 8     NumInferenceSteps: 30
 
 
 
