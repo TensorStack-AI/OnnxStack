@@ -33,21 +33,36 @@ git clone https://huggingface.co/runwayml/stable-diffusion-v1-5 -b onnx
 ## **[OnnxStack.StableDiffusion](OnnxStack.StableDiffusion/README.md)**
 Inference Stable Diffusion with C# and ONNX Runtime
 
+**`Prompt`**
+
 Stable Diffusion models take a text prompt and create an image that represents the text.
 
-Prompt Example:
+*Example:*
 ```text
-"Renaissance-style portrait of an astronaut in space, detailed starry background, reflective helmet." 
+High-fashion photography in an abandoned industrial warehouse, with dramatic lighting and edgy outfits, detailed clothing, intricate clothing, seductive pose, action pose, motion, beautiful digital artwork, atmospheric, warm sunlight, photography, neo noir, bokeh, beautiful dramatic lighting, shallow depth of field, photorealism, volumetric lighting, Ultra HD, raytracing, studio quality, octane render
 ```
+
+**`Negative Prompt`**
+
+A negative prompt can be provided to guide the inference to exclude in calculations
+
+*Example:*
+```text
+painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon, graphic, text, crayon, graphite, abstract, easynegative, low quality, normal quality, worst quality, lowres, close up, cropped, out of frame, jpeg artifacts, duplicate, morbid, mutilated, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, glitch, deformed, mutated, cross-eyed, ugly, dehydrated, bad anatomy, bad proportions, gross proportions, cloned face, disfigured, malformed limbs, missing arms, missing legs fused fingers, too many fingers,extra fingers, extra limbs,, extra arms, extra legs,disfigured,
+```
+
+**`Schedulers`**
 
 Many different scheduler algorithms can be used for this computation, each having its pro- and cons. 
 So far `OnnxStack.StableDiffusion` as included `LMSScheduler` and `EulerAncestralScheduler` options with more in the works.
 
-
-Scheduler Output Examples:
+*Example:*
 | LMSScheduler | EulerAncestralScheduler|
 | :--- | :--- |
-<img src="https://i.imgur.com/Ptaai09.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> | <img src="https://i.imgur.com/6nZNi7A.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> |
+<img src="https://i.imgur.com/plsRi2K.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> | <img src="https://i.imgur.com/mDxIEg2.png" width="256" height="256" alt="Image of browser inferencing on sample images."/> |
+
+     Seed: 393371621     GuidanceScale: 8     NumInferenceSteps: 30
+
 
 
 More information and Examples can be found in the `OnnxStack.StableDiffusion` project **[README](OnnxStack.StableDiffusion/README.md)**

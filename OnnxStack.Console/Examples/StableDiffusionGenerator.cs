@@ -28,24 +28,24 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
-            while (true)
+            var seed = Random.Shared.Next();
+            foreach (var generationPrompt in _generationPrompts)
             {
-                foreach (var generationPrompt in _generationPrompts)
+                var options = new StableDiffusionOptions
                 {
-                    var options = new StableDiffusionOptions
-                    {
-                        Prompt = generationPrompt.Value,
-                        Seed = Random.Shared.Next()
-                    };
-                    foreach (var schedulerType in Enum.GetValues<SchedulerType>())
-                    {
-                        options.SchedulerType = schedulerType;
+                    Seed = seed,
+                    Prompt = generationPrompt.Value
+                };
+                foreach (var schedulerType in Enum.GetValues<SchedulerType>())
+                {
+                    options.SchedulerType = schedulerType;
 
-                        OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                        await GenerateImage(options, generationPrompt.Key);
-                    }
+                    OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
+                    await GenerateImage(options, generationPrompt.Key);
                 }
             }
+            OutputHelpers.WriteConsole("Complete :)", ConsoleColor.DarkMagenta);
+            OutputHelpers.ReadConsole(ConsoleColor.Gray);
         }
 
         private async Task<bool> GenerateImage(StableDiffusionOptions options, string key)
