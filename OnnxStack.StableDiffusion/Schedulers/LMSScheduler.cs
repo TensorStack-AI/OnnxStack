@@ -71,7 +71,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             }
 
             // Sum the tensors
-            var sumTensor = TensorHelper.SumTensors(lmsDerProduct, new[] { 1, 4, _stableDiffusionOptions.GetScaledHeight(), _stableDiffusionOptions.GetScaledWidth()});
+            var sumTensor = TensorHelper.SumTensors(lmsDerProduct, _stableDiffusionOptions.GetScaledDimension());
 
             // Add the sumed tensor to the sample
             return TensorHelper.AddTensors(sample, sumTensor);

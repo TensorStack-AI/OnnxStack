@@ -33,7 +33,7 @@ namespace OnnxStack.Console.Runner
                 var options = new StableDiffusionOptions
                 {
                     Prompt = prompt,
-                    //Seed = 917825049
+                    //Seed = 624461087,
                     Seed = Random.Shared.Next(),
                     GuidanceScale = 8,
                     NumInferenceSteps = 30,
@@ -54,7 +54,8 @@ namespace OnnxStack.Console.Runner
         {
             var timestamp = Stopwatch.GetTimestamp();
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            if (await _stableDiffusionService.TextToImageFile(options, outputFilename))
+            var result = await _stableDiffusionService.TextToImageFile(options, outputFilename);
+            if (result is not null)
             {
                 OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                 OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);

@@ -1,6 +1,8 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace OnnxStack.StableDiffusion
@@ -71,7 +73,35 @@ namespace OnnxStack.StableDiffusion
             if (options.Height % 64 > 0)
                 throw new ArgumentOutOfRangeException(nameof(options.Height), $"{nameof(options.Height)} must be divisible by 64");
 
-                return options.Height / 8;
+            return options.Height / 8;
+        }
+
+
+        /// <summary>
+        /// Gets a tensor dimension for the input image in the shape of [batch, channels, (Height / 8), (Width / 8)].
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="batch">The batch.</param>
+        /// <param name="channels">The channels.</param>
+        /// <returns>Tensor dimension of [batch, channels, (Height / 8), (Width / 8)]</returns>
+        public static int[] GetScaledDimension(this StableDiffusionOptions options, int batch = 1, int channels = 4)
+        {
+            return new[] { batch, channels, options.GetScaledHeight(), options.GetScaledWidth() };
+        }
+
+
+        /// <summary>
+        /// Pads a source sequence with blank tokens if its less that the required length.
+        /// </summary>
+        /// <param name="inputs">The inputs.</param>
+        /// <param name="requiredLength">The the required length of the returned array.</param>
+        /// <returns></returns>
+        public static IEnumerable<int> PadWithBlankTokens(this IEnumerable<int> inputs, int requiredLength)
+        {
+            var count = inputs.Count();
+            if (requiredLength > count)
+                return inputs.Concat(Constants.BlankTokenValueArray[..(requiredLength - count)]);
+            return inputs;
         }
     }
 }

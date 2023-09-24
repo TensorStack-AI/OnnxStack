@@ -1,6 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Results;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
@@ -17,45 +18,45 @@ namespace OnnxStack.StableDiffusion.Services
             _inferenceService = inferenceService;
         }
 
-        public Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options)
+        public Task<ImageResult> TextToImage(StableDiffusionOptions options)
         {
             return TextToImageInternal(options, new SchedulerOptions());
         }
 
-        public Task<Image<Rgba32>> TextToImage(StableDiffusionOptions options, SchedulerOptions schedulerOptions)
+        public Task<ImageResult> TextToImage(StableDiffusionOptions options, SchedulerOptions schedulerOptions)
         {
             return TextToImageInternal(options, schedulerOptions);
         }
 
-        public Task<bool> TextToImageFile(StableDiffusionOptions options, string outputFile)
+        public Task<ImageResult> TextToImageFile(StableDiffusionOptions options, string outputFile)
         {
             return TextToImageFileInternal(options, new SchedulerOptions(), outputFile);
         }
 
-        public Task<bool> TextToImageFile(StableDiffusionOptions options, SchedulerOptions schedulerOptions, string outputFile)
+        public Task<ImageResult> TextToImageFile(StableDiffusionOptions options, SchedulerOptions schedulerOptions, string outputFile)
         {
             return TextToImageFileInternal(options, schedulerOptions, outputFile);
         }
 
 
-        private async Task<Image<Rgba32>> TextToImageInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
+        private async Task<ImageResult> TextToImageInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
             var imageTensorData = await _inferenceService.RunInferenceAsync(options, schedulerConfig).ConfigureAwait(false);
             return TensorToImage(options, imageTensorData);
         }
 
-        private async Task<bool> TextToImageFileInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig, string outputFile)
+        private async Task<ImageResult> TextToImageFileInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig, string outputFile)
         {
-            var image = await TextToImageInternal(options, schedulerConfig);
-            if (image is null)
-                return false;
+            var result = await TextToImageInternal(options, schedulerConfig);
+            if (result is null)
+                return null;
 
-            await image.SaveAsync(outputFile).ConfigureAwait(false);
-            return true;
+            await result.SaveAsync(outputFile);
+            return result;
         }
 
 
-        private Image<Rgba32> TensorToImage(StableDiffusionOptions options, DenseTensor<float> imageTensor)
+        private ImageResult TensorToImage(StableDiffusionOptions options, DenseTensor<float> imageTensor)
         {
             var result = new Image<Rgba32>(options.Width, options.Height);
             for (var y = 0; y < options.Height; y++)
@@ -69,7 +70,7 @@ namespace OnnxStack.StableDiffusion.Services
                     );
                 }
             }
-            return result;
+            return new ImageResult(result);
         }
 
         private static byte CalculateByte(Tensor<float> imageTensor, int index, int y, int x)

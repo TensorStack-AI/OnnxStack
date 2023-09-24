@@ -1,4 +1,5 @@
-﻿using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.Core;
+using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 
 namespace OnnxStack.Console.Runner
@@ -52,12 +53,12 @@ namespace OnnxStack.Console.Runner
         private async Task<bool> GenerateImage(StableDiffusionOptions options)
         {
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            if (await _stableDiffusionService.TextToImageFile(options, outputFilename))
-            {
-                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
-                return true;
-            }
-            return false;
+            var result = await _stableDiffusionService.TextToImageFile(options, outputFilename);
+            if (result == null)
+                return false;
+
+            OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(result.FileName)}", ConsoleColor.Green);
+            return true;
         }
     }
 }

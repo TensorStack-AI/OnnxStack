@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
@@ -13,19 +14,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OnnxStack.Core;
-using System.Collections.Immutable;
 
 namespace OnnxStack.StableDiffusion.Services
 {
     public sealed class InferenceService : IInferenceService
     {
-        // TODO move to OnnxStack.Core constants
-        private const int BlankTokenValue = 49407;
-        private const int ClipTokenizerModelLimit = 77;
-        private const int ClipTokenizerEmbeddingsLength = 768;
-        private static ImmutableArray<int> _emptyUncondInput;
-
         private readonly OnnxStackConfig _configuration;
         private readonly IOnnxModelService _onnxModelService;
 
@@ -38,7 +31,6 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _configuration = configuration;
             _onnxModelService = onnxModelService;
-            _emptyUncondInput = Enumerable.Repeat(BlankTokenValue, 10000).ToImmutableArray();
         }
 
 
@@ -66,14 +58,14 @@ namespace OnnxStack.StableDiffusion.Services
             var promptEmbeddings = await CreatePromptEmbeddings(options.Prompt, options.NegativePrompt);
 
             // Create latent sample
-             var latentSample = TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.GetScaledHeight(), options.GetScaledWidth() }, scheduler.GetInitNoiseSigma());
+             var latentSample = TensorHelper.GetRandomTensor(random, options.GetScaledDimension(), scheduler.GetInitNoiseSigma());
 
             // Loop though the timesteps
             var step = 0;
             foreach (var timestep in timesteps)
             {
                 // Create input tensor.
-                var inputTensor = scheduler.ScaleInput(TensorHelper.Duplicate(latentSample, new[] { 2, 4, options.GetScaledHeight(), options.GetScaledWidth() }), timestep);
+                var inputTensor = scheduler.ScaleInput(TensorHelper.Duplicate(latentSample, options.GetScaledDimension(2)), timestep);
                 var inputParameters = CreateInputParameters(
                      NamedOnnxValue.CreateFromTensor("encoder_hidden_states", promptEmbeddings),
                      NamedOnnxValue.CreateFromTensor("sample", inputTensor),
@@ -85,7 +77,7 @@ namespace OnnxStack.StableDiffusion.Services
                     var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
 
                     // Split tensors from 2,4,(H/8),(W/8) to 1,4,(H/8),(W/8)
-                    var splitTensors = TensorHelper.SplitTensor(resultTensor, new[] { 1, 4, options.GetScaledHeight(), options.GetScaledWidth() }, options.GetScaledHeight(), options.GetScaledWidth());
+                    var splitTensors = TensorHelper.SplitTensor(resultTensor, options.GetScaledDimension(), options.GetScaledHeight(), options.GetScaledWidth());
                     var noisePred = splitTensors.Item1;
                     var noisePredText = splitTensors.Item2;
 
@@ -129,11 +121,11 @@ namespace OnnxStack.StableDiffusion.Services
             var negativePromptEmbeddings = await GenerateEmbeds(negativePromptTokens, maxPromptTokenCount);
 
             // Calculate embeddings
-            var textEmbeddings = new DenseTensor<float>(new[] { 2, promptEmbeddings.Count / ClipTokenizerEmbeddingsLength, ClipTokenizerEmbeddingsLength });
+            var textEmbeddings = new DenseTensor<float>(new[] { 2, promptEmbeddings.Count / Constants.ClipTokenizerEmbeddingsLength, Constants.ClipTokenizerEmbeddingsLength });
             for (var i = 0; i < promptEmbeddings.Count; i++)
             {
-                textEmbeddings[0, i / ClipTokenizerEmbeddingsLength, i % ClipTokenizerEmbeddingsLength] = negativePromptEmbeddings[i];
-                textEmbeddings[1, i / ClipTokenizerEmbeddingsLength, i % ClipTokenizerEmbeddingsLength] = promptEmbeddings[i];
+                textEmbeddings[0, i / Constants.ClipTokenizerEmbeddingsLength, i % Constants.ClipTokenizerEmbeddingsLength] = negativePromptEmbeddings[i];
+                textEmbeddings[1, i / Constants.ClipTokenizerEmbeddingsLength, i % Constants.ClipTokenizerEmbeddingsLength] = promptEmbeddings[i];
             }
             return textEmbeddings;
         }
@@ -149,13 +141,13 @@ namespace OnnxStack.StableDiffusion.Services
         {
             // If less than minimumLength pad with balnk tokens
             if (inputTokens.Length < minimumLength)
-                inputTokens = PadWithBlankTokens(inputTokens, minimumLength).ToArray();
+                inputTokens = inputTokens.PadWithBlankTokens(minimumLength).ToArray();
 
             // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
             var embeddings = new List<float>();
-            foreach (var tokenBatch in inputTokens.Batch(ClipTokenizerModelLimit))
+            foreach (var tokenBatch in inputTokens.Batch(Constants.ClipTokenizerTokenLimit))
             {
-                var tokens = PadWithBlankTokens(tokenBatch, ClipTokenizerModelLimit);
+                var tokens = tokenBatch.PadWithBlankTokens(Constants.ClipTokenizerTokenLimit);
                 embeddings.AddRange(await EncodeTokensAsync(tokens.ToArray()));
             }
             return embeddings;
@@ -325,22 +317,6 @@ namespace OnnxStack.StableDiffusion.Services
                 _ => default
             };
         }
-
-
-        /// <summary>
-        /// Pads a source sequence with blank tokens if its less that the required length.
-        /// </summary>
-        /// <param name="inputs">The inputs.</param>
-        /// <param name="requiredLength">The the required length of the returned array.</param>
-        /// <returns></returns>
-        private static IEnumerable<int> PadWithBlankTokens(IEnumerable<int> inputs, int requiredLength)
-        {
-            var count = inputs.Count();
-            if (requiredLength > count)
-                return inputs.Concat(_emptyUncondInput.Take(requiredLength - count)).ToArray();
-            return inputs;
-        }
-
 
         /// <summary>
         /// Helper for creating the input parameters.
