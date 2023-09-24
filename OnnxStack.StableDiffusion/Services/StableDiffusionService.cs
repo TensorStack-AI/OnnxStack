@@ -40,7 +40,7 @@ namespace OnnxStack.StableDiffusion.Services
 
         private async Task<Image<Rgba32>> TextToImageInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
-            var imageTensorData = await _inferenceService.RunInference(options, schedulerConfig).ConfigureAwait(false);
+            var imageTensorData = await _inferenceService.RunInferenceAsync(options, schedulerConfig).ConfigureAwait(false);
             return TensorToImage(options, imageTensorData);
         }
 

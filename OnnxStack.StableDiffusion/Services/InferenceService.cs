@@ -13,31 +13,48 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OnnxStack.Core;
+using System.Collections.Immutable;
 
 namespace OnnxStack.StableDiffusion.Services
 {
     public sealed class InferenceService : IInferenceService
     {
-        private const int ModelMaxLength = 77;
-        private const int EmbeddingsLength = 768;
+        // TODO move to OnnxStack.Core constants
         private const int BlankTokenValue = 49407;
+        private const int ClipTokenizerModelLimit = 77;
+        private const int ClipTokenizerEmbeddingsLength = 768;
+        private static ImmutableArray<int> _emptyUncondInput;
 
-        private readonly int[] _emptyUncondInput;
         private readonly OnnxStackConfig _configuration;
         private readonly IOnnxModelService _onnxModelService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InferenceService"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="onnxModelService">The onnx model service.</param>
         public InferenceService(OnnxStackConfig configuration, IOnnxModelService onnxModelService)
         {
             _configuration = configuration;
             _onnxModelService = onnxModelService;
-            _emptyUncondInput = Enumerable.Repeat(BlankTokenValue, ModelMaxLength).ToArray();
+            _emptyUncondInput = Enumerable.Repeat(BlankTokenValue, 10000).ToImmutableArray();
         }
 
 
-        public async Task<DenseTensor<float>> RunInference(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
+        /// <summary>
+        /// Runs the Stable Diffusion inference.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="schedulerConfig">The scheduler configuration.</param>
+        /// <returns></returns>
+        public async Task<DenseTensor<float>> RunInferenceAsync(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
             // Create random seed if none was set
             options.Seed = options.Seed > 0 ? options.Seed : Random.Shared.Next();
+
+            var random = new Random(options.Seed); //TODO: Add to StableDiffusionOptions so can be shared with SchedulerBase
+            Console.WriteLine($"Scheduler: {options.SchedulerType}, Seed: {options.Seed}, Steps: {options.NumInferenceSteps}, Guidance: {options.GuidanceScale}");
 
             // Get Scheduler
             var scheduler = GetScheduler(options, schedulerConfig);
@@ -45,26 +62,25 @@ namespace OnnxStack.StableDiffusion.Services
             // Get timesteps
             var timesteps = scheduler.SetTimesteps(options.NumInferenceSteps);
 
-            // Preprocess text
-            var promptEmbeddings = await GetPromptEmbeddings(options.Prompt, options.NegativePrompt);
+            // Process prompts
+            var promptEmbeddings = await CreatePromptEmbeddings(options.Prompt, options.NegativePrompt);
 
-            // create latent tensor
-            var latents = GenerateLatentSample(options, scheduler.GetInitNoiseSigma());
+            // Create latent sample
+            var latentSample = TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.Height / 8, options.Width / 8 }, scheduler.GetInitNoiseSigma());
 
             // Loop though the timesteps
+            var step = 0;
             foreach (var timestep in timesteps)
             {
-                // torch.cat([latents] * 2)
-                var latentModelInput = TensorHelper.Duplicate(latents, new[] { 2, 4, options.Height / 8, options.Width / 8 });
-
-                // latent_model_input = scheduler.scale_model_input(latent_model_input, timestep = t)
-                latentModelInput = scheduler.ScaleInput(latentModelInput, timestep);
-
-                // Console.WriteLine($"scaled model input {latentModelInput[0]} at step {timestep}. Max {latentModelInput.Max()} Min {latentModelInput.Min()}");
-                var input = CreateUnetModelInput(promptEmbeddings, latentModelInput, timestep);
+                // Create input tensor.
+                var inputTensor = scheduler.ScaleInput(TensorHelper.Duplicate(latentSample, new[] { 2, 4, options.Height / 8, options.Width / 8 }), timestep);
+                var inputParameters = CreateInputParameters(
+                     NamedOnnxValue.CreateFromTensor("encoder_hidden_states", promptEmbeddings),
+                     NamedOnnxValue.CreateFromTensor("sample", inputTensor),
+                     NamedOnnxValue.CreateFromTensor("timestep", new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })));
 
                 // Run Inference
-                using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, input))
+                using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, inputParameters))
                 {
                     var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
 
@@ -77,106 +93,138 @@ namespace OnnxStack.StableDiffusion.Services
                     noisePred = TensorHelper.PerformGuidance(noisePred, noisePredText, options.GuidanceScale);
 
                     // LMS Scheduler Step
-                    latents = scheduler.Step(noisePred, timestep, latents);
-                    //Console.WriteLine($"latents result after step {timestep} min {latents.Min()} max {latents.Max()}");
+                    latentSample = scheduler.Step(noisePred, timestep, latentSample);
                 }
+
+                Console.WriteLine($"Step: {++step}/{timesteps.Length}");
             }
 
             // Scale and decode the image latents with vae.
             // latents = 1 / 0.18215 * latents
-            latents = TensorHelper.MultipleTensorByFloat(latents, 1.0f / 0.18215f);
-          
+            latentSample = TensorHelper.MultipleTensorByFloat(latentSample, 1.0f / 0.18215f);
+
             // Decode Latents
-            return await DecodeLatents(options, latents);
+            return await DecodeLatents(options, latentSample);
         }
 
 
-        public async Task<int[]> GetTokens(string text)
+        /// <summary>
+        /// Creates the prompt embeddings.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="negativePrompt">The negative prompt.</param>
+        /// <returns>Tensor containing all text embeds generated from the prompt and negative prompt</returns>
+        private async Task<DenseTensor<float>> CreatePromptEmbeddings(string prompt, string negativePrompt)
         {
-            var inputTensor = new DenseTensor<string>(new string[] { text }, new int[] { 1 });
-            var inputString = new List<NamedOnnxValue>
+            // Tokenize Prompt and NegativePrompt
+            var promptTokens = await TokenizeAsync(prompt);
+            var negativePromptTokens = await TokenizeAsync(negativePrompt);
+            var maxPromptTokenCount = Math.Max(promptTokens.Length, negativePromptTokens.Length);
+
+            Console.WriteLine($"Prompt -   Length: {prompt.Length}, Tokens: {promptTokens.Length}");
+            Console.WriteLine($"N-Prompt - Length: {negativePrompt?.Length}, Tokens: {negativePromptTokens.Length}");
+
+            // Generate embeds for tokens
+            var promptEmbeddings = await GenerateEmbeds(promptTokens, maxPromptTokenCount);
+            var negativePromptEmbeddings = await GenerateEmbeds(negativePromptTokens, maxPromptTokenCount);
+
+            // Calculate embeddings
+            var textEmbeddings = new DenseTensor<float>(new[] { 2, promptEmbeddings.Count / ClipTokenizerEmbeddingsLength, ClipTokenizerEmbeddingsLength });
+            for (var i = 0; i < promptEmbeddings.Count; i++)
             {
-                NamedOnnxValue.CreateFromTensor("string_input", inputTensor)
-            };
-
-            // Create an InferenceSession from the onnx clip tokenizer.
-            // Run session and send the input data in to get inference output. 
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Tokenizer, inputString))
-            {
-                var resultTensor = inferResult.FirstElementAs<DenseTensor<long>>();
-                Console.WriteLine(string.Join(" ", resultTensor));
-
-                // Cast inputIds to Int32
-                var inputTokenIds = resultTensor.Select(x => (int)x);
-                if (resultTensor.Length < ModelMaxLength)
-                {
-                    // Pad array with 49407 until length is modelMaxLength
-                    inputTokenIds = inputTokenIds.Concat(_emptyUncondInput.Take(ModelMaxLength - (int)resultTensor.Length));
-                }
-                return inputTokenIds.ToArray();
-            }
-        }
-
-
-        private async Task<DenseTensor<float>> GetPromptEmbeddings(string prompt, string negativePrompt)
-        {
-            // Concat promptEmbeddings and negativePromptEmbeddings
-            var promptEmbeddings = await GetTextEmbeddings(prompt);
-            var negativePromptEmbeddings = await GetTextEmbeddings(negativePrompt, true);
-            var textEmbeddings = new DenseTensor<float>(new[] { 2, ModelMaxLength, EmbeddingsLength });
-            for (var i = 0; i < promptEmbeddings.Length; i++)
-            {
-                textEmbeddings[0, i / EmbeddingsLength, i % EmbeddingsLength] = negativePromptEmbeddings.GetValue(i);
-                textEmbeddings[1, i / EmbeddingsLength, i % EmbeddingsLength] = promptEmbeddings.GetValue(i);
+                textEmbeddings[0, i / ClipTokenizerEmbeddingsLength, i % ClipTokenizerEmbeddingsLength] = negativePromptEmbeddings[i];
+                textEmbeddings[1, i / ClipTokenizerEmbeddingsLength, i % ClipTokenizerEmbeddingsLength] = promptEmbeddings[i];
             }
             return textEmbeddings;
         }
 
 
-        private async Task<DenseTensor<float>> GetTextEmbeddings(string text, bool allowEmpty = false)
+        /// <summary>
+        /// Generates the embeds for the input tokens.
+        /// </summary>
+        /// <param name="inputTokens">The input tokens.</param>
+        /// <param name="minimumLength">The minimum length.</param>
+        /// <returns></returns>
+        private async Task<List<float>> GenerateEmbeds(int[] inputTokens, int minimumLength)
         {
-           var tokens = string.IsNullOrEmpty(text) && allowEmpty
-                ? _emptyUncondInput
-                : await GetTokens(text);
-            return await EncodeTokens(tokens);
+            // If less than minimumLength pad with balnk tokens
+            if (inputTokens.Length < minimumLength)
+                inputTokens = PadWithBlankTokens(inputTokens, minimumLength).ToArray();
+
+            // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
+            var embeddings = new List<float>();
+            foreach (var tokenBatch in inputTokens.Batch(ClipTokenizerModelLimit))
+            {
+                var tokens = PadWithBlankTokens(tokenBatch, ClipTokenizerModelLimit);
+                embeddings.AddRange(await EncodeTokensAsync(tokens.ToArray()));
+            }
+            return embeddings;
         }
 
 
-        private async Task<DenseTensor<float>> EncodeTokens(int[] tokenizedInput)
+        /// <summary>
+        /// Tokenizes the input string
+        /// </summary>
+        /// <param name="inputText">The input text.</param>
+        /// <returns>Tokens generated for the specified text input</returns>
+        public async Task<int[]> TokenizeAsync(string inputText)
         {
+            if (string.IsNullOrEmpty(inputText))
+                return Array.Empty<int>();
+
             // Create input tensor.
-            var input_ids = TensorHelper.CreateTensor(tokenizedInput, new[] { 1, tokenizedInput.Length });
-            var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input_ids", input_ids) };
+            var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
+            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("string_input", inputTensor));
 
             // Run inference.
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.TextEncoder, input))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Tokenizer, inputParameters))
             {
-                var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-
-                // Clone output so it does not get disposed
-                return resultTensor.ToDenseTensor();
+                var resultTensor = inferResult.FirstElementAs<DenseTensor<long>>();
+                return resultTensor.Select(x => (int)x).ToArray();
             }
         }
 
 
+        /// <summary>
+        /// Encodes the tokens.
+        /// </summary>
+        /// <param name="tokenizedInput">The tokenized input.</param>
+        /// <returns></returns>
+        private async Task<float[]> EncodeTokensAsync(int[] tokenizedInput)
+        {
+            // Create input tensor.
+            var inputTensor = TensorHelper.CreateTensor(tokenizedInput, new[] { 1, tokenizedInput.Length });
+            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("input_ids", inputTensor));
+
+            // Run inference.
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.TextEncoder, inputParameters))
+            {
+                var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
+                return resultTensor.ToArray();
+            }
+        }
+
+
+        /// <summary>
+        /// Decodes the latents.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="latents">The latents.</param>
+        /// <returns></returns>
         private async Task<DenseTensor<float>> DecodeLatents(StableDiffusionOptions options, DenseTensor<float> latents)
         {
-            var decoderInput = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("latent_sample", latents)
-            };
+            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("latent_sample", latents));
 
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.VaeDecoder, decoderInput))
+            // Run inference.
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.VaeDecoder, inputParameters))
             {
                 var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
                 if (_configuration.IsSafetyModelEnabled)
                 {
-                    // Check if image contains NSFW content, if it does return empty tensor (grey image)
+                    // Check if image contains NSFW content, 
                     if (!await IsImageSafe(options, resultTensor))
-                        return resultTensor.CloneEmpty().ToDenseTensor();
+                        return resultTensor.CloneEmpty().ToDenseTensor(); //TODO: blank image?, exception?, null?
                 }
-
-                // Clone output so it does not get disposed
                 return resultTensor.ToDenseTensor();
             }
         }
@@ -197,18 +245,12 @@ namespace OnnxStack.StableDiffusion.Services
 
             //images input
             var inputImagesTensor = TensorHelper.ReorderTensor(inputTensor, new[] { 1, 224, 224, 3 });
-
-            var input = new List<NamedOnnxValue>
-            {
-                //batch channel height width
-                 NamedOnnxValue.CreateFromTensor("clip_input", inputTensor),
-
-                 //batch, height, width, channel
-                 NamedOnnxValue.CreateFromTensor("images", inputImagesTensor)
-            };
+            var inputParameters = CreateInputParameters(
+                NamedOnnxValue.CreateFromTensor("clip_input", inputTensor),
+                NamedOnnxValue.CreateFromTensor("images", inputImagesTensor));
 
             // Run session and send the input data in to get inference output. 
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.SafetyModel, input))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.SafetyModel, inputParameters))
             {
                 var result = inferResult.LastElementAs<IEnumerable<bool>>();
                 return !result.First();
@@ -268,24 +310,12 @@ namespace OnnxStack.StableDiffusion.Services
         }
 
 
-        private static List<NamedOnnxValue> CreateUnetModelInput(DenseTensor<float> encoderHiddenStates, DenseTensor<float> sample, long timeStep)
-        {
-            return new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("encoder_hidden_states", encoderHiddenStates),
-                NamedOnnxValue.CreateFromTensor("sample", sample),
-                NamedOnnxValue.CreateFromTensor("timestep", new DenseTensor<long>(new long[] { timeStep }, new int[] { 1 }))
-            };
-        }
-
-
-        private static DenseTensor<float> GenerateLatentSample(StableDiffusionOptions options, float initNoiseSigma)
-        {
-            var random = new Random(options.Seed);
-            return TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.Height / 8, options.Width / 8 }, initNoiseSigma);
-        }
-
-
+        /// <summary>
+        /// Gets the scheduler.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="schedulerConfig">The scheduler configuration.</param>
+        /// <returns></returns>
         private static SchedulerBase GetScheduler(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
             return options.SchedulerType switch
@@ -294,6 +324,32 @@ namespace OnnxStack.StableDiffusion.Services
                 SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(options, schedulerConfig),
                 _ => default
             };
+        }
+
+
+        /// <summary>
+        /// Pads a source sequence with blank tokens if its less that the required length.
+        /// </summary>
+        /// <param name="inputs">The inputs.</param>
+        /// <param name="requiredLength">The the required length of the returned array.</param>
+        /// <returns></returns>
+        private static IEnumerable<int> PadWithBlankTokens(IEnumerable<int> inputs, int requiredLength)
+        {
+            var count = inputs.Count();
+            if (requiredLength > count)
+                return inputs.Concat(_emptyUncondInput.Take(requiredLength - count)).ToArray();
+            return inputs;
+        }
+
+
+        /// <summary>
+        /// Helper for creating the input parameters.
+        /// </summary>
+        /// <param name="parameters">The parameters.</param>
+        /// <returns></returns>
+        private static IReadOnlyCollection<NamedOnnxValue> CreateInputParameters(params NamedOnnxValue[] parameters)
+        {
+            return parameters.ToList().AsReadOnly();
         }
     }
 }

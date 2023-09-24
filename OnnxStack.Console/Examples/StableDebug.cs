@@ -26,14 +26,18 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
-            var prompt = "an apple wearing a hat";
+            var prompt = "High-fashion photography in an abandoned industrial warehouse, with dramatic lighting and edgy outfits, detailed clothing, intricate clothing, seductive pose, action pose, motion, beautiful digital artwork, atmospheric, warm sunlight, photography, neo noir, bokeh, beautiful dramatic lighting, shallow depth of field, photorealism, volumetric lighting, Ultra HD, raytracing, studio quality, octane render";
+            var negativePrompt = "painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon, graphic, text, crayon, graphite, abstract, easynegative, low quality, normal quality, worst quality, lowres, close up, cropped, out of frame, jpeg artifacts, duplicate, morbid, mutilated, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, glitch, deformed, mutated, cross-eyed, ugly, dehydrated, bad anatomy, bad proportions, gross proportions, cloned face, disfigured, malformed limbs, missing arms, missing legs fused fingers, too many fingers,extra fingers, extra limbs,, extra arms, extra legs,disfigured,";
             while (true)
             {
                 var options = new StableDiffusionOptions
                 {
                     Prompt = prompt,
-                    //Seed = 42069
-                    Seed = Random.Shared.Next()
+                    //Seed = 917825049
+                    Seed = Random.Shared.Next(),
+                    GuidanceScale = 8,
+                    NumInferenceSteps = 30,
+                    NegativePrompt = negativePrompt
                 };
                 foreach (var schedulerType in Enum.GetValues<SchedulerType>())
                 {
@@ -52,7 +56,7 @@ namespace OnnxStack.Console.Runner
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
             if (await _stableDiffusionService.TextToImageFile(options, outputFilename))
             {
-                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created, FilePath: {outputFilename}", ConsoleColor.Green);
+                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                 OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);
                 return true;
             }

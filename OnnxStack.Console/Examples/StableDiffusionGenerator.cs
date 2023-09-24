@@ -53,7 +53,7 @@ namespace OnnxStack.Console.Runner
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}_{key}.png");
             if (await _stableDiffusionService.TextToImageFile(options, outputFilename))
             {
-                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created, FilePath: {outputFilename}", ConsoleColor.Green);
+                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                 return true;
             }
             return false;
