@@ -63,7 +63,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sigma = _sigmasTensor[stepIndex];
             sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
 
-            // Divide sample tensor shape {2,4,64,64} by sigma
+            // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
             sample = TensorHelper.DivideTensorByFloat(sample, sigma, sample.Dimensions);
             _isScaleInputCalled = true;
             return sample;

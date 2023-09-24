@@ -42,7 +42,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             return addTensor;
         }
 
-        public static Tuple<DenseTensor<float>, DenseTensor<float>> SplitTensor(DenseTensor<float> tensorToSplit, ReadOnlySpan<int> dimensions)
+        public static Tuple<DenseTensor<float>, DenseTensor<float>> SplitTensor(DenseTensor<float> tensorToSplit, ReadOnlySpan<int> dimensions, int scaledHeight, int scaledWidth)
         {
             var tensor1 = new DenseTensor<float>(dimensions);
             var tensor2 = new DenseTensor<float>(dimensions);
@@ -50,9 +50,9 @@ namespace OnnxStack.StableDiffusion.Helpers
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    for (int k = 0; k < 512 / 8; k++)
+                    for (int k = 0; k < scaledHeight; k++)
                     {
-                        for (int l = 0; l < 512 / 8; l++)
+                        for (int l = 0; l < scaledWidth; l++)
                         {
                             tensor1[i, j, k, l] = tensorToSplit[i, j, k, l];
                             tensor2[i, j, k, l] = tensorToSplit[i, j + 4, k, l];

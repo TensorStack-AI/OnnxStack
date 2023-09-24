@@ -54,7 +54,7 @@ namespace OnnxStack.StableDiffusion.Services
             options.Seed = options.Seed > 0 ? options.Seed : Random.Shared.Next();
 
             var random = new Random(options.Seed); //TODO: Add to StableDiffusionOptions so can be shared with SchedulerBase
-            Console.WriteLine($"Scheduler: {options.SchedulerType}, Seed: {options.Seed}, Steps: {options.NumInferenceSteps}, Guidance: {options.GuidanceScale}");
+            Console.WriteLine($"Scheduler: {options.SchedulerType}, Size: {options.Width}x{options.Height}, Seed: {options.Seed}, Steps: {options.NumInferenceSteps}, Guidance: {options.GuidanceScale}");
 
             // Get Scheduler
             var scheduler = GetScheduler(options, schedulerConfig);
@@ -66,14 +66,14 @@ namespace OnnxStack.StableDiffusion.Services
             var promptEmbeddings = await CreatePromptEmbeddings(options.Prompt, options.NegativePrompt);
 
             // Create latent sample
-            var latentSample = TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.Height / 8, options.Width / 8 }, scheduler.GetInitNoiseSigma());
+             var latentSample = TensorHelper.GetRandomTensor(random, new[] { 1, 4, options.GetScaledHeight(), options.GetScaledWidth() }, scheduler.GetInitNoiseSigma());
 
             // Loop though the timesteps
             var step = 0;
             foreach (var timestep in timesteps)
             {
                 // Create input tensor.
-                var inputTensor = scheduler.ScaleInput(TensorHelper.Duplicate(latentSample, new[] { 2, 4, options.Height / 8, options.Width / 8 }), timestep);
+                var inputTensor = scheduler.ScaleInput(TensorHelper.Duplicate(latentSample, new[] { 2, 4, options.GetScaledHeight(), options.GetScaledWidth() }), timestep);
                 var inputParameters = CreateInputParameters(
                      NamedOnnxValue.CreateFromTensor("encoder_hidden_states", promptEmbeddings),
                      NamedOnnxValue.CreateFromTensor("sample", inputTensor),
@@ -84,8 +84,8 @@ namespace OnnxStack.StableDiffusion.Services
                 {
                     var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
 
-                    // Split tensors from 2,4,64,64 to 1,4,64,64
-                    var splitTensors = TensorHelper.SplitTensor(resultTensor, new[] { 1, 4, options.Height / 8, options.Width / 8 });
+                    // Split tensors from 2,4,(H/8),(W/8) to 1,4,(H/8),(W/8)
+                    var splitTensors = TensorHelper.SplitTensor(resultTensor, new[] { 1, 4, options.GetScaledHeight(), options.GetScaledWidth() }, options.GetScaledHeight(), options.GetScaledWidth());
                     var noisePred = splitTensors.Item1;
                     var noisePredText = splitTensors.Item2;
 

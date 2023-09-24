@@ -3,20 +3,20 @@
     public class StableDiffusionOptions
     {
         /// <summary>
-        /// Gets or sets the height. (Fixed to 512 at the moment)
+        /// Gets or sets the height.
         /// </summary>
         /// <value>
-        ///  The height of the image. Default is 512 and must be a multiple of 8.
+        ///  The height of the image. Default is 512 and must be divisible by 64.
         /// </value>
-        public int Height { get; } = 512;
+        public int Height { get; set; } = 512;
 
         /// <summary>
-        /// Gets or sets the width. (Fixed to 512 at the moment)
+        /// Gets or sets the width.
         /// </summary>
         /// <value>
-        /// The width of the image. Default is 512 and must be a multiple of 8.
+        /// The width of the image. Default is 512 and must be divisible by 64.
         /// </value>
-        public int Width { get; } = 512;
+        public int Width { get; set; } = 512;
 
         /// <summary>
         /// Gets or sets the number inference steps.
