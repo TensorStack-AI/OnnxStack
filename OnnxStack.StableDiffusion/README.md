@@ -70,7 +70,7 @@ internal class AppService : IHostedService
             System.Console.WriteLine("Please type a prompt and press ENTER");
             var prompt = System.Console.ReadLine();
 
-            System.Console.WriteLine("Please type a negative prompt and press ENTER (optional)";
+            System.Console.WriteLine("Please type a negative prompt and press ENTER (optional)");
             var negativePrompt = System.Console.ReadLine();
 
             var options = new StableDiffusionOptions
@@ -83,9 +83,10 @@ internal class AppService : IHostedService
 
             System.Console.WriteLine("Generating Image...");
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            if (await _stableDiffusionService.TextToImageFile(options, outputFilename))
+            var result = await _stableDiffusionService.TextToImageFile(options, outputFilename);
+            if (result is not null)
             {
-               System.Console.WriteLine($"Image Created, FilePath: {outputFilename}");
+                System.Console.WriteLine($"Image Created, FilePath: {outputFilename}");
             }
       }
    }

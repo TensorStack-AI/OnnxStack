@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.0.2-alpha</Version>
+    <Version>0.1.0</Version>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -28,6 +28,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="cliptokenizer.onnx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\Assets\OnnxStack - 128x128.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
@@ -35,7 +43,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="OnnxStack.Core" Version="0.0.2-alpha" Condition=" '$(Configuration)' == 'Release' "/>
+    <PackageReference Include="OnnxStack.Core" Version="0.1.0" Condition=" '$(Configuration)' == 'Release' " />
     <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' " />
   </ItemGroup>
 
@@ -52,5 +60,5 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  
+
 </Project>
