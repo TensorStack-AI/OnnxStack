@@ -9,8 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" />
-    <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
+    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.0.2-alpha" Condition=" '$(Configuration)' == 'Release' "/>
+    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' "/>
+    <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" Condition=" '$(Configuration)' == 'Debug' "/>
   </ItemGroup>
 
   <ItemGroup>
