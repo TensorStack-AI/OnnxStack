@@ -19,7 +19,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected bool _isScaleInputCalled;
         protected DenseTensor<float> _sigmasTensor;
         protected List<float> _alphasCumulativeProducts;
-        protected List<double> _computedSigmas;
+        protected List<float> _computedSigmas;
 
         public SchedulerBase(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
         {
@@ -35,15 +35,15 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
         public virtual int[] SetTimesteps(int inferenceSteps)
         {
-            double start = 0;
-            double stop = _schedulerOptions.TrainTimesteps - 1;
-            double[] timesteps = np.linspace(start, stop, inferenceSteps).ToArray<double>();
+            float start = 0;
+            float stop = _schedulerOptions.TrainTimesteps - 1;
+            float[] timesteps = np.linspace(start, stop, inferenceSteps).ToArray<float>();
 
             _timesteps = timesteps.Select(x => (int)x)
                 .Reverse()
                 .ToList();
 
-            var range = np.arange(0, (double)_computedSigmas.Count).ToArray<double>();
+            var range = np.arange(0, (float)_computedSigmas.Count).ToArray<float>();
             var sigmas = Interpolate(timesteps, range, _computedSigmas);
             _sigmasTensor = new DenseTensor<float>(sigmas.Length);
             for (int i = 0; i < sigmas.Length; i++)
@@ -101,18 +101,18 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             // Create sigmas as a list and reverse it
             _computedSigmas = _alphasCumulativeProducts
-                .Select(alpha_prod => Math.Sqrt((1 - alpha_prod) / alpha_prod))
+                .Select(alpha_prod => (float)Math.Sqrt((1 - alpha_prod) / alpha_prod))
                 .Reverse()
                 .ToList();
 
             // standard deviation of the initial noise distrubution
-            _initNoiseSigma = (float)_computedSigmas.Max();
+            _initNoiseSigma = _computedSigmas.Max();
         }
 
-        protected double[] Interpolate(double[] timesteps, double[] range, List<double> sigmas)
+        protected float[] Interpolate(float[] timesteps, float[] range, List<float> sigmas)
         {
             // Create an output array with the same shape as timesteps
-            var result = np.zeros(timesteps.Length + 1);
+            var result = np.zeros(Shape.Vector(timesteps.Length + 1), NPTypeCode.Single);
 
             // Loop over each element of timesteps
             for (int i = 0; i < timesteps.Length; i++)
@@ -142,7 +142,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 else
                 {
                     index = ~index; // bitwise complement of j gives the insertion point of x[i]
-                    double t = (timesteps[i] - range[index - 1]) / (range[index] - range[index - 1]); // fractional distance between two points
+                    float t = (timesteps[i] - range[index - 1]) / (range[index] - range[index - 1]); // fractional distance between two points
                     result[i] = sigmas[index - 1] + t * (sigmas[index] - sigmas[index - 1]); // linear interpolation formula
                 }
             }
@@ -150,7 +150,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             //  add 0.000 to the end of the result
             result = np.add(result, 0.000f);
 
-            return result.ToArray<double>();
+            return result.ToArray<float>();
         }
     }
 }
