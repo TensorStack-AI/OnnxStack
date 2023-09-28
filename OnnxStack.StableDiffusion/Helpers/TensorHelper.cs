@@ -153,5 +153,15 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
             return noisePred;
         }
+
+
+        public static DenseTensor<float> Clip(DenseTensor<float> tensor, float minValue, float maxValue)
+        {
+            for (int i = 0; i < tensor.Length; i++)
+            {
+                tensor.SetValue(i, Math.Clamp(tensor.GetValue(i), minValue, maxValue));
+            }
+            return tensor;
+        }
     }
 }

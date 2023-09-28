@@ -4,5 +4,6 @@
     {
         LMSScheduler = 0,
         EulerAncestralScheduler = 1,
+        DDPMScheduler = 3
     }
 }

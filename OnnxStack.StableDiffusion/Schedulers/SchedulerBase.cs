@@ -1,115 +1,153 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using NumSharp;
+using NumSharp.Generic;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Schedulers
 {
-    public abstract class SchedulerBase
+    public abstract class SchedulerBase : IScheduler
     {
-        protected readonly Random _random;
-        protected readonly SchedulerOptions _schedulerOptions;
-        protected readonly StableDiffusionOptions _stableDiffusionOptions;
+        private readonly Random _random;
+        private readonly List<int> _timesteps;
+        private readonly SchedulerOptions _schedulerOptions;
+        private readonly StableDiffusionOptions _stableDiffusionOptions;
+        private float _initNoiseSigma;
 
-        protected List<int> _timesteps;
-        protected float _initNoiseSigma;
-        protected bool _isScaleInputCalled;
-        protected DenseTensor<float> _sigmasTensor;
-        protected List<float> _alphasCumulativeProducts;
-        protected List<float> _computedSigmas;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SchedulerBase"/> class.
+        /// </summary>
+        /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
         public SchedulerBase(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
         {
             _schedulerOptions = schedulerOptions;
             _stableDiffusionOptions = stableDiffusionOptions;
             _random = new Random(_stableDiffusionOptions.Seed);
             Initialize();
+            _timesteps = new List<int>(SetTimesteps());
         }
 
-        public float GetInitNoiseSigma() => _initNoiseSigma;
+        /// <summary>
+        /// Gets the random initiated with the seed.
+        /// </summary>
+        public Random Random => _random;
 
+        /// <summary>
+        /// Gets the initial noise sigma.
+        /// </summary>
+        public float InitNoiseSigma => _initNoiseSigma;
+
+        /// <summary>
+        /// Gets the timesteps.
+        /// </summary>
+        public IReadOnlyList<int> Timesteps => _timesteps;
+
+        /// <summary>
+        /// Gets the scheduler options.
+        /// </summary>
+        public SchedulerOptions SchedulerOptions => _schedulerOptions;
+
+        /// <summary>
+        /// Gets the stable diffusion options.
+        /// </summary>
+        public StableDiffusionOptions StableDiffusionOptions => _stableDiffusionOptions;
+
+        /// <summary>
+        /// Scales the input.
+        /// </summary>
+        /// <param name="sample">The sample.</param>
+        /// <param name="timestep">The timestep.</param>
+        /// <returns></returns>
+        public abstract DenseTensor<float> ScaleInput(DenseTensor<float> sample, int timestep);
+
+        /// <summary>
+        /// Processes a inference step for the specified model output.
+        /// </summary>
+        /// <param name="modelOutput">The model output.</param>
+        /// <param name="timestep">The timestep.</param>
+        /// <param name="sample">The sample.</param>
+        /// <param name="order">The order.</param>
+        /// <returns></returns>
         public abstract DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
 
-        public virtual int[] SetTimesteps(int inferenceSteps)
+        /// <summary>
+        /// Initializes this instance.
+        /// </summary>
+        protected abstract void Initialize();
+
+        /// <summary>
+        /// Sets the timesteps.
+        /// </summary>
+        /// <returns></returns>
+        protected abstract int[] SetTimesteps();
+
+
+
+        /// <summary>
+        /// Sets the initial noise sigma.
+        /// </summary>
+        /// <param name="initNoiseSigma">The initial noise sigma.</param>
+        protected void SetInitNoiseSigma(float initNoiseSigma)
         {
-            float start = 0;
-            float stop = _schedulerOptions.TrainTimesteps - 1;
-            float[] timesteps = np.linspace(start, stop, inferenceSteps).ToArray<float>();
-
-            _timesteps = timesteps.Select(x => (int)x)
-                .Reverse()
-                .ToList();
-
-            var range = np.arange(0, (float)_computedSigmas.Count).ToArray<float>();
-            var sigmas = Interpolate(timesteps, range, _computedSigmas);
-            _sigmasTensor = new DenseTensor<float>(sigmas.Length);
-            for (int i = 0; i < sigmas.Length; i++)
-            {
-                _sigmasTensor.SetValue(i, (float)sigmas[i]);
-            }
-            return _timesteps.ToArray();
+            _initNoiseSigma = initNoiseSigma;
         }
 
 
-        public DenseTensor<float> ScaleInput(DenseTensor<float> sample, int timestep)
+        /// <summary>
+        /// Gets the previous timestep.
+        /// </summary>
+        /// <param name="timestep">The timestep.</param>
+        /// <returns></returns>
+        protected int GetPreviousTimestep(int timestep)
         {
-            // Get step index of timestep from TimeSteps
-            int stepIndex = _timesteps.IndexOf(timestep);
-
-            // Get sigma at stepIndex
-            var sigma = _sigmasTensor[stepIndex];
-            sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
-
-            // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
-            sample = TensorHelper.DivideTensorByFloat(sample, sigma, sample.Dimensions);
-            _isScaleInputCalled = true;
-            return sample;
+            return timestep - _schedulerOptions.TrainTimesteps / _stableDiffusionOptions.NumInferenceSteps;
         }
 
-        protected virtual void Initialize()
+
+        /// <summary>
+        /// Gets the betas for alpha bar.
+        /// </summary>
+        /// <param name="maxBeta">The maximum beta.</param>
+        /// <param name="alphaTransformType">Type of the alpha transform.</param>
+        /// <returns></returns>
+        protected float[] GetBetasForAlphaBar()
         {
-            var alphas = new List<float>();
-            var betas = new List<float>();
+            var betas = new float[_schedulerOptions.TrainTimesteps];
 
-            if (_schedulerOptions.TrainedBetas != null)
+            Func<float, float> alphaBarFn = null;
+            if (_schedulerOptions.AlphaTransformType == AlphaTransformType.Cosine)
             {
-                betas = _schedulerOptions.TrainedBetas.ToList();
+                alphaBarFn = t => (float)Math.Pow(Math.Cos((t + 0.008) / 1.008 * Math.PI / 2.0), 2.0);
             }
-            else if (_schedulerOptions.BetaSchedule == SchedulerBetaSchedule.Linear)
+            else if (_schedulerOptions.AlphaTransformType == AlphaTransformType.Exponential)
             {
-                betas = Enumerable.Range(0, _schedulerOptions.TrainTimesteps)
-                    .Select(i => _schedulerOptions.BetaStart + (_schedulerOptions.BetaEnd - _schedulerOptions.BetaStart) * i / (_schedulerOptions.TrainTimesteps - 1))
-                    .ToList();
+                alphaBarFn = t => (float)Math.Exp(t * -12.0);
             }
-            else if (_schedulerOptions.BetaSchedule == SchedulerBetaSchedule.ScaledLinear)
+   
+            for (int i = 0; i < _schedulerOptions.TrainTimesteps; i++)
             {
-                var start = (float)Math.Sqrt(_schedulerOptions.BetaStart);
-                var end = (float)Math.Sqrt(_schedulerOptions.BetaEnd);
-                betas = np.linspace(start, end, _schedulerOptions.TrainTimesteps)
-                    .ToArray<float>()
-                    .Select(x => x * x)
-                    .ToList();
+                float t1 = (float)i / _schedulerOptions.TrainTimesteps;
+                float t2 = (float)(i + 1) / _schedulerOptions.TrainTimesteps;
+                float alphaT1 = alphaBarFn(t1);
+                float alphaT2 = alphaBarFn(t2);
+                float beta = Math.Min(1 - alphaT2 / alphaT1, _schedulerOptions.MaximumBeta);
+                betas[i] = (float)Math.Max(beta, 0.0001);
             }
-
-
-            alphas = betas.Select(beta => 1 - beta).ToList();
-
-            _alphasCumulativeProducts = alphas.Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b)).ToList();
-
-            // Create sigmas as a list and reverse it
-            _computedSigmas = _alphasCumulativeProducts
-                .Select(alpha_prod => (float)Math.Sqrt((1 - alpha_prod) / alpha_prod))
-                .Reverse()
-                .ToList();
-
-            // standard deviation of the initial noise distrubution
-            _initNoiseSigma = _computedSigmas.Max();
+            return betas;
         }
 
-        protected float[] Interpolate(float[] timesteps, float[] range, List<float> sigmas)
+
+        /// <summary>
+        /// Interpolates the specified timesteps.
+        /// </summary>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <param name="range">The range.</param>
+        /// <param name="sigmas">The sigmas.</param>
+        /// <returns></returns>
+        protected NDArray Interpolate(float[] timesteps, float[] range, float[] sigmas)
         {
             // Create an output array with the same shape as timesteps
             var result = np.zeros(Shape.Vector(timesteps.Length + 1), NPTypeCode.Single);
@@ -123,34 +161,117 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 // If timesteps[i] is exactly equal to an element in range, use the corresponding value in sigma
                 if (index >= 0)
                 {
-                    result[i] = sigmas[index];
+                    result[i] = sigmas[(sigmas.Length - 1) - index];
                 }
 
                 // If timesteps[i] is less than the first element in range, use the first value in sigmas
                 else if (index == -1)
                 {
-                    result[i] = sigmas[0];
+                    result[i] = sigmas[sigmas.Length - 1];
                 }
 
                 // If timesteps[i] is greater than the last element in range, use the last value in sigmas
                 else if (index == -range.Length - 1)
                 {
-                    result[i] = sigmas[sigmas.Count - 1];
+                    result[i] = sigmas[0];
                 }
 
                 // Otherwise, interpolate linearly between two adjacent values in sigmas
                 else
                 {
                     index = ~index; // bitwise complement of j gives the insertion point of x[i]
+                    var startIndex = (sigmas.Length - 1) - index;
                     float t = (timesteps[i] - range[index - 1]) / (range[index] - range[index - 1]); // fractional distance between two points
-                    result[i] = sigmas[index - 1] + t * (sigmas[index] - sigmas[index - 1]); // linear interpolation formula
+                    result[i] = sigmas[startIndex - 1] + t * (sigmas[startIndex] - sigmas[startIndex - 1]); // linear interpolation formula
                 }
             }
+            return result;
+        }
 
-            //  add 0.000 to the end of the result
-            result = np.add(result, 0.000f);
 
-            return result.ToArray<float>();
+        /// <summary>
+        /// Converts sigmas to karras.
+        /// </summary>
+        /// <param name="inSigmas">The in sigmas.</param>
+        /// <returns></returns>
+        protected NDArray ConvertToKarras(NDArray inSigmas)
+        {
+            // Get the minimum and maximum values from the input sigmas
+            float sigmaMin = inSigmas[inSigmas.size - 1];
+            float sigmaMax = inSigmas[0];
+
+            // Set the value of rho, which is used in the calculation
+            float rho = 7.0f; // 7.0 is the value used in the paper
+
+            // Create a linear ramp from 0 to 1
+            float[] ramp = Enumerable.Range(0, _stableDiffusionOptions.NumInferenceSteps)
+                .Select(i => (float)i / (_stableDiffusionOptions.NumInferenceSteps - 1))
+                .ToArray();
+
+            // Calculate the inverse of sigmaMin and sigmaMax raised to the power of 1/rho
+            float minInvRho = (float)Math.Pow(sigmaMin, 1.0 / rho);
+            float maxInvRho = (float)Math.Pow(sigmaMax, 1.0 / rho);
+
+            // Calculate the Karras noise schedule using the formula from the paper
+            float[] sigmas = new float[_stableDiffusionOptions.NumInferenceSteps];
+            for (int i = 0; i < _stableDiffusionOptions.NumInferenceSteps; i++)
+            {
+                sigmas[i] = (float)Math.Pow(maxInvRho + ramp[i] * (minInvRho - maxInvRho), rho);
+            }
+
+            // Return the resulting noise schedule as a Vector<float>
+            return sigmas;
+        }
+
+
+        /// <summary>
+        /// Create timesteps form sigmas
+        /// </summary>
+        /// <param name="sigmas">The sigmas.</param>
+        /// <param name="logSigmas">The log sigmas.</param>
+        /// <returns></returns>
+        protected float[] SigmaToTimestep(NDArray sigmas, NDArray logSigmas)
+        {
+            int numSigmas = sigmas.size;
+            int numLogSigmas = logSigmas.size;
+            var floatSigmas = sigmas.view<float>();
+            var floatLogSigmas = logSigmas.view<float>();
+
+            NDArray<float> t = new NDArray<float>(numSigmas);
+
+            for (int i = 0; i < numSigmas; i++)
+            {
+                float logSigma = (float)Math.Log(floatSigmas[i]);
+                float[] dists = new float[numLogSigmas];
+
+                for (int j = 0; j < numLogSigmas; j++)
+                {
+                    dists[j] = logSigma - floatLogSigmas[j];
+                }
+
+                int lowIdx = 0;
+                int highIdx = 1;
+
+                for (int j = 0; j < numLogSigmas - 1; j++)
+                {
+                    if (dists[j] >= 0)
+                    {
+                        lowIdx = j;
+                        highIdx = j + 1;
+                    }
+                }
+
+                float low = floatLogSigmas[lowIdx];
+                float high = floatLogSigmas[highIdx];
+
+                float w = (low - logSigma) / (low - high);
+                w = Math.Clamp(w, 0, 1);
+
+                float ti = (1 - w) * lowIdx + w * highIdx;
+                t[i] = ti;
+            }
+
+            return t.ToArray<float>();
         }
     }
 }

@@ -51,18 +51,15 @@ namespace OnnxStack.StableDiffusion.Services
             // Get Scheduler
             var scheduler = GetScheduler(options, schedulerConfig);
 
-            // Get timesteps
-            var timesteps = scheduler.SetTimesteps(options.NumInferenceSteps);
-
             // Process prompts
             var promptEmbeddings = await CreatePromptEmbeddings(options.Prompt, options.NegativePrompt);
 
             // Create latent sample
-             var latentSample = TensorHelper.GetRandomTensor(random, options.GetScaledDimension(), scheduler.GetInitNoiseSigma());
+             var latentSample = TensorHelper.GetRandomTensor(random, options.GetScaledDimension(), scheduler.InitNoiseSigma);
 
             // Loop though the timesteps
             var step = 0;
-            foreach (var timestep in timesteps)
+            foreach (var timestep in scheduler.Timesteps)
             {
                 // Create input tensor.
                 var inputTensor = scheduler.ScaleInput(TensorHelper.Duplicate(latentSample, options.GetScaledDimension(2)), timestep);
@@ -88,7 +85,7 @@ namespace OnnxStack.StableDiffusion.Services
                     latentSample = scheduler.Step(noisePred, timestep, latentSample);
                 }
 
-                Console.WriteLine($"Step: {++step}/{timesteps.Length}");
+                Console.WriteLine($"Step: {++step}/{scheduler.Timesteps.Count}");
             }
 
             // Scale and decode the image latents with vae.
@@ -308,12 +305,13 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="options">The options.</param>
         /// <param name="schedulerConfig">The scheduler configuration.</param>
         /// <returns></returns>
-        private static SchedulerBase GetScheduler(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
+        private static IScheduler GetScheduler(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
         {
             return options.SchedulerType switch
             {
                 SchedulerType.LMSScheduler => new LMSScheduler(options, schedulerConfig),
                 SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(options, schedulerConfig),
+                SchedulerType.DDPMScheduler => new DDPMScheduler(options, schedulerConfig),
                 _ => default
             };
         }
