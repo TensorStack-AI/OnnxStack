@@ -73,6 +73,16 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         public abstract DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
 
+
+        /// <summary>
+        /// Adds noise to the sample.
+        /// </summary>
+        /// <param name="originalSamples">The original samples.</param>
+        /// <param name="noise">The noise.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
+        public abstract DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, int[] timesteps);
+
         /// <summary>
         /// Initializes this instance.
         /// </summary>

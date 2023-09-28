@@ -241,6 +241,48 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
 
         /// <summary>
+        /// Adds noise to the sample.
+        /// </summary>
+        /// <param name="originalSamples">The original samples.</param>
+        /// <param name="noise">The noise.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
+        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, int[] timesteps)
+        {
+            // Make sure alphas_cumprod and timestep have the same device and dtype as originalSamples
+            var alphasCumprod = new DenseTensor<float>(_alphasCumulativeProducts.ToArray(), new int[] { _alphasCumulativeProducts.Count });// Convert to DenseTensor
+            var timestepsTensor = new DenseTensor<int>(timesteps);
+
+            var sqrtAlphaProd = new DenseTensor<float>(timesteps.Length);
+            var sqrtOneMinusAlphaProd = new DenseTensor<float>(timesteps.Length);
+
+            for (int i = 0; i < timesteps.Length; i++)
+            {
+                int timestep = timesteps[i];
+                float alphaProd = alphasCumprod[0, timestep]; // Assuming alphasCumprod is a 2D tensor
+                float sqrtAlpha = (float)Math.Sqrt(alphaProd);
+                float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
+
+                sqrtAlphaProd[i] = sqrtAlpha;
+                sqrtOneMinusAlphaProd[i] = sqrtOneMinusAlpha;
+            }
+
+            // Reshape sqrtAlphaProd and sqrtOneMinusAlphaProd to match the shape of originalSamples
+            int[] outputShape = originalSamples.Dimensions.ToArray();
+            outputShape[0] = timesteps.Length; // Update the batch size dimension
+            sqrtAlphaProd = sqrtAlphaProd.Reshape(outputShape).ToDenseTensor();
+            sqrtOneMinusAlphaProd = sqrtOneMinusAlphaProd.Reshape(outputShape).ToDenseTensor();
+
+            // Compute noisy samples
+            var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
+            for (int i = 0; i < originalSamples.Length; i++)
+            {
+                noisySamples.SetValue(i, sqrtAlphaProd.GetValue(i) * originalSamples.GetValue(i) + sqrtOneMinusAlphaProd.GetValue(i) * noise.GetValue(i));
+            }
+            return noisySamples;
+        }
+
+        /// <summary>
         /// Gets the variance.
         /// </summary>
         /// <param name="timestep">The t.</param>
