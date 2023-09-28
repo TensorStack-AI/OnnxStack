@@ -49,51 +49,53 @@ namespace OnnxStack.StableDiffusion.Services
             Console.WriteLine($"Scheduler: {options.SchedulerType}, Size: {options.Width}x{options.Height}, Seed: {options.Seed}, Steps: {options.NumInferenceSteps}, Guidance: {options.GuidanceScale}");
 
             // Get Scheduler
-            var scheduler = GetScheduler(options, schedulerConfig);
-
-            // Process prompts
-            var promptEmbeddings = await CreatePromptEmbeddings(options.Prompt, options.NegativePrompt);
-
-            // Create latent sample
-             var latentSample = TensorHelper.GetRandomTensor(random, options.GetScaledDimension(), scheduler.InitNoiseSigma);
-
-            // Loop though the timesteps
-            var step = 0;
-            foreach (var timestep in scheduler.Timesteps)
+            using (var scheduler = GetScheduler(options, schedulerConfig))
             {
-                // Create input tensor.
-                var inputTensor = scheduler.ScaleInput(TensorHelper.Duplicate(latentSample, options.GetScaledDimension(2)), timestep);
-                var inputParameters = CreateInputParameters(
-                     NamedOnnxValue.CreateFromTensor("encoder_hidden_states", promptEmbeddings),
-                     NamedOnnxValue.CreateFromTensor("sample", inputTensor),
-                     NamedOnnxValue.CreateFromTensor("timestep", new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })));
 
-                // Run Inference
-                using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, inputParameters))
+                // Process prompts
+                var promptEmbeddings = await CreatePromptEmbeddings(options.Prompt, options.NegativePrompt);
+
+                // Create latent sample
+                var latentSample = scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma);
+
+                // Loop though the timesteps
+                var step = 0;
+                foreach (var timestep in scheduler.Timesteps)
                 {
-                    var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
+                    // Create input tensor.
+                    var inputTensor = scheduler.ScaleInput(latentSample.Duplicate(options.GetScaledDimension(2)), timestep);
+                    var inputParameters = CreateInputParameters(
+                         NamedOnnxValue.CreateFromTensor("encoder_hidden_states", promptEmbeddings),
+                         NamedOnnxValue.CreateFromTensor("sample", inputTensor),
+                         NamedOnnxValue.CreateFromTensor("timestep", new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })));
 
-                    // Split tensors from 2,4,(H/8),(W/8) to 1,4,(H/8),(W/8)
-                    var splitTensors = TensorHelper.SplitTensor(resultTensor, options.GetScaledDimension(), options.GetScaledHeight(), options.GetScaledWidth());
-                    var noisePred = splitTensors.Item1;
-                    var noisePredText = splitTensors.Item2;
+                    // Run Inference
+                    using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, inputParameters))
+                    {
+                        var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
 
-                    // Perform guidance
-                    noisePred = TensorHelper.PerformGuidance(noisePred, noisePredText, options.GuidanceScale);
+                        // Split tensors from 2,4,(H/8),(W/8) to 1,4,(H/8),(W/8)
+                        var splitTensors = resultTensor.SplitTensor(options.GetScaledDimension(), options.GetScaledHeight(), options.GetScaledWidth());
+                        var noisePred = splitTensors.Item1;
+                        var noisePredText = splitTensors.Item2;
 
-                    // LMS Scheduler Step
-                    latentSample = scheduler.Step(noisePred, timestep, latentSample);
+                        // Perform guidance
+                        noisePred = noisePred.PerformGuidance(noisePredText, options.GuidanceScale);
+
+                        // LMS Scheduler Step
+                        latentSample = scheduler.Step(noisePred, timestep, latentSample);
+                    }
+
+                    Console.WriteLine($"Step: {++step}/{scheduler.Timesteps.Count}");
                 }
 
-                Console.WriteLine($"Step: {++step}/{scheduler.Timesteps.Count}");
+                // Scale and decode the image latents with vae.
+                // latents = 1 / 0.18215 * latents
+                latentSample = latentSample.MultipleTensorByFloat(1.0f / 0.18215f);
+
+                // Decode Latents
+                return await DecodeLatents(options, latentSample);
             }
-
-            // Scale and decode the image latents with vae.
-            // latents = 1 / 0.18215 * latents
-            latentSample = TensorHelper.MultipleTensorByFloat(latentSample, 1.0f / 0.18215f);
-
-            // Decode Latents
-            return await DecodeLatents(options, latentSample);
         }
 
 
@@ -233,7 +235,7 @@ namespace OnnxStack.StableDiffusion.Services
             var inputTensor = ClipImageFeatureExtractor(options, resultImage);
 
             //images input
-            var inputImagesTensor = TensorHelper.ReorderTensor(inputTensor, new[] { 1, 224, 224, 3 });
+            var inputImagesTensor = inputTensor.ReorderTensor(new[] { 1, 224, 224, 3 });
             var inputParameters = CreateInputParameters(
                 NamedOnnxValue.CreateFromTensor("clip_input", inputTensor),
                 NamedOnnxValue.CreateFromTensor("images", inputImagesTensor));

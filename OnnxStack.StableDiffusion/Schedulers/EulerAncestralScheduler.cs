@@ -154,7 +154,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
 
             // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
-            sample = TensorHelper.DivideTensorByFloat(sample, sigma, sample.Dimensions);
+            sample = sample.DivideTensorByFloat(sigma, sample.Dimensions);
 
             return sample;
         }
@@ -174,7 +174,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sigma = _sigmas[stepIndex];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
-            var predOriginalSample = TensorHelper.SubtractTensors(sample, TensorHelper.MultipleTensorByFloat(modelOutput, sigma));
+            var predOriginalSample = sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma));
 
             var sigmaFrom = _sigmas[stepIndex];
             var sigmaTo = _sigmas[stepIndex + 1];
@@ -187,16 +187,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sigmaDown = sigmaDownResult < 0 ? -MathF.Pow(MathF.Abs(sigmaDownResult), 0.5f) : MathF.Pow(sigmaDownResult, 0.5f);
 
             // 2. Convert to an ODE derivative
-            var sampleMinusPredOriginalSample = TensorHelper.SubtractTensors(sample, predOriginalSample);
-            var derivative = TensorHelper.DivideTensorByFloat(sampleMinusPredOriginalSample, sigma, predOriginalSample.Dimensions);
+            var derivative = sample
+                .SubtractTensors(predOriginalSample)
+                .DivideTensorByFloat(sigma, predOriginalSample.Dimensions);
 
-            var dt = sigmaDown - sigma;
-            var prevSample = TensorHelper.AddTensors(sample, TensorHelper.MultipleTensorByFloat(derivative, dt));
-
-            var noise = TensorHelper.GetRandomTensor(Random, prevSample.Dimensions);
-            var noiseSigmaUpProduct = TensorHelper.MultipleTensorByFloat(noise, sigmaUp);
-            prevSample = TensorHelper.AddTensors(prevSample, noiseSigmaUpProduct);
-            return prevSample;
+            var delta = sigmaDown - sigma;
+            var prevSample = sample.AddTensors(derivative.MultipleTensorByFloat(delta));
+            var noise = CreateRandomSample(prevSample.Dimensions);
+            return prevSample.AddTensors(noise.MultipleTensorByFloat(sigmaUp));
         }
 
 
@@ -227,6 +225,12 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 noisySamples.SetValue(i, originalSamples.GetValue(i) + (noise.GetValue(i) * sigma[i]));
             }
             return noisySamples;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            _sigmas = null;
+            base.Dispose(disposing);
         }
     }
 }

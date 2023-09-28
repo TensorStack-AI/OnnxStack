@@ -1,9 +1,10 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using System;
 using System.Collections.Generic;
 
 namespace OnnxStack.StableDiffusion.Schedulers
 {
-    public interface IScheduler
+    public interface IScheduler : IDisposable
     {
         /// <summary>
         /// Gets the initial noise sigma.
@@ -41,5 +42,12 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
         DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, int[] timesteps);
+
+        /// <summary>
+        /// Creates a random sample with the specified dimesions.
+        /// </summary>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns></returns>
+        DenseTensor<float> CreateRandomSample(ReadOnlySpan<int> dimensions, float initialNoiseSigma);
     }
 }

@@ -95,6 +95,27 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected abstract int[] SetTimesteps();
 
 
+        /// <summary>
+        /// Creates a random sample with the specified dimesions.
+        /// </summary>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns></returns>
+        public virtual DenseTensor<float> CreateRandomSample(ReadOnlySpan<int> dimensions, float initialNoiseSigma = 1f)
+        {
+            var latents = new DenseTensor<float>(dimensions);
+            for (int i = 0; i < latents.Length; i++)
+            {
+                // Generate a random number from a normal distribution with mean 0 and variance 1
+                var u1 = _random.NextDouble(); // Uniform(0,1) random number
+                var u2 = _random.NextDouble(); // Uniform(0,1) random number
+                var radius = Math.Sqrt(-2.0 * Math.Log(u1)); // Radius of polar coordinates
+                var theta = 2.0 * Math.PI * u2; // Angle of polar coordinates
+                var standardNormalRand = radius * Math.Cos(theta); // Standard normal random number
+                latents.SetValue(i, (float)standardNormalRand * initialNoiseSigma);
+            }
+            return latents;
+        }
+
 
         /// <summary>
         /// Sets the initial noise sigma.
@@ -283,5 +304,49 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             return t.ToArray<float>();
         }
+
+        #region IDisposable
+
+        private bool disposed = false;
+
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Dispose managed resources here.
+                _timesteps?.Clear();
+            }
+
+            // Dispose unmanaged resources here (if any).
+            disposed = true;
+        }
+
+
+        /// <summary>
+        /// Finalizes an instance of the <see cref="SchedulerBase"/> class.
+        /// </summary>
+        ~SchedulerBase()
+        {
+            Dispose(false);
+        }
+
+        #endregion
     }
 }

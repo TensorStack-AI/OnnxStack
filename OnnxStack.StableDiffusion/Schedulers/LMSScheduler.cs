@@ -158,7 +158,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
 
             // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
-            sample = TensorHelper.DivideTensorByFloat(sample, sigma, sample.Dimensions);
+            sample = sample.DivideTensorByFloat(sigma, sample.Dimensions);
 
             return sample;
         }
@@ -178,10 +178,12 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sigma = _sigmas[stepIndex];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
-            var predOriginalSample = TensorHelper.SubtractTensors(sample, TensorHelper.MultipleTensorByFloat(modelOutput, sigma));
+            // sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma));
 
             // 2. Convert to an ODE derivative
-            var derivativeSample = TensorHelper.DivideTensorByFloat(TensorHelper.SubtractTensors(sample, predOriginalSample), sigma, sample.Dimensions);
+            var derivativeSample = sample
+                .SubtractTensors(sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma)))
+                .DivideTensorByFloat(sigma, sample.Dimensions);
 
             _derivatives.Add(derivativeSample);
             if (_derivatives.Count > order)
@@ -209,14 +211,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 // Multiply to coeff by each derivatives to create the new tensors
                 var (lmsCoeff, derivative) = lmsCoeffsAndDerivatives[i];
-                lmsDerProduct[i] = TensorHelper.MultipleTensorByFloat(derivative, (float)lmsCoeff);
+                lmsDerProduct[i] = derivative.MultipleTensorByFloat((float)lmsCoeff);
             }
 
-            // Sum the tensors
-            var sumTensor = TensorHelper.SumTensors(lmsDerProduct, StableDiffusionOptions.GetScaledDimension());
-
             // Add the sumed tensor to the sample
-            return TensorHelper.AddTensors(sample, sumTensor);
+            return sample.AddTensors(lmsDerProduct.SumTensors(modelOutput.Dimensions));
         }
 
 
@@ -274,6 +273,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 return prod;
             }
             return Integrate.OnClosedInterval(LmsDerivative, _sigmas[t], _sigmas[t + 1], 1e-4);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            _sigmas = null;
+            _derivatives?.Clear();
+            base.Dispose(disposing);
         }
     }
 }

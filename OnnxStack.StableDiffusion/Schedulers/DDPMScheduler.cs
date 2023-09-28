@@ -106,7 +106,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 timestepsArray -= 1;
             }
 
-            return  timestepsArray
+            return timestepsArray
                 .ToArray<float>()
                 .Select(x => (int)x)
                 .OrderByDescending(x => x)
@@ -168,8 +168,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
             if (SchedulerOptions.PredictionType == PredictionType.Epsilon)
             {
                 //pred_original_sample = (sample - beta_prod_t ** (0.5) * model_output) / alpha_prod_t ** (0.5)
-                var sampleBeta = TensorHelper.SubtractTensors(sample, TensorHelper.MultipleTensorByFloat(modelOutput, (float)Math.Sqrt(betaProdT)));
-                predOriginalSample = TensorHelper.DivideTensorByFloat(sampleBeta, (float)Math.Sqrt(alphaProdT), sampleBeta.Dimensions);
+                var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
+                predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT), sampleBeta.Dimensions);
             }
             else if (SchedulerOptions.PredictionType == PredictionType.Aample)
             {
@@ -197,7 +197,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             }
             else if (SchedulerOptions.ClipSample)
             {
-                predOriginalSample = TensorHelper.Clip(predOriginalSample, -SchedulerOptions.ClipSampleRange, SchedulerOptions.ClipSampleRange);
+                predOriginalSample = predOriginalSample.Clip(-SchedulerOptions.ClipSampleRange, SchedulerOptions.ClipSampleRange);
             }
 
             //# 4. Compute coefficients for pred_original_sample x_0 and current sample x_t
@@ -209,31 +209,31 @@ namespace OnnxStack.StableDiffusion.Schedulers
             //# 5. Compute predicted previous sample µ_t
             //# See formula (7) from https://arxiv.org/pdf/2006.11239.pdf
             //pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_sample_coeff * sample
-            var pred_sample = TensorHelper.MultipleTensorByFloat(sample, currentSampleCoeff);
-            var pred_original = TensorHelper.MultipleTensorByFloat(predOriginalSample, predOriginalSampleCoeff);
-            var predPrevSample = TensorHelper.AddTensors(pred_sample, pred_original);
+            var predPrevSample = sample
+                .MultipleTensorByFloat(currentSampleCoeff)
+                .AddTensors(predOriginalSample.MultipleTensorByFloat(predOriginalSampleCoeff));
 
 
             //# 6. Add noise
             if (currentTimestep > 0)
             {
                 DenseTensor<float> variance;
-                var varianceNoise = TensorHelper.GetRandomTensor(Random, modelOutput.Dimensions);
-                if (SchedulerOptions.VarianceType ==  VarianceType.FixedSmallLog)
+                var varianceNoise = CreateRandomSample(modelOutput.Dimensions);
+                if (SchedulerOptions.VarianceType == VarianceType.FixedSmallLog)
                 {
-                    variance = TensorHelper.MultipleTensorByFloat(varianceNoise, GetVariance(currentTimestep, predictedVariance));
+                    variance = varianceNoise.MultipleTensorByFloat(GetVariance(currentTimestep, predictedVariance));
                 }
                 else if (SchedulerOptions.VarianceType == VarianceType.LearnedRange)
                 {
                     var v = (float)Math.Exp(0.5 * GetVariance(currentTimestep, predictedVariance));
-                    variance = TensorHelper.MultipleTensorByFloat(varianceNoise, v);
+                    variance = varianceNoise.MultipleTensorByFloat(v);
                 }
                 else
                 {
                     var v = (float)Math.Sqrt(GetVariance(currentTimestep, predictedVariance));
-                    variance = TensorHelper.MultipleTensorByFloat(varianceNoise, v);
+                    variance = varianceNoise.MultipleTensorByFloat(v);
                 }
-                predPrevSample = TensorHelper.AddTensors(predPrevSample, variance);
+                predPrevSample = predPrevSample.AddTensors(variance);
             }
 
             return predPrevSample;
@@ -251,7 +251,6 @@ namespace OnnxStack.StableDiffusion.Schedulers
         {
             // Make sure alphas_cumprod and timestep have the same device and dtype as originalSamples
             var alphasCumprod = new DenseTensor<float>(_alphasCumulativeProducts.ToArray(), new int[] { _alphasCumulativeProducts.Count });// Convert to DenseTensor
-            var timestepsTensor = new DenseTensor<int>(timesteps);
 
             var sqrtAlphaProd = new DenseTensor<float>(timesteps.Length);
             var sqrtOneMinusAlphaProd = new DenseTensor<float>(timesteps.Length);
@@ -302,7 +301,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             variance = Math.Max(variance, 1e-20f);
 
 
-            if (SchedulerOptions.VarianceType ==  VarianceType.FixedSmallLog)
+            if (SchedulerOptions.VarianceType == VarianceType.FixedSmallLog)
             {
                 variance = (float)Math.Exp(0.5 * Math.Log(variance));
             }
@@ -314,7 +313,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 variance = (float)Math.Log(currentBetaT);
             }
-            else if (SchedulerOptions.VarianceType ==  VarianceType.Learned)
+            else if (SchedulerOptions.VarianceType == VarianceType.Learned)
             {
                 return predictedVariance;
             }
@@ -415,6 +414,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
         private bool IsVarianceTypeLearned()
         {
             return SchedulerOptions.VarianceType == VarianceType.Learned || SchedulerOptions.VarianceType == VarianceType.LearnedRange;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            _betas = null;
+            _alphasCumulativeProducts = null;
+            base.Dispose(disposing);
         }
     }
 }

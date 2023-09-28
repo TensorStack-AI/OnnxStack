@@ -12,7 +12,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             return new DenseTensor<T>(data, dimensions);
         }
 
-        public static DenseTensor<float> DivideTensorByFloat(DenseTensor<float> data, float value, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> DivideTensorByFloat(this DenseTensor<float> data, float value, ReadOnlySpan<int> dimensions)
         {
             var divTensor = new DenseTensor<float>(dimensions);
             for (int i = 0; i < data.Length; i++)
@@ -22,7 +22,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             return divTensor;
         }
 
-        public static DenseTensor<float> MultipleTensorByFloat(DenseTensor<float> data, float value)
+        public static DenseTensor<float> MultipleTensorByFloat(this DenseTensor<float> data, float value)
         {
             var mullTensor = new DenseTensor<float>(data.Dimensions);
             for (int i = 0; i < data.Length; i++)
@@ -32,7 +32,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             return mullTensor;
         }
 
-        public static DenseTensor<float> AddTensors(DenseTensor<float> sample, DenseTensor<float> sumTensor)
+        public static DenseTensor<float> AddTensors(this DenseTensor<float> sample, DenseTensor<float> sumTensor)
         {
             var addTensor = new DenseTensor<float>(sample.Dimensions);
             for (var i = 0; i < sample.Length; i++)
@@ -42,7 +42,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             return addTensor;
         }
 
-        public static Tuple<DenseTensor<float>, DenseTensor<float>> SplitTensor(DenseTensor<float> tensorToSplit, ReadOnlySpan<int> dimensions, int scaledHeight, int scaledWidth)
+        public static Tuple<DenseTensor<float>, DenseTensor<float>> SplitTensor(this DenseTensor<float> tensorToSplit, ReadOnlySpan<int> dimensions, int scaledHeight, int scaledWidth)
         {
             var tensor1 = new DenseTensor<float>(dimensions);
             var tensor2 = new DenseTensor<float>(dimensions);
@@ -63,7 +63,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             return new Tuple<DenseTensor<float>, DenseTensor<float>>(tensor1, tensor2);
         }
 
-        public static DenseTensor<float> SumTensors(DenseTensor<float>[] tensorArray, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> SumTensors(this DenseTensor<float>[] tensorArray, ReadOnlySpan<int> dimensions)
         {
             var sumTensor = new DenseTensor<float>(dimensions);
             for (int m = 0; m < tensorArray.Length; m++)
@@ -77,13 +77,13 @@ namespace OnnxStack.StableDiffusion.Helpers
             return sumTensor;
         }
 
-        public static DenseTensor<float> Duplicate(DenseTensor<float> data, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> Duplicate(this DenseTensor<float> data, ReadOnlySpan<int> dimensions)
         {
             var dupTensor = data.Concat(data).ToArray();
             return CreateTensor(dupTensor, dimensions);
         }
 
-        public static DenseTensor<float> SubtractTensors(DenseTensor<float> sample, DenseTensor<float> subTensor, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> SubtractTensors(this DenseTensor<float> sample, DenseTensor<float> subTensor, ReadOnlySpan<int> dimensions)
         {
             var result = new DenseTensor<float>(dimensions);
             for (var i = 0; i < sample.Length; i++)
@@ -93,33 +93,19 @@ namespace OnnxStack.StableDiffusion.Helpers
             return result;
         }
 
-        public static DenseTensor<float> SubtractTensors(DenseTensor<float> sample, DenseTensor<float> subTensor)
+        public static DenseTensor<float> SubtractTensors(this DenseTensor<float> sample, DenseTensor<float> subTensor)
         {
-            return SubtractTensors(sample, subTensor, sample.Dimensions);
+            return sample.SubtractTensors(subTensor, sample.Dimensions);
         }
 
-        public static DenseTensor<float> GetRandomTensor(Random random, ReadOnlySpan<int> dimensions, float initNoiseSigma = 1f)
-        {
-            var latents = new DenseTensor<float>(dimensions);
-            for (int i = 0; i < latents.Length; i++)
-            {
-                // Generate a random number from a normal distribution with mean 0 and variance 1
-                var u1 = random.NextDouble(); // Uniform(0,1) random number
-                var u2 = random.NextDouble(); // Uniform(0,1) random number
-                var radius = Math.Sqrt(-2.0 * Math.Log(u1)); // Radius of polar coordinates
-                var theta = 2.0 * Math.PI * u2; // Angle of polar coordinates
-                var standardNormalRand = radius * Math.Cos(theta); // Standard normal random number
-                latents.SetValue(i, (float)standardNormalRand * initNoiseSigma);
-            }
-            return latents;
-        }
+
 
         /// <summary>
         /// Reorders the tensor.
         /// </summary>
         /// <param name="inputTensor">The input tensor.</param>
         /// <returns></returns>
-        public static DenseTensor<float> ReorderTensor(DenseTensor<float> inputTensor, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> ReorderTensor(this DenseTensor<float> inputTensor, ReadOnlySpan<int> dimensions)
         {
             //reorder from batch channel height width to batch height width channel
             var inputImagesTensor = new DenseTensor<float>(dimensions);
@@ -136,7 +122,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
-        public static DenseTensor<float> PerformGuidance(DenseTensor<float> noisePred, DenseTensor<float> noisePredText, double guidanceScale)
+        public static DenseTensor<float> PerformGuidance(this DenseTensor<float> noisePred, DenseTensor<float> noisePredText, double guidanceScale)
         {
             for (int i = 0; i < noisePred.Dimensions[0]; i++)
             {
@@ -155,13 +141,30 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
-        public static DenseTensor<float> Clip(DenseTensor<float> tensor, float minValue, float maxValue)
+        public static DenseTensor<float> Clip(this DenseTensor<float> tensor, float minValue, float maxValue)
         {
             for (int i = 0; i < tensor.Length; i++)
             {
                 tensor.SetValue(i, Math.Clamp(tensor.GetValue(i), minValue, maxValue));
             }
             return tensor;
+        }
+
+
+        public static DenseTensor<float> GetRandomTensor(Random random, ReadOnlySpan<int> dimensions, float initNoiseSigma = 1f)
+        {
+            var latents = new DenseTensor<float>(dimensions);
+            for (int i = 0; i < latents.Length; i++)
+            {
+                // Generate a random number from a normal distribution with mean 0 and variance 1
+                var u1 = random.NextDouble(); // Uniform(0,1) random number
+                var u2 = random.NextDouble(); // Uniform(0,1) random number
+                var radius = Math.Sqrt(-2.0 * Math.Log(u1)); // Radius of polar coordinates
+                var theta = 2.0 * Math.PI * u2; // Angle of polar coordinates
+                var standardNormalRand = radius * Math.Cos(theta); // Standard normal random number
+                latents.SetValue(i, (float)standardNormalRand * initNoiseSigma);
+            }
+            return latents;
         }
     }
 }
