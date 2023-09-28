@@ -53,7 +53,7 @@ namespace OnnxStack.StableDiffusion
         /// <param name="options">The options.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException">Width must be divisible by 64</exception>
-        public static int GetScaledWidth(this StableDiffusionOptions options)
+        public static int GetScaledWidth(this SchedulerOptions options)
         {
             if (options.Width % 64 > 0)
                 throw new ArgumentOutOfRangeException(nameof(options.Width), $"{nameof(options.Width)} must be divisible by 64");
@@ -68,7 +68,7 @@ namespace OnnxStack.StableDiffusion
         /// <param name="options">The options.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException">Height must be divisible by 64</exception>
-        public static int GetScaledHeight(this StableDiffusionOptions options)
+        public static int GetScaledHeight(this SchedulerOptions options)
         {
             if (options.Height % 64 > 0)
                 throw new ArgumentOutOfRangeException(nameof(options.Height), $"{nameof(options.Height)} must be divisible by 64");
@@ -84,7 +84,7 @@ namespace OnnxStack.StableDiffusion
         /// <param name="batch">The batch.</param>
         /// <param name="channels">The channels.</param>
         /// <returns>Tensor dimension of [batch, channels, (Height / 8), (Width / 8)]</returns>
-        public static int[] GetScaledDimension(this StableDiffusionOptions options, int batch = 1, int channels = 4)
+        public static int[] GetScaledDimension(this SchedulerOptions options, int batch = 1, int channels = 4)
         {
             return new[] { batch, channels, options.GetScaledHeight(), options.GetScaledWidth() };
         }

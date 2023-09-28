@@ -7,6 +7,6 @@ namespace OnnxStack.StableDiffusion.Common
     public interface IInferenceService
     {
         Task<int[]> TokenizeAsync(string text);
-        Task<DenseTensor<float>> RunInferenceAsync(StableDiffusionOptions options, SchedulerOptions schedulerOptions);
+        Task<DenseTensor<float>> RunInferenceAsync(PromptOptions prompt, SchedulerOptions options);
     }
 }

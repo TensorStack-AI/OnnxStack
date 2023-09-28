@@ -16,16 +16,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// Initializes a new instance of the <see cref="EulerAncestralScheduler"/> class.
         /// </summary>
         /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
-        public EulerAncestralScheduler(StableDiffusionOptions stableDiffusionOptions)
-            : this(stableDiffusionOptions, new SchedulerOptions()) { }
+        public EulerAncestralScheduler() : this(new SchedulerOptions()) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EulerAncestralScheduler"/> class.
         /// </summary>
         /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
-        public EulerAncestralScheduler(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
-            : base(stableDiffusionOptions, schedulerOptions) { }
+        public EulerAncestralScheduler(SchedulerOptions schedulerOptions) : base(schedulerOptions) { }
 
 
         /// <summary>
@@ -34,26 +32,26 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected override void Initialize()
         {
             var betas = Enumerable.Empty<float>();
-            if (!SchedulerOptions.TrainedBetas.IsNullOrEmpty())
+            if (!Options.TrainedBetas.IsNullOrEmpty())
             {
-                betas = SchedulerOptions.TrainedBetas;
+                betas = Options.TrainedBetas;
             }
-            else if (SchedulerOptions.BetaSchedule == BetaSchedule.Linear)
+            else if (Options.BetaSchedule == BetaSchedule.Linear)
             {
-                var steps = SchedulerOptions.TrainTimesteps - 1;
-                var delta = SchedulerOptions.BetaStart + (SchedulerOptions.BetaEnd - SchedulerOptions.BetaStart);
-                betas = Enumerable.Range(0, SchedulerOptions.TrainTimesteps)
+                var steps = Options.TrainTimesteps - 1;
+                var delta = Options.BetaStart + (Options.BetaEnd - Options.BetaStart);
+                betas = Enumerable.Range(0, Options.TrainTimesteps)
                     .Select(i => delta * i / steps);
             }
-            else if (SchedulerOptions.BetaSchedule == BetaSchedule.ScaledLinear)
+            else if (Options.BetaSchedule == BetaSchedule.ScaledLinear)
             {
-                var start = (float)Math.Sqrt(SchedulerOptions.BetaStart);
-                var end = (float)Math.Sqrt(SchedulerOptions.BetaEnd);
-                betas = np.linspace(start, end, SchedulerOptions.TrainTimesteps)
+                var start = (float)Math.Sqrt(Options.BetaStart);
+                var end = (float)Math.Sqrt(Options.BetaEnd);
+                betas = np.linspace(start, end, Options.TrainTimesteps)
                     .ToArray<float>()
                     .Select(x => x * x);
             }
-            else if (SchedulerOptions.BetaSchedule == BetaSchedule.SquaredCosCapV2)
+            else if (Options.BetaSchedule == BetaSchedule.SquaredCosCapV2)
             {
                 betas = GetBetasForAlphaBar();
             }
@@ -69,7 +67,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             // standard deviation of the initial noise distrubution
             var maxSigma = _sigmas.Max();
-            var initNoiseSigma = SchedulerOptions.TimestepSpacing == TimestepSpacing.Linspace || SchedulerOptions.TimestepSpacing == TimestepSpacing.Trailing
+            var initNoiseSigma = Options.TimestepSpacing == TimestepSpacing.Linspace || Options.TimestepSpacing == TimestepSpacing.Trailing
                 ? maxSigma
                 : (float)Math.Sqrt(maxSigma * maxSigma + 1);
             SetInitNoiseSigma(initNoiseSigma);
@@ -83,28 +81,28 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected override int[] SetTimesteps()
         {
             float[] timesteps = null;
-            if (SchedulerOptions.TimestepSpacing == TimestepSpacing.Linspace)
+            if (Options.TimestepSpacing == TimestepSpacing.Linspace)
             {
                 float start = 0;
-                float stop = SchedulerOptions.TrainTimesteps - 1;
-                timesteps = np.around(np.linspace(start, stop, StableDiffusionOptions.NumInferenceSteps))
+                float stop = Options.TrainTimesteps - 1;
+                timesteps = np.around(np.linspace(start, stop, Options.InferenceSteps))
                     .ToArray<float>();
             }
-            else if (SchedulerOptions.TimestepSpacing == TimestepSpacing.Leading)
+            else if (Options.TimestepSpacing == TimestepSpacing.Leading)
             {
-                int stepRatio = SchedulerOptions.TrainTimesteps / StableDiffusionOptions.NumInferenceSteps;
-                timesteps = np.around(np.arange(0, StableDiffusionOptions.NumInferenceSteps) * stepRatio)
+                int stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
+                timesteps = np.around(np.arange(0, Options.InferenceSteps) * stepRatio)
                         // ["::-1"] // Reverse
                         .copy()
                         .astype(NPTypeCode.Single)
                         .ToArray<float>()
-                        .Select(x => x + SchedulerOptions.StepsOffset)
+                        .Select(x => x + Options.StepsOffset)
                         .ToArray();
             }
-            else if (SchedulerOptions.TimestepSpacing == TimestepSpacing.Trailing)
+            else if (Options.TimestepSpacing == TimestepSpacing.Trailing)
             {
-                int stepRatio = SchedulerOptions.TrainTimesteps / StableDiffusionOptions.NumInferenceSteps;
-                timesteps = np.around(np.arange(SchedulerOptions.TrainTimesteps, 0, -stepRatio))
+                int stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
+                timesteps = np.around(np.arange(Options.TrainTimesteps, 0, -stepRatio))
                      ["::-1"] // Reverse
                      [":-1"]  // Skip last
                      .copy()
@@ -120,7 +118,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var range = np.arange(0, (float)_sigmas.Length).ToArray<float>();
             sigmas = Interpolate(timesteps, range, _sigmas);
 
-            if (SchedulerOptions.UseKarrasSigmas)
+            if (Options.UseKarrasSigmas)
             {
                 sigmas = ConvertToKarras(sigmas);
                 timesteps = SigmaToTimestep(sigmas, log_sigmas).ToArray();

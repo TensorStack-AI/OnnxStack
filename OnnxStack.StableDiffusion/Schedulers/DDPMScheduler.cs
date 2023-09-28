@@ -17,18 +17,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// Initializes a new instance of the <see cref="DDPMScheduler"/> class.
         /// </summary>
         /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
-        public DDPMScheduler(StableDiffusionOptions stableDiffusionOptions)
-            : this(stableDiffusionOptions, new SchedulerOptions()) { }
+        public DDPMScheduler() : this(new SchedulerOptions()) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DDPMScheduler"/> class.
         /// </summary>
         /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
-        public DDPMScheduler(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
-            : base(stableDiffusionOptions, schedulerOptions)
-        {
-        }
+        public DDPMScheduler(SchedulerOptions options) : base(options) { }
 
 
         /// <summary>
@@ -37,20 +33,20 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected override void Initialize()
         {
             var alphas = new List<float>();
-            if (SchedulerOptions.TrainedBetas != null)
+            if (Options.TrainedBetas != null)
             {
-                _betas = SchedulerOptions.TrainedBetas.ToArray();
+                _betas = Options.TrainedBetas.ToArray();
             }
-            else if (SchedulerOptions.BetaSchedule == BetaSchedule.Linear)
+            else if (Options.BetaSchedule == BetaSchedule.Linear)
             {
-                _betas = np.linspace(SchedulerOptions.BetaStart, SchedulerOptions.BetaEnd, SchedulerOptions.TrainTimesteps).ToArray<float>();
+                _betas = np.linspace(Options.BetaStart, Options.BetaEnd, Options.TrainTimesteps).ToArray<float>();
             }
-            else if (SchedulerOptions.BetaSchedule == BetaSchedule.ScaledLinear)
+            else if (Options.BetaSchedule == BetaSchedule.ScaledLinear)
             {
                 // This schedule is very specific to the latent diffusion model.
-                _betas = np.power(np.linspace(MathF.Sqrt(SchedulerOptions.BetaStart), MathF.Sqrt(SchedulerOptions.BetaEnd), SchedulerOptions.TrainTimesteps), 2).ToArray<float>();
+                _betas = np.power(np.linspace(MathF.Sqrt(Options.BetaStart), MathF.Sqrt(Options.BetaEnd), Options.TrainTimesteps), 2).ToArray<float>();
             }
-            else if (SchedulerOptions.BetaSchedule == BetaSchedule.SquaredCosCapV2)
+            else if (Options.BetaSchedule == BetaSchedule.SquaredCosCapV2)
             {
                 // Glide cosine schedule
                 _betas = GetBetasForAlphaBar();
@@ -63,13 +59,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
             //}
 
 
-            for (int i = 0; i < SchedulerOptions.TrainTimesteps; i++)
+            for (int i = 0; i < Options.TrainTimesteps; i++)
             {
                 alphas.Add(1.0f - _betas[i]);
             }
 
             _alphasCumulativeProducts = new List<float> { alphas[0] };
-            for (int i = 1; i < SchedulerOptions.TrainTimesteps; i++)
+            for (int i = 1; i < Options.TrainTimesteps; i++)
             {
                 _alphasCumulativeProducts.Add(_alphasCumulativeProducts[i - 1] * alphas[i]);
             }
@@ -86,22 +82,22 @@ namespace OnnxStack.StableDiffusion.Schedulers
         {
             // Create timesteps based on the specified strategy
             NDArray timestepsArray = null;
-            if (SchedulerOptions.TimestepSpacing == TimestepSpacing.Linspace)
+            if (Options.TimestepSpacing == TimestepSpacing.Linspace)
             {
-                timestepsArray = np.linspace(0, SchedulerOptions.TrainTimesteps - 1, StableDiffusionOptions.NumInferenceSteps);
+                timestepsArray = np.linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps);
                 timestepsArray = np.around(timestepsArray)["::1"];
             }
-            else if (SchedulerOptions.TimestepSpacing == TimestepSpacing.Leading)
+            else if (Options.TimestepSpacing == TimestepSpacing.Leading)
             {
-                var stepRatio = SchedulerOptions.TrainTimesteps / StableDiffusionOptions.NumInferenceSteps;
-                timestepsArray = np.arange(0, StableDiffusionOptions.NumInferenceSteps) * stepRatio;
+                var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
+                timestepsArray = np.arange(0, Options.InferenceSteps) * stepRatio;
                 timestepsArray = np.around(timestepsArray)["::1"];
-                timestepsArray += SchedulerOptions.StepsOffset;
+                timestepsArray += Options.StepsOffset;
             }
-            else if (SchedulerOptions.TimestepSpacing == TimestepSpacing.Trailing)
+            else if (Options.TimestepSpacing == TimestepSpacing.Trailing)
             {
-                var stepRatio = SchedulerOptions.TrainTimesteps / StableDiffusionOptions.NumInferenceSteps;
-                timestepsArray = np.arange(SchedulerOptions.TrainTimesteps, 0, -stepRatio);
+                var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
+                timestepsArray = np.arange(Options.TrainTimesteps, 0, -stepRatio);
                 timestepsArray = np.around(timestepsArray);
                 timestepsArray -= 1;
             }
@@ -165,17 +161,17 @@ namespace OnnxStack.StableDiffusion.Schedulers
             //# 2. compute predicted original sample from predicted noise also called
             //# "predicted x_0" of formula (15) from https://arxiv.org/pdf/2006.11239.pdf
             DenseTensor<float> predOriginalSample = null;
-            if (SchedulerOptions.PredictionType == PredictionType.Epsilon)
+            if (Options.PredictionType == PredictionType.Epsilon)
             {
                 //pred_original_sample = (sample - beta_prod_t ** (0.5) * model_output) / alpha_prod_t ** (0.5)
                 var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
                 predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT), sampleBeta.Dimensions);
             }
-            else if (SchedulerOptions.PredictionType == PredictionType.Aample)
+            else if (Options.PredictionType == PredictionType.Aample)
             {
                 predOriginalSample = modelOutput;
             }
-            else if (SchedulerOptions.PredictionType == PredictionType.VariablePrediction)
+            else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
                 // pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
                 var alphaSqrt = (float)Math.Sqrt(alphaProdT);
@@ -189,15 +185,15 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
 
             //# 3. Clip or threshold "predicted x_0"
-            if (SchedulerOptions.Thresholding)
+            if (Options.Thresholding)
             {
                 // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L322
                 //predOriginalSample = ThresholdSample(predOriginalSample);
                 throw new NotImplementedException("DDPMScheduler Thresholding currently not implemented");
             }
-            else if (SchedulerOptions.ClipSample)
+            else if (Options.ClipSample)
             {
-                predOriginalSample = predOriginalSample.Clip(-SchedulerOptions.ClipSampleRange, SchedulerOptions.ClipSampleRange);
+                predOriginalSample = predOriginalSample.Clip(-Options.ClipSampleRange, Options.ClipSampleRange);
             }
 
             //# 4. Compute coefficients for pred_original_sample x_0 and current sample x_t
@@ -219,11 +215,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 DenseTensor<float> variance;
                 var varianceNoise = CreateRandomSample(modelOutput.Dimensions);
-                if (SchedulerOptions.VarianceType == VarianceType.FixedSmallLog)
+                if (Options.VarianceType == VarianceType.FixedSmallLog)
                 {
                     variance = varianceNoise.MultipleTensorByFloat(GetVariance(currentTimestep, predictedVariance));
                 }
-                else if (SchedulerOptions.VarianceType == VarianceType.LearnedRange)
+                else if (Options.VarianceType == VarianceType.LearnedRange)
                 {
                     var v = (float)Math.Exp(0.5 * GetVariance(currentTimestep, predictedVariance));
                     variance = varianceNoise.MultipleTensorByFloat(v);
@@ -301,23 +297,23 @@ namespace OnnxStack.StableDiffusion.Schedulers
             variance = Math.Max(variance, 1e-20f);
 
 
-            if (SchedulerOptions.VarianceType == VarianceType.FixedSmallLog)
+            if (Options.VarianceType == VarianceType.FixedSmallLog)
             {
                 variance = (float)Math.Exp(0.5 * Math.Log(variance));
             }
-            else if (SchedulerOptions.VarianceType == VarianceType.FixedLarge)
+            else if (Options.VarianceType == VarianceType.FixedLarge)
             {
                 variance = currentBetaT;
             }
-            else if (SchedulerOptions.VarianceType == VarianceType.FixedLargeLog)
+            else if (Options.VarianceType == VarianceType.FixedLargeLog)
             {
                 variance = (float)Math.Log(currentBetaT);
             }
-            else if (SchedulerOptions.VarianceType == VarianceType.Learned)
+            else if (Options.VarianceType == VarianceType.Learned)
             {
                 return predictedVariance;
             }
-            else if (SchedulerOptions.VarianceType == VarianceType.LearnedRange)
+            else if (Options.VarianceType == VarianceType.LearnedRange)
             {
                 float minLog = (float)Math.Log(variance);
                 float maxLog = (float)Math.Log(currentBetaT);
@@ -413,7 +409,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </returns>
         private bool IsVarianceTypeLearned()
         {
-            return SchedulerOptions.VarianceType == VarianceType.Learned || SchedulerOptions.VarianceType == VarianceType.LearnedRange;
+            return Options.VarianceType == VarianceType.Learned || Options.VarianceType == VarianceType.LearnedRange;
         }
 
         protected override void Dispose(bool disposing)

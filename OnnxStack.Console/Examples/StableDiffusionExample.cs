@@ -34,30 +34,35 @@ namespace OnnxStack.Console.Runner
                 OutputHelpers.WriteConsole("Please type a negative prompt and press ENTER (optional)", ConsoleColor.Yellow);
                 var negativePrompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
 
-                var options = new StableDiffusionOptions
+                var promptOptions = new PromptOptions
                 {
                     Prompt = prompt,
                     NegativePrompt = negativePrompt,
+                   
+                };
+
+                var schedulerOptions = new SchedulerOptions
+                {
                     Seed = Random.Shared.Next()
                 };
                 foreach (var schedulerType in Enum.GetValues<SchedulerType>())
                 {
-                    options.SchedulerType = schedulerType;
+                    promptOptions.SchedulerType = schedulerType;
 
                     OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(options);
+                    await GenerateImage(promptOptions, schedulerOptions);
                 }
             }
         }
 
-        private async Task<bool> GenerateImage(StableDiffusionOptions options)
+        private async Task<bool> GenerateImage(PromptOptions prompt, SchedulerOptions options)
         {
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            var result = await _stableDiffusionService.TextToImageFile(options, outputFilename);
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
+            var result = await _stableDiffusionService.TextToImageFile(prompt, outputFilename);
             if (result == null)
                 return false;
 
-            OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(result.FileName)}", ConsoleColor.Green);
+            OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(result.FileName)}", ConsoleColor.Green);
             return true;
         }
     }

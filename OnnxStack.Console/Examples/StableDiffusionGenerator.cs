@@ -32,31 +32,35 @@ namespace OnnxStack.Console.Runner
             var seed = Random.Shared.Next();
             foreach (var generationPrompt in _generationPrompts)
             {
-                var options = new StableDiffusionOptions
+                var promptOptions = new PromptOptions
                 {
-                    Seed = seed,
                     Prompt = generationPrompt.Value
+                };
+
+                var schedulerOptions = new SchedulerOptions
+                {
+                    Seed = Random.Shared.Next()
                 };
                 foreach (var schedulerType in Enum.GetValues<SchedulerType>())
                 {
-                    options.SchedulerType = schedulerType;
+                    promptOptions.SchedulerType = schedulerType;
 
                     OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(options, generationPrompt.Key);
+                    await GenerateImage(promptOptions, schedulerOptions, generationPrompt.Key);
                 }
             }
             OutputHelpers.WriteConsole("Complete :)", ConsoleColor.DarkMagenta);
             OutputHelpers.ReadConsole(ConsoleColor.Gray);
         }
 
-        private async Task<bool> GenerateImage(StableDiffusionOptions options, string key)
+        private async Task<bool> GenerateImage(PromptOptions prompt, SchedulerOptions options, string key)
         {
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}_{key}.png");
-            var result = await _stableDiffusionService.TextToImageFile(options, outputFilename);
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}_{key}.png");
+            var result = await _stableDiffusionService.TextToImageFile(prompt, outputFilename);
             if (result == null)
                 return false;
 
-            OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(result.FileName)}", ConsoleColor.Green);
+            OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(result.FileName)}", ConsoleColor.Green);
             return true;
         }
 

@@ -13,11 +13,11 @@ namespace OnnxStack.StableDiffusion.Results
             Image = image;
         }
 
-        public ImageResult(StableDiffusionOptions options, Image<Rgba32> image)
+        public ImageResult(SchedulerOptions options, Image<Rgba32> image)
         {
             Image = image;
             Seed = options.Seed;
-            Steps = options.NumInferenceSteps;
+            Steps = options.InferenceSteps;
             Guidance = options.GuidanceScale;
         }
 

@@ -30,34 +30,39 @@ namespace OnnxStack.Console.Runner
             var negativePrompt = "painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon, graphic, text, crayon, graphite, abstract, easynegative, low quality, normal quality, worst quality, lowres, close up, cropped, out of frame, jpeg artifacts, duplicate, morbid, mutilated, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, glitch, deformed, mutated, cross-eyed, ugly, dehydrated, bad anatomy, bad proportions, gross proportions, cloned face, disfigured, malformed limbs, missing arms, missing legs fused fingers, too many fingers,extra fingers, extra limbs,, extra arms, extra legs,disfigured,";
             while (true)
             {
-                var options = new StableDiffusionOptions
+                var promptOptions = new PromptOptions
                 {
                     Prompt = prompt,
-                    //Seed = 624461087,
-                    Seed = Random.Shared.Next(),
-                    GuidanceScale = 8,
-                    NumInferenceSteps = 30,
-                    NegativePrompt = negativePrompt
+                    NegativePrompt = negativePrompt,
+                    SchedulerType = SchedulerType.LMSScheduler
                 };
+
+                var schedulerOptions = new SchedulerOptions
+                {
+                    Seed = 624461087,
+                    //Seed = Random.Shared.Next(),
+                    GuidanceScale = 8,
+                    InferenceSteps = 22
+                };
+
                 foreach (var schedulerType in Enum.GetValues<SchedulerType>())
                 {
-                    options.SchedulerType = schedulerType;
+                    promptOptions.SchedulerType = schedulerType;
                     OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(options);
+                    await GenerateImage(promptOptions, schedulerOptions);
                 }
             }
-
         }
 
 
-        private async Task<bool> GenerateImage(StableDiffusionOptions options)
+        private async Task<bool> GenerateImage(PromptOptions prompt, SchedulerOptions options)
         {
             var timestamp = Stopwatch.GetTimestamp();
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            var result = await _stableDiffusionService.TextToImageFile(options, outputFilename);
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
+            var result = await _stableDiffusionService.TextToImageFile(prompt, options, outputFilename);
             if (result is not null)
             {
-                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
+                OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                 OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);
                 return true;
             }

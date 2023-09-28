@@ -18,36 +18,36 @@ namespace OnnxStack.StableDiffusion.Services
             _inferenceService = inferenceService;
         }
 
-        public Task<ImageResult> TextToImage(StableDiffusionOptions options)
+        public Task<ImageResult> TextToImage(PromptOptions prompt)
         {
-            return TextToImageInternal(options, new SchedulerOptions());
+            return TextToImageInternal(prompt, new SchedulerOptions());
         }
 
-        public Task<ImageResult> TextToImage(StableDiffusionOptions options, SchedulerOptions schedulerOptions)
+        public Task<ImageResult> TextToImage(PromptOptions prompt, SchedulerOptions options)
         {
-            return TextToImageInternal(options, schedulerOptions);
+            return TextToImageInternal(prompt, options);
         }
 
-        public Task<ImageResult> TextToImageFile(StableDiffusionOptions options, string outputFile)
+        public Task<ImageResult> TextToImageFile(PromptOptions prompt, string outputFile)
         {
-            return TextToImageFileInternal(options, new SchedulerOptions(), outputFile);
+            return TextToImageFileInternal(prompt, new SchedulerOptions(), outputFile);
         }
 
-        public Task<ImageResult> TextToImageFile(StableDiffusionOptions options, SchedulerOptions schedulerOptions, string outputFile)
+        public Task<ImageResult> TextToImageFile(PromptOptions prompt, SchedulerOptions options, string outputFile)
         {
-            return TextToImageFileInternal(options, schedulerOptions, outputFile);
+            return TextToImageFileInternal(prompt, options, outputFile);
         }
 
 
-        private async Task<ImageResult> TextToImageInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig)
+        private async Task<ImageResult> TextToImageInternal(PromptOptions prompt, SchedulerOptions options)
         {
-            var imageTensorData = await _inferenceService.RunInferenceAsync(options, schedulerConfig).ConfigureAwait(false);
+            var imageTensorData = await _inferenceService.RunInferenceAsync(prompt, options).ConfigureAwait(false);
             return TensorToImage(options, imageTensorData);
         }
 
-        private async Task<ImageResult> TextToImageFileInternal(StableDiffusionOptions options, SchedulerOptions schedulerConfig, string outputFile)
+        private async Task<ImageResult> TextToImageFileInternal(PromptOptions prompt, SchedulerOptions options, string outputFile)
         {
-            var result = await TextToImageInternal(options, schedulerConfig);
+            var result = await TextToImageInternal(prompt, options);
             if (result is null)
                 return null;
 
@@ -56,7 +56,7 @@ namespace OnnxStack.StableDiffusion.Services
         }
 
 
-        private ImageResult TensorToImage(StableDiffusionOptions options, DenseTensor<float> imageTensor)
+        private ImageResult TensorToImage(SchedulerOptions options, DenseTensor<float> imageTensor)
         {
             var result = new Image<Rgba32>(options.Width, options.Height);
             for (var y = 0; y < options.Height; y++)

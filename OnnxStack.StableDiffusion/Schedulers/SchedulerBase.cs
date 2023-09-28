@@ -12,8 +12,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
     {
         private readonly Random _random;
         private readonly List<int> _timesteps;
-        private readonly SchedulerOptions _schedulerOptions;
-        private readonly StableDiffusionOptions _stableDiffusionOptions;
+        private readonly SchedulerOptions _options;
         private float _initNoiseSigma;
 
         /// <summary>
@@ -21,14 +20,18 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
-        public SchedulerBase(StableDiffusionOptions stableDiffusionOptions, SchedulerOptions schedulerOptions)
+        public SchedulerBase(SchedulerOptions schedulerOptions)
         {
-            _schedulerOptions = schedulerOptions;
-            _stableDiffusionOptions = stableDiffusionOptions;
-            _random = new Random(_stableDiffusionOptions.Seed);
+            _options = schedulerOptions;
+            _random = new Random(_options.Seed);
             Initialize();
             _timesteps = new List<int>(SetTimesteps());
         }
+
+        /// <summary>
+        /// Gets the scheduler options.
+        /// </summary>
+        public SchedulerOptions Options => _options;
 
         /// <summary>
         /// Gets the random initiated with the seed.
@@ -44,16 +47,6 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// Gets the timesteps.
         /// </summary>
         public IReadOnlyList<int> Timesteps => _timesteps;
-
-        /// <summary>
-        /// Gets the scheduler options.
-        /// </summary>
-        public SchedulerOptions SchedulerOptions => _schedulerOptions;
-
-        /// <summary>
-        /// Gets the stable diffusion options.
-        /// </summary>
-        public StableDiffusionOptions StableDiffusionOptions => _stableDiffusionOptions;
 
         /// <summary>
         /// Scales the input.
@@ -134,7 +127,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         protected int GetPreviousTimestep(int timestep)
         {
-            return timestep - _schedulerOptions.TrainTimesteps / _stableDiffusionOptions.NumInferenceSteps;
+            return timestep - _options.TrainTimesteps / _options.InferenceSteps;
         }
 
 
@@ -146,25 +139,25 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         protected float[] GetBetasForAlphaBar()
         {
-            var betas = new float[_schedulerOptions.TrainTimesteps];
+            var betas = new float[_options.TrainTimesteps];
 
             Func<float, float> alphaBarFn = null;
-            if (_schedulerOptions.AlphaTransformType == AlphaTransformType.Cosine)
+            if (_options.AlphaTransformType == AlphaTransformType.Cosine)
             {
                 alphaBarFn = t => (float)Math.Pow(Math.Cos((t + 0.008) / 1.008 * Math.PI / 2.0), 2.0);
             }
-            else if (_schedulerOptions.AlphaTransformType == AlphaTransformType.Exponential)
+            else if (_options.AlphaTransformType == AlphaTransformType.Exponential)
             {
                 alphaBarFn = t => (float)Math.Exp(t * -12.0);
             }
    
-            for (int i = 0; i < _schedulerOptions.TrainTimesteps; i++)
+            for (int i = 0; i < _options.TrainTimesteps; i++)
             {
-                float t1 = (float)i / _schedulerOptions.TrainTimesteps;
-                float t2 = (float)(i + 1) / _schedulerOptions.TrainTimesteps;
+                float t1 = (float)i / _options.TrainTimesteps;
+                float t2 = (float)(i + 1) / _options.TrainTimesteps;
                 float alphaT1 = alphaBarFn(t1);
                 float alphaT2 = alphaBarFn(t2);
-                float beta = Math.Min(1 - alphaT2 / alphaT1, _schedulerOptions.MaximumBeta);
+                float beta = Math.Min(1 - alphaT2 / alphaT1, _options.MaximumBeta);
                 betas[i] = (float)Math.Max(beta, 0.0001);
             }
             return betas;
@@ -235,8 +228,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
             float rho = 7.0f; // 7.0 is the value used in the paper
 
             // Create a linear ramp from 0 to 1
-            float[] ramp = Enumerable.Range(0, _stableDiffusionOptions.NumInferenceSteps)
-                .Select(i => (float)i / (_stableDiffusionOptions.NumInferenceSteps - 1))
+            float[] ramp = Enumerable.Range(0, _options.InferenceSteps)
+                .Select(i => (float)i / (_options.InferenceSteps - 1))
                 .ToArray();
 
             // Calculate the inverse of sigmaMin and sigmaMax raised to the power of 1/rho
@@ -244,8 +237,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
             float maxInvRho = (float)Math.Pow(sigmaMax, 1.0 / rho);
 
             // Calculate the Karras noise schedule using the formula from the paper
-            float[] sigmas = new float[_stableDiffusionOptions.NumInferenceSteps];
-            for (int i = 0; i < _stableDiffusionOptions.NumInferenceSteps; i++)
+            float[] sigmas = new float[_options.InferenceSteps];
+            for (int i = 0; i < _options.InferenceSteps; i++)
             {
                 sigmas[i] = (float)Math.Pow(maxInvRho + ramp[i] * (minInvRho - maxInvRho), rho);
             }
