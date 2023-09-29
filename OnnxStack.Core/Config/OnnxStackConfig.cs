@@ -24,6 +24,7 @@ namespace OnnxStack.Core.Config
         public string OnnxTokenizerPath { get; set; }
         public string OnnxUnetPath { get; set; }
         public string OnnxVaeDecoderPath { get; set; }
+        public string OnnxVaeEncoderPath { get; set; }
         public string OnnxTextEncoderPath { get; set; }
         public string OnnxSafetyModelPath { get; set; }
         public bool IsSafetyModelEnabled { get; set; }

@@ -226,10 +226,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, int[] timesteps)
         {
-            var stepIndices = timesteps.Select(t => Timesteps.IndexOf(t));
-            var sigma = stepIndices
-                .Select(index => _sigmas[index])
-                .ToArray();
+            var sigma = _sigmas.ToArray();
             if (sigma.Length < originalSamples.Length)
             {
                 var padLen = originalSamples.Length - sigma.Length;

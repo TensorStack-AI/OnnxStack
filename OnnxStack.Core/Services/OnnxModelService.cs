@@ -32,7 +32,8 @@ namespace OnnxStack.Core.Services
                 {OnnxModelType.Unet,new InferenceSession(_configuration.OnnxUnetPath, _sessionOptions, _prePackedWeightsContainer) },
                 {OnnxModelType.Tokenizer,new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions, _prePackedWeightsContainer) },
                 {OnnxModelType.VaeDecoder,new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions, _prePackedWeightsContainer) },
-                {OnnxModelType.TextEncoder,new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions, _prePackedWeightsContainer)}
+                {OnnxModelType.TextEncoder,new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions, _prePackedWeightsContainer)},
+                {OnnxModelType.VaeEncoder,new InferenceSession(_configuration.OnnxVaeEncoderPath, _sessionOptions, _prePackedWeightsContainer)}
             };
             if (_configuration.IsSafetyModelEnabled)
                 modelInferenceSessions.Add(OnnxModelType.SafetyModel, new InferenceSession(_configuration.OnnxSafetyModelPath, _sessionOptions));

@@ -6,6 +6,7 @@ using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Results;
 using OnnxStack.StableDiffusion.Schedulers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 
 namespace OnnxStack.StableDiffusion.Services
 {
@@ -45,18 +47,17 @@ namespace OnnxStack.StableDiffusion.Services
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
-          
+
             Console.WriteLine($"Scheduler: {promptOptions.SchedulerType}, Size: {schedulerOptions.Width}x{schedulerOptions.Height}, Seed: {schedulerOptions.Seed}, Steps: {schedulerOptions.InferenceSteps}, Guidance: {schedulerOptions.GuidanceScale}");
 
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
-
                 // Process prompts
                 var promptEmbeddings = await CreatePromptEmbeddings(promptOptions.Prompt, promptOptions.NegativePrompt);
 
                 // Create latent sample
-                var latentSample = scheduler.CreateRandomSample(schedulerOptions.GetScaledDimension(), scheduler.InitNoiseSigma);
+                var latentSample = PrepareLatents(promptOptions, schedulerOptions, scheduler);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -64,6 +65,7 @@ namespace OnnxStack.StableDiffusion.Services
                 {
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latentSample.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
+
                     var inputParameters = CreateInputParameters(
                          NamedOnnxValue.CreateFromTensor("encoder_hidden_states", promptEmbeddings),
                          NamedOnnxValue.CreateFromTensor("sample", inputTensor),
@@ -88,10 +90,6 @@ namespace OnnxStack.StableDiffusion.Services
 
                     Console.WriteLine($"Step: {++step}/{scheduler.Timesteps.Count}");
                 }
-
-                // Scale and decode the image latents with vae.
-                // latents = 1 / 0.18215 * latents
-                latentSample = latentSample.MultipleTensorByFloat(1.0f / 0.18215f);
 
                 // Decode Latents
                 return await DecodeLatents(schedulerOptions, latentSample);
@@ -204,6 +202,10 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         private async Task<DenseTensor<float>> DecodeLatents(SchedulerOptions options, DenseTensor<float> latents)
         {
+            // Scale and decode the image latents with vae.
+            // latents = 1 / 0.18215 * latents
+            latents = latents.MultipleTensorByFloat(1.0f / 0.18215f);
+
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("latent_sample", latents));
 
             // Run inference.
@@ -326,6 +328,62 @@ namespace OnnxStack.StableDiffusion.Services
         private static IReadOnlyCollection<NamedOnnxValue> CreateInputParameters(params NamedOnnxValue[] parameters)
         {
             return parameters.ToList().AsReadOnly();
+        }
+
+
+        /// <summary>
+        /// Prepares the latents for inference.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <returns></returns>
+        public DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
+        {
+            // If we dont have an initial image create random sample
+            if (!prompt.HasInputImage)
+                return scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma);
+
+            // We have an initial image, resize and encode to latent
+            using (Image<Rgb24> image = Image.Load<Rgb24>(prompt.InputImage))
+            {
+                // Resize the image to an integer multiple of 8
+                image.Mutate(x =>
+                {
+                    x.Resize(new ResizeOptions
+                    {
+                        Size = new Size(options.Width, options.Height),
+                        Mode = ResizeMode.Crop,
+                        PremultiplyAlpha = true
+                    });
+                });
+
+                var mean = new[] { 0.485f, 0.456f, 0.406f };
+                var stddev = new[] { 0.229f, 0.224f, 0.225f };
+                var imageArray = new DenseTensor<float>(new[] { 1, 3, options.Width, options.Height });
+                for (int x = 0; x < options.Width; x++)
+                {
+                    for (int y = 0; y < options.Height; y++)
+                    {
+                        Span<Rgb24> pixelSpan = image.GetPixelRowSpan(y);
+                        imageArray[0, 0, y, x] = ((pixelSpan[x].R / 255.0f) - mean[0]) / stddev[0];
+                        imageArray[0, 1, y, x] = ((pixelSpan[x].G / 255.0f) - mean[1]) / stddev[1];
+                        imageArray[0, 2, y, x] = ((pixelSpan[x].B / 255.0f) - mean[2]) / stddev[2];
+                    }
+                }
+
+                var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("sample", imageArray));
+                using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
+                {
+                    var result = inferResult.FirstElementAs<DenseTensor<float>>();
+
+                    ////add noise
+                    var noise = scheduler.CreateRandomSample(result.Dimensions, scheduler.InitNoiseSigma);
+                    result = scheduler.AddNoise(result, noise, scheduler.Timesteps.ToArray());
+
+                    return result.ToDenseTensor();
+                }
+            }
         }
     }
 }

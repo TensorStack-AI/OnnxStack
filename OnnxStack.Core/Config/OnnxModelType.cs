@@ -6,6 +6,7 @@
         Tokenizer = 1,
         VaeDecoder = 2,
         TextEncoder = 3,
-        SafetyModel = 4
+        SafetyModel = 4,
+        VaeEncoder = 5,
     }
 }
