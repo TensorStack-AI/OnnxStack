@@ -243,17 +243,19 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, int[] timesteps)
+        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise)
         {
+            //TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
+
             // Make sure alphas_cumprod and timestep have the same device and dtype as originalSamples
             var alphasCumprod = new DenseTensor<float>(_alphasCumulativeProducts.ToArray(), new int[] { _alphasCumulativeProducts.Count });// Convert to DenseTensor
 
             var sqrtAlphaProd = new DenseTensor<float>(originalSamples.Dimensions);
             var sqrtOneMinusAlphaProd = new DenseTensor<float>(originalSamples.Dimensions);
 
-            for (int i = 0; i < timesteps.Length; i++)
+            for (int i = 0; i < Timesteps.Count; i++)
             {
-                int timestep = timesteps[i];
+                int timestep = Timesteps[i];
                 float alphaProd = alphasCumprod[timestep]; // Assuming alphasCumprod is a 2D tensor
                 float sqrtAlpha = (float)Math.Sqrt(alphaProd);
                 float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);

@@ -203,24 +203,15 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, int[] timesteps)
+        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise)
         {
-            var stepIndices = timesteps.Select(t => Timesteps.IndexOf(t));
-            var sigma = stepIndices
-                .Select(index => _sigmas[index])
-                .ToArray();
-            if (sigma.Length < originalSamples.Length)
-            {
-                var padLen = originalSamples.Length - sigma.Length;
-                var padding = Enumerable.Range(0, (int)padLen).Select(x => 0f);
-                sigma = sigma.Concat(padding).ToArray();
-            }
+            // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_euler_ancestral_discrete.py#L389
 
-            // Create a DenseTensor<float> from the noisy data and original shape
             var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
-            for (int i = 0; i < originalSamples.Length; i++)
+            for (var i = 0; i < originalSamples.Length; i++)
             {
-                noisySamples.SetValue(i, originalSamples.GetValue(i) + (noise.GetValue(i) * sigma[i]));
+                noisySamples.SetValue(i, originalSamples.GetValue(i) + noise.GetValue(i));
+                //noisySamples.SetValue(i, originalSamples.GetValue(i) + (noise.GetValue(i) * sigma[i]));
             }
             return noisySamples;
         }

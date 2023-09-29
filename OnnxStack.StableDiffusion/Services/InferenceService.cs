@@ -6,7 +6,6 @@ using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Results;
 using OnnxStack.StableDiffusion.Schedulers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -86,6 +85,7 @@ namespace OnnxStack.StableDiffusion.Services
 
                         // LMS Scheduler Step
                         latentSample = scheduler.Step(noisePred, timestep, latentSample);
+                        //ImageHelpers.TensorToImageDebug(latentSample, 512, $@"Examples\StableDebug\Latent_{step}.png");
                     }
 
                     Console.WriteLine($"Step: {++step}/{scheduler.Timesteps.Count}");
@@ -266,9 +266,9 @@ namespace OnnxStack.StableDiffusion.Services
                 for (var x = 0; x < options.Width; x++)
                 {
                     image[x, y] = new Rgba32(
-                        (byte)Math.Round(Math.Clamp(imageTensor[0, 0, y, x] / 2 + 0.5, 0, 1) * 255),
-                        (byte)Math.Round(Math.Clamp(imageTensor[0, 1, y, x] / 2 + 0.5, 0, 1) * 255),
-                        (byte)Math.Round(Math.Clamp(imageTensor[0, 2, y, x] / 2 + 0.5, 0, 1) * 255)
+                        ImageHelpers.CalculateByte(imageTensor, 0, y, x),
+                        ImageHelpers.CalculateByte(imageTensor, 1, y, x),
+                        ImageHelpers.CalculateByte(imageTensor, 2, y, x)
                     );
                 }
             }
@@ -347,28 +347,25 @@ namespace OnnxStack.StableDiffusion.Services
             // We have an initial image, resize and encode to latent
             using (Image<Rgb24> image = Image.Load<Rgb24>(prompt.InputImage))
             {
-                // Resize the image to an integer multiple of 8
                 image.Mutate(x =>
                 {
                     x.Resize(new ResizeOptions
                     {
                         Size = new Size(options.Width, options.Height),
-                        Mode = ResizeMode.Crop,
-                        PremultiplyAlpha = true
+                        Mode = ResizeMode.Crop
                     });
                 });
 
                 var mean = new[] { 0.485f, 0.456f, 0.406f };
-                var stddev = new[] { 0.229f, 0.224f, 0.225f };
                 var imageArray = new DenseTensor<float>(new[] { 1, 3, options.Width, options.Height });
                 for (int x = 0; x < options.Width; x++)
                 {
                     for (int y = 0; y < options.Height; y++)
                     {
-                        Span<Rgb24> pixelSpan = image.GetPixelRowSpan(y);
-                        imageArray[0, 0, y, x] = ((pixelSpan[x].R / 255.0f) - mean[0]) / stddev[0];
-                        imageArray[0, 1, y, x] = ((pixelSpan[x].G / 255.0f) - mean[1]) / stddev[1];
-                        imageArray[0, 2, y, x] = ((pixelSpan[x].B / 255.0f) - mean[2]) / stddev[2];
+                        var pixelSpan = image.GetPixelRowSpan(y);
+                        imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f) - mean[0];
+                        imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f) - mean[1];
+                        imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f) - mean[2];
                     }
                 }
 
@@ -376,12 +373,7 @@ namespace OnnxStack.StableDiffusion.Services
                 using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
                 {
                     var result = inferResult.FirstElementAs<DenseTensor<float>>();
-
-                    ////add noise
-                    var noise = scheduler.CreateRandomSample(result.Dimensions, scheduler.InitNoiseSigma);
-                    result = scheduler.AddNoise(result, noise, scheduler.Timesteps.ToArray());
-
-                    return result.ToDenseTensor();
+                    return scheduler.AddNoise(result, scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
                 }
             }
         }

@@ -41,7 +41,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, int[] timesteps);
+        DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise);
 
         /// <summary>
         /// Creates a random sample with the specified dimesions.
