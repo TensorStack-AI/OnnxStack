@@ -22,6 +22,16 @@ namespace OnnxStack.StableDiffusion.Helpers
             return divTensor;
         }
 
+        public static DenseTensor<float> DivideTensorByFloat(this DenseTensor<float> data, float value)
+        {
+            var divTensor = new DenseTensor<float>(data.Dimensions);
+            for (int i = 0; i < data.Length; i++)
+            {
+                divTensor.SetValue(i, data.GetValue(i) / value);
+            }
+            return divTensor;
+        }
+
         public static DenseTensor<float> MultipleTensorByFloat(this DenseTensor<float> data, float value)
         {
             var mullTensor = new DenseTensor<float>(data.Dimensions);

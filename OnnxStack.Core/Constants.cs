@@ -30,6 +30,11 @@ namespace OnnxStack.Core
         /// </summary>
         public static ImmutableArray<int> BlankTokenValueArray;
 
+        /// <summary>
+        /// The model scale factor
+        /// </summary>
+        public const float ModelScaleFactor = 0.18215f;
+
         static Constants()
         {
             // Cache an array with enough blank tokens to fill an empty prompt

@@ -206,14 +206,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
         public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise)
         {
             // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_euler_ancestral_discrete.py#L389
-
-            var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
             for (var i = 0; i < originalSamples.Length; i++)
             {
-                noisySamples.SetValue(i, originalSamples.GetValue(i) + noise.GetValue(i));
-                //noisySamples.SetValue(i, originalSamples.GetValue(i) + (noise.GetValue(i) * sigma[i]));
+                originalSamples.SetValue(i, noise.GetValue(i) + originalSamples.GetValue(i));
             }
-            return noisySamples;
+            return originalSamples;
         }
 
         protected override void Dispose(bool disposing)

@@ -269,12 +269,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
             sqrtOneMinusAlphaProd = sqrtOneMinusAlphaProd.Reshape(originalSamples.Dimensions).ToDenseTensor();
 
             // Compute noisy samples
-            var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
             for (int i = 0; i < originalSamples.Length; i++)
             {
-                noisySamples.SetValue(i, sqrtAlphaProd.GetValue(i) * originalSamples.GetValue(i) + sqrtOneMinusAlphaProd.GetValue(i) * noise.GetValue(i));
+                originalSamples.SetValue(i, (noise.GetValue(i) * sqrtOneMinusAlphaProd.GetValue(i))  + (originalSamples.GetValue(i) * sqrtAlphaProd.GetValue(i)));
             }
-            return noisySamples;
+            return originalSamples;
         }
 
         /// <summary>

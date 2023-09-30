@@ -85,7 +85,7 @@ namespace OnnxStack.StableDiffusion.Services
 
                         // LMS Scheduler Step
                         latentSample = scheduler.Step(noisePred, timestep, latentSample);
-                        //ImageHelpers.TensorToImageDebug(latentSample, 512, $@"Examples\StableDebug\Latent_{step}.png");
+                        //ImageHelpers.TensorToImageDebug(latentSample, 64, $@"Examples\StableDebug\Latent_{step}.png");
                     }
 
                     Console.WriteLine($"Step: {++step}/{scheduler.Timesteps.Count}");
@@ -204,7 +204,7 @@ namespace OnnxStack.StableDiffusion.Services
         {
             // Scale and decode the image latents with vae.
             // latents = 1 / 0.18215 * latents
-            latents = latents.MultipleTensorByFloat(1.0f / 0.18215f);
+            latents = latents.MultipleTensorByFloat(1.0f / Constants.ModelScaleFactor);
 
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("latent_sample", latents));
 
@@ -356,24 +356,23 @@ namespace OnnxStack.StableDiffusion.Services
                     });
                 });
 
-                var mean = new[] { 0.485f, 0.456f, 0.406f };
                 var imageArray = new DenseTensor<float>(new[] { 1, 3, options.Width, options.Height });
                 for (int x = 0; x < options.Width; x++)
                 {
                     for (int y = 0; y < options.Height; y++)
                     {
                         var pixelSpan = image.GetPixelRowSpan(y);
-                        imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f) - mean[0];
-                        imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f) - mean[1];
-                        imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f) - mean[2];
+                        imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f) * 2.0f - 1.0f;
+                        imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f) * 2.0f - 1.0f;
+                        imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f) * 2.0f - 1.0f;
                     }
                 }
 
                 var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("sample", imageArray));
                 using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
                 {
-                    var result = inferResult.FirstElementAs<DenseTensor<float>>();
-                    return scheduler.AddNoise(result, scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
+                    var result = inferResult.FirstElementAs<DenseTensor<float>>().MultipleTensorByFloat(Constants.ModelScaleFactor);
+                    return scheduler.AddNoise(result, scheduler.CreateRandomSample(result.Dimensions, scheduler.InitNoiseSigma));
                 }
             }
         }

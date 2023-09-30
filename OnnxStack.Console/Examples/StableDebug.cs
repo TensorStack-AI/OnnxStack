@@ -35,6 +35,7 @@ namespace OnnxStack.Console.Runner
                     Prompt = prompt,
                     NegativePrompt = negativePrompt,
                     SchedulerType = SchedulerType.LMSScheduler
+                    //InputImage = @"C:\Users\Deven\Pictures\sketch-mountains-input.jpg"
                 };
 
                 var schedulerOptions = new SchedulerOptions
@@ -42,7 +43,8 @@ namespace OnnxStack.Console.Runner
                     Seed = 624461087,
                     //Seed = Random.Shared.Next(),
                     GuidanceScale = 8,
-                    InferenceSteps = 22
+                    InferenceSteps = 22,
+                    //StepsOffset = 1
                 };
 
                 foreach (var schedulerType in Enum.GetValues<SchedulerType>())
