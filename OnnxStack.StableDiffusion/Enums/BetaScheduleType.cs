@@ -1,6 +1,6 @@
-﻿namespace OnnxStack.StableDiffusion.Config
+﻿namespace OnnxStack.StableDiffusion.Enums
 {
-    public enum BetaSchedule
+    public enum BetaScheduleType
     {
         Linear = 0,
         ScaledLinear = 1,

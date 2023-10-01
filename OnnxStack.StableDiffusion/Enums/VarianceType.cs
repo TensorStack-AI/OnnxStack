@@ -1,4 +1,4 @@
-﻿namespace OnnxStack.StableDiffusion.Config
+﻿namespace OnnxStack.StableDiffusion.Enums
 {
     public enum VarianceType
     {

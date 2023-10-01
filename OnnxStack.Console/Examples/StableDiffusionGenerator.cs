@@ -1,6 +1,7 @@
 ﻿using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using System.Collections.ObjectModel;
 
 namespace OnnxStack.Console.Runner

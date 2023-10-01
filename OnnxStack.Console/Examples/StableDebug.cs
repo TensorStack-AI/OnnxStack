@@ -1,5 +1,6 @@
 ﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
@@ -35,7 +36,6 @@ namespace OnnxStack.Console.Runner
                     Prompt = prompt,
                     NegativePrompt = negativePrompt,
                     SchedulerType = SchedulerType.LMSScheduler
-                    //InputImage = @"C:\Users\Deven\Pictures\sketch-mountains-input.jpg"
                 };
 
                 var schedulerOptions = new SchedulerOptions
@@ -43,8 +43,7 @@ namespace OnnxStack.Console.Runner
                     Seed = 624461087,
                     //Seed = Random.Shared.Next(),
                     GuidanceScale = 8,
-                    InferenceSteps = 22,
-                    //StepsOffset = 1
+                    InferenceSteps = 22
                 };
 
                 foreach (var schedulerType in Enum.GetValues<SchedulerType>())

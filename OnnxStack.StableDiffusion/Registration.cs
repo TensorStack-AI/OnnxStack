@@ -16,7 +16,8 @@ namespace OnnxStack.Core
         public static void AddOnnxStackStableDiffusion(this IServiceCollection serviceCollection)
         {
             serviceCollection.AddOnnxStack();
-            serviceCollection.AddSingleton<IInferenceService, InferenceService>();
+            serviceCollection.AddSingleton<IPromptService, PromptService>();
+            serviceCollection.AddSingleton<ISchedulerService, SchedulerService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
         }
     }

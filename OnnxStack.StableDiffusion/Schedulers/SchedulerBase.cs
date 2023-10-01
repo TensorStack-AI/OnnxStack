@@ -1,7 +1,9 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using NumSharp;
 using NumSharp.Generic;
+using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,4 +1,6 @@
-﻿namespace OnnxStack.StableDiffusion.Config
+﻿using OnnxStack.StableDiffusion.Enums;
+
+namespace OnnxStack.StableDiffusion.Config
 {
     public class PromptOptions
     {

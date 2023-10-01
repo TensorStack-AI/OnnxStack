@@ -2,6 +2,7 @@
 using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Linq;
@@ -36,14 +37,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 betas = Options.TrainedBetas;
             }
-            else if (Options.BetaSchedule == BetaSchedule.Linear)
+            else if (Options.BetaSchedule == BetaScheduleType.Linear)
             {
                 var steps = Options.TrainTimesteps - 1;
                 var delta = Options.BetaStart + (Options.BetaEnd - Options.BetaStart);
                 betas = Enumerable.Range(0, Options.TrainTimesteps)
                     .Select(i => delta * i / steps);
             }
-            else if (Options.BetaSchedule == BetaSchedule.ScaledLinear)
+            else if (Options.BetaSchedule == BetaScheduleType.ScaledLinear)
             {
                 var start = (float)Math.Sqrt(Options.BetaStart);
                 var end = (float)Math.Sqrt(Options.BetaEnd);
@@ -51,7 +52,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                     .ToArray<float>()
                     .Select(x => x * x);
             }
-            else if (Options.BetaSchedule == BetaSchedule.SquaredCosCapV2)
+            else if (Options.BetaSchedule == BetaScheduleType.SquaredCosCapV2)
             {
                 betas = GetBetasForAlphaBar();
             }
@@ -67,7 +68,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             // standard deviation of the initial noise distrubution
             var maxSigma = _sigmas.Max();
-            var initNoiseSigma = Options.TimestepSpacing == TimestepSpacing.Linspace || Options.TimestepSpacing == TimestepSpacing.Trailing
+            var initNoiseSigma = Options.TimestepSpacing == TimestepSpacingType.Linspace || Options.TimestepSpacing == TimestepSpacingType.Trailing
                 ? maxSigma
                 : (float)Math.Sqrt(maxSigma * maxSigma + 1);
             SetInitNoiseSigma(initNoiseSigma);
@@ -81,14 +82,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected override int[] SetTimesteps()
         {
             float[] timesteps = null;
-            if (Options.TimestepSpacing == TimestepSpacing.Linspace)
+            if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
             {
                 float start = 0;
                 float stop = Options.TrainTimesteps - 1;
                 timesteps = np.around(np.linspace(start, stop, Options.InferenceSteps))
                     .ToArray<float>();
             }
-            else if (Options.TimestepSpacing == TimestepSpacing.Leading)
+            else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
             {
                 int stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
                 timesteps = np.around(np.arange(0, Options.InferenceSteps) * stepRatio)
@@ -99,7 +100,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                         .Select(x => x + Options.StepsOffset)
                         .ToArray();
             }
-            else if (Options.TimestepSpacing == TimestepSpacing.Trailing)
+            else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
             {
                 int stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
                 timesteps = np.around(np.arange(Options.TrainTimesteps, 0, -stepRatio))

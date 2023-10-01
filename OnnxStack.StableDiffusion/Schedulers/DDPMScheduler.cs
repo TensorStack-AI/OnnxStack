@@ -1,6 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using NumSharp;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
@@ -37,16 +38,16 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 _betas = Options.TrainedBetas.ToArray();
             }
-            else if (Options.BetaSchedule == BetaSchedule.Linear)
+            else if (Options.BetaSchedule == BetaScheduleType.Linear)
             {
                 _betas = np.linspace(Options.BetaStart, Options.BetaEnd, Options.TrainTimesteps).ToArray<float>();
             }
-            else if (Options.BetaSchedule == BetaSchedule.ScaledLinear)
+            else if (Options.BetaSchedule == BetaScheduleType.ScaledLinear)
             {
                 // This schedule is very specific to the latent diffusion model.
                 _betas = np.power(np.linspace(MathF.Sqrt(Options.BetaStart), MathF.Sqrt(Options.BetaEnd), Options.TrainTimesteps), 2).ToArray<float>();
             }
-            else if (Options.BetaSchedule == BetaSchedule.SquaredCosCapV2)
+            else if (Options.BetaSchedule == BetaScheduleType.SquaredCosCapV2)
             {
                 // Glide cosine schedule
                 _betas = GetBetasForAlphaBar();
@@ -82,19 +83,19 @@ namespace OnnxStack.StableDiffusion.Schedulers
         {
             // Create timesteps based on the specified strategy
             NDArray timestepsArray = null;
-            if (Options.TimestepSpacing == TimestepSpacing.Linspace)
+            if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
             {
                 timestepsArray = np.linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps);
                 timestepsArray = np.around(timestepsArray)["::1"];
             }
-            else if (Options.TimestepSpacing == TimestepSpacing.Leading)
+            else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
             {
                 var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
                 timestepsArray = np.arange(0, Options.InferenceSteps) * stepRatio;
                 timestepsArray = np.around(timestepsArray)["::1"];
                 timestepsArray += Options.StepsOffset;
             }
-            else if (Options.TimestepSpacing == TimestepSpacing.Trailing)
+            else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
             {
                 var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
                 timestepsArray = np.arange(Options.TrainTimesteps, 0, -stepRatio);

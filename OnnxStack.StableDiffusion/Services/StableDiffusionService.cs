@@ -8,11 +8,11 @@ namespace OnnxStack.StableDiffusion.Services
 {
     public sealed class StableDiffusionService : IStableDiffusionService
     {
-        private readonly IInferenceService _inferenceService;
+        private readonly ISchedulerService _schedulerService;
 
-        public StableDiffusionService(IInferenceService inferenceService)
+        public StableDiffusionService(ISchedulerService schedulerService)
         {
-            _inferenceService = inferenceService;
+            _schedulerService = schedulerService;
         }
 
         public Task<ImageResult> TextToImage(PromptOptions prompt)
@@ -38,7 +38,7 @@ namespace OnnxStack.StableDiffusion.Services
 
         private async Task<ImageResult> TextToImageInternal(PromptOptions prompt, SchedulerOptions options)
         {
-            var imageTensorData = await _inferenceService.RunInferenceAsync(prompt, options).ConfigureAwait(false);
+            var imageTensorData = await _schedulerService.RunAsync(prompt, options).ConfigureAwait(false);
             return ImageHelpers.TensorToImage(options, imageTensorData);
         }
 

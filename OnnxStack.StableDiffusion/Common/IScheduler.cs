@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OnnxStack.StableDiffusion.Schedulers
+namespace OnnxStack.StableDiffusion.Common
 {
     public interface IScheduler : IDisposable
     {
