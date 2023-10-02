@@ -232,12 +232,10 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 .Select(x => Timesteps.IndexOf(x))
                 .Select(x => _sigmas[x])
                 .Max();
-            var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
-            for (var i = 0; i < originalSamples.Length; i++)
-            {
-                noisySamples.SetValue(i, originalSamples.GetValue(i) + noise.GetValue(i) * sigma);
-            }
-            return noisySamples;
+
+            return noise
+                .MultipleTensorByFloat(sigma)
+                .AddTensors(originalSamples);
         }
 
 

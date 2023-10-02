@@ -127,6 +127,7 @@ namespace OnnxStack.StableDiffusion.Services
             using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
             {
                 var sample = inferResult.FirstElementAs<DenseTensor<float>>()
+                    .AddTensors(scheduler.CreateRandomSample(imageTensor.Dimensions))
                     .MultipleTensorByFloat(Constants.ModelScaleFactor);
 
                 var noise = scheduler.CreateRandomSample(sample.Dimensions);
