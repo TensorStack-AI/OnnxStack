@@ -227,7 +227,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps)
         {
-            // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_lms_discrete.py#L439
+            // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_lms_discrete.py#L439
             var sigma = timesteps
                 .Select(x => Timesteps.IndexOf(x))
                 .Select(x => _sigmas[x])

@@ -1,7 +1,5 @@
-﻿using NumSharp;
-using OnnxStack.StableDiffusion.Enums;
+﻿using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
-using System.Reflection.Metadata;
 
 namespace OnnxStack.StableDiffusion.Config
 {
@@ -46,7 +44,6 @@ namespace OnnxStack.StableDiffusion.Config
         /// The scale for the classifier-free guidance. The higher the number the more it will try to look like the prompt but the image quality may suffer.
         /// </value>
         public float GuidanceScale { get; set; } = 7.5f;
-
 
         /// <summary>
         /// Gets or sets the strength use for Image 2 Image

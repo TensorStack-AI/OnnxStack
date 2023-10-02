@@ -246,36 +246,15 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps)
         {
-            //TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
+            // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
+            int timestep = timesteps[0];
+            float alphaProd = _alphasCumulativeProducts[timestep];
+            float sqrtAlpha = (float)Math.Sqrt(alphaProd);
+            float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
 
-            // Make sure alphas_cumprod and timestep have the same device and dtype as originalSamples
-            var alphasCumprod = new DenseTensor<float>(_alphasCumulativeProducts.ToArray(), new int[] { _alphasCumulativeProducts.Count });// Convert to DenseTensor
-
-            var sqrtAlphaProd = new DenseTensor<float>(originalSamples.Dimensions);
-            var sqrtOneMinusAlphaProd = new DenseTensor<float>(originalSamples.Dimensions);
-
-            for (int i = 0; i < timesteps.Count; i++)
-            {
-                int timestep = timesteps[i];
-                float alphaProd = alphasCumprod[timestep]; // Assuming alphasCumprod is a 2D tensor
-                float sqrtAlpha = (float)Math.Sqrt(alphaProd);
-                float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
-
-                sqrtAlphaProd.SetValue(i, sqrtAlpha);
-                sqrtOneMinusAlphaProd.SetValue(i, sqrtOneMinusAlpha);
-            }
-
-            // Reshape sqrtAlphaProd and sqrtOneMinusAlphaProd to match the shape of originalSamples
-            sqrtAlphaProd = sqrtAlphaProd.Reshape(originalSamples.Dimensions).ToDenseTensor();
-            sqrtOneMinusAlphaProd = sqrtOneMinusAlphaProd.Reshape(originalSamples.Dimensions).ToDenseTensor();
-
-            // Compute noisy samples
-            var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
-            for (int i = 0; i < originalSamples.Length; i++)
-            {
-                noisySamples.SetValue(i, (noise.GetValue(i) * sqrtOneMinusAlphaProd.GetValue(i))  + (originalSamples.GetValue(i) * sqrtAlphaProd.GetValue(i)));
-            }
-            return noisySamples;
+            return noise
+                .MultipleTensorByFloat(sqrtOneMinusAlpha)
+                .AddTensors(originalSamples.MultipleTensorByFloat(sqrtAlpha));
         }
 
         /// <summary>
