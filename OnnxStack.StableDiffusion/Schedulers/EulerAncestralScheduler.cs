@@ -5,6 +5,7 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Schedulers
@@ -204,14 +205,19 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise)
+        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps)
         {
             // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_euler_ancestral_discrete.py#L389
+            var sigma = timesteps
+                .Select(x => Timesteps.IndexOf(x))
+                .Select(x => _sigmas[x])
+                .Max();
+            var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
             for (var i = 0; i < originalSamples.Length; i++)
             {
-                originalSamples.SetValue(i, noise.GetValue(i) + originalSamples.GetValue(i));
+                noisySamples.SetValue(i, originalSamples.GetValue(i) + noise.GetValue(i) * sigma);
             }
-            return originalSamples;
+            return noisySamples;
         }
 
         protected override void Dispose(bool disposing)

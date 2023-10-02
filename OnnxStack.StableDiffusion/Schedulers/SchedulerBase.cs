@@ -76,7 +76,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        public abstract DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise);
+        public abstract DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps);
 
         /// <summary>
         /// Initializes this instance.

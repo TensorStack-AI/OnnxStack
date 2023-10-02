@@ -43,7 +43,8 @@ namespace OnnxStack.Console.Runner
                     Seed = 624461087,
                     //Seed = Random.Shared.Next(),
                     GuidanceScale = 8,
-                    InferenceSteps = 22
+                    InferenceSteps = 22,
+                    Strength = 0.6f
                 };
 
                 foreach (var schedulerType in Enum.GetValues<SchedulerType>())

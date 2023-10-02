@@ -1,6 +1,7 @@
 ﻿using NumSharp;
 using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 
 namespace OnnxStack.StableDiffusion.Config
 {
@@ -62,5 +63,7 @@ namespace OnnxStack.StableDiffusion.Config
         public PredictionType PredictionType { get; internal set; } = PredictionType.Epsilon;
         public AlphaTransformType AlphaTransformType { get; set; } = AlphaTransformType.Cosine;
         public float MaximumBeta { get; set; } = 0.999f;
+
+        public float Strength { get; set; } = 1f;
     }
 }

@@ -244,7 +244,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise)
+        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps)
         {
             //TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
 
@@ -254,9 +254,9 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sqrtAlphaProd = new DenseTensor<float>(originalSamples.Dimensions);
             var sqrtOneMinusAlphaProd = new DenseTensor<float>(originalSamples.Dimensions);
 
-            for (int i = 0; i < Timesteps.Count; i++)
+            for (int i = 0; i < timesteps.Count; i++)
             {
-                int timestep = Timesteps[i];
+                int timestep = timesteps[i];
                 float alphaProd = alphasCumprod[timestep]; // Assuming alphasCumprod is a 2D tensor
                 float sqrtAlpha = (float)Math.Sqrt(alphaProd);
                 float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
@@ -270,11 +270,12 @@ namespace OnnxStack.StableDiffusion.Schedulers
             sqrtOneMinusAlphaProd = sqrtOneMinusAlphaProd.Reshape(originalSamples.Dimensions).ToDenseTensor();
 
             // Compute noisy samples
+            var noisySamples = new DenseTensor<float>(originalSamples.Dimensions);
             for (int i = 0; i < originalSamples.Length; i++)
             {
-                originalSamples.SetValue(i, (noise.GetValue(i) * sqrtOneMinusAlphaProd.GetValue(i))  + (originalSamples.GetValue(i) * sqrtAlphaProd.GetValue(i)));
+                noisySamples.SetValue(i, (noise.GetValue(i) * sqrtOneMinusAlphaProd.GetValue(i))  + (originalSamples.GetValue(i) * sqrtAlphaProd.GetValue(i)));
             }
-            return originalSamples;
+            return noisySamples;
         }
 
         /// <summary>

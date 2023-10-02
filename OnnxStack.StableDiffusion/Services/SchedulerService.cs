@@ -31,7 +31,7 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _configuration = configuration;
             _onnxModelService = onnxModelService;
-            _promptService = promptService; 
+            _promptService = promptService;
         }
 
 
@@ -53,12 +53,15 @@ namespace OnnxStack.StableDiffusion.Services
                 // Process prompts
                 var promptEmbeddings = await _promptService.CreatePromptAsync(promptOptions.Prompt, promptOptions.NegativePrompt);
 
+                // Get timesteps
+                var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
+
                 // Create latent sample
-                var latentSample = PrepareLatents(promptOptions, schedulerOptions, scheduler);
+                var latentSample = PrepareLatents(promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Loop though the timesteps
                 var step = 0;
-                foreach (var timestep in scheduler.Timesteps)
+                foreach (var timestep in timesteps)
                 {
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latentSample.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
@@ -83,10 +86,10 @@ namespace OnnxStack.StableDiffusion.Services
 
                         // LMS Scheduler Step
                         latentSample = scheduler.Step(noisePred, timestep, latentSample);
-                        //ImageHelpers.TensorToImageDebug(latentSample, 64, $@"Examples\StableDebug\Latent_{step}.png");
+                        // ImageHelpers.TensorToImageDebug(latentSample, 64, $@"Examples\StableDebug\Latent_{step}.png");
                     }
 
-                    Console.WriteLine($"Step: {++step}/{scheduler.Timesteps.Count}");
+                    Console.WriteLine($"Step: {++step}/{timesteps.Count}");
                 }
 
                 // Decode Latents
@@ -94,6 +97,16 @@ namespace OnnxStack.StableDiffusion.Services
             }
         }
 
+        private IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
+        {
+            if (!prompt.HasInputImage)
+                return scheduler.Timesteps;
+
+            // Image2Image we narrow step the range by the Strength
+            var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
+            var start = Math.Max(options.InferenceSteps - inittimestep, 0);
+            return scheduler.Timesteps.Skip(start).ToList();
+        }
 
         /// <summary>
         /// Prepares the latents for inference.
@@ -102,7 +115,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        private DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
+        private DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             // If we dont have an initial image create random sample
             if (!prompt.HasInputImage)
@@ -113,12 +126,11 @@ namespace OnnxStack.StableDiffusion.Services
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("sample", imageTensor));
             using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
             {
-                var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                var noise = scheduler.CreateRandomSample(sample.Dimensions, scheduler.InitNoiseSigma);
+                var sample = inferResult.FirstElementAs<DenseTensor<float>>()
+                    .MultipleTensorByFloat(Constants.ModelScaleFactor);
 
-                // TODO: AddNoise methods need to be translated from python
-                var noisySample = scheduler.AddNoise(sample, noise);
-                return noisySample;
+                var noise = scheduler.CreateRandomSample(sample.Dimensions);
+                return scheduler.AddNoise(sample, noise, timesteps);
             }
         }
 

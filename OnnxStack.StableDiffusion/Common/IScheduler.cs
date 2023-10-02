@@ -41,13 +41,13 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise);
+        DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps);
 
         /// <summary>
         /// Creates a random sample with the specified dimesions.
         /// </summary>
         /// <param name="dimensions">The dimensions.</param>
         /// <returns></returns>
-        DenseTensor<float> CreateRandomSample(ReadOnlySpan<int> dimensions, float initialNoiseSigma);
+        DenseTensor<float> CreateRandomSample(ReadOnlySpan<int> dimensions, float initialNoiseSigma = 1.0f);
     }
 }
