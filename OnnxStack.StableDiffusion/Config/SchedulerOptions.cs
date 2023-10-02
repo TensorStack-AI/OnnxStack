@@ -47,6 +47,17 @@ namespace OnnxStack.StableDiffusion.Config
         /// </value>
         public float GuidanceScale { get; set; } = 7.5f;
 
+
+        /// <summary>
+        /// Gets or sets the strength use for Image 2 Image
+        /// </summary>
+        public float Strength { get; set; } = 0.6f;
+
+        /// <summary>
+        /// Gets or sets the initial noise level for Image 2 Image
+        /// </summary>
+        public float InitialNoiseLevel { get; set; } = 1f;
+
         public int TrainTimesteps { get; set; } = 1000;
         public float BetaStart { get; set; } = 0.00085f;
         public float BetaEnd { get; set; } = 0.012f;
@@ -64,6 +75,6 @@ namespace OnnxStack.StableDiffusion.Config
         public AlphaTransformType AlphaTransformType { get; set; } = AlphaTransformType.Cosine;
         public float MaximumBeta { get; set; } = 0.999f;
 
-        public float Strength { get; set; } = 1f;
+   
     }
 }

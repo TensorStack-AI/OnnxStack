@@ -126,12 +126,12 @@ namespace OnnxStack.StableDiffusion.Services
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("sample", imageTensor));
             using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
             {
-                var sample = inferResult.FirstElementAs<DenseTensor<float>>()
-                    .AddTensors(scheduler.CreateRandomSample(imageTensor.Dimensions))
+                var sample = inferResult.FirstElementAs<DenseTensor<float>>();
+                var noisySample = sample
+                    .AddTensors(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
                     .MultipleTensorByFloat(Constants.ModelScaleFactor);
-
                 var noise = scheduler.CreateRandomSample(sample.Dimensions);
-                return scheduler.AddNoise(sample, noise, timesteps);
+                return scheduler.AddNoise(noisySample, noise, timesteps);
             }
         }
 
