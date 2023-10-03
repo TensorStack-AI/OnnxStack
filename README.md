@@ -33,7 +33,7 @@ git clone https://huggingface.co/runwayml/stable-diffusion-v1-5 -b onnx
 ## **[OnnxStack.StableDiffusion](OnnxStack.StableDiffusion/README.md)**
 Inference Stable Diffusion with C# and ONNX Runtime
 
-##  Prompt
+###  **Prompt**
 
 Stable Diffusion models take a text prompt and create an image that represents the text.
 
@@ -42,7 +42,7 @@ Stable Diffusion models take a text prompt and create an image that represents t
 High-fashion photography in an abandoned industrial warehouse, with dramatic lighting and edgy outfits, detailed clothing, intricate clothing, seductive pose, action pose, motion, beautiful digital artwork, atmospheric, warm sunlight, photography, neo noir, bokeh, beautiful dramatic lighting, shallow depth of field, photorealism, volumetric lighting, Ultra HD, raytracing, studio quality, octane render
 `
 
-##  Negative Prompt
+###  **Negative Prompt**
 
 A negative prompt can be provided to guide the inference to exclude in calculations
 
@@ -52,7 +52,7 @@ A negative prompt can be provided to guide the inference to exclude in calculati
 painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon, graphic, text, crayon, graphite, abstract, easynegative, low quality, normal quality, worst quality, lowres, close up, cropped, out of frame, jpeg artifacts, duplicate, morbid, mutilated, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, glitch, deformed, mutated, cross-eyed, ugly, dehydrated, bad anatomy, bad proportions, gross proportions, cloned face, disfigured, malformed limbs, missing arms, missing legs fused fingers, too many fingers,extra fingers, extra limbs,, extra arms, extra legs,disfigured,
 `
 
-## Schedulers
+### **Schedulers**
 
 Many different scheduler algorithms can be used for this computation, each having its pro- and cons. 
 So far `OnnxStack.StableDiffusion` as included `LMS Discrete`, `Euler Ancestral` and `DDPM` options with more in the works.
@@ -64,6 +64,19 @@ So far `OnnxStack.StableDiffusion` as included `LMS Discrete`, `Euler Ancestral`
 
      Seed: 624461087     GuidanceScale: 8     NumInferenceSteps: 22
 
+### **Text To Image**
+Text To Image Stable Diffusion is a powerful machine learning technique that allows you to generate high-quality images from textual descriptions. It combines the capabilities of text understanding and image synthesis to convert natural language descriptions into visually coherent and meaningful images
+
+| Input Text | Output Image | Diffusion Steps |
+| :--- | :--- | :--- |
+<img src="Assets/Samples/Text2Img_Start.png" width="256" alt="Image of browser inferencing on sample images."/> | <img src="Assets/Samples/Text2Img_End.png" width="256"  alt="Image of browser inferencing on sample images."/> |<img src="Assets/Samples/Text2Img_Animation.webp" width="256"  alt="Image of browser inferencing on sample images."/> |
+
+### **Image To Image**
+Image To Image Stable Diffusion is an advanced image processing and generation method that excels in transforming one image into another while preserving the visual quality and structure of the original content. Using stable diffusion, this technique can perform a wide range of image-to-image tasks, such as style transfer, super-resolution, colorization, and more
+
+| Input Image | Output Image | Diffusion Steps |
+| :--- | :--- | :--- |
+<img src="Assets/Samples/Img2Img_Start.bmp" width="256" alt="Image of browser inferencing on sample images."/> | <img src="Assets/Samples/Img2Img_End.png" width="256"  alt="Image of browser inferencing on sample images."/> |<img src="Assets/Samples/Img2Img_Animation.webp" width="256"  alt="Image of browser inferencing on sample images."/> |
 
 
 More information and Examples can be found in the `OnnxStack.StableDiffusion` project **[README](OnnxStack.StableDiffusion/README.md)**
