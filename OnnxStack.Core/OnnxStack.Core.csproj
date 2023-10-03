@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -12,7 +12,7 @@
     <Description>
       OnnxRuntime Integration Library for .NET Core
 
-      Enhance your .NET Core applications with seamless integration of OnnxRuntime models using our comprehensive .NET Core services. Our library facilitates robust interfacing with OnnxRuntime models, allowing you to harness its powerful features in a wide range of .NET Core applications.
+      This repository harnesses the capabilities of both ONNX Runtime and Microsoft ML, offering a comprehensive solution that empowers developers to build, deploy, and execute machine learning models seamlessly in .NET environments, unlocking a world of possibilities for intelligent applications.
     </Description>
     <Copyright>Backyard Industries - 2023</Copyright>
     <RepositoryUrl>https://github.com/saddam213/OnnxStack</RepositoryUrl>
