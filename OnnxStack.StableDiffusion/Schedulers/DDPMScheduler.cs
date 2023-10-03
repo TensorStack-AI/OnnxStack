@@ -91,14 +91,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
             else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
             {
                 var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
-                timestepsArray = np.arange(0, Options.InferenceSteps) * stepRatio;
+                timestepsArray = np.arange(0, (float)Options.InferenceSteps) * stepRatio;
                 timestepsArray = np.around(timestepsArray)["::1"];
                 timestepsArray += Options.StepsOffset;
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
             {
-                var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
-                timestepsArray = np.arange(Options.TrainTimesteps, 0, -stepRatio);
+                var stepRatio = Options.TrainTimesteps / (Options.InferenceSteps - 1);
+                timestepsArray = np.arange((float)Options.TrainTimesteps, 0, -stepRatio)["::-1"];
                 timestepsArray = np.around(timestepsArray);
                 timestepsArray -= 1;
             }
@@ -177,11 +177,9 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 // pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
                 var alphaSqrt = (float)Math.Sqrt(alphaProdT);
                 var betaSqrt = (float)Math.Sqrt(betaProdT);
-                predOriginalSample = new DenseTensor<float>((int)sample.Length);
-                for (int i = 0; i < sample.Length - 1; i++)
-                {
-                    predOriginalSample.SetValue(i, alphaSqrt * sample.GetValue(i) - betaSqrt * modelOutput.GetValue(i));
-                }
+                predOriginalSample = sample
+                    .MultipleTensorByFloat(alphaSqrt)
+                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt));
             }
 
 
@@ -189,8 +187,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             if (Options.Thresholding)
             {
                 // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L322
-                //predOriginalSample = ThresholdSample(predOriginalSample);
-                throw new NotImplementedException("DDPMScheduler Thresholding currently not implemented");
+                predOriginalSample = ThresholdSample(predOriginalSample);
             }
             else if (Options.ClipSample)
             {
@@ -199,7 +196,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             //# 4. Compute coefficients for pred_original_sample x_0 and current sample x_t
             //# See formula (7) from https://arxiv.org/pdf/2006.11239.pdf
-            float predOriginalSampleCoeff = ((float)Math.Sqrt(alphaProdTPrev) * currentBetaT) / betaProdT;
+            float predOriginalSampleCoeff = (float)Math.Sqrt(alphaProdTPrev) * currentBetaT / betaProdT;
             float currentSampleCoeff = (float)Math.Sqrt(currentAlphaT) * betaProdTPrev / betaProdT;
 
 
@@ -314,13 +311,6 @@ namespace OnnxStack.StableDiffusion.Schedulers
         private DenseTensor<float> ThresholdSample(DenseTensor<float> input, float dynamicThresholdingRatio = 0.995f, float sampleMaxValue = 1f)
         {
             var sample = new NDArray(input.ToArray(), new Shape(input.Dimensions.ToArray()));
-
-            // Ensure the data type is float32 or float64
-            if (sample.dtype != typeof(float) && sample.dtype != typeof(double))
-            {
-                sample = sample.astype(NPTypeCode.Single); // Upcast for quantile calculation
-            }
-
             var batch_size = sample.shape[0];
             var channels = sample.shape[1];
             var height = sample.shape[2];

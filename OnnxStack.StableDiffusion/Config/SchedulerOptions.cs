@@ -63,15 +63,15 @@ namespace OnnxStack.StableDiffusion.Config
         public BetaScheduleType BetaSchedule { get; set; } = BetaScheduleType.ScaledLinear;
         public int StepsOffset { get; set; } = 0;
         public bool UseKarrasSigmas { get; set; } = false;
-        public VarianceType VarianceType { get; internal set; } = VarianceType.FixedSmall;
+        public VarianceType VarianceType { get; set; } = VarianceType.FixedSmall;
         public float SampleMaxValue { get; set; } = 1.0f;
-        public bool Thresholding { get; internal set; } = false;
-        public bool ClipSample { get; internal set; } = false;
-        public float ClipSampleRange { get; internal set; } = 1f;
-        public PredictionType PredictionType { get; internal set; } = PredictionType.Epsilon;
+        public bool Thresholding { get; set; } = false;
+        public bool ClipSample { get; set; } = false;
+        public float ClipSampleRange { get; set; } = 1f;
+        public PredictionType PredictionType { get; set; } = PredictionType.Epsilon;
         public AlphaTransformType AlphaTransformType { get; set; } = AlphaTransformType.Cosine;
         public float MaximumBeta { get; set; } = 0.999f;
 
-   
+
     }
 }

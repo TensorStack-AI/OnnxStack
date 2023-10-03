@@ -82,55 +82,41 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            float[] timesteps = null;
+            NDArray timestepsArray = null;
             if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
             {
-                float start = 0;
-                float stop = Options.TrainTimesteps - 1;
-                timesteps = np.around(np.linspace(start, stop, Options.InferenceSteps))
-                    .ToArray<float>();
+                timestepsArray = np.linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps);
+                timestepsArray = np.around(timestepsArray)["::1"];
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
             {
-                int stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
-                timesteps = np.around(np.arange(0, Options.InferenceSteps) * stepRatio)
-                        // ["::-1"] // Reverse
-                        .copy()
-                        .astype(NPTypeCode.Single)
-                        .ToArray<float>()
-                        .Select(x => x + Options.StepsOffset)
-                        .ToArray();
+                var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
+                timestepsArray = np.arange(0, (float)Options.InferenceSteps) * stepRatio;
+                timestepsArray = np.around(timestepsArray)["::1"];
+                timestepsArray += Options.StepsOffset;
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
             {
-                int stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
-                timesteps = np.around(np.arange(Options.TrainTimesteps, 0, -stepRatio))
-                     ["::-1"] // Reverse
-                     [":-1"]  // Skip last
-                     .copy()
-                     .astype(NPTypeCode.Single)
-                     .ToArray<float>()
-                     .Select(x => x - 1f)
-                     .ToArray();
+                var stepRatio = Options.TrainTimesteps / (Options.InferenceSteps - 1);
+                timestepsArray = np.arange(Options.TrainTimesteps, 0f, -stepRatio)["::-1"];
+                timestepsArray = np.around(timestepsArray);
+                timestepsArray -= 1;
             }
 
-
-            var sigmas = np.array(_sigmas);
-            var log_sigmas = np.log(sigmas);
+            var sigmas = _sigmas.ToArray();
+            var timesteps = timestepsArray.ToArray<float>();
+            var log_sigmas = np.log(sigmas).ToArray<float>();
             var range = np.arange(0, (float)_sigmas.Length).ToArray<float>();
             sigmas = Interpolate(timesteps, range, _sigmas);
 
             if (Options.UseKarrasSigmas)
             {
                 sigmas = ConvertToKarras(sigmas);
-                timesteps = SigmaToTimestep(sigmas, log_sigmas).ToArray();
+                timesteps = SigmaToTimestep(sigmas, log_sigmas);
             }
 
             //  add 0.000 to the end of the result
-            sigmas = np.add(sigmas, 0.000f);
-
-
-            _sigmas = sigmas.ToArray<float>();
+            _sigmas = sigmas.Append(0.000f).ToArray();
 
             return timesteps.Select(x => (int)x)
                  .OrderByDescending(x => x)

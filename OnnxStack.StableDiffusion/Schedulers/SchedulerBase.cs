@@ -1,9 +1,8 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using NumSharp;
-using NumSharp.Generic;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -97,18 +96,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         public virtual DenseTensor<float> CreateRandomSample(ReadOnlySpan<int> dimensions, float initialNoiseSigma = 1f)
         {
-            var latents = new DenseTensor<float>(dimensions);
-            for (int i = 0; i < latents.Length; i++)
-            {
-                // Generate a random number from a normal distribution with mean 0 and variance 1
-                var u1 = _random.NextDouble(); // Uniform(0,1) random number
-                var u2 = _random.NextDouble(); // Uniform(0,1) random number
-                var radius = Math.Sqrt(-2.0 * Math.Log(u1)); // Radius of polar coordinates
-                var theta = 2.0 * Math.PI * u2; // Angle of polar coordinates
-                var standardNormalRand = radius * Math.Cos(theta); // Standard normal random number
-                latents.SetValue(i, (float)standardNormalRand * initialNoiseSigma);
-            }
-            return latents;
+            return TensorHelper.GetRandomTensor(Random, dimensions, initialNoiseSigma);
         }
 
 
@@ -152,7 +140,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 alphaBarFn = t => (float)Math.Exp(t * -12.0);
             }
-   
+
             for (int i = 0; i < _options.TrainTimesteps; i++)
             {
                 float t1 = (float)i / _options.TrainTimesteps;
@@ -173,10 +161,10 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="range">The range.</param>
         /// <param name="sigmas">The sigmas.</param>
         /// <returns></returns>
-        protected NDArray Interpolate(float[] timesteps, float[] range, float[] sigmas)
+        protected float[] Interpolate(float[] timesteps, float[] range, float[] sigmas)
         {
             // Create an output array with the same shape as timesteps
-            var result = np.zeros(Shape.Vector(timesteps.Length + 1), NPTypeCode.Single);
+            var result = new float[timesteps.Length + 1];
 
             // Loop over each element of timesteps
             for (int i = 0; i < timesteps.Length; i++)
@@ -220,10 +208,10 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         /// <param name="inSigmas">The in sigmas.</param>
         /// <returns></returns>
-        protected NDArray ConvertToKarras(NDArray inSigmas)
+        protected float[] ConvertToKarras(float[] inSigmas)
         {
             // Get the minimum and maximum values from the input sigmas
-            float sigmaMin = inSigmas[inSigmas.size - 1];
+            float sigmaMin = inSigmas[inSigmas.Length - 1];
             float sigmaMax = inSigmas[0];
 
             // Set the value of rho, which is used in the calculation
@@ -245,7 +233,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 sigmas[i] = (float)Math.Pow(maxInvRho + ramp[i] * (minInvRho - maxInvRho), rho);
             }
 
-            // Return the resulting noise schedule as a Vector<float>
+            // Return the resulting noise schedule
             return sigmas;
         }
 
@@ -256,29 +244,23 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sigmas">The sigmas.</param>
         /// <param name="logSigmas">The log sigmas.</param>
         /// <returns></returns>
-        protected float[] SigmaToTimestep(NDArray sigmas, NDArray logSigmas)
+        protected float[] SigmaToTimestep(float[] sigmas, float[] logSigmas)
         {
-            int numSigmas = sigmas.size;
-            int numLogSigmas = logSigmas.size;
-            var floatSigmas = sigmas.view<float>();
-            var floatLogSigmas = logSigmas.view<float>();
-
-            NDArray<float> t = new NDArray<float>(numSigmas);
-
-            for (int i = 0; i < numSigmas; i++)
+            var timesteps = new float[sigmas.Length];
+            for (int i = 0; i < sigmas.Length; i++)
             {
-                float logSigma = (float)Math.Log(floatSigmas[i]);
-                float[] dists = new float[numLogSigmas];
+                float logSigma = (float)Math.Log(sigmas[i]);
+                float[] dists = new float[logSigmas.Length];
 
-                for (int j = 0; j < numLogSigmas; j++)
+                for (int j = 0; j < logSigmas.Length; j++)
                 {
-                    dists[j] = logSigma - floatLogSigmas[j];
+                    dists[j] = logSigma - logSigmas[j];
                 }
 
                 int lowIdx = 0;
                 int highIdx = 1;
 
-                for (int j = 0; j < numLogSigmas - 1; j++)
+                for (int j = 0; j < logSigmas.Length - 1; j++)
                 {
                     if (dists[j] >= 0)
                     {
@@ -287,17 +269,17 @@ namespace OnnxStack.StableDiffusion.Schedulers
                     }
                 }
 
-                float low = floatLogSigmas[lowIdx];
-                float high = floatLogSigmas[highIdx];
+                float low = logSigmas[lowIdx];
+                float high = logSigmas[highIdx];
 
                 float w = (low - logSigma) / (low - high);
                 w = Math.Clamp(w, 0, 1);
 
                 float ti = (1 - w) * lowIdx + w * highIdx;
-                t[i] = ti;
+                timesteps[i] = ti;
             }
 
-            return t.ToArray<float>();
+            return timesteps;
         }
 
         #region IDisposable
