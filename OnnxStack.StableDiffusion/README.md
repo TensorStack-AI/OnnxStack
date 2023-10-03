@@ -73,20 +73,33 @@ internal class AppService : IHostedService
             System.Console.WriteLine("Please type a negative prompt and press ENTER (optional)");
             var negativePrompt = System.Console.ReadLine();
 
-            var options = new StableDiffusionOptions
+            System.Console.WriteLine("Please enter image filepath for Img2Img and press ENTER (optional)");
+            var inputImageFile = System.Console.ReadLine();
+
+            var promptOptions = new PromptOptions
             {
                Prompt = prompt,
                NegativePrompt = negativePrompt,
+               SchedulerType = SchedulerType.LMSScheduler,
+               InputImage = inputImageFile
+            };
+
+            var schedulerOptions = new SchedulerOptions
+            {
                Seed = Random.Shared.Next(),
-               SchedulerType = SchedulerType.LMSScheduler
+               GuidanceScale = 7.5f,
+               InferenceSteps = 30,
+               Height = 512,
+               Width = 512,
+               Strength = 0.6f // Img2Img
             };
 
             System.Console.WriteLine("Generating Image...");
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            var result = await _stableDiffusionService.TextToImageFile(options, outputFilename);
+            var outputFilename = Path.Combine(_outputDirectory, $"{schedulerOptions.Seed}_{promptOptions.SchedulerType}.png");
+            var result = await _stableDiffusionService.TextToImageFile(promptOptions, schedulerOptions, outputFilename);
             if (result is not null)
             {
-                System.Console.WriteLine($"Image Created, FilePath: {outputFilename}");
+               System.Console.WriteLine($"Image Created, FilePath: {outputFilename}");
             }
       }
    }
