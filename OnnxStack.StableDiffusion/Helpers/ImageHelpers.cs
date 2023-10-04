@@ -117,16 +117,19 @@ namespace OnnxStack.StableDiffusion.Helpers
             {
                 Resize(image, width, height);
                 var imageArray = new DenseTensor<float>(new[] { 1, 3, width, height });
-                for (int x = 0; x < width; x++)
+                image.ProcessPixelRows(img =>
                 {
-                    for (int y = 0; y < height; y++)
+                    for (int x = 0; x < width; x++)
                     {
-                        var pixelSpan = image.GetPixelRowSpan(y);
-                        imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f) * 2.0f - 1.0f;
-                        imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f) * 2.0f - 1.0f;
-                        imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f) * 2.0f - 1.0f;
+                        for (int y = 0; y < height; y++)
+                        {
+                            var pixelSpan = img.GetRowSpan(y);
+                            imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f) * 2.0f - 1.0f;
+                            imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f) * 2.0f - 1.0f;
+                            imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f) * 2.0f - 1.0f;
+                        }
                     }
-                }
+                });
                 return imageArray;
             }
         }

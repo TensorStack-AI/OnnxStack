@@ -51,7 +51,7 @@
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="NumSharp" Version="0.30.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.2" />
   </ItemGroup>
 
   <ItemGroup>
