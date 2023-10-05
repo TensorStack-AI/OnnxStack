@@ -1,7 +1,18 @@
-# OnnxStack
-ONNX Runtime Projects for .NET Applications
+<p align="center" width="100%">
+    <img width="80%" src="Assets/OnnxStack - 640x320.png">
+</p>
 
-This repository harnesses the capabilities of both `ONNX Runtime` and `Microsoft ML`, offering a comprehensive solution that empowers developers to build, deploy, and execute machine learning models seamlessly in .NET environments, unlocking a world of possibilities for intelligent applications.
+
+![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/saddam213/OnnxStack)
+[![Core Badge](https://img.shields.io/nuget/v/OnnxStack.Core?color=4bc51e&label=OnnxStack.Core)](https://www.nuget.org/packages/OnnxStack.Core)
+![Nuget](https://img.shields.io/nuget/dt/OnnxStack.Core)
+[![StableDiffusion Badge](https://img.shields.io/nuget/v/OnnxStack.StableDiffusion?color=4bc51e&label=OnnxStack.StableDiffusion)](https://www.nuget.org/packages/OnnxStack.StableDiffusion)
+![Nuget](https://img.shields.io/nuget/dt/OnnxStack.StableDiffusion)
+
+
+
+### Welcome to OnnxStack!
+OnnxStack is a library that provides higher-level services and integrations for .NET applications, enhancing the functionality and versatility of the `ONNX Runtime` and `Microsoft ML` projects, offering a comprehensive solution that empowers developers to build, deploy, and execute machine learning models seamlessly in .NET environments, unlocking a world of possibilities for intelligent applications.
 
 
 # Projects
