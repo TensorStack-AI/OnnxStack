@@ -12,11 +12,11 @@
         font-size: smaller !important
     }
 
-    .result-info{
+    .result-info {
         font-style: italic;
         padding-right: 3px;
         opacity: 0.6;
-        font-size:x-small;
+        font-size: x-small;
     }
 </style>
 @Html.AntiForgeryToken()
@@ -25,88 +25,229 @@
     <div class="d-flex flex-fill">
 
         @*  Controls *@
-        <div class="d-flex flex-column w-100 me-2 p-2 border border-1" style="max-width:480px">
+        <div class="d-flex flex-column w-100 me-2 p-2 border border-1" style="max-width:500px;overflow:hidden">
 
             <h4 class="pb-0 mb-0">Text To Image</h4>
             <small>Text to image transforms textual descriptions into visual content</small>
             <div class="border-bottom mt-1 mb-1"></div>
-            <div class="d-flex flex-column justify-content-between h-100 mt-1">
+            <div class="d-flex flex-column justify-content-between h-100 mt-1" style="overflow:hidden">
 
-                <div class="d-flex flex-column">
-                    <form id="TextToImageParameters" autocomplete="off">
-                        <div class="d-flex flex-column gap-2">
-                            <div>
+                <form id="TextToImageParameters" class="h-100" autocomplete="off">
+
+                    <div class="d-flex flex-column h-100">
+
+                        @* Prompts *@
+                        <div class="d-flex flex-column flex-grow-0 gap-2 p-1 w-100">
+                            <div class="d-flex flex-column">
                                 <small>Prompt</small>
-                                @Html.TextAreaFor(m => m.Options.Prompt, new { @class = "form-control p-1", @rows = 4 })
+                                @Html.TextAreaFor(m => m.Options.Prompt, new { @class = "form-control form-control-sm p-1", @rows = 3 })
                                 @Html.ValidationMessageFor(m => m.Options.Prompt, "", new { @class = "text-danger" })
                             </div>
-                            <div>
+                            <div class="d-flex flex-column">
                                 <small>Negative Prompt</small>
-                                @Html.TextAreaFor(m => m.Options.NegativePrompt, new { @class = "form-control", @rows = 4 })
+                                @Html.TextAreaFor(m => m.Options.NegativePrompt, new { @class = "form-control form-control-sm", @rows = 3 })
                                 @Html.ValidationMessageFor(m => m.Options.NegativePrompt, "", new { @class = "text-danger" })
                             </div>
+                        </div>
 
-                            <div class="d-flex flex-row gap-2">
-                                <div class="w-100">
-                                    <small>Scheduler</small>
-                                    @Html.DropDownListFor( m => m.Options.SchedulerType,Html.GetEnumSelectList<SchedulerType>(), new { @class = "form-control form-select"})
-                                </div>
-                                <div class="w-75">
-                                    <small>Width</small>
-                                    @Html.DropDownListFor( m => m.Options.Width, new SelectList(ValidSizes), new { @class = "form-control form-select"})
-                                </div>
-                                <div class="w-75">
-                                    <small>Height</small>
-                                    @Html.DropDownListFor( m => m.Options.Height, new SelectList(ValidSizes), new { @class = "form-control form-select"})
-                                </div>
-                                <div class="w-75">
-                                    <small>Seed <i>(0 = Random)</i></small>
-                                    @Html.TextBoxFor( m => m.Options.Seed, new { @class = "form-control"})
-                                </div>
-                            </div>
+                        <div class="d-flex flex-column flex-grow-1 pt-3">
+                            <ul class="nav nav-tabs" id="tab-settings" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="options-tab" data-bs-toggle="tab" data-bs-target="#options" type="button" role="tab" aria-controls="options" aria-selected="true">
+                                        Options
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">
+                                        Advanced
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="tab-settings-content">
 
-                            <div class="d-flex flex-row gap-2">
-                                <div class="d-flex flex-column mb-2 w-100">
-                                    <small>Steps</small>
-                                    <div class="d-flex flex-row slider-container">
-                                        @Html.TextBoxFor(m => m.Options.InferenceSteps, new { @type="range", @class = "slider", min="4", max="100", step="1" })
-                                        <label>0</label>
+                                @* Basic Options *@
+                                <div class="tab-pane fade show active" id="options" role="tabpanel" aria-labelledby="options-tab">
+
+                                    <div class="d-flex flex-column w-100 gap-2 p-1">
+                                        <div class="d-flex flex-row gap-2">
+                                            <div class="w-100">
+                                                <small>Scheduler</small>
+                                                @Html.DropDownListFor( m => m.Options.SchedulerType,Html.GetEnumSelectList<SchedulerType>(), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-75">
+                                                <small>Width</small>
+                                                @Html.DropDownListFor( m => m.Options.Width, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-75">
+                                                <small>Height</small>
+                                                @Html.DropDownListFor( m => m.Options.Height, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-75">
+                                                <small>Seed <i>(0 = Random)</i></small>
+                                                @Html.TextBoxFor( m => m.Options.Seed, new { @class = "form-control form-control-sm"})
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex flex-row gap-2">
+                                            <div class="d-flex flex-column mb-2 w-100">
+                                                <small>Steps</small>
+                                                <div class="d-flex flex-row slider-container">
+                                                    @Html.TextBoxFor(m => m.Options.InferenceSteps, new { @type="range", @class = "slider", min="4", max="100", step="1" })
+                                                    <label>0</label>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex flex-column mb-2 w-100">
+                                                <small>Guidance</small>
+                                                <div class="d-flex flex-row slider-container">
+                                                    @Html.TextBoxFor(m => m.Options.GuidanceScale, new { @type="range", @class = "slider", min="0", max="40", step="0.1" })
+                                                    <label>0</label>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="d-flex flex-column mb-2 w-100">
-                                    <small>Guidance</small>
-                                    <div class="d-flex flex-row slider-container">
-                                        @Html.TextBoxFor(m => m.Options.GuidanceScale, new { @type="range", @class = "slider", min="0", max="40", step="0.1" })
-                                        <label>0</label>
+
+                                @* Advanced Options *@
+                                <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+                                    <div class="d-flex flex-column w-100 gap-2 p-1">
+
+                                        <div class="d-flex flex-row align-items-center gap-2">
+                                            <div class="w-100">
+                                                <small>TrainTimesteps</small>
+                                                @Html.TextBoxFor( m => m.Options.TrainTimesteps, new { @class = "form-control form-control-sm"})
+                                            </div>
+
+                                            <div class="w-100">
+                                                <small>Timestep Spacing</small>
+                                                @Html.DropDownListFor( m => m.Options.TimestepSpacing, Html.GetEnumSelectList<TimestepSpacingType>(), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <small>StepsOffset</small>
+                                                @Html.TextBoxFor( m => m.Options.StepsOffset, new { @class = "form-control form-control-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <div class="d-flex flex-row align-items-center mt-3">
+                                                    <input type="checkbox" asp-for="@Model.Options.UseKarrasSigmas" />
+                                                    <small class="ms-1">UseKarrasSigmas</small>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="d-flex flex-row align-items-center gap-2">
+                                            <div class="w-100">
+                                                <small>BetaScheduleType</small>
+                                                @Html.DropDownListFor( m => m.Options.BetaSchedule, Html.GetEnumSelectList<BetaScheduleType>(), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <small>BetaStart</small>
+                                                @Html.TextBoxFor( m => m.Options.BetaStart, new { @class = "form-control form-control-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <small>BetaEnd</small>
+                                                @Html.TextBoxFor( m => m.Options.BetaEnd, new { @class = "form-control form-control-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <small>MaximumBeta</small>
+                                                @Html.TextBoxFor( m => m.Options.MaximumBeta, new { @class = "form-control form-control-sm"})
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex flex-row align-items-center gap-2">
+
+                                            <div class="w-100">
+                                                <small>VarianceType</small>
+                                                @Html.DropDownListFor( m => m.Options.VarianceType, Html.GetEnumSelectList<VarianceType>(), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <small>PredictionType</small>
+                                                @Html.DropDownListFor( m => m.Options.PredictionType, Html.GetEnumSelectList<PredictionType>(), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <small>AlphaTransformType</small>
+                                                @Html.DropDownListFor( m => m.Options.AlphaTransformType, Html.GetEnumSelectList<AlphaTransformType>(), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-100">
+                                                <div class="d-flex flex-row align-items-center mt-3">
+                                                    <input type="checkbox" asp-for="@Model.Options.Thresholding" />
+                                                    <small class="ms-1">Thresholding</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex flex-row align-items-center gap-2">
+                                            <div class="w-100">
+                                                <small>ClipSampleRange</small>
+                                                <input type="text" asp-for="@Model.Options.ClipSampleRange" class="form-control form-control-sm" />
+                                            </div>
+                                            <div class="w-100">
+                                                <div class="d-flex flex-row align-items-center mt-3">
+                                                    <input type="checkbox" asp-for="@Model.Options.ClipSample" />
+                                                    <small class="ms-1">ClipSample</small>
+                                                </div>
+                                            </div>
+                                            <div class="w-100">
+                                            </div>
+                                            <div class="w-100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="d-flex flex-column flex-grow-0 w-100">
+                            <div class="d-flex flex-row gap-2 justify-content-between" autocomplete="off">
+                                <div class="d-flex flex-column justify-content-end w-50">
+                                    <div class="d-flex flex-row gap-2">
+                                        <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
+                                        <button id="btn-txt2img-execute" type="button" class="btn btn-success w-100">Generate</button>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-row justify-content-end w-50">
+                                    <div>
+                                        <small>Mode</small>
+                                        <div class="d-flex flex-row gap-1">
+                                            <select id="result-layout" class="form-control form-select form-select-sm">
+                                                <option value="Single">Single</option>
+                                                <option value="Multiple">Multiple</option>
+                                            </select>
+                                            <button id="btn-clear" class="btn btn-sm btn-danger">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </form>
-                </div>
 
-                <div class="d-flex flex-row gap-2 justify-content-between pt-5" autocomplete="off">
-                    <div class="d-flex flex-column justify-content-end w-50">
-                        <div class="d-flex flex-row gap-2">
-                            <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
-                            <button id="btn-txt2img-execute" type="button" class="btn btn-success w-100">Generate</button>
-                        </div>
                     </div>
-                    <div class="d-flex flex-row justify-content-end w-50">
-                        <div>
-                            <small>Mode</small>
-                            <div class="d-flex flex-row gap-1">
-                                <select id="result-layout" class="form-control form-select form-select-sm">
-                                    <option value="Single">Single</option>
-                                    <option value="Multiple">Multiple</option>
-                                </select>
-                                <button id="btn-clear" class="btn btn-sm btn-danger">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </form>
+
+
             </div>
         </div>
 
@@ -366,6 +507,10 @@
             }
 
             const serializeFormToJson = (form) => {
+                // Disable hidden checkbox fields
+                form.find('[type=hidden]').each(function (i, field) {
+                    $(field).attr('disabled', "disabled");
+                });
                 const formDataJson = {};
                 const formData = new FormData(document.getElementById(form.attr("id")));
                 formData.forEach((value, key) => {

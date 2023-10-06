@@ -95,16 +95,28 @@ namespace OnnxStack.Web.Hubs
 
             var schedulerOptions = new SchedulerOptions
             {
+                Seed = options.Seed,
                 Width = options.Width,
                 Height = options.Height,
-                Seed = options.Seed,
                 InferenceSteps = options.InferenceSteps,
                 GuidanceScale = options.GuidanceScale,
-                Strength = options.Strength,
-                InitialNoiseLevel = options.InitialNoiseLevel
+                AlphaTransformType = options.AlphaTransformType,
+                BetaEnd = options.BetaEnd,
+                BetaSchedule = options.BetaSchedule,
+                BetaStart = options.BetaStart,
+                ClipSample = options.ClipSample,
+                ClipSampleRange = options.ClipSampleRange,
+                MaximumBeta = options.MaximumBeta,
+                PredictionType = options.PredictionType,
+                StepsOffset = options.StepsOffset,
+                TimestepSpacing = options.TimestepSpacing,
+                Thresholding = options.Thresholding,
+                TrainTimesteps = options.TrainTimesteps,
+                UseKarrasSigmas = options.UseKarrasSigmas,
+                VarianceType = options.VarianceType
             };
 
-           
+
             var fileInfo = CreateFileInfo(promptOptions, schedulerOptions);
             if (!await SaveOptionsFile(fileInfo, options))
                 return null;

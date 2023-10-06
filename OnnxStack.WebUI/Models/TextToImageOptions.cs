@@ -28,10 +28,20 @@ namespace OnnxStack.WebUI.Models
         [Range(0f, 40f)]
         public float GuidanceScale { get; set; } = 7.5f;
 
-        [Range(0f, 1f)]
-        public float Strength { get; set; } = 0.6f;
 
-        [Range(-1f, 1f)]
-        public float InitialNoiseLevel { get; set; } = 0f;
+        public TimestepSpacingType TimestepSpacing { get; set; } = TimestepSpacingType.Linspace;
+        public VarianceType VarianceType { get; set; } = VarianceType.FixedSmall;
+        public PredictionType PredictionType { get; set; } = PredictionType.Epsilon;
+        public AlphaTransformType AlphaTransformType { get; set; } = AlphaTransformType.Cosine;
+        public BetaScheduleType BetaSchedule { get; set; } = BetaScheduleType.ScaledLinear;
+        public float BetaStart { get; set; } = 0.00085f;
+        public float BetaEnd { get; set; } = 0.012f;
+        public float MaximumBeta { get; set; } = 0.999f;
+        public int TrainTimesteps { get; set; } = 1000;
+        public int StepsOffset { get; set; } = 0;
+        public bool UseKarrasSigmas { get; set; } = false;
+        public bool Thresholding { get; set; } = false;
+        public bool ClipSample { get; set; } = false;
+        public float ClipSampleRange { get; set; } = 1f;
     }
 }
