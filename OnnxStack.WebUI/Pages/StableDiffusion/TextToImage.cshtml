@@ -78,9 +78,27 @@
                     </form>
                 </div>
 
-                <div class="d-flex flex-row gap-2 justify-content-center pt-5" autocomplete="off">
-                    <button type="button" class="btn-cancel btn btn-warning w-25" disabled>Cancel</button>
-                    <button id="btn-txt2img-execute" type="button" class="btn btn-success w-25">Generate</button>
+                <div class="d-flex flex-row gap-2 justify-content-between pt-5" autocomplete="off">
+                    <div class="d-flex flex-column justify-content-end w-50">
+                        <div class="d-flex flex-row gap-2">
+                            <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
+                            <button id="btn-txt2img-execute" type="button" class="btn btn-success w-100">Generate</button>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-row justify-content-end w-50">
+                        <div>
+                            <small>Mode</small>
+                            <div class="d-flex flex-row gap-1">
+                                <select id="result-layout" class="form-control form-select form-select-sm">
+                                    <option value="Single">Single</option>
+                                    <option value="Multiple">Multiple</option>
+                                </select>
+                                <button id="btn-clear" class="btn btn-sm btn-danger">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -89,18 +107,20 @@
         <div class="d-flex w-100 p-2 border border-1">
             <div id="output-container" class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center">
             </div>
+            <div id="output-container-grid" class="d-flex flex-fill flex-wrap justify-content-start align-content-start align-items-start gap-3" style="overflow-y:auto">
+            </div>
         </div>
     </div>
 </div>
 
 <script id="progressResultTemplate" type="text/html">
-    <div class="d-flex flex-column border border-1 p-1" style="min-width:256px">
+    <div class="output-progress d-flex flex-column border border-1 p-1" style="min-width:256px;">
         <div style="overflow:hidden;">
-            <img id="img-result" width="512" src="~/images/placeholder.jpg" />
+            <img width="{{width}}" height="{{height}}" src="~/images/placeholder.jpg" />
         </div>
          <div class="d-flex flex-column pt-2">
             <div class="progress">
-                <div id="progress-result" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                <div class="progress-result progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
             </div>
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
@@ -111,9 +131,9 @@
 </script>
 
 <script id="outputResultTemplate" type="text/html">
-    <div class="d-flex flex-column border border-1 p-1" style="min-width:256px">
-        <div style="overflow:hidden;">
-            <img id="img-result" style="max-width:100%;max-height:100%;width:auto;height:auto" src="{{outputImageUrl}}" />
+    <div class="d-flex flex-column border border-1 p-1" style="min-width:256px;">
+        <div style="overflow:hidden;text-align:center">
+            <img id="img-result" width="{{width}}" height="{{height}}" src="{{outputImageUrl}}" />
         </div>
          <div class="d-flex flex-column pt-2">
             <div class="progress">
@@ -121,7 +141,16 @@
             </div>
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
-            <a class="btn btn-sm btn-success w-100" href="{{outputImageUrl}}" download="{{OutputImage}}">Download</a>
+            <div class="btn-group dropend w-100">
+                <a class="btn btn-sm btn-success w-100" href="{{outputImageUrl}}" download="{{OutputImage}}">Download</a>
+                <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split w-25" data-bs-toggle="dropdown" aria-expanded="false">
+
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{outputImageUrl}}" download="{{OutputImage}}">Download PNG</a></li>
+                    <li><a class="dropdown-item" href="{{outputOptionsUrl}}" download="{{OutputOptions}}">Download JSON</a></li>
+                </ul>
+            </div>
             <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
         </div>
     </div>
@@ -135,13 +164,13 @@
 
         const stableDiffusionTextToImage = () => {
 
+            let diffusionProcess;
             const optionsForm = $("#TextToImageParameters")
             const outputContainer = $("#output-container");
+            const outputContainerGrid = $("#output-container-grid");
             const progressResultTemplate = $("#progressResultTemplate").html();
             const outputResultTemplate = $("#outputResultTemplate").html();
             const connection = new signalR.HubConnectionBuilder().withUrl("/StableDiffusionHub").build();
-
-            let diffusionProcess;
 
             const onResponse = (response) => {
                 if (!response)
@@ -167,18 +196,17 @@
 
             const onCanceled = (response) => {
                 console.log(response);
-                outputContainer.html('');
+                updatePlaceholderImage();
                 processEnd();
             }
 
             const executeTextToImage = async () => {
-
                 const diffusionParams = serializeFormToJson(optionsForm);
                 if (!validateForm())
                     return;
 
                 processBegin();
-                outputContainer.html(Mustache.render(progressResultTemplate));
+                updatePlaceholderImage();
                 diffusionProcess = await connection
                     .stream("ExecuteTextToImage", diffusionParams)
                     .subscribe({
@@ -193,13 +221,47 @@
             }
 
             const updateResultImage = (response) => {
-                outputContainer.html(Mustache.render(outputResultTemplate, response));
+                const width = getWidth();
+                const height = getHeight();
+
+                const size = getSafeSize(width, height, 512);
+                outputContainer.html(Mustache.render(outputResultTemplate, {
+                    width: size.width,
+                    height: size.height,
+                    ...response
+                }));
+
+                const gridSize = getSafeSize(width, height, 256);
+                outputContainerGrid.find(".output-progress").remove();
+                outputContainerGrid.prepend(Mustache.render(outputResultTemplate, {
+                    width: gridSize.width,
+                    height: gridSize.height,
+                    ...response
+                }));
+            }
+
+            const updatePlaceholderImage = () => {
+                const width = getWidth();
+                const height = getHeight();
+
+                const size = getSafeSize(width, height, 512);
+                outputContainer.html(Mustache.render(progressResultTemplate, {
+                    width: size.width,
+                    height: size.height,
+                }));
+
+                const gridSize = getSafeSize(width, height, 256);
+                outputContainerGrid.find(".output-progress").remove();
+                outputContainerGrid.prepend(Mustache.render(progressResultTemplate, {
+                    width: gridSize.width,
+                    height: gridSize.height,
+                }));
             }
 
             const updateProgress = (response) => {
                 const increment = Math.max(100 / response.total, 1);
                 const progressPercent = Math.round(Math.min(increment * response.progress, 100), 0);
-                const progressBar = $("#progress-result");
+                const progressBar = $(".progress-result");
                 progressBar.css("width", progressPercent + "%");
                 progressBar.text(progressPercent + "%");
             }
@@ -217,6 +279,67 @@
             const validateForm = () => {
                 optionsForm.validate();
                 return optionsForm.valid();
+            }
+
+            const clearHistory = () => {
+                outputContainer.empty();
+                outputContainerGrid.empty();
+                updatePlaceholderImage();
+            }
+
+            const getLayout = () => {
+                return $("option:selected", "#result-layout").val();
+            }
+
+            const getWidth = () => {
+                return +$("option:selected", "#Options_Width").val();
+            }
+
+            const getHeight = () => {
+                return +$("option:selected", "#Options_Height").val();
+            }
+
+            const updateLayout = () => {
+                const layout = getLayout();
+                if (layout == "Single") {
+                    outputContainer.removeClass("d-none").addClass("d-flex");
+                    outputContainerGrid.removeClass("d-flex").addClass("d-none");
+                    updatePlaceholderImage();
+                }
+                else if (layout == "Multiple") {
+                    outputContainer.removeClass("d-flex").addClass("d-none");
+                    outputContainerGrid.removeClass("d-none").addClass("d-flex");
+                }
+            }
+
+            const getSafeSize = (width, height, max) => {
+                let largest = Math.max(width, height);
+                if (largest > max) {
+                    while (largest > max) {
+                        largest -= 16;
+                    }
+
+                    const delta = Math.max(width, height) / largest;
+                    return {
+                        width: width / delta,
+                        height: height / delta
+                    };
+                }
+                else if (largest < max) {
+                    while (largest < max) {
+                        largest += 16;
+                    }
+
+                    const delta = largest - Math.max(width, height);
+                    return {
+                        width: width + delta,
+                        height: height + delta
+                    };
+                }
+                return {
+                    width: width,
+                    height: height
+                };
             }
 
             const serializeFormToJson = (form) => {
@@ -244,7 +367,9 @@
 
 
             $(".btn-cancel").on("click", cancelDiffusion);
+            $("#btn-clear").on("click", clearHistory);
             $("#btn-txt2img-execute").on("click", executeTextToImage);
+            $("#result-layout").on("change", updateLayout).trigger("change");
             $(".slider").on("input", function (e) {
                 const slider = $(this);
                 slider.next().text(slider.val());
