@@ -1,0 +1,56 @@
+﻿@page
+@using OnnxStack.StableDiffusion.Enums;
+@model IndexModel
+@{
+    ViewData["Title"] = "Stable Diffusion";
+}
+
+<style>
+
+    .card-group >.card {
+        border-radius:3px !important;
+        border: solid 1px rgba(0,0,0,.125) !important;
+    }
+
+</style>
+
+<div class="d-flex flex-row h-100 pt-1 pb-1">
+    <div class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center">
+        <div class="card-group gap-4">
+
+            <div class="card" style="width: 18rem;">
+                <img src="~/images/placeholder.jpg" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">Text To Image</h5>
+                    <p class="card-text">Text to image transforms textual descriptions into visual content</p>
+                </div>
+                <div class="card-footer">
+                    <a href="/StableDiffusion/TextToImage" class=" d-block btn btn-primary">Demo</a>
+                </div>
+            </div>
+
+            <div class="card" style="width: 18rem;">
+                <img src="~/images/placeholder.jpg" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">Image To Image</h5>
+                    <p class="card-text">Image to image transforms one image into another, preserving visual quality and structure.</p>
+                </div>
+                <div class="card-footer">
+                    <button href="#" class="d-block btn btn-primary w-100" disabled>Demo</button>
+                </div>
+            </div>
+
+            <div class="card border-1" style="width: 18rem;border-left:1px">
+                <img src="~/images/placeholder.jpg" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">In-Painting</h5>
+                    <p class="card-text">Inpainting is a computer vision technique that reconstructs missing or damaged parts of an image, seamlessly filling in the gaps to restore visual completeness</p>
+                </div>
+                <div class="card-footer">
+                    <button href="#" class="d-block btn btn-primary w-100" disabled>Demo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
