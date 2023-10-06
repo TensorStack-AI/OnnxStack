@@ -12,13 +12,13 @@
         font-size: smaller !important
     }
 </style>
-
+@Html.AntiForgeryToken()
 
 <div class="d-flex flex-row h-100 pt-1 pb-1">
     <div class="d-flex flex-fill">
 
         @*  Controls *@
-        <div class="d-flex flex-column w-100 me-2 p-2 border border-1" style="max-width:600px">
+        <div class="d-flex flex-column w-100 me-2 p-2 border border-1" style="max-width:480px">
 
             <h4 class="pb-0 mb-0">Text To Image</h4>
             <small>Text to image transforms textual descriptions into visual content</small>
@@ -115,7 +115,7 @@
 
 <script id="progressResultTemplate" type="text/html">
     <div class="output-progress d-flex flex-column border border-1 p-1" style="min-width:256px;">
-        <div style="overflow:hidden;">
+        <div style="overflow:hidden;text-align:center">
             <img width="{{width}}" height="{{height}}" src="~/images/placeholder.jpg" />
         </div>
          <div class="d-flex flex-column pt-2">
@@ -376,6 +376,11 @@
             }).trigger("input");
 
 
+            $("#modal-controller").on("click", async function () {
+                const width = getWidth();
+                const height = getHeight();
+                const result = await openModalGet(`/StableDiffusion?handler=UploadImage&Width=${width}&Height=${height}`);
+            });
 
 
             // Map signalr functions

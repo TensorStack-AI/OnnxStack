@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/fontawesome.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css" />
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
 </head>
 <body>
     <header>
@@ -41,11 +43,17 @@
         </div>
     </footer>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    @{
+        await Html.RenderPartialAsync("_SharedTemplates");
+    }
+
+
     <script src="~/lib/jquery.unobtrusive-ajax.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/mustache/mustache.js"></script>
     <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/lib/modal.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

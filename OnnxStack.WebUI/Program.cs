@@ -1,5 +1,6 @@
 using OnnxStack.Web.Hubs;
 using OnnxStack.Core;
+using AspNetCore.Unobtrusive.Ajax;
 
 namespace OnnxStack.WebUI
 {
@@ -11,6 +12,7 @@ namespace OnnxStack.WebUI
 
             // Add services to the container.
             builder.Services.AddRazorPages();
+            builder.Services.AddUnobtrusiveAjax();
             builder.Services.AddSignalR();
 
             builder.Services.AddOnnxStackStableDiffusion();
@@ -23,6 +25,8 @@ namespace OnnxStack.WebUI
                 app.UseExceptionHandler("/Error");
             }
             app.UseStaticFiles();
+
+            app.UseUnobtrusiveAjax();
 
             app.UseRouting();
 

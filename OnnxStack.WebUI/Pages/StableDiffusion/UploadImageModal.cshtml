@@ -1,0 +1,82 @@
+﻿@model OnnxStack.Web.Models.UploadImageModel
+@{
+    Layout = "~/Pages/Shared/_Modal.cshtml";
+}
+
+@using (Html.AjaxBeginFormModal("Index", "UploadImage"))
+{
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" role="document" >
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Example Modal</h5>
+                <a class="simplemodal-close" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </a>
+            </div>
+            <div class="modal-body">
+                @Html.HiddenFor(m => m.Width)
+                @Html.HiddenFor(m => m.Height)
+                @Html.HiddenFor(m => m.ImageBase64)
+                <div id="uploadImageContainer" >
+                </div>
+                <div class="d-flex flex-row gap-1">
+                    <input id="ImageFile" type="file" class="form-control w-100" />
+                    <button id="btn-crop" type="button" class="btn btn-info w-50" disabled>Crop Image</button>
+                </div>
+                @Html.ValidationMessageFor(m => m.ImageBase64, "", new { @class = "text-danger" })
+            </div>
+            <div class="modal-footer btn-group">
+                <button id="submit" type="submit" class="btn btn-success" disabled>Submit</button>
+                <button type="button" class="simplemodal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+        <script>
+            var uploadImageWidth = +$('#Width').val();
+            var uploadImageHeight = +$('#Height').val();
+            var uploadImageInput = $('#ImageFile');
+            var uploadImageContainer = $('#uploadImageContainer');
+            var scaleFactor = uploadImageHeight >= 512 || uploadImageWidth >= 512 ? 0.8 : 1;
+
+            var croppie = uploadImageContainer.croppie({
+                url: '/images/placeholder.jpg',
+                viewport: {
+                    width: uploadImageWidth * scaleFactor, // Set your desired width
+                    height: uploadImageHeight * scaleFactor, // Set your desired height
+                    type: 'square' // You can use 'square', 'circle', or 'rectangle'
+                },
+                boundary: {
+                    width: (uploadImageWidth + 50) * scaleFactor, // Set the width of the boundary container
+                    height: (uploadImageHeight + 50) * scaleFactor // Set the height of the boundary container
+                }
+            });
+
+
+            uploadImageInput.on('change', function (e) {
+                $('#btn-crop, #submit').attr('disabled', 'disabled');
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        // Set the image source for Croppie
+                        croppie.croppie('bind', {
+                            url: e.target.result
+                        });
+                    };
+                    reader.readAsDataURL(files[0]);
+                    $('#btn-crop').removeAttr('disabled');
+                }
+            });
+
+            $('#btn-crop').on('click', function () {
+                croppie.croppie('result', 'base64').then(function (base64) {
+                    $("#ImageBase64").val(base64);
+                    $('#submit').removeAttr('disabled');
+                });
+            });
+
+        </script>
+    </div>
+}
+
+

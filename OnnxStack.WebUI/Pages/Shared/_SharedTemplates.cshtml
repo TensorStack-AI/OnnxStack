@@ -1,0 +1,43 @@
+﻿<script id="modalConfirmTemplate" type="text/html">
+	<div class="modalform modal-dialog modal" tabindex="-1" role="dialog">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">{{Header}}</h5>
+					<a class="simplemodal-close" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</a>
+				</div>
+				<div class="modal-body">
+					<p>{{Body}}</p>
+				</div>
+				<div class="modal-footer btn-group">
+					<a class="btn btn-outline-success simplemodal-yes">{{ButtonYes}}</a>
+					<a class="btn btn-outline-secondary simplemodal-no">{{ButtonNo}}</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script id="modalNotifyTemplate" type="text/html">
+	<div class="modalform modal-dialog modal" data-easein="bounce" tabindex="-1" role="dialog">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">{{Header}}</h5>
+					<a class="simplemodal-close">
+						<span aria-hidden="true">&times;</span>
+					</a>
+				</div>
+				<div class="modal-body">
+					<p>{{Body}}</p>
+				</div>
+				<div class="modal-footer btn-group">
+					<a class="btn btn-outline-primary simplemodal-close">{{Button}}</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</script>
+

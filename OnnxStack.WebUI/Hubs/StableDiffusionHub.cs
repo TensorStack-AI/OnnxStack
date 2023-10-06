@@ -175,7 +175,7 @@ namespace OnnxStack.Web.Hubs
         private FileInfoResult CreateFileInfo(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
             var rand = Path.GetFileNameWithoutExtension(Path.GetRandomFileName());
-            var output = $"{schedulerOptions.Seed}_{promptOptions.SchedulerType}_{rand}";
+            var output = $"{schedulerOptions.Seed}-{rand}";
             var outputImage = $"{output}.png";
             var outputImageUrl = CreateOutputUrl("TextToImage", outputImage);
             var outputImageFile = UrlToPhysicalPath(outputImageUrl);

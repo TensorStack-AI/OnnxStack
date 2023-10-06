@@ -92,3 +92,12 @@ button.accept-policy {
     font-size: 1rem;
     line-height: inherit;
 }
+
+
+.modal-dialog {
+    display: block;
+}
+
+.simplemodal-overlay{
+    background-color: #000;
+}
