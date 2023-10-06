@@ -343,3 +343,4 @@ test/TensorFlowNET.Examples/mnist
 # docs
 site/
 
+/OnnxStack.WebUI/wwwroot/images/Results/*

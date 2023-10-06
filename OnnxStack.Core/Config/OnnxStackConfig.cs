@@ -20,7 +20,6 @@ namespace OnnxStack.Core.Config
         /// </summary>
         public ExecutionProvider ExecutionProviderTarget { get; set; } = ExecutionProvider.DirectML;
 
-        [JsonIgnore]
         public string OnnxTokenizerPath { get; set; }
         public string OnnxUnetPath { get; set; }
         public string OnnxVaeDecoderPath { get; set; }
@@ -34,7 +33,6 @@ namespace OnnxStack.Core.Config
 
         public void Initialize()
         {
-            OnnxTokenizerPath = "cliptokenizer.onnx";
         }
     }
 }
