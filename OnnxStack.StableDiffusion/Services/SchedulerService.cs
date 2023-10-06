@@ -11,6 +11,7 @@ using OnnxStack.StableDiffusion.Schedulers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 
@@ -41,7 +42,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="promptOptions">The options.</param>
         /// <param name="schedulerOptions">The scheduler configuration.</param>
         /// <returns></returns>
-        public async Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        public async Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
@@ -63,6 +64,8 @@ namespace OnnxStack.StableDiffusion.Services
                 var step = 0;
                 foreach (var timestep in timesteps)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latentSample.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
 
@@ -90,6 +93,7 @@ namespace OnnxStack.StableDiffusion.Services
                     }
 
                     Console.WriteLine($"Step: {++step}/{timesteps.Count}");
+                    progress?.Invoke(step, timesteps.Count);
                 }
 
                 // Decode Latents
