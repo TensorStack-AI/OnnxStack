@@ -4,6 +4,7 @@
     {
         DirectML = 0,
         Cuda = 1,
-        Cpu = 2
+        Cpu = 2,
+        CoreML = 3
     }
 }
