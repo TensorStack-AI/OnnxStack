@@ -144,7 +144,11 @@
             let diffusionProcess;
 
             const onResponse = (response) => {
-                updateResultImage(response)
+                if (!response)
+                    return;
+
+                console.log(response);
+                updateResultImage(response);
                 processEnd();
             }
 
@@ -157,25 +161,23 @@
             }
 
             const onProgress = (response) => {
-                console.log(response)
+                console.log(response);
                 updateProgress(response);
             }
 
             const onCanceled = (response) => {
-                console.log(response)
+                console.log(response);
                 outputContainer.html('');
                 processEnd();
             }
 
             const executeTextToImage = async () => {
 
-                // Validate form
                 const diffusionParams = serializeFormToJson(optionsForm);
                 if (!validateForm())
                     return;
 
                 processBegin();
-               
                 outputContainer.html(Mustache.render(progressResultTemplate));
                 diffusionProcess = await connection
                     .stream("ExecuteTextToImage", diffusionParams)
@@ -197,8 +199,9 @@
             const updateProgress = (response) => {
                 const increment = Math.max(100 / response.total, 1);
                 const progressPercent = Math.round(Math.min(increment * response.progress, 100), 0);
-                $("#progress-result").css("width", progressPercent + "%");
-                $("#progress-result").text(progressPercent + "%");
+                const progressBar = $("#progress-result");
+                progressBar.css("width", progressPercent + "%");
+                progressBar.text(progressPercent + "%");
             }
 
             const processBegin = () => {
