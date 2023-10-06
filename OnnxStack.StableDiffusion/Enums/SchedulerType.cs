@@ -1,9 +1,16 @@
-﻿namespace OnnxStack.StableDiffusion.Enums
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace OnnxStack.StableDiffusion.Enums
 {
     public enum SchedulerType
     {
-        LMSScheduler = 0,
-        EulerAncestralScheduler = 1,
-        DDPMScheduler = 3
+        [Display(Name = "LMS")]
+        LMS = 0,
+
+        [Display(Name = "Euler Ancestral")]
+        EulerAncestral = 1,
+
+        [Display(Name = "DDPM")]
+        DDPM = 3
     }
 }

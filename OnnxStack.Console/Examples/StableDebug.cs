@@ -35,7 +35,7 @@ namespace OnnxStack.Console.Runner
                 {
                     Prompt = prompt,
                     NegativePrompt = negativePrompt,
-                    SchedulerType = SchedulerType.LMSScheduler
+                    SchedulerType = SchedulerType.LMS
                 };
 
                 var schedulerOptions = new SchedulerOptions

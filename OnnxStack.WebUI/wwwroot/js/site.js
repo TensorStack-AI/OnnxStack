@@ -31,6 +31,39 @@ const getJson = (url, vars) => {
 	});
 }
 
+
+const scaleFactor = (value) => {
+	if (value == 512) {
+		return 0.75;
+	}
+	else if (value == 576) {
+		return 0.7;
+	}
+	else if (value == 640) {
+		return 0.65;
+	}
+	else if (value == 704) {
+		return 0.6;
+	}
+	else if (value == 768) {
+		return 0.55;
+	}
+	else if (value == 832) {
+		return 0.5;
+	}
+	else if (value == 896) {
+		return 0.45;
+	}
+	else if (value == 960) {
+		return 0.4;
+	}
+	else if (value == 1024) {
+		return 0.35;
+	}
+	return 1;
+}
+
+
 const Enums = {
 	ProcessResult: Object.freeze({
 		Progress: 0,

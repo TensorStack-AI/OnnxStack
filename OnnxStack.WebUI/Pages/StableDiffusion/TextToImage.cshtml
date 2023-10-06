@@ -11,6 +11,13 @@
         resize: none;
         font-size: smaller !important
     }
+
+    .result-info{
+        font-style: italic;
+        padding-right: 3px;
+        opacity: 0.6;
+        font-size:x-small;
+    }
 </style>
 @Html.AntiForgeryToken()
 
@@ -135,19 +142,35 @@
         <div style="overflow:hidden;text-align:center">
             <img id="img-result" width="{{width}}" height="{{height}}" src="{{outputImageUrl}}" />
         </div>
-         <div class="d-flex flex-column pt-2">
-            <div class="progress">
-                <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Completed</div>
-            </div>
+         <div class="d-flex flex-row flex-wrap-reverse justify-content-around pt-2" style="max-width:{{width}}px">
+          <div class="d-flex flex-row align-items-center">
+              <small class="result-info">Scheduler:</small>
+              <span>{{outputOptions.schedulerType}}</span>
+          </div>
+           <div class="d-flex flex-row align-items-center">
+              <small class="result-info">Steps:</small>
+              <span>{{outputOptions.inferenceSteps}}</span>
+          </div>
+           <div class="d-flex flex-row align-items-center">
+              <small class="result-info">Guidance:</small>
+              <span>{{outputOptions.guidanceScale}}</span>
+          </div>
+           <div class="d-flex flex-row align-items-center">
+              <small class="result-info">Seed:</small>
+              <span>{{outputOptions.seed}}</span>
+          </div>
+           <div class="d-flex flex-row align-items-center">
+              <small class="result-info">Elapsed:</small>
+              <span>{{elapsed}}s</span>
+          </div>
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
             <div class="btn-group dropend w-100">
-                <a class="btn btn-sm btn-success w-100" href="{{outputImageUrl}}" download="{{OutputImage}}">Download</a>
+                <a class="btn btn-sm btn-success w-100" href="{{outputImageUrl}}" download="{{outputImage}}">Download</a>
                 <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split w-25" data-bs-toggle="dropdown" aria-expanded="false">
-
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{outputImageUrl}}" download="{{OutputImage}}">Download PNG</a></li>
+                    <li><a class="dropdown-item" href="{{outputImageUrl}}" download="{{outputImage}}">Download PNG</a></li>
                     <li><a class="dropdown-item" href="{{outputOptionsUrl}}" download="{{OutputOptions}}">Download JSON</a></li>
                 </ul>
             </div>

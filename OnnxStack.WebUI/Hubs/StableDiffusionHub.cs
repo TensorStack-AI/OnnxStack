@@ -2,6 +2,7 @@
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.WebUI.Models;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -83,6 +84,7 @@ namespace OnnxStack.Web.Hubs
         /// <returns></returns>
         private async Task<TextToImageResult> GenerateTextToImageResult(TextToImageOptions options, CancellationToken cancellationToken)
         {
+            var timestamp = Stopwatch.GetTimestamp();
             options.Seed = GenerateSeed(options.Seed);
             var promptOptions = new PromptOptions
             {
@@ -102,6 +104,7 @@ namespace OnnxStack.Web.Hubs
                 InitialNoiseLevel = options.InitialNoiseLevel
             };
 
+           
             var fileInfo = CreateFileInfo(promptOptions, schedulerOptions);
             if (!await SaveOptionsFile(fileInfo, options))
                 return null;
@@ -109,7 +112,8 @@ namespace OnnxStack.Web.Hubs
             if (!await RunStableDiffusion(promptOptions, schedulerOptions, fileInfo, cancellationToken))
                 return null;
 
-            return new TextToImageResult(fileInfo.OutputImage, fileInfo.OutputImageUrl, options, fileInfo.OutputOptionsUrl);
+            var elapsed = (int)Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
+            return new TextToImageResult(fileInfo.OutputImage, fileInfo.OutputImageUrl, options, fileInfo.OutputOptionsUrl, elapsed);
         }
 
 
@@ -241,6 +245,6 @@ namespace OnnxStack.Web.Hubs
     }
 
     public record ProgressResult(int Progress, int Total);
-    public record TextToImageResult(string OutputImage, string OutputImageUrl, TextToImageOptions OutputOptions, string OutputOptionsUrl);
+    public record TextToImageResult(string OutputImage, string OutputImageUrl, TextToImageOptions OutputOptions, string OutputOptionsUrl, int Elapsed);
     public record FileInfoResult(string OutputImage, string OutputImageUrl, string OutputImageFile, string OutputOptions, string OutputOptionsUrl, string OutputOptionsFile);
 }

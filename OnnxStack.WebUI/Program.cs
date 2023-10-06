@@ -1,6 +1,8 @@
 using OnnxStack.Web.Hubs;
 using OnnxStack.Core;
 using AspNetCore.Unobtrusive.Ajax;
+using MathNet.Numerics;
+using System.Text.Json.Serialization;
 
 namespace OnnxStack.WebUI
 {
@@ -13,7 +15,11 @@ namespace OnnxStack.WebUI
             // Add services to the container.
             builder.Services.AddRazorPages();
             builder.Services.AddUnobtrusiveAjax();
-            builder.Services.AddSignalR();
+            builder.Services.AddSignalR()
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
             builder.Services.AddOnnxStackStableDiffusion();
 

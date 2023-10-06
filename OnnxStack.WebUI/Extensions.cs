@@ -2,8 +2,8 @@
 
 namespace OnnxStack.WebUI
 {
-	public static class Extensions
-	{
+    public static class Extensions
+    {
         public static MvcForm AjaxBeginFormModal(this IHtmlHelper htmlHelper, string handler)
         {
             return htmlHelper.AjaxBeginForm(new AjaxOptions
@@ -16,14 +16,14 @@ namespace OnnxStack.WebUI
         }
 
         public static MvcForm AjaxBeginFormModal(this IHtmlHelper htmlHelper, string page, string handler)
-		{
-			return htmlHelper.AjaxBeginForm(new AjaxOptions
-			{
-				Url = $"{page}?handler={handler}",
-				HttpMethod = "POST",
-				UpdateTargetId = "simplemodal-data",
-				InsertionMode = InsertionMode.Replace
-			});
-		}
-	}
+        {
+            return htmlHelper.AjaxBeginForm(new AjaxOptions
+            {
+                Url = $"{page}?handler={handler}",
+                HttpMethod = "POST",
+                UpdateTargetId = "simplemodal-data",
+                InsertionMode = InsertionMode.Replace
+            });
+        }
+    }
 }

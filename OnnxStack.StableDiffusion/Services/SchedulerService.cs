@@ -242,9 +242,9 @@ namespace OnnxStack.StableDiffusion.Services
         {
             return prompt.SchedulerType switch
             {
-                SchedulerType.LMSScheduler => new LMSScheduler(options),
-                SchedulerType.EulerAncestralScheduler => new EulerAncestralScheduler(options),
-                SchedulerType.DDPMScheduler => new DDPMScheduler(options),
+                SchedulerType.LMS => new LMSScheduler(options),
+                SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
+                SchedulerType.DDPM => new DDPMScheduler(options),
                 _ => default
             };
         }
