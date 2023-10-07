@@ -53,7 +53,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// <summary>
         /// Gets or sets the initial noise level for Image 2 Image
         /// </summary>
-        public float InitialNoiseLevel { get; set; } = 1f;
+        public float InitialNoiseLevel { get; set; } = 0f;
 
         public int TrainTimesteps { get; set; } = 1000;
         public float BetaStart { get; set; } = 0.00085f;

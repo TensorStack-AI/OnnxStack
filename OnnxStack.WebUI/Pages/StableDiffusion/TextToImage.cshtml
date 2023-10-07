@@ -18,6 +18,7 @@
         opacity: 0.6;
         font-size: x-small;
     }
+
 </style>
 @Html.AntiForgeryToken()
 
@@ -26,223 +27,62 @@
 
         @*  Controls *@
         <div class="d-flex flex-column w-100 me-2 p-2 border border-1 border-dark" style="max-width:440px;overflow:hidden">
-
             <h4 class="pb-0 mb-0">Text To Image</h4>
             <small>Text to image transforms textual descriptions into visual content</small>
             <div class="border-bottom border-dark mt-1 mb-1"></div>
             <div class="d-flex flex-column justify-content-between h-100 mt-1" style="overflow:hidden">
-
-                <form id="TextToImageParameters" class="h-100" autocomplete="off">
-
-                    <div class="d-flex flex-column h-100">
-
-                        @* Prompts *@
-                        <div class="d-flex flex-column flex-grow-0 gap-2 p-1 w-100">
-                            <div class="d-flex flex-column">
-                                <small>Prompt</small>
-                                @Html.TextAreaFor(m => m.Prompt.Prompt, new { @class = "form-control form-control-sm p-1", @rows = 3 })
-                                @Html.ValidationMessageFor(m => m.Prompt.Prompt, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="d-flex flex-column">
-                                <small>Negative Prompt</small>
-                                @Html.TextAreaFor(m => m.Prompt.NegativePrompt, new { @class = "form-control form-control-sm", @rows = 2 })
-                                @Html.ValidationMessageFor(m => m.Prompt.NegativePrompt, "", new { @class = "text-danger" })
-                            </div>
+                <div class="d-flex flex-column h-100">
+                    @{
+                        await Html.RenderPartialAsync("_PromptOptionsForm", Model.Prompt);
+                        await Html.RenderPartialAsync("_SchedulerOptionsForm", Model.Options);
+                    }
+                    <div class="d-flex flex-column flex-grow-0 w-100">
+                        <div class="d-flex flex-row gap-2 justify-content-end" autocomplete="off">
+                            <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
+                            <button id="btn-execute" type="button" class="btn btn-success w-100">Generate</button>
                         </div>
-
-                        <div class="d-flex flex-column flex-grow-1 pt-3">
-                            <ul class="nav nav-tabs" id="tab-settings" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="options-tab" data-bs-toggle="tab" data-bs-target="#options" type="button" role="tab" aria-controls="options" aria-selected="true">
-                                        Options
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">
-                                        Advanced
-                                    </button>
-                                </li>
-                            </ul>
-                            <div class="tab-content" id="tab-settings-content">
-
-                                @* Basic Options *@
-                                <div class="tab-pane fade show active" id="options" role="tabpanel" aria-labelledby="options-tab">
-
-                                    <div class="d-flex flex-column w-100 gap-2 p-1">
-                                        <div class="d-flex flex-row gap-2">
-                                            <div class="w-100">
-                                                <small>Scheduler</small>
-                                                @Html.DropDownListFor( m => m.Prompt.SchedulerType,Html.GetEnumSelectList<SchedulerType>(), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <small>Seed <i>(0 = Random)</i></small>
-                                                @Html.TextBoxFor( m => m.Options.Seed, new { @class = "form-control form-control-sm"})
-                                            </div>
-                                            <div class="w-50">
-                                                <small>Width</small>
-                                                @Html.DropDownListFor( m => m.Options.Width, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-50">
-                                                <small>Height</small>
-                                                @Html.DropDownListFor( m => m.Options.Height, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                          
-                                        </div>
-
-                                        <div class="d-flex flex-row gap-2">
-                                            <div class="d-flex flex-column mb-2 w-100">
-                                                <small>Steps</small>
-                                                <div class="d-flex flex-row slider-container">
-                                                    @Html.TextBoxFor(m => m.Options.InferenceSteps, new { @type="range", @class = "slider", min="4", max="100", step="1" })
-                                                    <label>0</label>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex flex-column mb-2 w-100">
-                                                <small>Guidance</small>
-                                                <div class="d-flex flex-row slider-container">
-                                                    @Html.TextBoxFor(m => m.Options.GuidanceScale, new { @type="range", @class = "slider", min="0", max="40", step="0.1" })
-                                                    <label>0</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @* Advanced Options *@
-                                <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
-                                    <div class="d-flex flex-column w-100 gap-2 p-1">
-
-                                        <div class="d-flex flex-row align-items-center gap-2">
-                                            <div class="w-100">
-                                                <small>TrainTimesteps</small>
-                                                @Html.TextBoxFor( m => m.Options.TrainTimesteps, new { @class = "form-control form-control-sm"})
-                                            </div>
-
-                                            <div class="w-100">
-                                                <small>Timestep Spacing</small>
-                                                @Html.DropDownListFor( m => m.Options.TimestepSpacing, Html.GetEnumSelectList<TimestepSpacingType>(), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <small>StepsOffset</small>
-                                                @Html.TextBoxFor( m => m.Options.StepsOffset, new { @class = "form-control form-control-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <div class="d-flex flex-row align-items-center mt-3">
-                                                    <input type="checkbox" asp-for="@Model.Options.UseKarrasSigmas" />
-                                                    <small class="ms-1">Karras Sigmas</small>
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        <div class="d-flex flex-row align-items-center gap-2">
-                                            <div class="w-100">
-                                                <small>BetaSchedule</small>
-                                                @Html.DropDownListFor( m => m.Options.BetaSchedule, Html.GetEnumSelectList<BetaScheduleType>(), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <small>BetaStart</small>
-                                                @Html.TextBoxFor( m => m.Options.BetaStart, new { @class = "form-control form-control-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <small>BetaEnd</small>
-                                                @Html.TextBoxFor( m => m.Options.BetaEnd, new { @class = "form-control form-control-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <small>MaximumBeta</small>
-                                                @Html.TextBoxFor( m => m.Options.MaximumBeta, new { @class = "form-control form-control-sm"})
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex flex-row align-items-center gap-2">
-
-                                            <div class="w-100">
-                                                <small>Variance</small>
-                                                @Html.DropDownListFor( m => m.Options.VarianceType, Html.GetEnumSelectList<VarianceType>(), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <small>Prediction</small>
-                                                @Html.DropDownListFor( m => m.Options.PredictionType, Html.GetEnumSelectList<PredictionType>(), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <small>AlphaTransform</small>
-                                                @Html.DropDownListFor( m => m.Options.AlphaTransformType, Html.GetEnumSelectList<AlphaTransformType>(), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-100">
-                                                <div class="d-flex flex-row align-items-center mt-3">
-                                                    <input type="checkbox" asp-for="@Model.Options.Thresholding" />
-                                                    <small class="ms-1">Thresholding</small>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex flex-row align-items-center gap-2">
-                                            <div class="w-100">
-                                                <small>ClipSampleRange</small>
-                                                <input type="text" asp-for="@Model.Options.ClipSampleRange" class="form-control form-control-sm" />
-                                            </div>
-                                            <div class="w-100">
-                                                <div class="d-flex flex-row align-items-center mt-3">
-                                                    <input type="checkbox" asp-for="@Model.Options.ClipSample" />
-                                                    <small class="ms-1">ClipSample</small>
-                                                </div>
-                                            </div>
-                                            <div class="w-100">
-                                            </div>
-                                            <div class="w-100">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        <div class="d-flex flex-column flex-grow-0 w-100">
-                            <div class="d-flex flex-row gap-2 justify-content-between" autocomplete="off">
-                                <div class="d-flex flex-column justify-content-end w-75">
-                                    <div class="d-flex flex-row gap-2">
-                                        <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
-                                        <button id="btn-txt2img-execute" type="button" class="btn btn-success w-100">Generate</button>
-                                    </div>
-                                </div>
-                                <div class="d-flex flex-row justify-content-end w-50">
-                                    <div>
-                                        <small>Mode</small>
-                                        <div class="d-flex flex-row gap-1">
-                                            <select id="result-layout" class="form-control form-select form-select-sm">
-                                                <option value="Single">Single</option>
-                                                <option value="Multiple">Multiple</option>
-                                            </select>
-                                            <button id="btn-clear" class="btn btn-sm btn-danger">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
-                </form>
-
+                </div>
             </div>
         </div>
 
         @*  Preview *@
-        <div class="d-flex w-100 p-2 border border-1 border-dark">
-            <div id="output-container" class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center">
-            </div>
-            <div id="output-container-grid" class="d-flex flex-fill flex-wrap justify-content-start align-content-start align-items-start gap-3" style="overflow-y:auto">
+        <div class="d-flex flex-column w-100 ps-1 pt-2 border border-1 border-dark">
+
+            <ul class="nav nav-tabs" id="tabs-output" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-output-item" data-view="Output" data-bs-toggle="tab" data-bs-target="#tab-output-container" type="button" role="tab" aria-controls="tab-output-container" aria-selected="true">
+                        Output View
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-history-item" data-view="History" data-bs-toggle="tab" data-bs-target="#tab-history-container" type="button" role="tab" aria-controls="tab-history-item" aria-selected="false">
+                        History View
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content" id="tabs-output-content">
+
+                @* Text To Image Tab *@
+                <div class="tab-pane fade show active" id="tab-output-container" role="tabpanel" aria-labelledby="tab-output-item">
+                    <div id="output-container" class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center mt-4">
+                    </div>
+                </div>
+
+                @* History Tab *@
+                <div class="tab-pane fade" id="tab-history-container" role="tabpanel" aria-labelledby="tab-history-item">
+                    <div id="output-container-history" class="d-flex flex-fill flex-wrap justify-content-start align-content-start align-items-start gap-3" style="overflow-y:auto">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script id="progressResultTemplate" type="text/html">
-    <div class="output-progress d-flex flex-column border border-1 border-dark p-1" style="min-width:256px;">
+    <div class="output-progress d-flex flex-column border border-1 border-dark p-1" style="min-width:512px;min-height:512px;">
         <div style="overflow:hidden;text-align:center">
-            <img width="{{width}}" height="{{height}}" src="~/images/placeholder.jpg" />
+            <img width="{{width}}" height="{{height}}" src="/images/placeholder.jpg"/>
         </div>
          <div class="d-flex flex-column pt-2">
             <div class="progress">
@@ -257,11 +97,11 @@
 </script>
 
 <script id="outputResultTemplate" type="text/html">
-    <div class="d-flex flex-column border border-1 border-dark p-1" style="min-width:256px;">
-        <div style="overflow:hidden;text-align:center">
-            <img id="img-result" width="{{width}}" height="{{height}}" src="{{imageUrl}}" alt="{{imageName}}"/>
+    <div class="d-flex flex-column border border-1 border-dark p-1" >
+       <div class="d-flex align-items-center  justify-content-center" style="overflow:hidden;min-width:512px;min-height:512px;" >
+            <img id="img-result" width="{{width}}" height="{{height}}" src="{{imageUrl}}" alt="{{imageName}}" />
         </div>
-         <div class="d-flex flex-row flex-wrap-reverse justify-content-around pt-2" style="max-width:{{width}}px">
+         <div class="d-flex flex-row flex-wrap-reverse text-wrap justify-content-around pt-2">
           <div class="d-flex flex-row align-items-center">
               <small class="result-info">Scheduler:</small>
               <span>{{blueprint.prompt.schedulerType}}</span>
@@ -276,7 +116,7 @@
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Seed:</small>
-              <span>{{blueprint.options.seed}}</span>
+              <div class="seed-host">{{blueprint.options.seed}}</div>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Elapsed:</small>
@@ -306,52 +146,72 @@
 
         const stableDiffusionTextToImage = () => {
 
+            const LAYOUT_MAX_WIDTH = 1024;
+            const LAYOUT_MAX_HEIGHT = 512;
+            const LAYOUT_HISTORY_MAX_WIDTH = 256;
+            const LAYOUT_HISTORY_MAX_HEIGHT = 256;
+
             let diffusionProcess;
-            const optionsForm = $("#TextToImageParameters")
+            const buttonClear = $("#btn-clear")
+            const buttonCancel = $(".btn-cancel");
+            const buttonExecute = $("#btn-execute");
+            const textBoxWidth = $("#Width");
+            const textBoxHeight = $("#Height");
+            const promptParameterForm = $("#PromptParameters");
+            const schedulerParameterForm = $("#SchedulerParameters");
+
             const outputContainer = $("#output-container");
-            const outputContainerGrid = $("#output-container-grid");
-            const progressResultTemplate = $("#progressResultTemplate").html();
             const outputResultTemplate = $("#outputResultTemplate").html();
+            const progressResultTemplate = $("#progressResultTemplate").html();
+
+            const outputHistoryContainer = $("#output-container-history");
+            const historyOutputTemplate = $("#historyOutputTemplate").html();
+            const historyProgressTemplate = $("#historyProgressTemplate").html();
+
             const connection = new signalR.HubConnectionBuilder().withUrl("/StableDiffusionHub").build();
 
-            const onResponse = (response) => {
+            const onServerResponse = (response) => {
                 if (!response)
                     return;
-                    console.log(response)
+
                 updateResultImage(response);
                 processEnd();
             }
 
-            const onError = (response) => {
+            const onServerError = (response) => {
                 console.log("ERROR: " + response)
             }
 
-            const onMessage = (response) => {
+            const onServerMessage = (response) => {
                 console.log("MESSAGE: " + response)
             }
 
-            const onProgress = (response) => {
+            const onServerProgress = (response) => {
                 updateProgress(response);
             }
 
-            const onCanceled = (response) => {
+            const onServerCanceled = (response) => {
                 updatePlaceholderImage();
                 processEnd();
             }
 
-            const executeTextToImage = async () => {
-                const diffusionParams = serializeFormToJson(optionsForm);
-                if (!validateForm())
+            const executeDiffusion = async () => {
+                const promptParams = serializeFormToJson(promptParameterForm);
+                if (!validateForm(promptParameterForm))
+                    return;
+
+                const schedulerParams = serializeFormToJson(schedulerParameterForm);
+                if (!validateForm(schedulerParameterForm))
                     return;
 
                 processBegin();
-                updatePlaceholderImage();
+                updatePlaceholderImage(true);
                 diffusionProcess = await connection
-                    .stream("ExecuteTextToImage", diffusionParams, diffusionParams) //TODO: split params
+                    .stream("ExecuteTextToImage", promptParams, schedulerParams)
                     .subscribe({
-                        next: onResponse,
-                        complete: onResponse,
-                        error: onError,
+                        next: onServerResponse,
+                        complete: onServerResponse,
+                        error: onServerError,
                     });
             }
 
@@ -363,37 +223,38 @@
                 const width = getWidth();
                 const height = getHeight();
 
-                const size = getSafeSize(width, height, 512);
-                outputContainer.html(Mustache.render(outputResultTemplate, {
-                    width: size.width,
-                    height: size.height,
-                    ...response
-                }));
-
-                const gridSize = getSafeSize(width, height, 256);
-                outputContainerGrid.find(".output-progress").remove();
-                outputContainerGrid.prepend(Mustache.render(outputResultTemplate, {
-                    width: gridSize.width,
-                    height: gridSize.height,
-                    ...response
-                }));
+                addOutputResult(width, height, outputResultTemplate, response);
+                outputHistoryContainer.find(".output-progress").remove();
+                addOutputHistory(width, height, historyOutputTemplate, response);
             }
 
-            const updatePlaceholderImage = () => {
+            const updatePlaceholderImage = (addToHistory) => {
                 const width = getWidth();
                 const height = getHeight();
 
-                const size = getSafeSize(width, height, 512);
-                outputContainer.html(Mustache.render(progressResultTemplate, {
+                addOutputResult(width, height, progressResultTemplate)
+                outputHistoryContainer.find(".output-progress").remove();
+                if (!addToHistory)
+                    return;
+
+                addOutputHistory(width, height, historyProgressTemplate);
+            }
+
+            const addOutputResult = (width, height, template, data) => {
+                const size = getSafeSize(width, height, LAYOUT_MAX_WIDTH, LAYOUT_MAX_HEIGHT);
+                outputContainer.html(Mustache.render(template, {
                     width: size.width,
                     height: size.height,
+                    ...data
                 }));
+            }
 
-                const gridSize = getSafeSize(width, height, 256);
-                outputContainerGrid.find(".output-progress").remove();
-                outputContainerGrid.prepend(Mustache.render(progressResultTemplate, {
-                    width: gridSize.width,
-                    height: gridSize.height,
+            const addOutputHistory = (width, height, template, data) => {
+                const size = getSafeSize(width, height, LAYOUT_HISTORY_MAX_WIDTH, LAYOUT_HISTORY_MAX_HEIGHT);
+                outputHistoryContainer.prepend(Mustache.render(template, {
+                    width: size.width,
+                    height: size.height,
+                    ...data
                 }));
             }
 
@@ -406,132 +267,45 @@
             }
 
             const processBegin = () => {
-                $(".btn-cancel").removeAttr("disabled");
-                $("#btn-txt2img-execute, #btn-img2img-execute").attr("disabled", "disabled");
+                buttonCancel.removeAttr("disabled");
+                buttonExecute.attr("disabled", "disabled");
+                promptParameterForm.find(".form-control, .slider").attr("disabled", "disabled");
+                schedulerParameterForm.find(".form-control, .slider").attr("disabled", "disabled");
             }
 
             const processEnd = () => {
-                $(".btn-cancel").attr("disabled", "disabled");
-                $("#btn-txt2img-execute, #btn-img2img-execute").removeAttr("disabled");
-            }
-
-            const validateForm = () => {
-                optionsForm.validate();
-                return optionsForm.valid();
+                buttonCancel.attr("disabled", "disabled");
+                buttonExecute.removeAttr("disabled");
+                promptParameterForm.find(".form-control, .slider").removeAttr("disabled");
+                schedulerParameterForm.find(".form-control, .slider").removeAttr("disabled");
             }
 
             const clearHistory = () => {
-                outputContainer.empty();
-                outputContainerGrid.empty();
-                updatePlaceholderImage();
-            }
-
-            const getLayout = () => {
-                return $("option:selected", "#result-layout").val();
+                outputHistoryContainer.empty();
             }
 
             const getWidth = () => {
-                return +$("option:selected", "#Options_Width").val();
+                return +$("option:selected", textBoxWidth).val();
             }
 
             const getHeight = () => {
-                return +$("option:selected", "#Options_Height").val();
+                return +$("option:selected", textBoxHeight).val();
             }
 
-            const updateLayout = () => {
-                const layout = getLayout();
-                if (layout == "Single") {
-                    outputContainer.removeClass("d-none").addClass("d-flex");
-                    outputContainerGrid.removeClass("d-flex").addClass("d-none");
-                    updatePlaceholderImage();
-                }
-                else if (layout == "Multiple") {
-                    outputContainer.removeClass("d-flex").addClass("d-none");
-                    outputContainerGrid.removeClass("d-none").addClass("d-flex");
-                }
-            }
-
-            const getSafeSize = (width, height, max) => {
-                let largest = Math.max(width, height);
-                if (largest > max) {
-                    while (largest > max) {
-                        largest -= 16;
-                    }
-
-                    const delta = Math.max(width, height) / largest;
-                    return {
-                        width: width / delta,
-                        height: height / delta
-                    };
-                }
-                else if (largest < max) {
-                    while (largest < max) {
-                        largest += 16;
-                    }
-
-                    const delta = largest - Math.max(width, height);
-                    return {
-                        width: width + delta,
-                        height: height + delta
-                    };
-                }
-                return {
-                    width: width,
-                    height: height
-                };
-            }
-
-            const serializeFormToJson = (form) => {
-                // Disable hidden checkbox fields
-                form.find('[type=hidden]').each(function (i, field) {
-                    $(field).attr('disabled', "disabled");
-                });
-                const formDataJson = {};
-                const formData = new FormData(document.getElementById(form.attr("id")));
-                formData.forEach((value, key) => {
-
-                    if (key.includes("."))
-                        key = key.split(".")[1];
-
-                    // Convert number strings to numbers
-                    if (!isNaN(value) && value.trim() !== "") {
-                        formDataJson[key] = parseFloat(value);
-                    }
-                    // Convert boolean strings to booleans
-                    else if (value === "true" || value === "false") {
-                        formDataJson[key] = (value === "true");
-                    }
-                    else {
-                        formDataJson[key] = value;
-                    }
-                });
-                return formDataJson;
-            }
-
-
-            $(".btn-cancel").on("click", cancelDiffusion);
-            $("#btn-clear").on("click", clearHistory);
-            $("#btn-txt2img-execute").on("click", executeTextToImage);
-            $("#result-layout").on("change", updateLayout).trigger("change");
-            $(".slider").on("input", function (e) {
-                const slider = $(this);
-                slider.next().text(slider.val());
-            }).trigger("input");
-
-
-            $("#modal-controller").on("click", async function () {
-                const width = getWidth();
-                const height = getHeight();
-                const result = await openModalGet(`/StableDiffusion?handler=UploadImage&Width=${width}&Height=${height}`);
-            });
-
+            // Map UI Events/Functions
+            $(".image2image-control").hide();
+            buttonCancel.on("click", cancelDiffusion);
+            buttonClear.on("click", clearHistory);
+            buttonExecute.on("click", async () => { await executeDiffusion(); });
+            textBoxWidth.on("change", () => { updatePlaceholderImage(false); });
+            textBoxHeight.on("change", () => { updatePlaceholderImage(false); }).trigger("change");
 
             // Map signalr functions
-            connection.on("OnError", onError);
-            connection.on("OnMessage", onMessage);
-            connection.on("OnCanceled", onCanceled);
-            connection.on("OnProgress", onProgress);
-            connection.on("OnResponse", onResponse);
+            connection.on("OnError", onServerError);
+            connection.on("OnMessage", onServerMessage);
+            connection.on("OnCanceled", onServerCanceled);
+            connection.on("OnProgress", onServerProgress);
+            connection.on("OnResponse", onServerResponse);
             connection.start();
         }
 

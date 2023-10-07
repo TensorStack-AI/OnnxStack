@@ -104,3 +104,7 @@ button.accept-policy {
 .simplemodal-overlay{
     background-color: #000;
 }
+
+.seed-host{
+    cursor:pointer;
+}

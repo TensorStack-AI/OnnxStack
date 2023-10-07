@@ -1,0 +1,25 @@
+﻿@using OnnxStack.StableDiffusion.Config;
+@using OnnxStack.StableDiffusion.Enums;
+@model PromptOptions
+@{
+}
+
+@* Prompt Parameters *@
+<form id="PromptParameters" class="" autocomplete="off">
+    <div class="d-flex flex-column flex-grow-0 gap-2 p-1 w-100">
+        <div class="d-flex flex-column">
+            <small>Prompt</small>
+            @Html.TextAreaFor(m => m.Prompt, new { @class = "form-control form-control-sm p-1", @rows = 3 })
+            @Html.ValidationMessageFor(m => m.Prompt, "", new { @class = "text-danger" })
+        </div>
+        <div class="d-flex flex-column">
+            <small>Negative Prompt</small>
+            @Html.TextAreaFor(m => m.NegativePrompt, new { @class = "form-control form-control-sm", @rows = 2 })
+            @Html.ValidationMessageFor(m => m.NegativePrompt, "", new { @class = "text-danger" })
+        </div>
+        <div class="w-100">
+            <small>Scheduler</small>
+            @Html.DropDownListFor( m => m.SchedulerType,Html.GetEnumSelectList<SchedulerType>(), new { @class = "form-control form-select-sm"})
+        </div>
+    </div>
+</form>

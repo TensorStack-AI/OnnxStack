@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.StableDiffusion",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.Console", "OnnxStack.Console\OnnxStack.Console.csproj", "{46A43C80-A440-4461-B7EB-81FA998FB24B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnnxStack.WebUI", "OnnxStack.WebUI\OnnxStack.WebUI.csproj", "{E1432983-8736-4968-8B3D-25FD4B5B2FE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.WebUI", "OnnxStack.WebUI\OnnxStack.WebUI.csproj", "{E1432983-8736-4968-8B3D-25FD4B5B2FE0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
