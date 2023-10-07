@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace OnnxStack.Web.Hubs
 {
-    public class StableDiffusionHub : Hub
+    public class StableDiffusionHub : Hub<IStableDiffusionClient>
     {
         private readonly ILogger<StableDiffusionHub> _logger;
         private readonly IWebHostEnvironment _webHostEnvironment;
@@ -38,7 +38,7 @@ namespace OnnxStack.Web.Hubs
         public override async Task OnConnectedAsync()
         {
             _logger.Log(LogLevel.Information, "[OnConnectedAsync], Id: {0}", Context.ConnectionId);
-            await Clients.Caller.SendAsync("OnMessage", "OnConnectedAsync");
+            await Clients.Caller.OnMessage("OnConnectedAsync");
             await base.OnConnectedAsync();
         }
 
@@ -50,7 +50,7 @@ namespace OnnxStack.Web.Hubs
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             _logger.Log(LogLevel.Information, "[OnDisconnectedAsync], Id: {0}", Context.ConnectionId);
-            await Clients.Caller.SendAsync("OnMessage", "OnDisconnectedAsync");
+            await Clients.Caller.OnMessage("OnDisconnectedAsync");
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -117,12 +117,12 @@ namespace OnnxStack.Web.Hubs
             }
             catch (OperationCanceledException tex)
             {
-                await Clients.Caller.SendAsync("OnCanceled", tex.Message);
+                await Clients.Caller.OnCanceled(tex.Message);
                 _logger.Log(LogLevel.Warning, tex, "[OnExecuteTextToImage] - Operation canceled, Connection: {0}", Context.ConnectionId);
             }
             catch (Exception ex)
             {
-                await Clients.Caller.SendAsync("OnError", ex.Message);
+                await Clients.Caller.OnError(ex.Message);
                 _logger.Log(LogLevel.Error, ex, "[OnExecuteTextToImage] - Error generating image, Connection: {0}", Context.ConnectionId);
             }
             return false;
@@ -197,7 +197,7 @@ namespace OnnxStack.Web.Hubs
             return async (progress, total) =>
             {
                 _logger.Log(LogLevel.Information, "[OnExecuteTextToImage] - Progress: {0}/{1}, Connection: {2}", progress, total, Context.ConnectionId);
-                await Clients.Caller.SendAsync("OnProgress", new ProgressResult(progress, total));
+                await Clients.Caller.OnProgress(new ProgressResult(progress, total));
             };
         }
 
@@ -226,4 +226,5 @@ namespace OnnxStack.Web.Hubs
             return $"/images/results/{folder}/{file}";
         }
     }
+    
 }
