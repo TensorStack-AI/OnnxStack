@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using OnnxStack.WebUI.Models;
+using OnnxStack.StableDiffusion.Config;
 
 namespace OnnxStack.WebUI.Pages.StableDiffusion
 {
@@ -14,13 +14,19 @@ namespace OnnxStack.WebUI.Pages.StableDiffusion
         }
 
         [BindProperty]
-        public TextToImageOptions Options { get; set; }
+        public PromptOptions Prompt { get; set; }
+
+        [BindProperty]
+        public SchedulerOptions Options { get; set; }
 
         public void OnGet()
         {
-            Options = new TextToImageOptions
+            Prompt = new PromptOptions
             {
-                  Prompt = "photo of a cat"
+            };
+
+            Options = new SchedulerOptions
+            {
             };
         }
     }

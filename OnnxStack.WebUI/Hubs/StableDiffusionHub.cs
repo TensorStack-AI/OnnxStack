@@ -226,13 +226,4 @@ namespace OnnxStack.Web.Hubs
             return $"/images/results/{folder}/{file}";
         }
     }
-
-    public record ProgressResult(int Progress, int Total);
-    public record TextToImageResult(string ImageName, string ImageUrl, ImageBlueprint Blueprint, string BlueprintName, string BlueprintUrl, int Elapsed);
-    public record FileInfoResult(string Image, string ImageUrl, string ImageFile, string Blueprint, string BlueprintUrl, string BlueprintFile);
-
-    public record ImageBlueprint(PromptOptions Prompt, SchedulerOptions Options)
-    {
-        public DateTime Timestamp { get; } = DateTime.UtcNow;
-    }
 }

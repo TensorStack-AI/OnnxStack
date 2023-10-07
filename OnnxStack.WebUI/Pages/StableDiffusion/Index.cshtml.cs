@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OnnxStack.Web.Models;
+using OnnxStack.WebUI.Models;
 
 namespace OnnxStack.WebUI.Pages.StableDiffusion
 {

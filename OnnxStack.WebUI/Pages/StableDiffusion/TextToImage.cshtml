@@ -25,7 +25,7 @@
     <div class="d-flex flex-fill">
 
         @*  Controls *@
-        <div class="d-flex flex-column w-100 me-2 p-2 border border-1 border-dark" style="max-width:500px;overflow:hidden">
+        <div class="d-flex flex-column w-100 me-2 p-2 border border-1 border-dark" style="max-width:440px;overflow:hidden">
 
             <h4 class="pb-0 mb-0">Text To Image</h4>
             <small>Text to image transforms textual descriptions into visual content</small>
@@ -40,13 +40,13 @@
                         <div class="d-flex flex-column flex-grow-0 gap-2 p-1 w-100">
                             <div class="d-flex flex-column">
                                 <small>Prompt</small>
-                                @Html.TextAreaFor(m => m.Options.Prompt, new { @class = "form-control form-control-sm p-1", @rows = 3 })
-                                @Html.ValidationMessageFor(m => m.Options.Prompt, "", new { @class = "text-danger" })
+                                @Html.TextAreaFor(m => m.Prompt.Prompt, new { @class = "form-control form-control-sm p-1", @rows = 3 })
+                                @Html.ValidationMessageFor(m => m.Prompt.Prompt, "", new { @class = "text-danger" })
                             </div>
                             <div class="d-flex flex-column">
                                 <small>Negative Prompt</small>
-                                @Html.TextAreaFor(m => m.Options.NegativePrompt, new { @class = "form-control form-control-sm", @rows = 3 })
-                                @Html.ValidationMessageFor(m => m.Options.NegativePrompt, "", new { @class = "text-danger" })
+                                @Html.TextAreaFor(m => m.Prompt.NegativePrompt, new { @class = "form-control form-control-sm", @rows = 2 })
+                                @Html.ValidationMessageFor(m => m.Prompt.NegativePrompt, "", new { @class = "text-danger" })
                             </div>
                         </div>
 
@@ -72,20 +72,21 @@
                                         <div class="d-flex flex-row gap-2">
                                             <div class="w-100">
                                                 <small>Scheduler</small>
-                                                @Html.DropDownListFor( m => m.Options.SchedulerType,Html.GetEnumSelectList<SchedulerType>(), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-75">
-                                                <small>Width</small>
-                                                @Html.DropDownListFor( m => m.Options.Width, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
-                                            </div>
-                                            <div class="w-75">
-                                                <small>Height</small>
-                                                @Html.DropDownListFor( m => m.Options.Height, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
+                                                @Html.DropDownListFor( m => m.Prompt.SchedulerType,Html.GetEnumSelectList<SchedulerType>(), new { @class = "form-control form-select-sm"})
                                             </div>
                                             <div class="w-100">
                                                 <small>Seed <i>(0 = Random)</i></small>
                                                 @Html.TextBoxFor( m => m.Options.Seed, new { @class = "form-control form-control-sm"})
                                             </div>
+                                            <div class="w-50">
+                                                <small>Width</small>
+                                                @Html.DropDownListFor( m => m.Options.Width, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                            <div class="w-50">
+                                                <small>Height</small>
+                                                @Html.DropDownListFor( m => m.Options.Height, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
+                                            </div>
+                                          
                                         </div>
 
                                         <div class="d-flex flex-row gap-2">
@@ -128,7 +129,7 @@
                                             <div class="w-100">
                                                 <div class="d-flex flex-row align-items-center mt-3">
                                                     <input type="checkbox" asp-for="@Model.Options.UseKarrasSigmas" />
-                                                    <small class="ms-1">UseKarrasSigmas</small>
+                                                    <small class="ms-1">Karras Sigmas</small>
                                                 </div>
                                             </div>
 
@@ -136,7 +137,7 @@
 
                                         <div class="d-flex flex-row align-items-center gap-2">
                                             <div class="w-100">
-                                                <small>BetaScheduleType</small>
+                                                <small>BetaSchedule</small>
                                                 @Html.DropDownListFor( m => m.Options.BetaSchedule, Html.GetEnumSelectList<BetaScheduleType>(), new { @class = "form-control form-select-sm"})
                                             </div>
                                             <div class="w-100">
@@ -156,15 +157,15 @@
                                         <div class="d-flex flex-row align-items-center gap-2">
 
                                             <div class="w-100">
-                                                <small>VarianceType</small>
+                                                <small>Variance</small>
                                                 @Html.DropDownListFor( m => m.Options.VarianceType, Html.GetEnumSelectList<VarianceType>(), new { @class = "form-control form-select-sm"})
                                             </div>
                                             <div class="w-100">
-                                                <small>PredictionType</small>
+                                                <small>Prediction</small>
                                                 @Html.DropDownListFor( m => m.Options.PredictionType, Html.GetEnumSelectList<PredictionType>(), new { @class = "form-control form-select-sm"})
                                             </div>
                                             <div class="w-100">
-                                                <small>AlphaTransformType</small>
+                                                <small>AlphaTransform</small>
                                                 @Html.DropDownListFor( m => m.Options.AlphaTransformType, Html.GetEnumSelectList<AlphaTransformType>(), new { @class = "form-control form-select-sm"})
                                             </div>
                                             <div class="w-100">
@@ -199,7 +200,7 @@
 
                         <div class="d-flex flex-column flex-grow-0 w-100">
                             <div class="d-flex flex-row gap-2 justify-content-between" autocomplete="off">
-                                <div class="d-flex flex-column justify-content-end w-50">
+                                <div class="d-flex flex-column justify-content-end w-75">
                                     <div class="d-flex flex-row gap-2">
                                         <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
                                         <button id="btn-txt2img-execute" type="button" class="btn btn-success w-100">Generate</button>
@@ -223,30 +224,7 @@
                         </div>
 
                     </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 </form>
-
 
             </div>
         </div>
@@ -281,24 +259,24 @@
 <script id="outputResultTemplate" type="text/html">
     <div class="d-flex flex-column border border-1 border-dark p-1" style="min-width:256px;">
         <div style="overflow:hidden;text-align:center">
-            <img id="img-result" width="{{width}}" height="{{height}}" src="{{outputImageUrl}}" />
+            <img id="img-result" width="{{width}}" height="{{height}}" src="{{imageUrl}}" alt="{{imageName}}"/>
         </div>
          <div class="d-flex flex-row flex-wrap-reverse justify-content-around pt-2" style="max-width:{{width}}px">
           <div class="d-flex flex-row align-items-center">
               <small class="result-info">Scheduler:</small>
-              <span>{{outputOptions.schedulerType}}</span>
+              <span>{{blueprint.prompt.schedulerType}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Steps:</small>
-              <span>{{outputOptions.inferenceSteps}}</span>
+              <span>{{blueprint.options.inferenceSteps}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Guidance:</small>
-              <span>{{outputOptions.guidanceScale}}</span>
+              <span>{{blueprint.options.guidanceScale}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Seed:</small>
-              <span>{{outputOptions.seed}}</span>
+              <span>{{blueprint.options.seed}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Elapsed:</small>
@@ -307,12 +285,12 @@
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
             <div class="btn-group dropend w-100">
-                <a class="btn btn-sm btn-success w-100" href="{{outputImageUrl}}" download="{{outputImage}}">Download</a>
+                <a class="btn btn-sm btn-success w-100" href="{{imageUrl}}" download="{{imageName}}">Download</a>
                 <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split w-25" data-bs-toggle="dropdown" aria-expanded="false">
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{outputImageUrl}}" download="{{outputImage}}">Download PNG</a></li>
-                    <li><a class="dropdown-item" href="{{outputOptionsUrl}}" download="{{OutputOptions}}">Download JSON</a></li>
+                    <li><a class="dropdown-item" href="{{imageUrl}}" download="{{imageName}}">Download PNG</a></li>
+                    <li><a class="dropdown-item" href="{{blueprintUrl}}" download="{{blueprintName}}">Download JSON</a></li>
                 </ul>
             </div>
             <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
@@ -339,8 +317,7 @@
             const onResponse = (response) => {
                 if (!response)
                     return;
-
-                console.log(response);
+                    console.log(response)
                 updateResultImage(response);
                 processEnd();
             }
@@ -354,12 +331,10 @@
             }
 
             const onProgress = (response) => {
-                console.log(response);
                 updateProgress(response);
             }
 
             const onCanceled = (response) => {
-                console.log(response);
                 updatePlaceholderImage();
                 processEnd();
             }
@@ -372,7 +347,7 @@
                 processBegin();
                 updatePlaceholderImage();
                 diffusionProcess = await connection
-                    .stream("ExecuteTextToImage", diffusionParams)
+                    .stream("ExecuteTextToImage", diffusionParams, diffusionParams) //TODO: split params
                     .subscribe({
                         next: onResponse,
                         complete: onResponse,

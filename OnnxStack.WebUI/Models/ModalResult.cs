@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
-namespace OnnxStack.Web.Models
+namespace OnnxStack.WebUI.Models
 {
     public class ModalResult : ActionResult
     {
