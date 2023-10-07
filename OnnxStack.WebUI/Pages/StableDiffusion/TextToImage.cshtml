@@ -21,15 +21,15 @@
 </style>
 @Html.AntiForgeryToken()
 
-<div class="d-flex flex-row h-100 pt-1 pb-1">
+<div class="d-flex flex-row h-100 pt-2 pb-2">
     <div class="d-flex flex-fill">
 
         @*  Controls *@
-        <div class="d-flex flex-column w-100 me-2 p-2 border border-1" style="max-width:500px;overflow:hidden">
+        <div class="d-flex flex-column w-100 me-2 p-2 border border-1 border-dark" style="max-width:500px;overflow:hidden">
 
             <h4 class="pb-0 mb-0">Text To Image</h4>
             <small>Text to image transforms textual descriptions into visual content</small>
-            <div class="border-bottom mt-1 mb-1"></div>
+            <div class="border-bottom border-dark mt-1 mb-1"></div>
             <div class="d-flex flex-column justify-content-between h-100 mt-1" style="overflow:hidden">
 
                 <form id="TextToImageParameters" class="h-100" autocomplete="off">
@@ -82,7 +82,7 @@
                                                 <small>Height</small>
                                                 @Html.DropDownListFor( m => m.Options.Height, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
                                             </div>
-                                            <div class="w-75">
+                                            <div class="w-100">
                                                 <small>Seed <i>(0 = Random)</i></small>
                                                 @Html.TextBoxFor( m => m.Options.Seed, new { @class = "form-control form-control-sm"})
                                             </div>
@@ -252,7 +252,7 @@
         </div>
 
         @*  Preview *@
-        <div class="d-flex w-100 p-2 border border-1">
+        <div class="d-flex w-100 p-2 border border-1 border-dark">
             <div id="output-container" class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center">
             </div>
             <div id="output-container-grid" class="d-flex flex-fill flex-wrap justify-content-start align-content-start align-items-start gap-3" style="overflow-y:auto">
@@ -262,7 +262,7 @@
 </div>
 
 <script id="progressResultTemplate" type="text/html">
-    <div class="output-progress d-flex flex-column border border-1 p-1" style="min-width:256px;">
+    <div class="output-progress d-flex flex-column border border-1 border-dark p-1" style="min-width:256px;">
         <div style="overflow:hidden;text-align:center">
             <img width="{{width}}" height="{{height}}" src="~/images/placeholder.jpg" />
         </div>
@@ -279,7 +279,7 @@
 </script>
 
 <script id="outputResultTemplate" type="text/html">
-    <div class="d-flex flex-column border border-1 p-1" style="min-width:256px;">
+    <div class="d-flex flex-column border border-1 border-dark p-1" style="min-width:256px;">
         <div style="overflow:hidden;text-align:center">
             <img id="img-result" width="{{width}}" height="{{height}}" src="{{outputImageUrl}}" />
         </div>
