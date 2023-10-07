@@ -62,13 +62,13 @@ namespace OnnxStack.Web.Hubs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         [HubMethodName("ExecuteTextToImage")]
-        public async IAsyncEnumerable<TextToImageResult> OnExecuteTextToImage(TextToImageOptions options, [EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<TextToImageResult> OnExecuteTextToImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             _logger.Log(LogLevel.Information, "[OnExecuteTextToImage] - New request received, Connection: {0}", Context.ConnectionId);
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Context.ConnectionAborted, cancellationToken);
 
             // TODO: Add support for multiple results
-            var result = await GenerateTextToImageResult(options, cancellationTokenSource.Token);
+            var result = await GenerateTextToImageResult(promptOptions, schedulerOptions, cancellationTokenSource.Token);
             if (result is null)
                 yield break;
 
@@ -82,50 +82,21 @@ namespace OnnxStack.Web.Hubs
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<TextToImageResult> GenerateTextToImageResult(TextToImageOptions options, CancellationToken cancellationToken)
+        private async Task<TextToImageResult> GenerateTextToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
-            options.Seed = GenerateSeed(options.Seed);
-            var promptOptions = new PromptOptions
-            {
-                Prompt = options.Prompt,
-                NegativePrompt = options.NegativePrompt,
-                SchedulerType = options.SchedulerType
-            };
+            schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
 
-            var schedulerOptions = new SchedulerOptions
-            {
-                Seed = options.Seed,
-                Width = options.Width,
-                Height = options.Height,
-                InferenceSteps = options.InferenceSteps,
-                GuidanceScale = options.GuidanceScale,
-                AlphaTransformType = options.AlphaTransformType,
-                BetaEnd = options.BetaEnd,
-                BetaSchedule = options.BetaSchedule,
-                BetaStart = options.BetaStart,
-                ClipSample = options.ClipSample,
-                ClipSampleRange = options.ClipSampleRange,
-                MaximumBeta = options.MaximumBeta,
-                PredictionType = options.PredictionType,
-                StepsOffset = options.StepsOffset,
-                TimestepSpacing = options.TimestepSpacing,
-                Thresholding = options.Thresholding,
-                TrainTimesteps = options.TrainTimesteps,
-                UseKarrasSigmas = options.UseKarrasSigmas,
-                VarianceType = options.VarianceType
-            };
-
-
+            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions);
             var fileInfo = CreateFileInfo(promptOptions, schedulerOptions);
-            if (!await SaveOptionsFile(fileInfo, options))
+            if (!await SaveBlueprintFile(fileInfo, blueprint))
                 return null;
 
             if (!await RunStableDiffusion(promptOptions, schedulerOptions, fileInfo, cancellationToken))
                 return null;
 
             var elapsed = (int)Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
-            return new TextToImageResult(fileInfo.OutputImage, fileInfo.OutputImageUrl, options, fileInfo.OutputOptionsUrl, elapsed);
+            return new TextToImageResult(fileInfo.Image, fileInfo.ImageUrl, blueprint, fileInfo.Blueprint, fileInfo.BlueprintUrl, elapsed);
         }
 
 
@@ -141,7 +112,7 @@ namespace OnnxStack.Web.Hubs
         {
             try
             {
-                await _stableDiffusionService.TextToImageFile(promptOptions, schedulerOptions, fileInfo.OutputImageFile, ProgressCallback(), cancellationToken);
+                await _stableDiffusionService.TextToImageFile(promptOptions, schedulerOptions, fileInfo.ImageFile, ProgressCallback(), cancellationToken);
                 return true;
             }
             catch (OperationCanceledException tex)
@@ -164,13 +135,13 @@ namespace OnnxStack.Web.Hubs
         /// <param name="fileInfo">The file information.</param>
         /// <param name="options">The options.</param>
         /// <returns></returns>
-        private async Task<bool> SaveOptionsFile(FileInfoResult fileInfo, TextToImageOptions options)
+        private async Task<bool> SaveBlueprintFile(FileInfoResult fileInfo, ImageBlueprint bluprint)
         {
             try
             {
-                using (var stream = File.Create(fileInfo.OutputOptionsFile))
+                using (var stream = File.Create(fileInfo.BlueprintFile))
                 {
-                    await JsonSerializer.SerializeAsync(stream, options, _serializerOptions);
+                    await JsonSerializer.SerializeAsync(stream, bluprint, _serializerOptions);
                     return true;
                 }
             }
@@ -257,6 +228,11 @@ namespace OnnxStack.Web.Hubs
     }
 
     public record ProgressResult(int Progress, int Total);
-    public record TextToImageResult(string OutputImage, string OutputImageUrl, TextToImageOptions OutputOptions, string OutputOptionsUrl, int Elapsed);
-    public record FileInfoResult(string OutputImage, string OutputImageUrl, string OutputImageFile, string OutputOptions, string OutputOptionsUrl, string OutputOptionsFile);
+    public record TextToImageResult(string ImageName, string ImageUrl, ImageBlueprint Blueprint, string BlueprintName, string BlueprintUrl, int Elapsed);
+    public record FileInfoResult(string Image, string ImageUrl, string ImageFile, string Blueprint, string BlueprintUrl, string BlueprintFile);
+
+    public record ImageBlueprint(PromptOptions Prompt, SchedulerOptions Options)
+    {
+        public DateTime Timestamp { get; } = DateTime.UtcNow;
+    }
 }

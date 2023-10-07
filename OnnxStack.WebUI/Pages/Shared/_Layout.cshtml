@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - OnnxStack.WebUI</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/bootstrap.css?=2" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/default.css" id="themeStylesheet" />
     <link rel="stylesheet" href="~/css/fontawesome.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css" />
@@ -12,7 +12,7 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm  bg-dark border-bottom box-shadow" data-bs-theme="dark">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm border-bottom box-shadow bg-primary" data-bs-theme="dark">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-page="/Index">OnnxStack.WebUI</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -28,6 +28,22 @@
                             <a class="nav-link" asp-area="" asp-page="/StableDiffusion/Index">Stable Diffusion</a>
                         </li>
                     </ul>
+                    <div>
+                        <select id="select-theme" class="form-control form-select form-select-sm bg-primary border-dark">
+                            <option value="default">Default</option>
+                            <option value="cyborg">Cyborg</option>
+                            <option value="darkly">Darkly</option>
+                            <option value="morph">Morph</option>
+                            <option value="quartz">Quartz</option>
+                            <option value="simplex">Simplex</option>
+                            <option value="sketchy">Sketchy</option>
+                            <option value="slate">Slate</option>
+                            <option value="solar">Solar</option>
+                            <option value="spacelab">Spacelab</option>
+                            <option value="vapor">Vapor</option>
+                            <option value="zephyr">Zephyr</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -47,6 +63,24 @@
         await Html.RenderPartialAsync("_SharedTemplates");
     }
 
+    <script>
+        const applyTheme = (theme) => {
+            const link = document.getElementById("themeStylesheet");
+            const newTheme = `/lib/bootstrap/dist/${theme}.css`;
+            if (link.href.includes(newTheme))
+                return;
+
+            link.href = newTheme;
+        }
+
+        let storedTheme = localStorage.getItem("selectedTheme");
+        if (!storedTheme) {
+            storedTheme = "default"
+            localStorage.setItem("selectedTheme", storedTheme);
+        }
+        applyTheme(storedTheme);
+    </script>
+
 
     <script src="~/lib/jquery.unobtrusive-ajax.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -55,6 +89,15 @@
     <script src="~/lib/modal.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        $("#select-theme").val(storedTheme);
+        $("#select-theme").on("change", function () {
+            const theme = $(this).find("option:selected").val();
+            localStorage.setItem("selectedTheme", theme);
+            applyTheme(theme);
+        });
+    </script>
+
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
