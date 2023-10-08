@@ -39,7 +39,7 @@
                         await Html.RenderPartialAsync("_PromptOptionsForm", Model.Prompt);
                         await Html.RenderPartialAsync("_SchedulerOptionsForm", Model.Options);
                     }
-                    <div class="d-flex flex-column flex-grow-0 w-100" >
+                    <div class="d-flex flex-column flex-grow-0 w-100">
                         <div class="d-flex flex-row gap-2 justify-content-end" autocomplete="off">
                             <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
                             <button id="btn-execute" type="button" class="btn btn-success w-100" disabled>Generate</button>
@@ -98,7 +98,7 @@
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
             <button type="button" class="btn btn-sm btn-success w-100" disabled>Download</button>
-            <button  type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
+            <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
         </div>
     </div>
 </script>
@@ -141,7 +141,7 @@
                     <li><a class="dropdown-item" href="{{blueprintUrl}}" download="{{blueprintName}}">Download JSON</a></li>
                 </ul>
             </div>
-            <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
+            <button id="button-img2img" type="button" class="btn btn-sm btn-info w-100">Image To Image</button>
         </div>
     </div>
 </script>
@@ -233,7 +233,7 @@
                 if (!validateForm(schedulerParameterForm))
                     return;
 
-                const inputImageUrl = getInputImageUrl();
+                const inputImageUrl = getImageUrl("#img-input");
                 if (!inputImageUrl)
                     return;
 
@@ -338,19 +338,19 @@
                 return +$("option:selected", textBoxHeight).val();
             }
 
-            const getInputImageUrl = () => {
-                const imageName = getInputImageName();
+            const getImageUrl = (img) => {
+                const imageName = getImageName(img);
                 if (!imageName)
                     return null;
 
-                const inputImageUrl = $("#img-input").attr("src");
+                const inputImageUrl = $(img).attr("src");
                 if (!inputImageUrl)
                     return null;
                 return inputImageUrl.split("?")[0];
             }
 
-            const getInputImageName = () => {
-                const inputImageName = $("#img-input").data("name");
+            const getImageName = (img) => {
+                const inputImageName = $(img).data("name");
                 if (!inputImageName)
                     return null;
                 return inputImageName;
@@ -372,10 +372,18 @@
                 }
             });
 
+            $(document).on("click", "#button-img2img", async function () {
+                const outputImage = getImageName("#img-result");
+                const outputImageUrl = getImageUrl("#img-result");
+                if (outputImageUrl) {
+                    addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: outputImageUrl, imageName: outputImage });
+                    buttonExecute.removeAttr("disabled");
+                }
+            });
 
             const setInitialImage = () => {
                 const image = $("#InitialImage_Name").val();
-                if(!image)
+                if (!image)
                     return;
 
                 const imageUrl = $("#InitialImage_Url").val();
@@ -389,8 +397,8 @@
             }
 
             const updateInputImageContainer = () => {
-                const url = getInputImageUrl();
-                const name = getInputImageName();
+                const url = getImageUrl("#img-input");
+                const name = getImageName("#img-input");
                 addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: url, imageName: name });
             }
 
