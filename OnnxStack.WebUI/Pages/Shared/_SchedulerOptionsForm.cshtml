@@ -1,8 +1,8 @@
-﻿@using OnnxStack.StableDiffusion.Config;
+﻿@using OnnxStack.Core;
+@using OnnxStack.StableDiffusion.Config;
 @using OnnxStack.StableDiffusion.Enums;
 @model SchedulerOptions
 @{
-    var ValidSizes = new List<int> { 64, 128, 192, 256, 320, 384, 448, 512, 576, 640, 704, 768, 832, 896, 960, 1024 };
 }
 
 @* Scheduler Parameters *@
@@ -35,11 +35,11 @@
                         </div>
                         <div class="w-50">
                             <small>Width</small>
-                            @Html.DropDownListFor( m => m.Width, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
+                            @Html.DropDownListFor( m => m.Width, new SelectList(Constants.ValidSizes), new { @class = "form-control form-select-sm"})
                         </div>
                         <div class="w-50">
                             <small>Height</small>
-                            @Html.DropDownListFor( m => m.Height, new SelectList(ValidSizes), new { @class = "form-control form-select-sm"})
+                            @Html.DropDownListFor( m => m.Height, new SelectList(Constants.ValidSizes), new { @class = "form-control form-select-sm"})
                         </div>
 
                     </div>

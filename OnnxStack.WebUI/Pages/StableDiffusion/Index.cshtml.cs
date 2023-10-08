@@ -2,16 +2,19 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OnnxStack.Web.Models;
 using OnnxStack.WebUI.Models;
+using Services;
 
 namespace OnnxStack.WebUI.Pages.StableDiffusion
 {
     public class IndexModel : PageModel
     {
+        private readonly IFileService _fileService;
         private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(ILogger<IndexModel> logger)
+        public IndexModel(ILogger<IndexModel> logger, IFileService fileService)
         {
             _logger = logger;
+            _fileService = fileService;
         }
 
 
@@ -30,17 +33,24 @@ namespace OnnxStack.WebUI.Pages.StableDiffusion
             });
         }
 
-        public ActionResult OnPostUploadImage(UploadImageModel model)
+        public async Task<ActionResult> OnPostUploadImage(UploadImageModel model)
         {
             if (!ModelState.IsValid)
                 return Partial("UploadImageModal", model);
 
-           //save base64 image to file
-           System.IO.File.WriteAllBytes("image.png", Convert.FromBase64String(model.ImageBase64.Split(',')[1]));
+            var fileResult = await _fileService.UploadImageFile(model);
+            if(fileResult is null)
+            {
+                ModelState.AddModelError("ImageBase64", "Error saving image file");
+                return Partial("UploadImageModal", model);
+            }
 
-            //return CloseModal(object);
-            //return CloseModalError("Error Message");
-            return ModalResult.Success();
+            return ModalResult.Close(new
+            { 
+                imageName = fileResult.Filename,
+                imageUrl = fileResult.FileUrl,
+                success = true
+            });
         }
     }
 }

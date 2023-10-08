@@ -2,18 +2,16 @@
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.WebUI.Models;
+using Services;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace OnnxStack.Web.Hubs
 {
     public class StableDiffusionHub : Hub<IStableDiffusionClient>
     {
+        private readonly IFileService _fileService;
         private readonly ILogger<StableDiffusionHub> _logger;
-        private readonly IWebHostEnvironment _webHostEnvironment;
-        private readonly JsonSerializerOptions _serializerOptions;
         private readonly IStableDiffusionService _stableDiffusionService;
 
 
@@ -23,12 +21,11 @@ namespace OnnxStack.Web.Hubs
         /// <param name="logger">The logger.</param>
         /// <param name="stableDiffusionService">The stable diffusion service.</param>
         /// <param name="webHostEnvironment">The web host environment.</param>
-        public StableDiffusionHub(ILogger<StableDiffusionHub> logger, IStableDiffusionService stableDiffusionService, IWebHostEnvironment webHostEnvironment)
+        public StableDiffusionHub(ILogger<StableDiffusionHub> logger, IStableDiffusionService stableDiffusionService, IFileService fileService)
         {
             _logger = logger;
-            _webHostEnvironment = webHostEnvironment;
+            _fileService = fileService;
             _stableDiffusionService = stableDiffusionService;
-            _serializerOptions = new JsonSerializerOptions { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
         }
 
 
@@ -62,17 +59,83 @@ namespace OnnxStack.Web.Hubs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         [HubMethodName("ExecuteTextToImage")]
-        public async IAsyncEnumerable<TextToImageResult> OnExecuteTextToImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions, [EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<StableDiffusionResult> OnExecuteTextToImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             _logger.Log(LogLevel.Information, "[OnExecuteTextToImage] - New request received, Connection: {0}", Context.ConnectionId);
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Context.ConnectionAborted, cancellationToken);
 
             // TODO: Add support for multiple results
             var result = await GenerateTextToImageResult(promptOptions, schedulerOptions, cancellationTokenSource.Token);
-            if (result is null)
-                yield break;
+            if (!result.IsError)
+                yield return result;
 
-            yield return result;
+            await Clients.Caller.OnError(result.Error);
+        }
+
+
+        /// <summary>
+        /// Execute Image-To-Image Stable Diffusion
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        [HubMethodName("ExecuteImageToImage")]
+        public async IAsyncEnumerable<StableDiffusionResult> OnExecuteImageToImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            _logger.Log(LogLevel.Information, "[ExecuteImageToImage] - New request received, Connection: {0}", Context.ConnectionId);
+            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Context.ConnectionAborted, cancellationToken);
+
+            // TODO: Add support for multiple results
+            var result = await GenerateImageToImageResult(promptOptions, schedulerOptions, cancellationTokenSource.Token);
+            if (!result.IsError)
+                yield return result;
+
+            await Clients.Caller.OnError(result.Error);
+            yield break;
+        }
+
+
+        /// <summary>
+        /// Generates the image to image result.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<StableDiffusionResult> GenerateImageToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        {
+            var timestamp = Stopwatch.GetTimestamp();
+            schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
+
+            //1. Create filenames
+            var random = await _fileService.CreateRandomName();
+            var output = $"Output-{random}";
+            var outputImage = $"{output}.png";
+            var outputBlueprint = $"{output}.json";
+            var inputImage = $"Input-{random}.png";
+            var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
+            var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
+
+            //2. Copy input image to new file
+            var inputImageFile = await _fileService.CopyInputImageFile(promptOptions.InputImage, inputImage);
+            if (inputImageFile is null)
+                return new StableDiffusionResult("Failed to copy input image");
+
+            //3. Generate blueprint
+            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions);
+            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
+            if (bluprintFile is null)
+                return new StableDiffusionResult("Failed to save blueprint");
+
+            //4. Set full path of input image
+            promptOptions.InputImage = inputImageFile.FilePath;
+
+            //5. Run stable diffusion
+            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+                return new StableDiffusionResult("Failed to run stable diffusion");
+
+            //6. Return result
+            return new StableDiffusionResult(outputImage, outputImageUrl, blueprint, bluprintFile.Filename, bluprintFile.FileUrl, GetElapsed(timestamp));
         }
 
 
@@ -82,21 +145,31 @@ namespace OnnxStack.Web.Hubs
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<TextToImageResult> GenerateTextToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        private async Task<StableDiffusionResult> GenerateTextToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
             schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
 
+            //1. Create filenames
+            var random = await _fileService.CreateRandomName();
+            var output = $"Output-{random}";
+            var outputImage = $"{output}.png";
+            var outputBlueprint = $"{output}.json";
+            var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
+            var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
+
+            //2. Generate blueprint
             var blueprint = new ImageBlueprint(promptOptions, schedulerOptions);
-            var fileInfo = CreateFileInfo(promptOptions, schedulerOptions);
-            if (!await SaveBlueprintFile(fileInfo, blueprint))
-                return null;
+            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
+            if (bluprintFile is null)
+                return new StableDiffusionResult("Failed to save blueprint");
 
-            if (!await RunStableDiffusion(promptOptions, schedulerOptions, fileInfo, cancellationToken))
-                return null;
+            //3. Run stable diffusion
+            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+                return new StableDiffusionResult("Failed to run stable diffusion");
 
-            var elapsed = (int)Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
-            return new TextToImageResult(fileInfo.Image, fileInfo.ImageUrl, blueprint, fileInfo.Blueprint, fileInfo.BlueprintUrl, elapsed);
+            //4. Return result
+            return new StableDiffusionResult(outputImage, outputImageUrl, blueprint, bluprintFile.Filename, bluprintFile.FileUrl, GetElapsed(timestamp));
         }
 
 
@@ -108,69 +181,38 @@ namespace OnnxStack.Web.Hubs
         /// <param name="fileInfo">The file information.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<bool> RunStableDiffusion(PromptOptions promptOptions, SchedulerOptions schedulerOptions, FileInfoResult fileInfo, CancellationToken cancellationToken)
+        private async Task<bool> RunStableDiffusion(PromptOptions promptOptions, SchedulerOptions schedulerOptions, string outputImage, CancellationToken cancellationToken)
         {
             try
             {
-                await _stableDiffusionService.TextToImageFile(promptOptions, schedulerOptions, fileInfo.ImageFile, ProgressCallback(), cancellationToken);
+                await _stableDiffusionService.TextToImageFile(promptOptions, schedulerOptions, outputImage, ProgressCallback(), cancellationToken);
                 return true;
             }
             catch (OperationCanceledException tex)
             {
                 await Clients.Caller.OnCanceled(tex.Message);
-                _logger.Log(LogLevel.Warning, tex, "[OnExecuteTextToImage] - Operation canceled, Connection: {0}", Context.ConnectionId);
+                _logger.Log(LogLevel.Warning, tex, "[RunStableDiffusion] - Operation canceled, Connection: {0}", Context.ConnectionId);
             }
             catch (Exception ex)
             {
                 await Clients.Caller.OnError(ex.Message);
-                _logger.Log(LogLevel.Error, ex, "[OnExecuteTextToImage] - Error generating image, Connection: {0}", Context.ConnectionId);
+                _logger.Log(LogLevel.Error, ex, "[RunStableDiffusion] - Error generating image, Connection: {0}", Context.ConnectionId);
             }
             return false;
         }
 
 
         /// <summary>
-        /// Saves the options file.
+        /// Progress callback.
         /// </summary>
-        /// <param name="fileInfo">The file information.</param>
-        /// <param name="options">The options.</param>
         /// <returns></returns>
-        private async Task<bool> SaveBlueprintFile(FileInfoResult fileInfo, ImageBlueprint bluprint)
+        private Action<int, int> ProgressCallback()
         {
-            try
+            return async (progress, total) =>
             {
-                using (var stream = File.Create(fileInfo.BlueprintFile))
-                {
-                    await JsonSerializer.SerializeAsync(stream, bluprint, _serializerOptions);
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, ex, "[SaveOptions] - Error saving model card, Connection: {0}", Context.ConnectionId);
-                return false;
-            }
-        }
-
-
-        /// <summary>
-        /// Creates the file information.
-        /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <returns></returns>
-        private FileInfoResult CreateFileInfo(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
-        {
-            var rand = Path.GetFileNameWithoutExtension(Path.GetRandomFileName());
-            var output = $"{schedulerOptions.Seed}-{rand}";
-            var outputImage = $"{output}.png";
-            var outputImageUrl = CreateOutputUrl("TextToImage", outputImage);
-            var outputImageFile = UrlToPhysicalPath(outputImageUrl);
-
-            var outputJson = $"{output}.json";
-            var outputJsonUrl = CreateOutputUrl("TextToImage", outputJson);
-            var outputJsonFile = UrlToPhysicalPath(outputJsonUrl);
-            return new FileInfoResult(outputImage, outputImageUrl, outputImageFile, outputJson, outputJsonUrl, outputJsonFile);
+                _logger.Log(LogLevel.Information, "[ProgressCallback] - Progress: {0}/{1}, Connection: {2}", progress, total, Context.ConnectionId);
+                await Clients.Caller.OnProgress(new ProgressResult(progress, total));
+            };
         }
 
 
@@ -189,42 +231,13 @@ namespace OnnxStack.Web.Hubs
 
 
         /// <summary>
-        /// Progress callback.
+        /// Gets the elapsed time is seconds.
         /// </summary>
+        /// <param name="timestamp">The begin timestamp.</param>
         /// <returns></returns>
-        private Action<int, int> ProgressCallback()
+        private static int GetElapsed(long timestamp)
         {
-            return async (progress, total) =>
-            {
-                _logger.Log(LogLevel.Information, "[OnExecuteTextToImage] - Progress: {0}/{1}, Connection: {2}", progress, total, Context.ConnectionId);
-                await Clients.Caller.OnProgress(new ProgressResult(progress, total));
-            };
-        }
-
-
-        /// <summary>
-        /// URL path to physical path.
-        /// </summary>
-        /// <param name="url">The URL.</param>
-        /// <returns></returns>
-        private string UrlToPhysicalPath(string url)
-        {
-            string webRootPath = _webHostEnvironment.WebRootPath;
-            string physicalPath = Path.Combine(webRootPath, url.TrimStart('/').Replace('/', '\\'));
-            return physicalPath;
-        }
-
-
-        /// <summary>
-        /// Creates the output URL.
-        /// </summary>
-        /// <param name="folder">The folder.</param>
-        /// <param name="file">The file.</param>
-        /// <returns></returns>
-        private string CreateOutputUrl(string folder, string file)
-        {
-            return $"/images/results/{folder}/{file}";
+            return (int)Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
         }
     }
-    
 }

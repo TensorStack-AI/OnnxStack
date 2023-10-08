@@ -1,6 +1,6 @@
 ﻿@page
 @using OnnxStack.StableDiffusion.Enums;
-@model TextToImageModel
+@model ImageToImageModel
 @{
     ViewData["Title"] = "Stable Diffusion";
 }
@@ -25,9 +25,13 @@
     <div class="d-flex flex-fill">
 
         @*  Controls *@
+        @Html.HiddenFor(m => m.InitialImage.Url)
+        @Html.HiddenFor(m => m.InitialImage.Name)
+        @Html.HiddenFor(m => m.InitialImage.Width)
+        @Html.HiddenFor(m => m.InitialImage.Height)
         <div class="d-flex flex-column w-100 me-2 p-2 border border-1 border-dark" style="max-width:440px;overflow:hidden">
-            <h4 class="pb-0 mb-0">Text To Image</h4>
-            <small>Text to image transforms textual descriptions into visual content</small>
+            <h4 class="pb-0 mb-0">Image To Image</h4>
+            <small>Transforms one image into another, preserving visual quality and structure.</small>
             <div class="border-bottom border-dark mt-1 mb-1"></div>
             <div class="d-flex flex-column justify-content-between h-100 mt-1" style="overflow:hidden">
                 <div class="d-flex flex-column h-100">
@@ -35,10 +39,10 @@
                         await Html.RenderPartialAsync("_PromptOptionsForm", Model.Prompt);
                         await Html.RenderPartialAsync("_SchedulerOptionsForm", Model.Options);
                     }
-                    <div class="d-flex flex-column flex-grow-0 w-100">
+                    <div class="d-flex flex-column flex-grow-0 w-100" >
                         <div class="d-flex flex-row gap-2 justify-content-end" autocomplete="off">
                             <button type="button" class="btn-cancel btn btn-warning w-100" disabled>Cancel</button>
-                            <button id="btn-execute" type="button" class="btn btn-success w-100">Generate</button>
+                            <button id="btn-execute" type="button" class="btn btn-success w-100" disabled>Generate</button>
                         </div>
                     </div>
                 </div>
@@ -60,11 +64,15 @@
                     </button>
                 </li>
             </ul>
-            <div class="tab-content" id="tabs-output-content">
+            <div class="tab-content h-100" id="tabs-output-content">
 
                 @* Text To Image Tab *@
-                <div class="tab-pane fade show active" id="tab-output-container" role="tabpanel" aria-labelledby="tab-output-item">
-                    <div id="output-container" class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center mt-4">
+                <div class="tab-pane fade show active h-100" id="tab-output-container" role="tabpanel" aria-labelledby="tab-output-item">
+                    <div class="d-flex justify-content-center align-items-center align-content-center h-100">
+                        <div id="input-container" class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center mt-4">
+                        </div>
+                        <div id="output-container" class="d-flex flex-fill flex-wrap justify-content-center align-content-center align-items-center mt-4">
+                        </div>
                     </div>
                 </div>
 
@@ -79,7 +87,7 @@
 </div>
 
 <script id="progressResultTemplate" type="text/html">
-    <div class="output-progress d-flex flex-column border border-1 border-dark p-1" style="min-width:512px;min-height:512px;">
+    <div class="output-progress d-flex flex-column border border-1 border-dark p-1" style="min-width:512px;min-height:256px;">
         <div style="overflow:hidden;text-align:center">
             <img width="{{width}}" height="{{height}}" src="/images/placeholder.jpg"/>
         </div>
@@ -95,10 +103,11 @@
     </div>
 </script>
 
+
 <script id="outputResultTemplate" type="text/html">
     <div class="d-flex flex-column border border-1 border-dark p-1" >
-       <div class="d-flex align-items-center  justify-content-center" style="overflow:hidden;min-width:512px;min-height:512px;" >
-            <img id="img-result" width="{{width}}" height="{{height}}" src="{{imageUrl}}" alt="{{imageName}}" />
+       <div class="d-flex align-items-center  justify-content-center" style="overflow:hidden;min-width:512px;min-height:256px;" >
+            <img id="img-result" width="{{width}}" height="{{height}}" src="{{imageUrl}}" alt="{{imageName}}" data-name="{{imageName}}" />
         </div>
          <div class="d-flex flex-row flex-wrap-reverse text-wrap justify-content-around pt-2">
           <div class="d-flex flex-row align-items-center">
@@ -132,7 +141,25 @@
                     <li><a class="dropdown-item" href="{{blueprintUrl}}" download="{{blueprintName}}">Download JSON</a></li>
                 </ul>
             </div>
-            <a class="btn btn-sm btn-info w-100" href="/StableDiffusion/ImageToImage?img={{imageName}}&width={{actualWidth}}&height={{actualHeight}}" target="_blank" disabled>Image To Image</a>
+            <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
+        </div>
+    </div>
+</script>
+
+
+<script id="inputResultTemplate" type="text/html">
+    <div class="d-flex flex-column border border-1 border-dark p-1" >
+       <div class="d-flex align-items-center  justify-content-center" style="overflow:hidden;min-width:512px;min-height:256px;" >
+            <img id="img-input" width="{{width}}" height="{{height}}" src="{{imageUrl}}" alt="{{imageName}}" data-name="{{imageName}}" onerror="this.src='/images/placeholder.jpg';this.onerror='';"/>
+        </div>
+         <div class="d-flex flex-row flex-wrap-reverse text-wrap justify-content-around pt-2">
+             <div class="d-flex flex-row align-items-center">
+              <small class="result-info">Image:</small>
+              <span>{{imageName}}</span>
+          </div>
+        </div>
+        <div class="d-flex flex-row gap-2 pt-2">
+            <button id="button-upload" type="button" class="btn btn-sm btn-success w-100" >Upload</button>
         </div>
     </div>
 </script>
@@ -145,13 +172,13 @@
 
         const stableDiffusionTextToImage = () => {
 
-            const LAYOUT_MAX_WIDTH = 1024;
+            const LAYOUT_MAX_WIDTH = 512;
             const LAYOUT_MAX_HEIGHT = 512;
             const LAYOUT_HISTORY_MAX_WIDTH = 256;
             const LAYOUT_HISTORY_MAX_HEIGHT = 256;
 
             let diffusionProcess;
-            const buttonClear = $("#btn-clear")
+            const buttonClear = $("#btn-clear");
             const buttonCancel = $(".btn-cancel");
             const buttonExecute = $("#btn-execute");
             const textBoxWidth = $("#Width");
@@ -166,6 +193,9 @@
             const outputHistoryContainer = $("#output-container-history");
             const historyOutputTemplate = $("#historyOutputTemplate").html();
             const historyProgressTemplate = $("#historyProgressTemplate").html();
+
+            const inputContainer = $("#input-container");
+            const inputResultTemplate = $("#inputResultTemplate").html();
 
             const connection = new signalR.HubConnectionBuilder().withUrl("/StableDiffusionHub").build();
 
@@ -203,10 +233,16 @@
                 if (!validateForm(schedulerParameterForm))
                     return;
 
+                const inputImageUrl = getInputImageUrl();
+                if (!inputImageUrl)
+                    return;
+
+                promptParams["inputImage"] = inputImageUrl;
+
                 processBegin();
                 updatePlaceholderImage(true);
                 diffusionProcess = await connection
-                    .stream("ExecuteTextToImage", promptParams, schedulerParams)
+                    .stream("ExecuteImageToImage", promptParams, schedulerParams)
                     .subscribe({
                         next: onServerResponse,
                         complete: onServerResponse,
@@ -239,13 +275,20 @@
                 addOutputHistory(width, height, historyProgressTemplate);
             }
 
+            const addInputResult = (width, height, template, data) => {
+                const size = getSafeSize(width, height, LAYOUT_MAX_WIDTH, LAYOUT_MAX_HEIGHT);
+                inputContainer.html(Mustache.render(template, {
+                    width: size.width,
+                    height: size.height,
+                    ...data
+                }));
+            }
+
             const addOutputResult = (width, height, template, data) => {
                 const size = getSafeSize(width, height, LAYOUT_MAX_WIDTH, LAYOUT_MAX_HEIGHT);
                 outputContainer.html(Mustache.render(template, {
                     width: size.width,
                     height: size.height,
-                    actualWidth: width,
-                    actualHeight: height,
                     ...data
                 }));
             }
@@ -268,6 +311,7 @@
             }
 
             const processBegin = () => {
+                $("#button-upload").attr("disabled", "disabled");
                 buttonCancel.removeAttr("disabled");
                 buttonExecute.attr("disabled", "disabled");
                 promptParameterForm.find(".form-control, .slider").attr("disabled", "disabled");
@@ -275,6 +319,7 @@
             }
 
             const processEnd = () => {
+                $("#button-upload").removeAttr("disabled");
                 buttonCancel.attr("disabled", "disabled");
                 buttonExecute.removeAttr("disabled");
                 promptParameterForm.find(".form-control, .slider").removeAttr("disabled");
@@ -293,13 +338,71 @@
                 return +$("option:selected", textBoxHeight).val();
             }
 
+            const getInputImageUrl = () => {
+                const imageName = getInputImageName();
+                if (!imageName)
+                    return null;
+
+                const inputImageUrl = $("#img-input").attr("src");
+                if (!inputImageUrl)
+                    return null;
+                return inputImageUrl.split("?")[0];
+            }
+
+            const getInputImageName = () => {
+                const inputImageName = $("#img-input").data("name");
+                if (!inputImageName)
+                    return null;
+                return inputImageName;
+            }
+
+            const clearInputImageUrl = () => {
+                $("#img-input").data("name", '');
+                $("#img-input").removeAttr("src");
+                updateInputImageContainer();
+            }
+
+            $(document).on("click", "#button-upload", async function () {
+                const width = getWidth();
+                const height = getHeight();
+                const result = await openModalGet(`/StableDiffusion?handler=UploadImage&Width=${width}&Height=${height}`);
+                if (result.success) {
+                    addInputResult(width, height, inputResultTemplate, result);
+                    buttonExecute.removeAttr("disabled");
+                }
+            });
+
+
+            const setInitialImage = () => {
+                const image = $("#InitialImage_Name").val();
+                if(!image)
+                    return;
+
+                const imageUrl = $("#InitialImage_Url").val();
+                const imageWidth = $("#InitialImage_Width").val();
+                const imageHeight = $("#InitialImage_Height").val();
+                textBoxWidth.val(imageWidth);
+                textBoxHeight.val(imageHeight);
+                addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: imageUrl, imageName: image });
+                buttonExecute.removeAttr("disabled");
+                history.pushState(null, "", location.href.split("?")[0]);
+            }
+
+            const updateInputImageContainer = () => {
+                const url = getInputImageUrl();
+                const name = getInputImageName();
+                addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: url, imageName: name });
+            }
+
+
             // Map UI Events/Functions
-            $(".image2image-control").hide();
             buttonCancel.on("click", cancelDiffusion);
             buttonClear.on("click", clearHistory);
             buttonExecute.on("click", async () => { await executeDiffusion(); });
-            textBoxWidth.on("change", () => { updatePlaceholderImage(false); });
-            textBoxHeight.on("change", () => { updatePlaceholderImage(false); }).trigger("change");
+            textBoxWidth.on("change", () => { updatePlaceholderImage(false); clearInputImageUrl(); });
+            textBoxHeight.on("change", () => { updatePlaceholderImage(false); clearInputImageUrl(); }).trigger("change");
+
+            setInitialImage();
 
             // Map signalr functions
             connection.on("OnError", onServerError);

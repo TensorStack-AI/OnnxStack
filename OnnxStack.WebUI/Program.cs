@@ -1,7 +1,7 @@
-using OnnxStack.Web.Hubs;
-using OnnxStack.Core;
 using AspNetCore.Unobtrusive.Ajax;
-using MathNet.Numerics;
+using OnnxStack.Core;
+using OnnxStack.Web.Hubs;
+using Services;
 using System.Text.Json.Serialization;
 
 namespace OnnxStack.WebUI
@@ -22,6 +22,7 @@ namespace OnnxStack.WebUI
                 });
 
             builder.Services.AddOnnxStackStableDiffusion();
+            builder.Services.AddSingleton<IFileService, FileService>();
 
             var app = builder.Build();
 

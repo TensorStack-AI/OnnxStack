@@ -23,10 +23,12 @@ namespace OnnxStack.WebUI.Pages.StableDiffusion
         {
             Prompt = new PromptOptions
             {
+               // Prompt = "A photo of a cat",
             };
 
             Options = new SchedulerOptions
             {
+              //  InferenceSteps = 5,
             };
         }
     }
