@@ -94,7 +94,7 @@ namespace Services
         {
             try
             {
-                var rand = CreateRandomName();
+                var rand = await CreateRandomName();
                 var outputImage = $"Upload-{rand}.png";
                 var outputImageUrl = await CreateOutputUrl(outputImage);
                 var outputImageFile = await UrlToPhysicalPath(outputImageUrl);

@@ -1,5 +1,6 @@
 ﻿using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace OnnxStack.StableDiffusion.Config
 {
@@ -11,6 +12,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// <value>
         ///  The height of the image. Default is 512 and must be divisible by 64.
         /// </value>
+        [Range(0, 4096)]
         public int Height { get; set; } = 512;
 
         /// <summary>
@@ -19,6 +21,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// <value>
         /// The width of the image. Default is 512 and must be divisible by 64.
         /// </value>
+        [Range(0, 4096)]
         public int Width { get; set; } = 512;
 
         /// <summary>
@@ -27,6 +30,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// <value>
         /// If value is set to 0 a random seed is used.
         /// </value>
+        [Range(0, int.MaxValue)]
         public int Seed { get; set; }
 
         /// <summary>
@@ -35,6 +39,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// <value>
         /// The number of steps to run inference for. The more steps the longer it will take to run the inference loop but the image quality should improve.
         /// </value>
+        [Range(5, 200)]
         public int InferenceSteps { get; set; } = 15;
 
         /// <summary>
@@ -43,18 +48,21 @@ namespace OnnxStack.StableDiffusion.Config
         /// <value>
         /// The scale for the classifier-free guidance. The higher the number the more it will try to look like the prompt but the image quality may suffer.
         /// </value>
+        [Range(0f, 40f)]
         public float GuidanceScale { get; set; } = 7.5f;
 
         /// <summary>
         /// Gets or sets the strength use for Image 2 Image
-        /// </summary>
+        [Range(0f, 1f)]
         public float Strength { get; set; } = 0.6f;
 
         /// <summary>
         /// Gets or sets the initial noise level for Image 2 Image
         /// </summary>
+        [Range(-1f, 1f)]
         public float InitialNoiseLevel { get; set; } = 0f;
 
+        [Range(0, int.MaxValue)]
         public int TrainTimesteps { get; set; } = 1000;
         public float BetaStart { get; set; } = 0.00085f;
         public float BetaEnd { get; set; } = 0.012f;
