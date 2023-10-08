@@ -1,4 +1,6 @@
 using AspNetCore.Unobtrusive.Ajax;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using OnnxStack.Core;
 using OnnxStack.Web.Hubs;
 using Services;
@@ -23,6 +25,7 @@ namespace OnnxStack.WebUI
 
             builder.Services.AddOnnxStackStableDiffusion();
             builder.Services.AddSingleton<IFileService, FileService>();
+            builder.Services.AddSingleton((s) => s.GetService<IServer>().Features.Get<IServerAddressesFeature>());
 
             var app = builder.Build();
 

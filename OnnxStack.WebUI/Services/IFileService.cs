@@ -53,6 +53,6 @@ namespace Services
         /// </summary>
         /// <param name="file">The file.</param>
         /// <returns></returns>
-        Task<string> CreateOutputUrl(string file);
+        Task<string> CreateOutputUrl(string file, bool relative = true);
     }
 }

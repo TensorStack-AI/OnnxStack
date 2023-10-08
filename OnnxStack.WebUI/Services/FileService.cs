@@ -1,4 +1,5 @@
-﻿using OnnxStack.Web.Models;
+﻿using Microsoft.AspNetCore.Hosting.Server.Features;
+using OnnxStack.Web.Models;
 using OnnxStack.WebUI.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -10,16 +11,18 @@ namespace Services
         private readonly ILogger<FileService> _logger;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly JsonSerializerOptions _serializerOptions;
+        private readonly IServerAddressesFeature _serverAddressesFeature;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FileService"/> class.
         /// </summary>
         /// <param name="logger">The logger.</param>
         /// <param name="webHostEnvironment">The web host environment.</param>
-        public FileService(ILogger<FileService> logger, IWebHostEnvironment webHostEnvironment)
+        public FileService(ILogger<FileService> logger, IWebHostEnvironment webHostEnvironment, IServerAddressesFeature serverAddressesFeature)
         {
             _logger = logger;
             _webHostEnvironment = webHostEnvironment;
+            _serverAddressesFeature = serverAddressesFeature;
             _serializerOptions = new JsonSerializerOptions { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
         }
 
@@ -155,9 +158,11 @@ namespace Services
         /// <param name="folder">The folder.</param>
         /// <param name="file">The file.</param>
         /// <returns></returns>
-        public Task<string> CreateOutputUrl(string file)
+        public Task<string> CreateOutputUrl(string file, bool relative = true)
         {
-            return Task.FromResult($"/images/results/{file}");
+            return relative
+                ? Task.FromResult($"/images/results/{file}")
+                : Task.FromResult($"{GetServerUrl()}/images/results/{file}");
         }
 
 
@@ -168,6 +173,17 @@ namespace Services
         public Task<string> CreateRandomName()
         {
             return Task.FromResult(Path.GetFileNameWithoutExtension(Path.GetRandomFileName()));
+        }
+
+
+        private string GetServerUrl()
+        {
+            var address = _serverAddressesFeature.Addresses.FirstOrDefault(x=> x.StartsWith("https"))
+                       ?? _serverAddressesFeature.Addresses.FirstOrDefault();
+            if (string.IsNullOrEmpty(address))
+                return string.Empty;
+
+            return address;
         }
     }
 

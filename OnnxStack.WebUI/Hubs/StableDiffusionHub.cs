@@ -14,7 +14,6 @@ namespace OnnxStack.Web.Hubs
         private readonly ILogger<StableDiffusionHub> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
 
-
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionHub"/> class.
         /// </summary>
@@ -122,7 +121,10 @@ namespace OnnxStack.Web.Hubs
                 return new StableDiffusionResult("Failed to copy input image");
 
             //3. Generate blueprint
-            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions);
+            var inputImageLink = await _fileService.CreateOutputUrl(inputImage, false);
+            var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
+            promptOptions.InputImage = await _fileService.CreateOutputUrl(inputImageFile.Filename, false);
+            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink, inputImageLink);
             var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
@@ -159,7 +161,8 @@ namespace OnnxStack.Web.Hubs
             var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
 
             //2. Generate blueprint
-            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions);
+            var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
+            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink);
             var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
