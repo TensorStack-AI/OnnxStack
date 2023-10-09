@@ -1,5 +1,7 @@
 ﻿using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace OnnxStack.StableDiffusion.Config
 {
@@ -12,7 +14,12 @@ namespace OnnxStack.StableDiffusion.Config
         [StringLength(512)]
         public string NegativePrompt { get; set; }
         public SchedulerType SchedulerType { get; set; }
-        public string InputImage { get; set; }
-        public bool HasInputImage => !string.IsNullOrEmpty(InputImage);
+
+        public InputImage InputImage { get; set; }
+
+        public InputImage InputImageMask { get; set; }
+
+        public bool HasInputImage => InputImage?.HasImage ?? false;
+        public bool HasInputImageMask => InputImageMask?.HasImage ?? false;
     }
 }

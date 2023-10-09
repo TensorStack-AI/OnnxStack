@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Models;
 using OnnxStack.WebUI.Models;
 using Services;
+using SixLabors.ImageSharp;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -114,23 +116,24 @@ namespace OnnxStack.Web.Hubs
             var inputImage = $"Input-{random}.png";
             var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
             var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
+            var inputOriginaUrl = await _fileService.CreateOutputUrl(promptOptions.InputImage.ImagePath);
 
             //2. Copy input image to new file
-            var inputImageFile = await _fileService.CopyInputImageFile(promptOptions.InputImage, inputImage);
+            var inputImageFile = await _fileService.CopyInputImageFile(promptOptions.InputImage.ImagePath, inputImage);
             if (inputImageFile is null)
                 return new StableDiffusionResult("Failed to copy input image");
 
             //3. Generate blueprint
             var inputImageLink = await _fileService.CreateOutputUrl(inputImage, false);
             var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
-            promptOptions.InputImage = await _fileService.CreateOutputUrl(inputImageFile.Filename, false);
+            promptOptions.InputImage = new InputImage(inputOriginaUrl);
             var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink, inputImageLink);
             var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
             //4. Set full path of input image
-            promptOptions.InputImage = inputImageFile.FilePath;
+            promptOptions.InputImage = new InputImage(inputImageFile.FilePath);
 
             //5. Run stable diffusion
             if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
@@ -188,7 +191,11 @@ namespace OnnxStack.Web.Hubs
         {
             try
             {
-                await _stableDiffusionService.TextToImageFile(promptOptions, schedulerOptions, outputImage, ProgressCallback(), cancellationToken);
+                var resultImage = await _stableDiffusionService.GenerateAsImageAsync(promptOptions, schedulerOptions, ProgressCallback(), cancellationToken);
+                if (resultImage is null)
+                    return false;
+
+                await resultImage.SaveAsPngAsync(outputImage).ConfigureAwait(false);
                 return true;
             }
             catch (OperationCanceledException tex)

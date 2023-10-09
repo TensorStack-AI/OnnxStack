@@ -126,7 +126,7 @@ namespace OnnxStack.StableDiffusion.Services
                 return scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma);
 
             // Image input, decode, add noise, return as latent 0
-            var imageTensor = ImageHelpers.TensorFromImage(prompt.InputImage, options.Width, options.Height);
+            var imageTensor = prompt.InputImage.ToDenseTensor(options.Width, options.Height);
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("sample", imageTensor));
             using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
             {
@@ -205,7 +205,7 @@ namespace OnnxStack.StableDiffusion.Services
         private static DenseTensor<float> ClipImageFeatureExtractor(SchedulerOptions options, DenseTensor<float> imageTensor)
         {
             //convert tensor result to image
-            using (var image = ImageHelpers.TensorToImage(imageTensor, options.Width, options.Height))
+            using (var image = imageTensor.ToImage())
             {
                 // Resize image
                 ImageHelpers.Resize(image, 224, 224);

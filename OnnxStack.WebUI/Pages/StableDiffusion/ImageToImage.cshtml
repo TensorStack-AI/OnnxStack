@@ -237,7 +237,7 @@
                 if (!inputImageUrl)
                     return;
 
-                promptParams["inputImage"] = inputImageUrl;
+                promptParams["inputImage"] = { imagePath: inputImageUrl };
 
                 processBegin();
                 updatePlaceholderImage(true);

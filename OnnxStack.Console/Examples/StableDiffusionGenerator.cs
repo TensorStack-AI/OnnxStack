@@ -2,6 +2,7 @@
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using SixLabors.ImageSharp;
 using System.Collections.ObjectModel;
 
 namespace OnnxStack.Console.Runner
@@ -57,11 +58,12 @@ namespace OnnxStack.Console.Runner
         private async Task<bool> GenerateImage(PromptOptions prompt, SchedulerOptions options, string key)
         {
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}_{key}.png");
-            var result = await _stableDiffusionService.TextToImageFile(prompt, outputFilename);
+            var result = await _stableDiffusionService.GenerateAsImageAsync(prompt, options);
             if (result == null)
                 return false;
 
-            OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(result.FileName)}", ConsoleColor.Green);
+            await result.SaveAsPngAsync(outputFilename);
+            OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
             return true;
         }
 

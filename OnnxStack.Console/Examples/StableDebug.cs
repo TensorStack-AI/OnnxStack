@@ -1,6 +1,7 @@
 ﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using SixLabors.ImageSharp;
 using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
@@ -61,9 +62,10 @@ namespace OnnxStack.Console.Runner
         {
             var timestamp = Stopwatch.GetTimestamp();
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
-            var result = await _stableDiffusionService.TextToImageFile(prompt, options, outputFilename);
+            var result = await _stableDiffusionService.GenerateAsImageAsync(prompt, options);
             if (result is not null)
             {
+                await result.SaveAsPngAsync(outputFilename);
                 OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                 OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);
                 return true;
