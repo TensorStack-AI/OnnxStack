@@ -3,10 +3,10 @@
     public enum OnnxModelType
     {
         Unet = 0,
-        Tokenizer = 1,
-        VaeDecoder = 2,
-        TextEncoder = 3,
-        SafetyModel = 4,
-        VaeEncoder = 5,
+        Tokenizer = 10,
+        TextEncoder = 20,
+        VaeEncoder = 30,
+        VaeDecoder = 40,
+        SafetyChecker = 100,
     }
 }

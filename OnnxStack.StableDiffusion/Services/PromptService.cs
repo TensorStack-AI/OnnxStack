@@ -51,11 +51,11 @@ namespace OnnxStack.StableDiffusion.Services
             var negativePromptEmbeddings = await GenerateEmbedsAsync(negativePromptTokens, maxPromptTokenCount);
 
             // Calculate embeddings
-            var textEmbeddings = new DenseTensor<float>(new[] { 2, promptEmbeddings.Count / Constants.ClipTokenizerEmbeddingsLength, Constants.ClipTokenizerEmbeddingsLength });
+            var textEmbeddings = new DenseTensor<float>(new[] { 2, promptEmbeddings.Count / _configuration.EmbeddingsLength, _configuration.EmbeddingsLength });
             for (var i = 0; i < promptEmbeddings.Count; i++)
             {
-                textEmbeddings[0, i / Constants.ClipTokenizerEmbeddingsLength, i % Constants.ClipTokenizerEmbeddingsLength] = negativePromptEmbeddings[i];
-                textEmbeddings[1, i / Constants.ClipTokenizerEmbeddingsLength, i % Constants.ClipTokenizerEmbeddingsLength] = promptEmbeddings[i];
+                textEmbeddings[0, i / _configuration.EmbeddingsLength, i % _configuration.EmbeddingsLength] = negativePromptEmbeddings[i];
+                textEmbeddings[1, i / _configuration.EmbeddingsLength, i % _configuration.EmbeddingsLength] = promptEmbeddings[i];
             }
             return textEmbeddings;
         }
@@ -114,16 +114,31 @@ namespace OnnxStack.StableDiffusion.Services
         {
             // If less than minimumLength pad with blank tokens
             if (inputTokens.Length < minimumLength)
-                inputTokens = inputTokens.PadWithBlankTokens(minimumLength).ToArray();
+                inputTokens = PadWithBlankTokens(inputTokens, minimumLength).ToArray();
 
             // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
             var embeddings = new List<float>();
-            foreach (var tokenBatch in inputTokens.Batch(Constants.ClipTokenizerTokenLimit))
+            foreach (var tokenBatch in inputTokens.Batch(_configuration.TokenizerLimit))
             {
-                var tokens = tokenBatch.PadWithBlankTokens(Constants.ClipTokenizerTokenLimit);
+                var tokens = PadWithBlankTokens(tokenBatch, _configuration.TokenizerLimit);
                 embeddings.AddRange(await EncodeTokensAsync(tokens.ToArray()));
             }
             return embeddings;
+        }
+
+
+        /// <summary>
+        /// Pads a source sequence with blank tokens if its less that the required length.
+        /// </summary>
+        /// <param name="inputs">The inputs.</param>
+        /// <param name="requiredLength">The the required length of the returned array.</param>
+        /// <returns></returns>
+        private IEnumerable<int> PadWithBlankTokens(IEnumerable<int> inputs, int requiredLength)
+        {
+            var count = inputs.Count();
+            if (requiredLength > count)
+                return inputs.Concat(_configuration.BlankTokenValueArray[..(requiredLength - count)]);
+            return inputs;
         }
 
 
@@ -136,5 +151,6 @@ namespace OnnxStack.StableDiffusion.Services
         {
             return parameters.ToList().AsReadOnly();
         }
+
     }
 }

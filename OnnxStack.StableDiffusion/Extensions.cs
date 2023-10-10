@@ -88,20 +88,5 @@ namespace OnnxStack.StableDiffusion
         {
             return new[] { batch, channels, options.GetScaledHeight(), options.GetScaledWidth() };
         }
-
-
-        /// <summary>
-        /// Pads a source sequence with blank tokens if its less that the required length.
-        /// </summary>
-        /// <param name="inputs">The inputs.</param>
-        /// <param name="requiredLength">The the required length of the returned array.</param>
-        /// <returns></returns>
-        public static IEnumerable<int> PadWithBlankTokens(this IEnumerable<int> inputs, int requiredLength)
-        {
-            var count = inputs.Count();
-            if (requiredLength > count)
-                return inputs.Concat(Constants.BlankTokenValueArray[..(requiredLength - count)]);
-            return inputs;
-        }
     }
 }

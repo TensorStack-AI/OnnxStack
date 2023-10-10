@@ -1,7 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Services
@@ -12,11 +12,8 @@ namespace OnnxStack.Core.Services
     /// <seealso cref="OnnxStack.Core.Services.IOnnxModelService" />
     public sealed class OnnxModelService : IOnnxModelService
     {
-        private readonly SessionOptions _sessionOptions;
+        private readonly OnnxModelSet _onnxModelSet;
         private readonly OnnxStackConfig _configuration;
-        private readonly PrePackedWeightsContainer _prePackedWeightsContainer;
-        private readonly ImmutableDictionary<OnnxModelType, InferenceSession> _modelInferenceSessions;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxModelService"/> class.
         /// </summary>
@@ -24,21 +21,39 @@ namespace OnnxStack.Core.Services
         public OnnxModelService(OnnxStackConfig configuration)
         {
             _configuration = configuration;
-            _sessionOptions = _configuration.GetSessionOptions();
-            _sessionOptions.RegisterOrtExtensions();
-            _prePackedWeightsContainer = new PrePackedWeightsContainer();
-            var modelInferenceSessions = new Dictionary<OnnxModelType, InferenceSession>
-            {
-                {OnnxModelType.Unet,new InferenceSession(_configuration.OnnxUnetPath, _sessionOptions, _prePackedWeightsContainer) },
-                {OnnxModelType.Tokenizer,new InferenceSession(_configuration.OnnxTokenizerPath, _sessionOptions, _prePackedWeightsContainer) },
-                {OnnxModelType.VaeDecoder,new InferenceSession(_configuration.OnnxVaeDecoderPath, _sessionOptions, _prePackedWeightsContainer) },
-                {OnnxModelType.TextEncoder,new InferenceSession(_configuration.OnnxTextEncoderPath, _sessionOptions, _prePackedWeightsContainer)},
-                {OnnxModelType.VaeEncoder,new InferenceSession(_configuration.OnnxVaeEncoderPath, _sessionOptions, _prePackedWeightsContainer)}
-            };
-            if (_configuration.IsSafetyModelEnabled)
-                modelInferenceSessions.Add(OnnxModelType.SafetyModel, new InferenceSession(_configuration.OnnxSafetyModelPath, _sessionOptions));
+            _onnxModelSet = new OnnxModelSet(configuration);
+        }
 
-            _modelInferenceSessions = modelInferenceSessions.ToImmutableDictionary();
+
+        /// <summary>
+        /// Gets the configuration.
+        /// </summary>
+        public OnnxStackConfig Configuration => _configuration;
+
+
+        /// <summary>
+        /// Determines whether the specified model type is enabled.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified model type is enabled; otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsEnabled(OnnxModelType modelType)
+        {
+            return _onnxModelSet.Exists(modelType);
+        }
+
+
+        /// <summary>
+        /// Determines whether the specified model type is enabled.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified model type is enabled; otherwise, <c>false</c>.
+        /// </returns>
+        public Task<bool> IsEnabledAsync(OnnxModelType modelType)
+        {
+            return Task.FromResult(IsEnabled(modelType));
         }
 
 
@@ -65,6 +80,7 @@ namespace OnnxStack.Core.Services
             return await Task.Run(() => RunInternal(modelType, inputs)).ConfigureAwait(false);
         }
 
+
         /// <summary>
         /// Runs inference on the specified model.
         /// </summary>
@@ -73,17 +89,16 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInternal(OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
         {
-            return _modelInferenceSessions[modelType]?.Run(inputs);
+            return _onnxModelSet.GetSession(modelType).Run(inputs);
         }
 
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
-            _sessionOptions?.Dispose();
-            foreach (var modelInferenceSession in _modelInferenceSessions.Values)
-            {
-                modelInferenceSession?.Dispose();
-            }
-            _prePackedWeightsContainer?.Dispose();
+            _onnxModelSet?.Dispose();
         }
     }
 }

@@ -8,12 +8,7 @@ namespace OnnxStack.Core
 {
     public static class Extensions
     {
-        /// <summary>
-        /// Gets the Onnx InferenceSession options.
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <returns></returns>
-        public static SessionOptions GetSessionOptions(this OnnxStackConfig configuration)
+        public static SessionOptions GetSessionOptions(this OnnxModelSessionConfig configuration)
         {
             var sessionOptions = new SessionOptions
             {
@@ -21,7 +16,7 @@ namespace OnnxStack.Core
                 InterOpNumThreads = configuration.InterOpNumThreads,
                 IntraOpNumThreads = configuration.InterOpNumThreads
             };
-            switch (configuration.ExecutionProviderTarget)
+            switch (configuration.ExecutionProvider)
             {
                 case ExecutionProvider.DirectML:
                     sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;

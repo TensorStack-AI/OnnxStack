@@ -8,6 +8,7 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Schedulers;
+using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,20 +20,20 @@ namespace OnnxStack.StableDiffusion.Services
 {
     public sealed class SchedulerService : ISchedulerService
     {
+        private readonly IPromptService _promptService;
         private readonly OnnxStackConfig _configuration;
         private readonly IOnnxModelService _onnxModelService;
-        private readonly IPromptService _promptService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SchedulerService"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public SchedulerService(OnnxStackConfig configuration, IOnnxModelService onnxModelService, IPromptService promptService)
+        public SchedulerService(IOnnxModelService onnxModelService, IPromptService promptService)
         {
-            _configuration = configuration;
-            _onnxModelService = onnxModelService;
             _promptService = promptService;
+            _onnxModelService = onnxModelService;
+            _configuration = _onnxModelService.Configuration;
         }
 
 
@@ -133,7 +134,7 @@ namespace OnnxStack.StableDiffusion.Services
                 var sample = inferResult.FirstElementAs<DenseTensor<float>>();
                 var noisySample = sample
                     .AddTensors(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
-                    .MultipleTensorByFloat(Constants.ModelScaleFactor);
+                    .MultipleTensorByFloat(_configuration.ScaleFactor);
                 var noise = scheduler.CreateRandomSample(sample.Dimensions);
                 return scheduler.AddNoise(noisySample, noise, timesteps);
             }
@@ -150,7 +151,7 @@ namespace OnnxStack.StableDiffusion.Services
         {
             // Scale and decode the image latents with vae.
             // latents = 1 / 0.18215 * latents
-            latents = latents.MultipleTensorByFloat(1.0f / Constants.ModelScaleFactor);
+            latents = latents.MultipleTensorByFloat(1.0f / _configuration.ScaleFactor);
 
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("latent_sample", latents));
 
@@ -158,7 +159,7 @@ namespace OnnxStack.StableDiffusion.Services
             using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.VaeDecoder, inputParameters))
             {
                 var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                if (_configuration.IsSafetyModelEnabled)
+                if (await _onnxModelService.IsEnabledAsync(OnnxModelType.SafetyChecker))
                 {
                     // Check if image contains NSFW content, 
                     if (!await IsImageSafe(options, resultTensor))
@@ -189,7 +190,7 @@ namespace OnnxStack.StableDiffusion.Services
                 NamedOnnxValue.CreateFromTensor("images", inputImagesTensor));
 
             // Run session and send the input data in to get inference output. 
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.SafetyModel, inputParameters))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.SafetyChecker, inputParameters))
             {
                 var result = inferResult.LastElementAs<IEnumerable<bool>>();
                 return !result.First();
