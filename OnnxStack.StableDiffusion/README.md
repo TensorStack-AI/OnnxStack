@@ -133,3 +133,70 @@ internal class AppService : IHostedService
    }
 }
 ```
+
+
+## Configuration
+The `appsettings.json` is the easiest option for configuring model sets. Below is an example of `Stable Diffusion 1.5`.
+The example adds the necessary paths to each model file required for Stable Diffusion, as well as any model-specific configurations. 
+Each model can be assigned to its own device, which is handy if you have only a small GPU. This way, you can offload only what you need. There are limitations depending on the version of the `Microsoft.ML.OnnxRuntime` package you are using, but in most cases, you can split the load between CPU and GPU.
+
+```json
+{
+	"Logging": {
+		"LogLevel": {
+			"Default": "Information",
+			"Microsoft.AspNetCore": "Warning"
+		}
+	},
+	"AllowedHosts": "*",
+
+	"OnnxStackConfig": {
+		"Name": "StableDiffusion 1.5",
+		"PadTokenId": 49407,
+		"BlankTokenId": 49407,
+		"InputTokenLimit": 512,
+		"TokenizerLimit": 77,
+		"EmbeddingsLength": 768,
+		"ScaleFactor": 0.18215,
+		"ModelConfigurations": [
+			{
+				"Type": "Unet",
+				"DeviceId": 0,
+				"ExecutionProvider": "DirectML",
+				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\unet\\model.onnx"
+			},
+			{
+				"Type": "Tokenizer",
+				"DeviceId": 0,
+				"ExecutionProvider": "Cpu",
+				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\cliptokenizer.onnx"
+			},
+			{
+				"Type": "TextEncoder",
+				"DeviceId": 0,
+				"ExecutionProvider": "Cpu",
+				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\text_encoder\\model.onnx"
+			},
+			{
+				"Type": "VaeEncoder",
+				"DeviceId": 0,
+				"ExecutionProvider": "Cpu",
+				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_encoder\\model.onnx"
+			},
+			{
+				"Type": "VaeDecoder",
+				"DeviceId": 0,
+				"ExecutionProvider": "Cpu",
+				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_decoder\\model.onnx"
+			},
+			{
+				"Type": "SafetyChecker",
+				"IsDisabled": true,
+				"DeviceId": 0,
+				"ExecutionProvider": "Cpu",
+				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\safety_checker\\model.onnx"
+			}
+		]
+	}
+}
+```
