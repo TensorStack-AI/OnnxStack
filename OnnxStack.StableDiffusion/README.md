@@ -4,6 +4,26 @@
 
 ## Getting Started
 
+OnnxStack.StableDiffusion can be found via the nuget package manager, download and install it.
+```
+PM> Install-Package OnnxStack.StableDiffusion
+```
+
+### Microsoft.ML.OnnxRuntime
+Depending on the devices you have and the platform you are running on, you will want to install the Microsoft.ML.OnnxRuntime package that best suits your needs.
+
+### CPU-GPU via Microsoft Drirect ML
+```
+PM> Install-Package Microsoft.ML.OnnxRuntime.DirectML
+```
+
+### GPU support for both NVIDIA and AMD?
+```
+PM> Install-Package Microsoft.ML.OnnxRuntime.Gpu
+```
+
+
+
 ### .NET Core Registration
 
 You can easily integrate `OnnxStack.StableDiffusion` into your application services layer. This registration process sets up the necessary services and loads the `appsettings.json` configuration.
@@ -18,11 +38,10 @@ builder.Services.AddOnnxStackStableDiffusion();
 
 ## .NET Console Application Example
 
-Required Nuget Packages
+Required Nuget Packages for example
 ```nuget
 Microsoft.Extensions.Hosting
 Microsoft.Extensions.Logging
-Microsoft.ML.OnnxRuntime.DirectML
 ```
 
 ```csharp
@@ -81,7 +100,10 @@ internal class AppService : IHostedService
                Prompt = prompt,
                NegativePrompt = negativePrompt,
                SchedulerType = SchedulerType.LMSScheduler,
-               InputImage = inputImageFile
+               InputImage = new InputImage
+               {
+                  ImagePath = inputImageFile
+               }
             };
 
             var schedulerOptions = new SchedulerOptions
@@ -96,9 +118,10 @@ internal class AppService : IHostedService
 
             System.Console.WriteLine("Generating Image...");
             var outputFilename = Path.Combine(_outputDirectory, $"{schedulerOptions.Seed}_{promptOptions.SchedulerType}.png");
-            var result = await _stableDiffusionService.TextToImageFile(promptOptions, schedulerOptions, outputFilename);
+            var result = await _stableDiffusionService.GenerateAsImageAsync(prompt, options);
             if (result is not null)
-            {
+            { 
+               await result.SaveAsPngAsync(outputFilename);
                System.Console.WriteLine($"Image Created, FilePath: {outputFilename}");
             }
       }
