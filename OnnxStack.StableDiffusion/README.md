@@ -150,15 +150,15 @@ Each model can be assigned to its own device, which is handy if you have only a 
 	},
 	"AllowedHosts": "*",
 
-	"OnnxStackConfig": {
-		"Name": "StableDiffusion 1.5",
-		"PadTokenId": 49407,
-		"BlankTokenId": 49407,
-		"InputTokenLimit": 512,
-		"TokenizerLimit": 77,
-		"EmbeddingsLength": 768,
-		"ScaleFactor": 0.18215,
-		"ModelConfigurations": [{
+   "OnnxStackConfig": {
+      "Name": "StableDiffusion 1.5",
+      "PadTokenId": 49407,
+      "BlankTokenId": 49407,
+      "InputTokenLimit": 512,
+      "TokenizerLimit": 77,
+      "EmbeddingsLength": 768,
+      "ScaleFactor": 0.18215,
+      "ModelConfigurations": [{
             "Type": "Unet",
             "DeviceId": 0,
             "ExecutionProvider": "DirectML",
@@ -195,6 +195,6 @@ Each model can be assigned to its own device, which is handy if you have only a 
             "ExecutionProvider": "Cpu",
             "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\safety_checker\\model.onnx"
          }]
-	}
+   }
 }
 ```

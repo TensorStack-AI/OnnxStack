@@ -81,19 +81,19 @@ using (var tokens = _onnxModelService.RunInference(OnnxModelType.Tokenizer, inpu
 // Create Configuration
 var onnxStackConfig = new OnnxStackConfig
 {
-	Name = "OnnxStack",
-	TokenizerLimit = 77,
-	ModelConfigurations = new List<OnnxModelSessionConfig>
-	{
-		new OnnxModelSessionConfig
-		{
-				DeviceId = 0,
-				ExecutionProvider = ExecutionProvider.DirectML,
+    Name = "OnnxStack",
+    TokenizerLimit = 77,
+    ModelConfigurations = new List<OnnxModelSessionConfig>
+    {
+        new OnnxModelSessionConfig
+        {
+            DeviceId = 0,
+            ExecutionProvider = ExecutionProvider.DirectML,
 
-				Type = OnnxModelType.Tokenizer,
-				OnnxModelPath = "clip_tokenizer.onnx",
-		}
-	}
+            Type = OnnxModelType.Tokenizer,
+            OnnxModelPath = "clip_tokenizer.onnx",
+        }
+    }
 };
 
 // Create Service
@@ -105,14 +105,14 @@ var text = "Text To Tokenize";
 var inputTensor = new DenseTensor<string>(new string[] { text }, new int[] { 1 });
 var inputString = new List<NamedOnnxValue>
 {
-	NamedOnnxValue.CreateFromTensor("string_input", inputTensor)
+    NamedOnnxValue.CreateFromTensor("string_input", inputTensor)
 };
 
 // Create an InferenceSession from the Onnx clip tokenizer.
 // Run session and send the input data in to get inference output. 
 using (var tokens = onnxModelService.RunInference(OnnxModelType.Tokenizer, inputString))
 {
-	var resultTensor = tokens.ToArray();
+    var resultTensor = tokens.ToArray();
 }
 
 ```
