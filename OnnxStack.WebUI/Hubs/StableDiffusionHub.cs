@@ -114,9 +114,10 @@ namespace OnnxStack.Web.Hubs
             var outputImage = $"{output}.png";
             var outputBlueprint = $"{output}.json";
             var inputImage = $"Input-{random}.png";
+            var uploadImage = Path.GetFileName(promptOptions.InputImage.ImagePath);
             var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
             var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
-            var inputOriginaUrl = await _fileService.CreateOutputUrl(promptOptions.InputImage.ImagePath);
+            var inputOriginaUrl = await _fileService.CreateOutputUrl(uploadImage);
 
             //2. Copy input image to new file
             var inputImageFile = await _fileService.CopyInputImageFile(promptOptions.InputImage.ImagePath, inputImage);
