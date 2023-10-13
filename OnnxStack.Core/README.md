@@ -38,14 +38,12 @@ The `appsettings.json` is the easiest option for configuring model sets. Below i
 	"OnnxStackConfig": {
 		"Name": "Clip Tokenizer",
 		"TokenizerLimit": 77,
-		"ModelConfigurations": [
-			{
-				"Type": "Tokenizer",
-				"DeviceId": 0,
-				"ExecutionProvider": "Cpu",
-				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\cliptokenizer.onnx"
-			}
-		]
+		"ModelConfigurations": [{
+			"Type": "Tokenizer",
+			"DeviceId": 0,
+			"ExecutionProvider": "Cpu",
+			"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\cliptokenizer.onnx"
+		}]
 	}
 }
 ```

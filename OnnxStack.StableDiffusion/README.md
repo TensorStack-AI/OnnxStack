@@ -158,45 +158,43 @@ Each model can be assigned to its own device, which is handy if you have only a 
 		"TokenizerLimit": 77,
 		"EmbeddingsLength": 768,
 		"ScaleFactor": 0.18215,
-		"ModelConfigurations": [
-			{
-				"Type": "Unet",
-				"DeviceId": 0,
-				"ExecutionProvider": "DirectML",
-				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\unet\\model.onnx"
-			},
-			{
-				"Type": "Tokenizer",
-				"DeviceId": 0,
-				"ExecutionProvider": "Cpu",
-				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\cliptokenizer.onnx"
-			},
-			{
-				"Type": "TextEncoder",
-				"DeviceId": 0,
-				"ExecutionProvider": "Cpu",
-				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\text_encoder\\model.onnx"
-			},
-			{
-				"Type": "VaeEncoder",
-				"DeviceId": 0,
-				"ExecutionProvider": "Cpu",
-				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_encoder\\model.onnx"
-			},
-			{
-				"Type": "VaeDecoder",
-				"DeviceId": 0,
-				"ExecutionProvider": "Cpu",
-				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_decoder\\model.onnx"
-			},
-			{
-				"Type": "SafetyChecker",
-				"IsDisabled": true,
-				"DeviceId": 0,
-				"ExecutionProvider": "Cpu",
-				"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\safety_checker\\model.onnx"
-			}
-		]
+		"ModelConfigurations": [{
+            "Type": "Unet",
+            "DeviceId": 0,
+            "ExecutionProvider": "DirectML",
+            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\unet\\model.onnx"
+         },
+         {
+            "Type": "Tokenizer",
+            "DeviceId": 0,
+            "ExecutionProvider": "Cpu",
+            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\cliptokenizer.onnx"
+         },
+         {
+            "Type": "TextEncoder",
+            "DeviceId": 0,
+            "ExecutionProvider": "Cpu",
+            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\text_encoder\\model.onnx"
+         },
+         {
+            "Type": "VaeEncoder",
+            "DeviceId": 0,
+            "ExecutionProvider": "Cpu",
+            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_encoder\\model.onnx"
+         },
+         {
+            "Type": "VaeDecoder",
+            "DeviceId": 0,
+            "ExecutionProvider": "Cpu",
+            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_decoder\\model.onnx"
+         },
+         {
+            "Type": "SafetyChecker",
+            "IsDisabled": true,
+            "DeviceId": 0,
+            "ExecutionProvider": "Cpu",
+            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\safety_checker\\model.onnx"
+         }]
 	}
 }
 ```
