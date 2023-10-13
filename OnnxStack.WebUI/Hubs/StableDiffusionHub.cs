@@ -117,7 +117,7 @@ namespace OnnxStack.Web.Hubs
             var uploadImage = Path.GetFileName(promptOptions.InputImage.ImagePath);
             var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
             var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
-            var inputOriginaUrl = await _fileService.CreateOutputUrl(uploadImage);
+            var inputOriginaUrl = await _fileService.CreateOutputUrl(uploadImage, false);
 
             //2. Copy input image to new file
             var inputImageFile = await _fileService.CopyInputImageFile(promptOptions.InputImage.ImagePath, inputImage);
