@@ -147,7 +147,8 @@ namespace Services
         public Task<string> UrlToPhysicalPath(string url)
         {
             string webRootPath = _webHostEnvironment.WebRootPath;
-            string physicalPath = Path.Combine(webRootPath, url.TrimStart('/').Replace('/', '\\'));
+            string sanitizedUrl = url.Replace('/', Path.DirectorySeparatorChar);
+            string physicalPath = Path.Combine(webRootPath, sanitizedUrl.TrimStart(Path.DirectorySeparatorChar));
             return Task.FromResult(physicalPath);
         }
 
