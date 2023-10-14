@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -49,5 +50,37 @@ namespace OnnxStack.Core.Services
         /// <param name="inputs">The inputs.</param>
         /// <returns></returns>
         Task<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> RunInferenceAsync(OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
+
+
+        /// <summary>
+        /// Gets the Sessions input metadata.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        IReadOnlyDictionary<string, NodeMetadata> GetInputMetadata(OnnxModelType modelType);
+
+
+        /// <summary>
+        /// Gets the Sessions input names.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        IReadOnlyList<string> GetInputNames(OnnxModelType modelType);
+
+
+        /// <summary>
+        /// Gets the Sessions output metadata.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        IReadOnlyDictionary<string, NodeMetadata> GetOutputMetadata(OnnxModelType modelType);
+
+
+        /// <summary>
+        /// Gets the Sessions output metadata names.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        IReadOnlyList<string> GetOutputNames(OnnxModelType modelType);
     }
 }

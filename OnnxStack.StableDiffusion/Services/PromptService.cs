@@ -72,6 +72,7 @@ namespace OnnxStack.StableDiffusion.Services
                 return Array.Empty<int>();
 
             // Create input tensor.
+            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.Tokenizer);
             var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("string_input", inputTensor));
 
@@ -92,6 +93,7 @@ namespace OnnxStack.StableDiffusion.Services
         public async Task<float[]> EncodeTokensAsync(int[] tokenizedInput)
         {
             // Create input tensor.
+            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.TextEncoder);
             var inputTensor = TensorHelper.CreateTensor(tokenizedInput, new[] { 1, tokenizedInput.Length });
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("input_ids", inputTensor));
 

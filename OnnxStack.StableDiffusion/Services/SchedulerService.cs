@@ -70,10 +70,11 @@ namespace OnnxStack.StableDiffusion.Services
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latentSample.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
 
+                    var inputNames = _onnxModelService.GetInputNames(OnnxModelType.Unet);
                     var inputParameters = CreateInputParameters(
-                         NamedOnnxValue.CreateFromTensor("encoder_hidden_states", promptEmbeddings),
-                         NamedOnnxValue.CreateFromTensor("sample", inputTensor),
-                         NamedOnnxValue.CreateFromTensor("timestep", new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })));
+                         NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
+                         NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
+                         NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings));
 
                     // Run Inference
                     using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, inputParameters))
@@ -128,7 +129,8 @@ namespace OnnxStack.StableDiffusion.Services
 
             // Image input, decode, add noise, return as latent 0
             var imageTensor = prompt.InputImage.ToDenseTensor(options.Width, options.Height);
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("sample", imageTensor));
+            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.VaeEncoder);
+            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageTensor));
             using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
             {
                 var sample = inferResult.FirstElementAs<DenseTensor<float>>();
@@ -153,7 +155,8 @@ namespace OnnxStack.StableDiffusion.Services
             // latents = 1 / 0.18215 * latents
             latents = latents.MultipleTensorByFloat(1.0f / _configuration.ScaleFactor);
 
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("latent_sample", latents));
+            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.VaeDecoder);
+            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], latents));
 
             // Run inference.
             using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.VaeDecoder, inputParameters))
@@ -184,10 +187,11 @@ namespace OnnxStack.StableDiffusion.Services
             var inputTensor = ClipImageFeatureExtractor(options, resultImage);
 
             //images input
+            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.SafetyChecker);
             var inputImagesTensor = inputTensor.ReorderTensor(new[] { 1, 224, 224, 3 });
             var inputParameters = CreateInputParameters(
-                NamedOnnxValue.CreateFromTensor("clip_input", inputTensor),
-                NamedOnnxValue.CreateFromTensor("images", inputImagesTensor));
+                NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
+                NamedOnnxValue.CreateFromTensor(inputNames[1], inputImagesTensor));
 
             // Run session and send the input data in to get inference output. 
             using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.SafetyChecker, inputParameters))

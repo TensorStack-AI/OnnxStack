@@ -82,6 +82,54 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
+        /// Gets the input metadata.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IReadOnlyDictionary<string, NodeMetadata> GetInputMetadata(OnnxModelType modelType)
+        {
+            return InputMetadataInternal(modelType);
+        }
+
+
+        /// <summary>
+        /// Gets the input names.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IReadOnlyList<string> GetInputNames(OnnxModelType modelType)
+        {
+            return InputNamesInternal(modelType);
+        }
+
+
+        /// <summary>
+        /// Gets the output metadata.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IReadOnlyDictionary<string, NodeMetadata> GetOutputMetadata(OnnxModelType modelType)
+        {
+           return OutputMetadataInternal(modelType);
+        }
+
+
+        /// <summary>
+        /// Gets the output names.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IReadOnlyList<string> GetOutputNames(OnnxModelType modelType)
+        {
+            return OutputNamesInternal(modelType);
+        }
+
+
+        /// <summary>
         /// Runs inference on the specified model.
         /// </summary>
         /// <param name="modelType">Type of the model.</param>
@@ -90,6 +138,48 @@ namespace OnnxStack.Core.Services
         private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInternal(OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
         {
             return _onnxModelSet.GetSession(modelType).Run(inputs);
+        }
+
+
+
+        /// <summary>
+        /// Gets the Sessions input metadata.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        private IReadOnlyDictionary<string, NodeMetadata> InputMetadataInternal(OnnxModelType modelType)
+        {
+            return _onnxModelSet.GetSession(modelType).InputMetadata;
+        }
+
+        /// <summary>
+        /// Gets the Sessions input names.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        private IReadOnlyList<string> InputNamesInternal(OnnxModelType modelType)
+        {
+            return _onnxModelSet.GetSession(modelType).InputNames;
+        }
+
+        /// <summary>
+        /// Gets the Sessions output metadata.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        private IReadOnlyDictionary<string, NodeMetadata> OutputMetadataInternal(OnnxModelType modelType)
+        {
+            return _onnxModelSet.GetSession(modelType).OutputMetadata;
+        }
+
+        /// <summary>
+        /// Gets the Sessions output metadata names.
+        /// </summary>
+        /// <param name="modelType">Type of model.</param>
+        /// <returns></returns>
+        private IReadOnlyList<string> OutputNamesInternal(OnnxModelType modelType)
+        {
+            return _onnxModelSet.GetSession(modelType).OutputNames;
         }
 
 
