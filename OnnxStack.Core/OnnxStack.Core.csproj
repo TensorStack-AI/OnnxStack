@@ -43,7 +43,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
     <PackageReference Include="Microsoft.ML" Version="2.0.1" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.Extensions" Version="0.9.0" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.16.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.16.1" />
   </ItemGroup>
 
 </Project>

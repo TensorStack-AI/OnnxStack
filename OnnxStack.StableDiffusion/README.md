@@ -142,13 +142,12 @@ Each model can be assigned to its own device, which is handy if you have only a 
 
 ```json
 {
-	"Logging": {
-		"LogLevel": {
-			"Default": "Information",
-			"Microsoft.AspNetCore": "Warning"
-		}
-	},
-	"AllowedHosts": "*",
+   "Logging": {
+      "LogLevel": {
+         "Default": "Information",
+         "Microsoft.AspNetCore": "Warning"
+      }
+   },
 
    "OnnxStackConfig": {
       "Name": "StableDiffusion 1.5",
