@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Common
 {
-    public interface ISchedulerService
+    public interface IDiffuserService
     {
 
         /// <summary>
-        /// Runs the specified Scheduler with the prompt inputs provided.
+        /// Runs the specified Diffuser with the prompt inputs provided.
         /// </summary>
         /// <param name="prompt">The prompt.</param>
         /// <param name="options">The options.</param>

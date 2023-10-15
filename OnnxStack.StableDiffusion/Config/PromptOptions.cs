@@ -1,12 +1,13 @@
 ﻿using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Models;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 
 namespace OnnxStack.StableDiffusion.Config
 {
     public class PromptOptions
     {
+        public ProcessType ProcessType { get; set; }
+
         [Required]
         [StringLength(512, MinimumLength = 4)]
         public string Prompt { get; set; }
@@ -21,5 +22,12 @@ namespace OnnxStack.StableDiffusion.Config
 
         public bool HasInputImage => InputImage?.HasImage ?? false;
         public bool HasInputImageMask => InputImageMask?.HasImage ?? false;
+    }
+
+    public enum ProcessType
+    {
+        TextToImage = 0,
+        ImageToImage = 1,
+        ImageInpaint = 2
     }
 }

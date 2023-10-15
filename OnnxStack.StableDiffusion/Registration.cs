@@ -20,7 +20,7 @@ namespace OnnxStack.Core
             ConfigureLibraries();
             serviceCollection.AddOnnxStack();
             serviceCollection.AddSingleton<IPromptService, PromptService>();
-            serviceCollection.AddSingleton<ISchedulerService, SchedulerService>();
+            serviceCollection.AddSingleton<IDiffuserService, DiffuserService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
         }
 

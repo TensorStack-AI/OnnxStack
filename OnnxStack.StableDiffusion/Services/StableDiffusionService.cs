@@ -17,13 +17,13 @@ namespace OnnxStack.StableDiffusion.Services
     /// <seealso cref="OnnxStack.StableDiffusion.Common.IStableDiffusionService" />
     public sealed class StableDiffusionService : IStableDiffusionService
     {
-        private readonly ISchedulerService _schedulerService;
+        private readonly IDiffuserService _schedulerService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
         /// </summary>
         /// <param name="schedulerService">The scheduler service.</param>
-        public StableDiffusionService(ISchedulerService schedulerService)
+        public StableDiffusionService(IDiffuserService schedulerService)
         {
             _schedulerService = schedulerService;
         }

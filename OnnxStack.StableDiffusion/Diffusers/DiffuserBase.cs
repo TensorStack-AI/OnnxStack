@@ -1,6 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
@@ -8,28 +7,26 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Schedulers;
-using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-
-namespace OnnxStack.StableDiffusion.Services
+namespace OnnxStack.StableDiffusion.Diffusers
 {
-    public sealed class SchedulerService : ISchedulerService
+    public abstract class DiffuserBase : IDiffuser
     {
-        private readonly IPromptService _promptService;
-        private readonly OnnxStackConfig _configuration;
-        private readonly IOnnxModelService _onnxModelService;
+        protected readonly IPromptService _promptService;
+        protected readonly OnnxStackConfig _configuration;
+        protected readonly IOnnxModelService _onnxModelService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SchedulerService"/> class.
+        /// Initializes a new instance of the <see cref="DiffuserBase"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public SchedulerService(IOnnxModelService onnxModelService, IPromptService promptService)
+        public DiffuserBase(IOnnxModelService onnxModelService, IPromptService promptService)
         {
             _promptService = promptService;
             _onnxModelService = onnxModelService;
@@ -38,12 +35,34 @@ namespace OnnxStack.StableDiffusion.Services
 
 
         /// <summary>
-        /// Runs the Stable Diffusion inference.
+        /// Gets the timesteps.
         /// </summary>
-        /// <param name="promptOptions">The options.</param>
-        /// <param name="schedulerOptions">The scheduler configuration.</param>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        public async Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
+        protected abstract IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler);
+
+        /// <summary>
+        /// Prepares the latents.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
+        protected abstract DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps);
+
+
+        /// <summary>
+        /// Rund the stable diffusion loop
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="progress">The progress.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public virtual async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
@@ -103,53 +122,13 @@ namespace OnnxStack.StableDiffusion.Services
             }
         }
 
-        private IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
-        {
-            if (!prompt.HasInputImage)
-                return scheduler.Timesteps;
-
-            // Image2Image we narrow step the range by the Strength
-            var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
-            var start = Math.Max(options.InferenceSteps - inittimestep, 0);
-            return scheduler.Timesteps.Skip(start).ToList();
-        }
-
-        /// <summary>
-        /// Prepares the latents for inference.
-        /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="scheduler">The scheduler.</param>
-        /// <returns></returns>
-        private DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
-        {
-            // If we dont have an initial image create random sample
-            if (!prompt.HasInputImage)
-                return scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma);
-
-            // Image input, decode, add noise, return as latent 0
-            var imageTensor = prompt.InputImage.ToDenseTensor(options.Width, options.Height);
-            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.VaeEncoder);
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageTensor));
-            using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
-            {
-                var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                var noisySample = sample
-                    .AddTensors(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
-                    .MultipleTensorByFloat(_configuration.ScaleFactor);
-                var noise = scheduler.CreateRandomSample(sample.Dimensions);
-                return scheduler.AddNoise(noisySample, noise, timesteps);
-            }
-        }
-
-
         /// <summary>
         /// Decodes the latents.
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="latents">The latents.</param>
         /// <returns></returns>
-        private async Task<DenseTensor<float>> DecodeLatents(SchedulerOptions options, DenseTensor<float> latents)
+        protected async Task<DenseTensor<float>> DecodeLatents(SchedulerOptions options, DenseTensor<float> latents)
         {
             // Scale and decode the image latents with vae.
             // latents = 1 / 0.18215 * latents
@@ -181,7 +160,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns>
         ///   <c>true</c> if the specified result image is safe; otherwise, <c>false</c>.
         /// </returns>
-        private async Task<bool> IsImageSafe(SchedulerOptions options, DenseTensor<float> resultImage)
+        protected async Task<bool> IsImageSafe(SchedulerOptions options, DenseTensor<float> resultImage)
         {
             //clip input
             var inputTensor = ClipImageFeatureExtractor(options, resultImage);
@@ -207,7 +186,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <returns></returns>
-        private static DenseTensor<float> ClipImageFeatureExtractor(SchedulerOptions options, DenseTensor<float> imageTensor)
+        protected static DenseTensor<float> ClipImageFeatureExtractor(SchedulerOptions options, DenseTensor<float> imageTensor)
         {
             //convert tensor result to image
             using (var image = imageTensor.ToImage())
@@ -243,7 +222,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="options">The options.</param>
         /// <param name="schedulerConfig">The scheduler configuration.</param>
         /// <returns></returns>
-        private static IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
+        protected static IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
         {
             return prompt.SchedulerType switch
             {
@@ -259,7 +238,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        private static IReadOnlyCollection<NamedOnnxValue> CreateInputParameters(params NamedOnnxValue[] parameters)
+        protected static IReadOnlyCollection<NamedOnnxValue> CreateInputParameters(params NamedOnnxValue[] parameters)
         {
             return parameters.ToList().AsReadOnly();
         }
