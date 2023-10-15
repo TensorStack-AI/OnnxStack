@@ -1,5 +1,4 @@
-﻿using OnnxStack.Web.Models;
-using OnnxStack.WebUI.Models;
+﻿using OnnxStack.WebUI.Models;
 
 namespace Services
 {
@@ -13,27 +12,20 @@ namespace Services
         Task<FileServiceResult> GetInputImageFile(string imageName);
 
         /// <summary>
-        /// Copies the input image file.
-        /// </summary>
-        /// <param name="sourceImage">The source image.</param>
-        /// <param name="destinationImage">The destination image.</param>
-        /// <returns></returns>
-        Task<FileServiceResult> CopyInputImageFile(string sourceImage, string destinationImage);
-
-        /// <summary>
-        /// Uploads the image file.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        Task<FileServiceResult> UploadImageFile(UploadImageModel model);
-
-        /// <summary>
         /// Saves the blueprint file.
         /// </summary>
         /// <param name="bluepring">The blueprint.</param>
         /// <param name="bluprintFile">The bluprint file.</param>
         /// <returns></returns>
         Task<FileServiceResult> SaveBlueprintFile(ImageBlueprint blueprint, string bluprintFile);
+
+        /// <summary>
+        /// Saves the image file.
+        /// </summary>
+        /// <param name="imageBase64">The image base64.</param>
+        /// <param name="fileName">Name of the file.</param>
+        /// <returns></returns>
+        Task<FileServiceResult> SaveImageFile(string imageBase64, string fileName);
 
         /// <summary>
         /// Creates a random name.

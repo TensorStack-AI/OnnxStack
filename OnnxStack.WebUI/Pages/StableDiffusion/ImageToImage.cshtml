@@ -2,31 +2,15 @@
 @using OnnxStack.StableDiffusion.Enums;
 @model ImageToImageModel
 @{
-    ViewData["Title"] = "Stable Diffusion";
+    ViewData["Title"] = "Image To Image";
 }
 
-<style>
-    textarea {
-        resize: none;
-        font-size: smaller !important
-    }
-
-    .result-info {
-        font-style: italic;
-        padding-right: 3px;
-        opacity: 0.6;
-        font-size: x-small;
-    }
-
-</style>
 @Html.AntiForgeryToken()
-
 <div class="d-flex flex-row h-100 pt-2 pb-2">
     <div class="d-flex flex-fill">
 
         @*  Controls *@
         @Html.HiddenFor(m => m.InitialImage.Url)
-        @Html.HiddenFor(m => m.InitialImage.Name)
         @Html.HiddenFor(m => m.InitialImage.Width)
         @Html.HiddenFor(m => m.InitialImage.Height)
         <div class="d-flex flex-column w-100 me-2 p-2 border border-1 border-dark" style="max-width:440px;overflow:hidden">
@@ -150,12 +134,12 @@
 <script id="inputResultTemplate" type="text/html">
     <div class="d-flex flex-column border border-1 border-dark p-1" >
        <div class="d-flex align-items-center  justify-content-center" style="overflow:hidden;min-width:512px;min-height:256px;" >
-            <img id="img-input" width="{{width}}" height="{{height}}" src="{{imageUrl}}" alt="{{imageName}}" data-name="{{imageName}}" onerror="this.src='/images/placeholder.jpg';this.onerror='';"/>
+            <img id="img-input" width="{{width}}" height="{{height}}" src="{{imageUrl}}"  onerror="this.src='/images/placeholder.jpg';this.onerror='';"/>
         </div>
          <div class="d-flex flex-row flex-wrap-reverse text-wrap justify-content-around pt-2">
              <div class="d-flex flex-row align-items-center">
               <small class="result-info">Image:</small>
-              <span>{{imageName}}</span>
+              <span></span>
           </div>
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
@@ -168,259 +152,8 @@
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation/dist/additional-methods.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/js/stablediffusionimagetoimage.js"></script>
     <script>
-
-        const stableDiffusionTextToImage = () => {
-
-            const LAYOUT_MAX_WIDTH = 512;
-            const LAYOUT_MAX_HEIGHT = 512;
-            const LAYOUT_HISTORY_MAX_WIDTH = 256;
-            const LAYOUT_HISTORY_MAX_HEIGHT = 256;
-
-            let diffusionProcess;
-            const buttonClear = $("#btn-clear");
-            const buttonCancel = $(".btn-cancel");
-            const buttonExecute = $("#btn-execute");
-            const textBoxWidth = $("#Width");
-            const textBoxHeight = $("#Height");
-            const promptParameterForm = $("#PromptParameters");
-            const schedulerParameterForm = $("#SchedulerParameters");
-
-            const outputContainer = $("#output-container");
-            const outputResultTemplate = $("#outputResultTemplate").html();
-            const progressResultTemplate = $("#progressResultTemplate").html();
-
-            const outputHistoryContainer = $("#output-container-history");
-            const historyOutputTemplate = $("#historyOutputTemplate").html();
-            const historyProgressTemplate = $("#historyProgressTemplate").html();
-
-            const inputContainer = $("#input-container");
-            const inputResultTemplate = $("#inputResultTemplate").html();
-
-            const connection = new signalR.HubConnectionBuilder().withUrl("/StableDiffusionHub").build();
-
-            const onServerResponse = (response) => {
-                if (!response)
-                    return;
-
-                updateResultImage(response);
-                processEnd();
-            }
-
-            const onServerError = (response) => {
-                console.log("ERROR: " + response)
-            }
-
-            const onServerMessage = (response) => {
-                console.log("MESSAGE: " + response)
-            }
-
-            const onServerProgress = (response) => {
-                updateProgress(response);
-            }
-
-            const onServerCanceled = (response) => {
-                updatePlaceholderImage();
-                processEnd();
-            }
-
-            const executeDiffusion = async () => {
-                const promptParams = serializeFormToJson(promptParameterForm);
-                if (!validateForm(promptParameterForm))
-                    return;
-
-                const schedulerParams = serializeFormToJson(schedulerParameterForm);
-                if (!validateForm(schedulerParameterForm))
-                    return;
-
-                const inputImageUrl = getImageUrl("#img-input");
-                if (!inputImageUrl)
-                    return;
-
-                promptParams["inputImage"] = { imagePath: inputImageUrl };
-
-                processBegin();
-                updatePlaceholderImage(true);
-                diffusionProcess = await connection
-                    .stream("ExecuteImageToImage", promptParams, schedulerParams)
-                    .subscribe({
-                        next: onServerResponse,
-                        complete: onServerResponse,
-                        error: onServerError,
-                    });
-            }
-
-            const cancelDiffusion = async () => {
-                diffusionProcess.dispose();
-            }
-
-            const updateResultImage = (response) => {
-                const width = getWidth();
-                const height = getHeight();
-
-                addOutputResult(width, height, outputResultTemplate, response);
-                outputHistoryContainer.find(".output-progress").remove();
-                addOutputHistory(width, height, historyOutputTemplate, response);
-            }
-
-            const updatePlaceholderImage = (addToHistory) => {
-                const width = getWidth();
-                const height = getHeight();
-
-                addOutputResult(width, height, progressResultTemplate)
-                outputHistoryContainer.find(".output-progress").remove();
-                if (!addToHistory)
-                    return;
-
-                addOutputHistory(width, height, historyProgressTemplate);
-            }
-
-            const addInputResult = (width, height, template, data) => {
-                const size = getSafeSize(width, height, LAYOUT_MAX_WIDTH, LAYOUT_MAX_HEIGHT);
-                inputContainer.html(Mustache.render(template, {
-                    width: size.width,
-                    height: size.height,
-                    ...data
-                }));
-            }
-
-            const addOutputResult = (width, height, template, data) => {
-                const size = getSafeSize(width, height, LAYOUT_MAX_WIDTH, LAYOUT_MAX_HEIGHT);
-                outputContainer.html(Mustache.render(template, {
-                    width: size.width,
-                    height: size.height,
-                    ...data
-                }));
-            }
-
-            const addOutputHistory = (width, height, template, data) => {
-                const size = getSafeSize(width, height, LAYOUT_HISTORY_MAX_WIDTH, LAYOUT_HISTORY_MAX_HEIGHT);
-                outputHistoryContainer.prepend(Mustache.render(template, {
-                    width: size.width,
-                    height: size.height,
-                    ...data
-                }));
-            }
-
-            const updateProgress = (response) => {
-                const increment = Math.max(100 / response.total, 1);
-                const progressPercent = Math.round(Math.min(increment * response.progress, 100), 0);
-                const progressBar = $(".progress-result");
-                progressBar.css("width", progressPercent + "%");
-                progressBar.text(progressPercent + "%");
-            }
-
-            const processBegin = () => {
-                $("#button-upload").attr("disabled", "disabled");
-                buttonCancel.removeAttr("disabled");
-                buttonExecute.attr("disabled", "disabled");
-                promptParameterForm.find(".form-control, .slider").attr("disabled", "disabled");
-                schedulerParameterForm.find(".form-control, .slider").attr("disabled", "disabled");
-            }
-
-            const processEnd = () => {
-                $("#button-upload").removeAttr("disabled");
-                buttonCancel.attr("disabled", "disabled");
-                buttonExecute.removeAttr("disabled");
-                promptParameterForm.find(".form-control, .slider").removeAttr("disabled");
-                schedulerParameterForm.find(".form-control, .slider").removeAttr("disabled");
-            }
-
-            const clearHistory = () => {
-                outputHistoryContainer.empty();
-            }
-
-            const getWidth = () => {
-                return +$("option:selected", textBoxWidth).val();
-            }
-
-            const getHeight = () => {
-                return +$("option:selected", textBoxHeight).val();
-            }
-
-            const getImageUrl = (img) => {
-                const imageName = getImageName(img);
-                if (!imageName)
-                    return null;
-
-                const inputImageUrl = $(img).attr("src");
-                if (!inputImageUrl)
-                    return null;
-                return inputImageUrl.split("?")[0];
-            }
-
-            const getImageName = (img) => {
-                const inputImageName = $(img).data("name");
-                if (!inputImageName)
-                    return null;
-                return inputImageName;
-            }
-
-            const clearInputImageUrl = () => {
-                $("#img-input").data("name", '');
-                $("#img-input").removeAttr("src");
-                updateInputImageContainer();
-            }
-
-            $(document).on("click", "#button-upload", async function () {
-                const width = getWidth();
-                const height = getHeight();
-                const result = await openModalGet(`/StableDiffusion?handler=UploadImage&Width=${width}&Height=${height}`);
-                if (result.success) {
-                    addInputResult(width, height, inputResultTemplate, result);
-                    buttonExecute.removeAttr("disabled");
-                }
-            });
-
-            $(document).on("click", "#button-img2img", async function () {
-                const outputImage = getImageName("#img-result");
-                const outputImageUrl = getImageUrl("#img-result");
-                if (outputImageUrl) {
-                    addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: outputImageUrl, imageName: outputImage });
-                    buttonExecute.removeAttr("disabled");
-                }
-            });
-
-            const setInitialImage = () => {
-                const image = $("#InitialImage_Name").val();
-                if (!image)
-                    return;
-
-                const imageUrl = $("#InitialImage_Url").val();
-                const imageWidth = $("#InitialImage_Width").val();
-                const imageHeight = $("#InitialImage_Height").val();
-                textBoxWidth.val(imageWidth);
-                textBoxHeight.val(imageHeight);
-                addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: imageUrl, imageName: image });
-                buttonExecute.removeAttr("disabled");
-                history.pushState(null, "", location.href.split("?")[0]);
-            }
-
-            const updateInputImageContainer = () => {
-                const url = getImageUrl("#img-input");
-                const name = getImageName("#img-input");
-                addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: url, imageName: name });
-            }
-
-
-            // Map UI Events/Functions
-            buttonCancel.on("click", cancelDiffusion);
-            buttonClear.on("click", clearHistory);
-            buttonExecute.on("click", async () => { await executeDiffusion(); });
-            textBoxWidth.on("change", () => { updatePlaceholderImage(false); clearInputImageUrl(); });
-            textBoxHeight.on("change", () => { updatePlaceholderImage(false); clearInputImageUrl(); }).trigger("change");
-
-            setInitialImage();
-
-            // Map signalr functions
-            connection.on("OnError", onServerError);
-            connection.on("OnMessage", onServerMessage);
-            connection.on("OnCanceled", onServerCanceled);
-            connection.on("OnProgress", onServerProgress);
-            connection.on("OnResponse", onServerResponse);
-            connection.start();
-        }
-
-        stableDiffusionTextToImage();
+        stableDiffusionImageToImage();
     </script>
 }

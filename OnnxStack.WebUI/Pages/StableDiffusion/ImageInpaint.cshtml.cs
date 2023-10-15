@@ -7,12 +7,12 @@ using Services;
 
 namespace OnnxStack.WebUI.Pages.StableDiffusion
 {
-    public class ImageToImageModel : PageModel
+    public class ImageInpaintModel : PageModel
     {
         private readonly ILogger<IndexModel> _logger;
         private readonly IFileService _fileService;
 
-        public ImageToImageModel(ILogger<IndexModel> logger, IFileService fileService)
+        public ImageInpaintModel(ILogger<IndexModel> logger, IFileService fileService)
         {
             _logger = logger;
             _fileService = fileService;

@@ -67,11 +67,18 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
+        /// <summary>
+        /// Converts to  <see cref="DenseTensor<float>"/>
+        /// </summary>
+        /// <param name="imageData">The image data.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <returns></returns>
         public static DenseTensor<float> ToDenseTensor(this InputImage imageData, int width, int height)
         {
-            if (!string.IsNullOrEmpty(imageData.ImagePath))
-                return TensorFromFile(imageData.ImagePath, width, height);
-            if(imageData.ImageBytes != null)
+            if (!string.IsNullOrEmpty(imageData.ImageBase64))
+                return TensorFromBase64(imageData.ImageBase64, width, height);
+            if (imageData.ImageBytes != null)
                 return TensorFromBytes(imageData.ImageBytes, width, height);
             if (imageData.ImageStream != null)
                 return TensorFromStream(imageData.ImageStream, width, height);
@@ -145,6 +152,30 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
+        /// <summary>
+        /// Create an image Tensor from base64 string.
+        /// </summary>
+        /// <param name="base64Image">The base64 image.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        public static DenseTensor<float> TensorFromBase64(string base64Image, int width, int height)
+        {
+            using (Image<Rgb24> image = Image.Load<Rgb24>(Convert.FromBase64String(base64Image.Split(',')[1])))
+            {
+                Resize(image, width, height);
+                return ProcessPixels(width, height, image);
+            }
+        }
+
+
+        /// <summary>
+        /// Create an image Tensor from bytes.
+        /// </summary>
+        /// <param name="imageBytes">The image bytes.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <returns>
+        /// </returns>
         public static DenseTensor<float> TensorFromBytes(byte[] imageBytes, int width, int height)
         {
             using (var image = Image.Load<Rgb24>(imageBytes))
@@ -154,6 +185,14 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
         }
 
+
+        /// <summary>
+        /// Create an image Tensor from stream.
+        /// </summary>
+        /// <param name="imageStream">The image stream.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <returns></returns>
         public static DenseTensor<float> TensorFromStream(Stream imageStream, int width, int height)
         {
             using (var image = Image.Load<Rgb24>(imageStream))
@@ -164,8 +203,13 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
-
-
+        /// <summary>
+        /// Processes the pixels.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="image">The image.</param>
+        /// <returns></returns>
         private static DenseTensor<float> ProcessPixels(int width, int height, Image<Rgb24> image)
         {
             var imageArray = new DenseTensor<float>(new[] { 1, 3, width, height });

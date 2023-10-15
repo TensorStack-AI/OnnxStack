@@ -17,11 +17,14 @@ namespace OnnxStack.WebUI
             // Add services to the container.
             builder.Services.AddRazorPages();
             builder.Services.AddUnobtrusiveAjax();
-            builder.Services.AddSignalR()
-                .AddJsonProtocol(options =>
-                {
-                    options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                });
+            builder.Services.AddSignalR(options =>
+            {
+                options.EnableDetailedErrors = true;
+                options.MaximumReceiveMessageSize = 5242880;
+            }).AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
             builder.Services.AddOnnxStackStableDiffusion();
             builder.Services.AddSingleton<IFileService, FileService>();

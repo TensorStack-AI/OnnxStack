@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Hosting.Server.Features;
-using OnnxStack.Web.Models;
 using OnnxStack.WebUI.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -56,64 +55,6 @@ namespace Services
 
 
         /// <summary>
-        /// Copies the input image file.
-        /// </summary>
-        /// <param name="sourceImage">The source image.</param>
-        /// <param name="destinationImage">The destination image.</param>
-        /// <returns></returns>
-        public async Task<FileServiceResult> CopyInputImageFile(string sourceImage, string destinationImage)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(sourceImage))
-                    return null;
-
-                sourceImage = Path.GetFileName(sourceImage);
-
-                var fileResult = await GetInputImageFile(sourceImage);
-                if (fileResult is null)
-                    return null;
-
-                var outputImageUrl = await CreateOutputUrl(destinationImage);
-                var outputImageFile = await UrlToPhysicalPath(outputImageUrl);
-
-                File.Copy(fileResult.FilePath, outputImageFile);
-                return new FileServiceResult(destinationImage, outputImageUrl, outputImageFile);
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, ex, "[UploadImageFile] - Error saving UploadImage file");
-                return null;
-            }
-        }
-
-
-        /// <summary>
-        /// Uploads the image file.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        public async Task<FileServiceResult> UploadImageFile(UploadImageModel model)
-        {
-            try
-            {
-                var rand = await CreateRandomName();
-                var outputImage = $"Upload-{rand}.png";
-                var outputImageUrl = await CreateOutputUrl(outputImage);
-                var outputImageFile = await UrlToPhysicalPath(outputImageUrl);
-
-                await File.WriteAllBytesAsync(outputImageFile, Convert.FromBase64String(model.ImageBase64.Split(',')[1]));
-                return new FileServiceResult(outputImage, outputImageUrl, outputImageFile);
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, ex, "[UploadImageFile] - Error saving UploadImage file");
-                return null;
-            }
-        }
-
-
-        /// <summary>
         /// Saves the blueprint file.
         /// </summary>
         /// <param name="bluprint">The bluprint.</param>
@@ -134,6 +75,29 @@ namespace Services
             catch (Exception ex)
             {
                 _logger.Log(LogLevel.Error, ex, "[SaveBlueprintFile] - Error saving Blueprint file");
+                return null;
+            }
+        }
+
+
+        /// <summary>
+        /// Saves the image file.
+        /// </summary>
+        /// <param name="imageBase64">The image base64.</param>
+        /// <param name="fileName">Name of the file.</param>
+        /// <returns></returns>
+        public async Task<FileServiceResult> SaveImageFile(string imageBase64, string fileName)
+        {
+            try
+            {
+                var outputImageUrl = await CreateOutputUrl(fileName);
+                var outputImageFile = await UrlToPhysicalPath(outputImageUrl);
+                await File.WriteAllBytesAsync(outputImageFile, Convert.FromBase64String(imageBase64.Split(',')[1]));
+                return new FileServiceResult(fileName, outputImageUrl, outputImageFile);
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "[SaveImageFile] - Error saving imageBase64 file");
                 return null;
             }
         }
@@ -177,9 +141,13 @@ namespace Services
         }
 
 
+        /// <summary>
+        /// Gets the server URL.
+        /// </summary>
+        /// <returns></returns>
         private string GetServerUrl()
         {
-            var address = _serverAddressesFeature.Addresses.FirstOrDefault(x=> x.StartsWith("https"))
+            var address = _serverAddressesFeature.Addresses.FirstOrDefault(x => x.StartsWith("https"))
                        ?? _serverAddressesFeature.Addresses.FirstOrDefault();
             if (string.IsNullOrEmpty(address))
                 return string.Empty;

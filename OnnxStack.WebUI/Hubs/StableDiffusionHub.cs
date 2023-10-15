@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Models;
 using OnnxStack.WebUI.Models;
 using Services;
 using SixLabors.ImageSharp;
@@ -97,51 +96,24 @@ namespace OnnxStack.Web.Hubs
 
 
         /// <summary>
-        /// Generates the image to image result.
+        /// Execute Image-Inpaint Stable Diffusion
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<StableDiffusionResult> GenerateImageToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        [HubMethodName("ExecuteImageInpaint")]
+        public async IAsyncEnumerable<StableDiffusionResult> OnExecuteImageInpaint(PromptOptions promptOptions, SchedulerOptions schedulerOptions, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var timestamp = Stopwatch.GetTimestamp();
-            schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
+            _logger.Log(LogLevel.Information, "[ExecuteImageInpaint] - New request received, Connection: {0}", Context.ConnectionId);
+            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Context.ConnectionAborted, cancellationToken);
 
-            //1. Create filenames
-            var random = await _fileService.CreateRandomName();
-            var output = $"Output-{random}";
-            var outputImage = $"{output}.png";
-            var outputBlueprint = $"{output}.json";
-            var inputImage = $"Input-{random}.png";
-            var uploadImage = Path.GetFileName(promptOptions.InputImage.ImagePath);
-            var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
-            var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
-            var inputOriginaUrl = await _fileService.CreateOutputUrl(uploadImage, false);
+            // TODO: Add support for multiple results
+            var result = await GenerateImageInpaintResult(promptOptions, schedulerOptions, cancellationTokenSource.Token);
+            if (!result.IsError)
+                yield return result;
 
-            //2. Copy input image to new file
-            var inputImageFile = await _fileService.CopyInputImageFile(promptOptions.InputImage.ImagePath, inputImage);
-            if (inputImageFile is null)
-                return new StableDiffusionResult("Failed to copy input image");
-
-            //3. Generate blueprint
-            var inputImageLink = await _fileService.CreateOutputUrl(inputImage, false);
-            var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
-            promptOptions.InputImage = new InputImage(inputOriginaUrl);
-            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink, inputImageLink);
-            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
-            if (bluprintFile is null)
-                return new StableDiffusionResult("Failed to save blueprint");
-
-            //4. Set full path of input image
-            promptOptions.InputImage = new InputImage(inputImageFile.FilePath);
-
-            //5. Run stable diffusion
-            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
-                return new StableDiffusionResult("Failed to run stable diffusion");
-
-            //6. Return result
-            return new StableDiffusionResult(outputImage, outputImageUrl, blueprint, bluprintFile.Filename, bluprintFile.FileUrl, GetElapsed(timestamp));
+            await Clients.Caller.OnError(result.Error);
+            yield break;
         }
 
 
@@ -158,14 +130,13 @@ namespace OnnxStack.Web.Hubs
 
             //1. Create filenames
             var random = await _fileService.CreateRandomName();
-            var output = $"Output-{random}";
-            var outputImage = $"{output}.png";
-            var outputBlueprint = $"{output}.json";
+            var outputImage = $"{random}-output.png";
+            var outputBlueprint = $"{random}-output.json";
             var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
             var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
+            var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
 
             //2. Generate blueprint
-            var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
             var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink);
             var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
             if (bluprintFile is null)
@@ -176,6 +147,97 @@ namespace OnnxStack.Web.Hubs
                 return new StableDiffusionResult("Failed to run stable diffusion");
 
             //4. Return result
+            return new StableDiffusionResult(outputImage, outputImageUrl, blueprint, bluprintFile.Filename, bluprintFile.FileUrl, GetElapsed(timestamp));
+        }
+
+
+        /// <summary>
+        /// Generates the image to image result.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<StableDiffusionResult> GenerateImageToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        {
+            var timestamp = Stopwatch.GetTimestamp();
+            schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
+
+            //1. Create filenames
+            var random = await _fileService.CreateRandomName();
+            var inputImage = $"{random}-input.png";
+            var outputImage = $"{random}-output.png";
+            var outputBlueprint = $"{random}-output.json";
+            var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
+            var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
+            var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
+            var inputImageLink = await _fileService.CreateOutputUrl(inputImage, false);
+
+            // 2. Save Input Image to disk
+            var inputImageFile = await _fileService.SaveImageFile(promptOptions.InputImage.ImageBase64, inputImage);
+            if (inputImageFile is null)
+                return new StableDiffusionResult("Failed to save input image");
+
+            //3. Generate and save blueprint file
+            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink, inputImageLink);
+            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
+            if (bluprintFile is null)
+                return new StableDiffusionResult("Failed to save blueprint");
+
+            //4. Run stable diffusion
+            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+                return new StableDiffusionResult("Failed to run stable diffusion");
+
+            //5. Return result
+            return new StableDiffusionResult(outputImage, outputImageUrl, blueprint, bluprintFile.Filename, bluprintFile.FileUrl, GetElapsed(timestamp));
+        }
+
+
+        /// <summary>
+        /// Generates the image inpaint result.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<StableDiffusionResult> GenerateImageInpaintResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        {
+            var timestamp = Stopwatch.GetTimestamp();
+            schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
+
+            // 1. Create filenames
+            var random = await _fileService.CreateRandomName();
+            var maskImage = $"{random}-mask.png";
+            var inputImage = $"{random}-input.png";
+            var outputImage = $"{random}-output.png";
+            var outputBlueprint = $"{random}-output.json";
+            var outputImageUrl = await _fileService.CreateOutputUrl(outputImage);
+            var outputImageFile = await _fileService.UrlToPhysicalPath(outputImageUrl);
+            var outputImageLink = await _fileService.CreateOutputUrl(outputImage, false);
+            var inputImageLink = await _fileService.CreateOutputUrl(inputImage, false);
+            var maskImageLink = await _fileService.CreateOutputUrl(maskImage, false);
+
+            // 2. Save Input Image to disk
+            var inputImageFile = await _fileService.SaveImageFile(promptOptions.InputImage.ImageBase64, inputImage);
+            if (inputImageFile is null)
+                return new StableDiffusionResult("Failed to save input image");
+
+            // 3. Save Mask Image to disk
+            var maskImageFile = await _fileService.SaveImageFile(promptOptions.InputImageMask.ImageBase64, maskImage);
+            if (maskImageFile is null)
+                return new StableDiffusionResult("Failed to save mask image");
+
+            // 4. Generate and save blueprint file
+            var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink, inputImageLink, maskImageLink);
+            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
+            if (bluprintFile is null)
+                return new StableDiffusionResult("Failed to save blueprint");
+
+            // 5. Run stable diffusion
+            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+                return new StableDiffusionResult("Failed to run stable diffusion");
+
+            // 6. Return result
             return new StableDiffusionResult(outputImage, outputImageUrl, blueprint, bluprintFile.Filename, bluprintFile.FileUrl, GetElapsed(timestamp));
         }
 

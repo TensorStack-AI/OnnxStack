@@ -108,3 +108,16 @@ button.accept-policy {
 .seed-host{
     cursor:pointer;
 }
+
+
+textarea {
+    resize: none;
+    font-size: smaller !important
+}
+
+.result-info {
+    font-style: italic;
+    padding-right: 3px;
+    opacity: 0.6;
+    font-size: x-small;
+}
