@@ -116,6 +116,8 @@ const stableDiffusionImageToImage = () => {
         outputContainer.html(Mustache.render(template, {
             width: size.width,
             height: size.height,
+            actualWidth: width,
+            actualHeight: height,
             ...data
         }));
     }
@@ -125,6 +127,8 @@ const stableDiffusionImageToImage = () => {
         outputHistoryContainer.prepend(Mustache.render(template, {
             width: size.width,
             height: size.height,
+            actualWidth: width,
+            actualHeight: height,
             ...data
         }));
     }
@@ -190,7 +194,7 @@ const stableDiffusionImageToImage = () => {
         }
     });
 
-    $(document).on("click", "#button-img2img", async function () {
+    $(document).on("click", "#button-transfer", async function () {
         const outputImageUrl = $("#img-result").attr("src");
         if (outputImageUrl) {
             addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: outputImageUrl });

@@ -57,7 +57,14 @@
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
             <button type="button" class="btn btn-sm btn-success w-100" disabled>Download</button>
-            <button  type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
+            <div class="d-flex gap-2  w-100">
+                <button  type="button" class="btn btn-sm btn-info w-100" disabled>
+                     <i class="fa fa-images"></i>
+                </button>
+                <button  type="button" class="btn btn-sm btn-info w-100" disabled>
+                    <i class="fa fa-paintbrush"></i>
+                </button>
+            </div>
         </div>
     </div>
 </script>
@@ -70,19 +77,19 @@
          <div class="d-flex flex-row flex-wrap-reverse text-wrap justify-content-around pt-2" style="max-width:240px">
           <div class="d-flex flex-row align-items-center">
               <small class="result-info">Scheduler:</small>
-              <span>{{blueprint.prompt.schedulerType}}</span>
+              <span>{{blueprint.schedulerType}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Steps:</small>
-              <span>{{blueprint.options.inferenceSteps}}</span>
+              <span>{{blueprint.schedulerOptions.inferenceSteps}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Guidance:</small>
-              <span>{{blueprint.options.guidanceScale}}</span>
+              <span>{{blueprint.schedulerOptions.guidanceScale}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Seed:</small>
-              <span class="seed-host">{{blueprint.options.seed}}</span>
+              <span class="seed-host">{{blueprint.schedulerOptions.seed}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Elapsed:</small>
@@ -99,7 +106,14 @@
                     <li><a class="dropdown-item" href="{{blueprintUrl}}" download="{{blueprintName}}">Download JSON</a></li>
                 </ul>
             </div>
-            <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
+            <div class="d-flex gap-2  w-100">
+                <a class="btn btn-sm btn-info w-100" href="/StableDiffusion/ImageToImage?img={{imageName}}&width={{actualWidth}}&height={{actualHeight}}" target="_blank" title="Image To Image" disabled>
+                    <i class="fa fa-images"></i>
+                </a>
+                <a class="btn btn-sm btn-info w-100" href="/StableDiffusion/ImageInpaint?img={{imageName}}&width={{actualWidth}}&height={{actualHeight}}" target="_blank" title="Image Inpaint" disabled>
+                    <i class="fa fa-paintbrush"></i>
+                </a>
+            </div>
         </div>
     </div>
 </script>

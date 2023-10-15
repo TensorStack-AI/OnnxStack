@@ -110,6 +110,8 @@ const stableDiffusionTextToImage = () => {
         outputHistoryContainer.prepend(Mustache.render(template, {
             width: size.width,
             height: size.height,
+            actualWidth: width,
+            actualHeight: height,
             ...data
         }));
     }

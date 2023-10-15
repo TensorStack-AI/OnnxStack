@@ -82,7 +82,10 @@
         </div>
         <div class="d-flex flex-row gap-2 pt-2">
             <button type="button" class="btn btn-sm btn-success w-100" disabled>Download</button>
-            <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
+            <div class="d-flex gap-2  w-100">
+                <button type="button" class="btn btn-sm btn-info w-100" disabled>Image To Image</button>
+                <button type="button" class="btn btn-sm btn-info w-100" disabled>Image Inpaint</button>
+            </div>
         </div>
     </div>
 </script>
@@ -96,19 +99,19 @@
          <div class="d-flex flex-row flex-wrap-reverse text-wrap justify-content-around pt-2">
           <div class="d-flex flex-row align-items-center">
               <small class="result-info">Scheduler:</small>
-              <span>{{blueprint.prompt.schedulerType}}</span>
+              <span>{{blueprint.schedulerType}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Steps:</small>
-              <span>{{blueprint.options.inferenceSteps}}</span>
+              <span>{{blueprint.schedulerOptions.inferenceSteps}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Guidance:</small>
-              <span>{{blueprint.options.guidanceScale}}</span>
+              <span>{{blueprint.schedulerOptions.guidanceScale}}</span>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Seed:</small>
-              <div class="seed-host">{{blueprint.options.seed}}</div>
+              <div class="seed-host">{{blueprint.schedulerOptions.seed}}</div>
           </div>
            <div class="d-flex flex-row align-items-center">
               <small class="result-info">Elapsed:</small>
@@ -125,7 +128,10 @@
                     <li><a class="dropdown-item" href="{{blueprintUrl}}" download="{{blueprintName}}">Download JSON</a></li>
                 </ul>
             </div>
-            <button id="button-img2img" type="button" class="btn btn-sm btn-info w-100">Image To Image</button>
+            <div class="d-flex gap-2  w-100">
+                <button id="button-transfer" type="button" class="btn btn-sm btn-info w-100">Image To Image</button>
+                <a class="btn btn-sm btn-info w-100" href="/StableDiffusion/ImageInpaint?img={{imageName}}&width={{actualWidth}}&height={{actualHeight}}" target="_blank" disabled>Image Inpaint</a>
+            </div>
         </div>
     </div>
 </script>

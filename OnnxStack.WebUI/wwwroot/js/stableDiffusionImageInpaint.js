@@ -122,6 +122,8 @@ const stableDiffusionImageInpaint = () => {
         inputContainer.html(Mustache.render(template, {
             width: size.width,
             height: size.height,
+            actualWidth: width,
+            actualHeight: height,
             ...data
         }));
     }
@@ -131,6 +133,8 @@ const stableDiffusionImageInpaint = () => {
         outputContainer.html(Mustache.render(template, {
             width: size.width,
             height: size.height,
+            actualWidth: width,
+            actualHeight: height,
             ...data
         }));
     }
@@ -140,6 +144,8 @@ const stableDiffusionImageInpaint = () => {
         outputHistoryContainer.prepend(Mustache.render(template, {
             width: size.width,
             height: size.height,
+            actualWidth: width,
+            actualHeight: height,
             ...data
         }));
     }
@@ -188,11 +194,11 @@ const stableDiffusionImageInpaint = () => {
     const getInputBase64 = () => {
         const image = document.getElementById("img-input")
         const canvas = document.createElement("canvas");
-        canvas.width = image.width;
-        canvas.height = image.height;
+        canvas.width = getWidth();
+        canvas.height = getHeight();
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(image, 0, 0);
-        return canvas.toDataURL();
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL(); button - imgInpaint
     };
 
     $(document).on("click", "#button-upload", async function () {
@@ -206,7 +212,7 @@ const stableDiffusionImageInpaint = () => {
         }
     });
 
-    $(document).on("click", "#button-img2img", async function () {
+    $(document).on("click", "#button-transfer", async function () {
         const outputImageUrl = $("#img-result").attr("src");
         if (outputImageUrl) {
             addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: outputImageUrl });
@@ -224,6 +230,7 @@ const stableDiffusionImageInpaint = () => {
         textBoxWidth.val(imageWidth);
         textBoxHeight.val(imageHeight);
         addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: imageUrl });
+        mask_init();
         buttonExecute.removeAttr("disabled");
         history.pushState(null, "", location.href.split("?")[0]);
     }
