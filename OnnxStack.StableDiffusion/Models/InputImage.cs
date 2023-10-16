@@ -17,7 +17,7 @@ namespace OnnxStack.StableDiffusion.Models
         /// Initializes a new instance of the <see cref="InputImage"/> class.
         /// </summary>
         /// <param name="image">The image.</param>
-        public InputImage(Image<Rgb24> image) => Image = image;
+        public InputImage(Image<Rgba32> image) => Image = image;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InputImage"/> class.
@@ -47,7 +47,7 @@ namespace OnnxStack.StableDiffusion.Models
         /// Gets the image.
         /// </summary>
         [JsonIgnore]
-        public Image<Rgb24> Image { get; set; }
+        public Image<Rgba32> Image { get; set; }
 
 
         /// <summary>

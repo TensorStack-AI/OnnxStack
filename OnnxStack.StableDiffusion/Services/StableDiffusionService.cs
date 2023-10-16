@@ -50,8 +50,8 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="options">The Scheduler options.</param>
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The diffusion result as <see cref="SixLabors.ImageSharp.Image<Rgb24>"/></returns>
-        public async Task<Image<Rgb24>> GenerateAsImageAsync(PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        /// <returns>The diffusion result as <see cref="SixLabors.ImageSharp.Image<Rgba32>"/></returns>
+        public async Task<Image<Rgba32>> GenerateAsImageAsync(PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             return await GenerateAsync(prompt, options, progressCallback, cancellationToken)
                 .ContinueWith(t => t.Result.ToImage(), cancellationToken)

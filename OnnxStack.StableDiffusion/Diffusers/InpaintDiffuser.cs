@@ -7,9 +7,9 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,7 +24,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
         public InpaintDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
-            :base(onnxModelService, promptService)
+            : base(onnxModelService, promptService)
         {
         }
 
@@ -39,7 +39,6 @@ namespace OnnxStack.StableDiffusion.Services
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
-            Console.WriteLine($"Scheduler: {promptOptions.SchedulerType}, Size: {schedulerOptions.Width}x{schedulerOptions.Height}, Seed: {schedulerOptions.Seed}, Steps: {schedulerOptions.InferenceSteps}, Guidance: {schedulerOptions.GuidanceScale}");
 
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
@@ -51,7 +50,15 @@ namespace OnnxStack.StableDiffusion.Services
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latentSample = PrepareLatents(promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = PrepareLatents(promptOptions, schedulerOptions, scheduler, timesteps);
+
+                // Create Image Mask
+                var maskImage = PrepareMask(promptOptions, schedulerOptions)
+                    .Duplicate(schedulerOptions.GetScaledDimension(2, 1));
+
+                // Create Masked Image Latents
+                var maskedImage = PrepareImageMask(promptOptions, schedulerOptions)
+                    .Duplicate(schedulerOptions.GetScaledDimension(2));
 
                 // Loop though the timesteps
                 var step = 0;
@@ -60,8 +67,10 @@ namespace OnnxStack.StableDiffusion.Services
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputTensor = scheduler.ScaleInput(latentSample.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
+                    var inputTensor = scheduler.ScaleInput(latents.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
+                    inputTensor = ConcatenateLatents(inputTensor, maskedImage, maskImage);
 
+                    // Create Input Parameters
                     var inputNames = _onnxModelService.GetInputNames(OnnxModelType.Unet);
                     var inputParameters = CreateInputParameters(
                          NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
@@ -71,60 +80,215 @@ namespace OnnxStack.StableDiffusion.Services
                     // Run Inference
                     using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, inputParameters))
                     {
-                        var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-
-                        // Split tensors from 2,4,(H/8),(W/8) to 1,4,(H/8),(W/8)
-                        var splitTensors = resultTensor.SplitTensor(schedulerOptions.GetScaledDimension(), schedulerOptions.GetScaledHeight(), schedulerOptions.GetScaledWidth());
-                        var noisePred = splitTensors.Item1;
-                        var noisePredText = splitTensors.Item2;
+                        var noisePred = inferResult.FirstElementAs<DenseTensor<float>>();
 
                         // Perform guidance
-                        noisePred = noisePred.PerformGuidance(noisePredText, schedulerOptions.GuidanceScale);
+                        if (schedulerOptions.GuidanceScale > 1.0f)
+                        {
+                            var (noisePredUncond, noisePredText) = noisePred.SplitTensor(schedulerOptions.GetScaledDimension());
+                            noisePred = noisePredUncond.PerformGuidance(noisePredText, schedulerOptions.GuidanceScale);
+                        }
 
-                        // LMS Scheduler Step
-                        latentSample = scheduler.Step(noisePred, timestep, latentSample);
-                        // ImageHelpers.TensorToImageDebug(latentSample, 64, $@"Examples\StableDebug\Latent_{step}.png");
+                        // Scheduler Step
+                        latents = scheduler.Step(noisePred, timestep, latents);
                     }
 
-                    Console.WriteLine($"Step: {++step}/{timesteps.Count}");
-                    progress?.Invoke(step, timesteps.Count);
+                    progress?.Invoke(++step, timesteps.Count);
                 }
 
                 // Decode Latents
-                return await DecodeLatents(schedulerOptions, latentSample);
+                return await DecodeLatents(schedulerOptions, latents);
             }
         }
 
-        protected override IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
-        {
-            // Image2Image we narrow step the range by the Strength
-            var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
-            var start = Math.Max(options.InferenceSteps - inittimestep, 0);
-            return scheduler.Timesteps.Skip(start).ToList();
-        }
 
         /// <summary>
-        /// Prepares the latents for inference.
+        /// Prepares the mask.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <returns></returns>
+        private DenseTensor<float> PrepareMask(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        {
+            using (var imageMask = promptOptions.InputImageMask.ToImage())
+            {
+                var width = schedulerOptions.GetScaledWidth();
+                var height = schedulerOptions.GetScaledHeight();
+                var imageTensor = new DenseTensor<float>(new[] { 1, 1, width, height });
+
+                // Prepare the image
+                imageMask.Mutate(x => x.Resize(new Size(width, height)));
+                imageMask.Mutate(x => x.Grayscale());
+                imageMask.ProcessPixelRows(img =>
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            var pixelSpan = img.GetRowSpan(y);
+                            var value = pixelSpan[x].PackedValue / 255.0f;
+                            if (value < 0.5f)
+                                value = 0f;
+                            else if (value >= 0.5f)
+                                value = 1f;
+
+                            imageTensor[0, 0, y, x] = value;
+                        }
+                    }
+                });
+
+                return imageTensor.MultipleTensorByFloat(_configuration.ScaleFactor);
+            }
+        }
+
+
+        /// <summary>
+        /// Prepares the image mask.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <returns></returns>
+        private DenseTensor<float> PrepareImageMask(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        {
+            using (var image = promptOptions.InputImage.ToImage())
+            using (var mask = promptOptions.InputImageMask.ToImage())
+            {
+                int width = schedulerOptions.Width;
+                int height = schedulerOptions.Height;
+
+                // Prepare the image
+                var imageTensor = new DenseTensor<float>(new[] { 1, 3, width, height });
+                image.Mutate(x => x.Resize(new Size(width, height)));
+                image.ProcessPixelRows(img =>
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            var pixelSpan = img.GetRowSpan(y);
+                            imageTensor[0, 0, y, x] = (pixelSpan[x].R / 127.5f) - 1f;
+                            imageTensor[0, 1, y, x] = (pixelSpan[x].G / 127.5f) - 1f;
+                            imageTensor[0, 2, y, x] = (pixelSpan[x].B / 127.5f) - 1f;
+                        }
+                    }
+                });
+
+
+                // Prepare the mask
+                var imageMaskedTensor = new DenseTensor<float>(new[] { 1, 3, width, height });
+                mask.Mutate(x => x.Resize(new Size(width, height)));
+                mask.Mutate(x => x.Grayscale());
+                mask.ProcessPixelRows(img =>
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            var pixelSpan = img.GetRowSpan(y);
+                            var value = pixelSpan[x].PackedValue;
+                            var mask = value >= 127.5f;
+                            imageMaskedTensor[0, 0, y, x] = mask ? 0f : imageTensor[0, 0, y, x];
+                            imageMaskedTensor[0, 1, y, x] = mask ? 0f : imageTensor[0, 1, y, x];
+                            imageMaskedTensor[0, 2, y, x] = mask ? 0f : imageTensor[0, 2, y, x];
+                        }
+                    }
+                });
+
+                // Encode the image
+                var inputNames = _onnxModelService.GetInputNames(OnnxModelType.VaeEncoder);
+                var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageMaskedTensor));
+                using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
+                {
+                    var sample = inferResult.FirstElementAs<DenseTensor<float>>();
+                    var scaledSample = sample.MultipleTensorByFloat(_configuration.ScaleFactor);
+                    return scaledSample;
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Gets the timesteps.
         /// </summary>
         /// <param name="prompt">The prompt.</param>
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
+        protected override IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
+        {
+            return scheduler.Timesteps;
+        }
+
+
+        /// <summary>
+        /// Prepares the latents.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
         protected override DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            // Image input, decode, add noise, return as latent 0
-            var imageTensor = prompt.InputImage.ToDenseTensor(options.Width, options.Height);
-            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.VaeEncoder);
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageTensor));
-            using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
+            return scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma);
+        }
+
+
+        /// <summary>
+        /// Concatenates the latents.
+        /// </summary>
+        /// <param name="input1">The input1.</param>
+        /// <param name="input2">The input2.</param>
+        /// <param name="input3">The input3.</param>
+        /// <returns></returns>
+        private DenseTensor<float> ConcatenateLatents(DenseTensor<float> input1, DenseTensor<float> input2, DenseTensor<float> input3)
+        {
+            int batch = input1.Dimensions[0];
+            int height = input1.Dimensions[2];
+            int width = input1.Dimensions[3];
+            int channels = input1.Dimensions[1] + input3.Dimensions[1] + input2.Dimensions[1];
+            var concatenated = new DenseTensor<float>(new[] { batch, channels, height, width });
+            for (int i = 0; i < batch; i++)
             {
-                var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                var noisySample = sample
-                    .AddTensors(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
-                    .MultipleTensorByFloat(_configuration.ScaleFactor);
-                var noise = scheduler.CreateRandomSample(sample.Dimensions);
-                return scheduler.AddNoise(noisySample, noise, timesteps);
+                for (int j = 0; j < channels; j++)
+                {
+                    if (j < input1.Dimensions[1])
+                    {
+                        // Copy from input1
+                        for (int k = 0; k < height; k++)
+                        {
+                            for (int l = 0; l < width; l++)
+                            {
+                                concatenated[i, j, k, l] = input1[i, j, k, l];
+                            }
+                        }
+                    }
+                    else if (j < input1.Dimensions[1] + input3.Dimensions[1])
+                    {
+                        // Copy from input2
+                        for (int k = 0; k < height; k++)
+                        {
+                            for (int l = 0; l < width; l++)
+                            {
+                                concatenated[i, j, k, l] = input3[i, j - input1.Dimensions[1], k, l];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Copy from input3
+                        for (int k = 0; k < height; k++)
+                        {
+                            for (int l = 0; l < width; l++)
+                            {
+                                concatenated[i, j, k, l] = input2[i, j - input1.Dimensions[1] - input3.Dimensions[1], k, l];
+                            }
+                        }
+                    }
+                }
             }
+            return concatenated;
         }
 
     }

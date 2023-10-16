@@ -66,8 +66,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
-            Console.WriteLine($"Scheduler: {promptOptions.SchedulerType}, Size: {schedulerOptions.Width}x{schedulerOptions.Height}, Seed: {schedulerOptions.Seed}, Steps: {schedulerOptions.InferenceSteps}, Guidance: {schedulerOptions.GuidanceScale}");
-
+     
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
@@ -78,7 +77,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latentSample = PrepareLatents(promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = PrepareLatents(promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -87,8 +86,9 @@ namespace OnnxStack.StableDiffusion.Diffusers
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputTensor = scheduler.ScaleInput(latentSample.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
+                    var inputTensor = scheduler.ScaleInput(latents.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
 
+                    // Create Input Parameters
                     var inputNames = _onnxModelService.GetInputNames(OnnxModelType.Unet);
                     var inputParameters = CreateInputParameters(
                          NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
@@ -98,27 +98,24 @@ namespace OnnxStack.StableDiffusion.Diffusers
                     // Run Inference
                     using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, inputParameters))
                     {
-                        var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-
-                        // Split tensors from 2,4,(H/8),(W/8) to 1,4,(H/8),(W/8)
-                        var splitTensors = resultTensor.SplitTensor(schedulerOptions.GetScaledDimension(), schedulerOptions.GetScaledHeight(), schedulerOptions.GetScaledWidth());
-                        var noisePred = splitTensors.Item1;
-                        var noisePredText = splitTensors.Item2;
+                        var noisePred = inferResult.FirstElementAs<DenseTensor<float>>();
 
                         // Perform guidance
-                        noisePred = noisePred.PerformGuidance(noisePredText, schedulerOptions.GuidanceScale);
+                        if (schedulerOptions.GuidanceScale > 1.0f)
+                        {
+                            var (noisePredUncond, noisePredText) = noisePred.SplitTensor(schedulerOptions.GetScaledDimension());
+                            noisePred = noisePredUncond.PerformGuidance(noisePredText, schedulerOptions.GuidanceScale);
+                        }
 
-                        // LMS Scheduler Step
-                        latentSample = scheduler.Step(noisePred, timestep, latentSample);
-                        // ImageHelpers.TensorToImageDebug(latentSample, 64, $@"Examples\StableDebug\Latent_{step}.png");
+                        // Scheduler Step
+                        latents = scheduler.Step(noisePred, timestep, latents);
                     }
 
-                    Console.WriteLine($"Step: {++step}/{timesteps.Count}");
-                    progress?.Invoke(step, timesteps.Count);
+                    progress?.Invoke(++step, timesteps.Count);
                 }
 
                 // Decode Latents
-                return await DecodeLatents(schedulerOptions, latentSample);
+                return await DecodeLatents(schedulerOptions, latents);
             }
         }
 
@@ -192,7 +189,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             using (var image = imageTensor.ToImage())
             {
                 // Resize image
-                ImageHelpers.Resize(image, 224, 224);
+                ImageHelpers.Resize(image, new[] { 1, 3, 224, 224 });
 
                 // Preprocess image
                 var input = new DenseTensor<float>(new[] { 1, 3, 224, 224 });

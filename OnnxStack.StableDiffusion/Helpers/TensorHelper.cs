@@ -72,6 +72,22 @@ namespace OnnxStack.StableDiffusion.Helpers
 
 
         /// <summary>
+        /// Subtracts the float from each element.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> SubtractFloat(this DenseTensor<float> tensor, float value)
+        {
+            var subTensor = new DenseTensor<float>(tensor.Dimensions);
+            for (int i = 0; i < tensor.Length; i++)
+            {
+                subTensor.SetValue(i, tensor.GetValue(i) - value);
+            }
+            return subTensor;
+        }
+
+        /// <summary>
         /// Adds the tensors.
         /// </summary>
         /// <param name="tensor">The sample.</param>
@@ -96,7 +112,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="scaledHeight">Height of the scaled.</param>
         /// <param name="scaledWidth">Width of the scaled.</param>
         /// <returns></returns>
-        public static Tuple<DenseTensor<float>, DenseTensor<float>> SplitTensor(this DenseTensor<float> tensor, ReadOnlySpan<int> dimensions, int scaledHeight, int scaledWidth)
+        public static (DenseTensor<float> noisePredUncond, DenseTensor<float> noisePredText) SplitTensor(this DenseTensor<float> tensor, ReadOnlySpan<int> dimensions)
         {
             var tensor1 = new DenseTensor<float>(dimensions);
             var tensor2 = new DenseTensor<float>(dimensions);
@@ -104,9 +120,9 @@ namespace OnnxStack.StableDiffusion.Helpers
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    for (int k = 0; k < scaledHeight; k++)
+                    for (int k = 0; k < dimensions[2]; k++)
                     {
-                        for (int l = 0; l < scaledWidth; l++)
+                        for (int l = 0; l < dimensions[3]; l++)
                         {
                             tensor1[i, j, k, l] = tensor[i, j, k, l];
                             tensor2[i, j, k, l] = tensor[i, j + 4, k, l];
@@ -114,7 +130,7 @@ namespace OnnxStack.StableDiffusion.Helpers
                     }
                 }
             }
-            return new Tuple<DenseTensor<float>, DenseTensor<float>>(tensor1, tensor2);
+            return (tensor1, tensor2);
         }
 
 
