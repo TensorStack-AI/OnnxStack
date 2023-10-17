@@ -281,6 +281,62 @@ namespace OnnxStack.StableDiffusion.Helpers
 
 
         /// <summary>
+        /// Multiplies the specified tensor.
+        /// </summary>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="tensor2">The tensor2.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> Multiply(this DenseTensor<float> tensor1, DenseTensor<float> tensor2)
+        {
+            var result = new DenseTensor<float>(tensor1.Dimensions);
+            for (int batch = 0; batch < tensor1.Dimensions[0]; batch++)
+            {
+                for (int channel = 0; channel < tensor1.Dimensions[1]; channel++)
+                {
+                    for (int height = 0; height < tensor1.Dimensions[2]; height++)
+                    {
+                        for (int width = 0; width < tensor1.Dimensions[3]; width++)
+                        {
+                            var value1 = tensor1[batch, channel, height, width];
+                            var value2 = tensor2[batch, channel, height, width];
+                            result[batch, channel, height, width] = value1 * value2;
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
+        /// <summary>
+        /// Divides the specified tensor.
+        /// </summary>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="tensor2">The tensor2.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> Divide(this DenseTensor<float> tensor1, DenseTensor<float> tensor2)
+        {
+            var result = new DenseTensor<float>(tensor1.Dimensions);
+            for (int batch = 0; batch < tensor1.Dimensions[0]; batch++)
+            {
+                for (int channel = 0; channel < tensor1.Dimensions[1]; channel++)
+                {
+                    for (int height = 0; height < tensor1.Dimensions[2]; height++)
+                    {
+                        for (int width = 0; width < tensor1.Dimensions[3]; width++)
+                        {
+                            var value1 = tensor1[batch, channel, height, width];
+                            var value2 = tensor2[batch, channel, height, width];
+                            result[batch, channel, height, width] = value1 / value2;
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
+        /// <summary>
         /// Generate a random Tensor from a normal distribution with mean 0 and variance 1
         /// </summary>
         /// <param name="random">The random.</param>

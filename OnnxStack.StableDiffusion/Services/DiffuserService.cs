@@ -15,6 +15,7 @@ namespace OnnxStack.StableDiffusion.Services
         private readonly IDiffuser _textDiffuser;
         private readonly IDiffuser _imageDiffuser;
         private readonly IDiffuser _inpaintDiffuser;
+        private readonly IDiffuser _inpaintLegacyDiffuser;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiffuserService"/> class.
@@ -26,6 +27,7 @@ namespace OnnxStack.StableDiffusion.Services
             _textDiffuser = new TextDiffuser(onnxModelService, promptService);
             _imageDiffuser = new ImageDiffuser(onnxModelService, promptService);
             _inpaintDiffuser = new InpaintDiffuser(onnxModelService, promptService);
+            _inpaintLegacyDiffuser = new InpaintLegacyDiffuser(onnxModelService, promptService);
         }
 
 
@@ -41,7 +43,7 @@ namespace OnnxStack.StableDiffusion.Services
             {
                 ProcessType.TextToImage => await _textDiffuser.DiffuseAsync(promptOptions, schedulerOptions, progress, cancellationToken),
                 ProcessType.ImageToImage => await _imageDiffuser.DiffuseAsync(promptOptions, schedulerOptions, progress, cancellationToken),
-                ProcessType.ImageInpaint => await _inpaintDiffuser.DiffuseAsync(promptOptions, schedulerOptions, progress, cancellationToken),
+                ProcessType.ImageInpaint => await _inpaintLegacyDiffuser.DiffuseAsync(promptOptions, schedulerOptions, progress, cancellationToken),
                 _ => throw new NotImplementedException()
             };
         }
