@@ -173,7 +173,7 @@ namespace OnnxStack.StableDiffusion.Helpers
                 {
                     for (var x = 0; x < width; x++)
                     {
-                        result[x, y] = new L8(CalculateByte(imageTensor, 0, y, x));
+                        result[x, y] = new L8((byte)(imageTensor[0, 0, y, x] * 255.0f));
                     }
                 }
                 result.SaveAsPng(filename);

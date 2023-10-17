@@ -8,7 +8,6 @@ using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -91,8 +90,6 @@ namespace OnnxStack.StableDiffusion.Services
 
                         // Apply mask and combine 
                         latents = ApplyMaskedLatents(steplatents, initLatentsProper, maskImage);
-
-                        ImageHelpers.TensorToImageDebug(latents, $@"D:\Debug\Latent{step}.png");
                     }
 
                     progress?.Invoke(++step, timesteps.Count);
@@ -167,9 +164,7 @@ namespace OnnxStack.StableDiffusion.Services
                         {
                             var pixelSpan = img.GetRowSpan(y);
                             var value = (float)pixelSpan[x].A / 255.0f;
-
-                            //TODO: mask = 1 - mask  # repaint white, keep black
-                            maskTensor[0, 0, y, x] = 0f;
+                            maskTensor[0, 0, y, x] = 1f - value;
                             maskTensor[0, 1, y, x] = 0f; // Needed for shape only
                             maskTensor[0, 2, y, x] = 0f; // Needed for shape only
                             maskTensor[0, 3, y, x] = 0f; // Needed for shape only
@@ -203,7 +198,7 @@ namespace OnnxStack.StableDiffusion.Services
                             float latentsValue = latents[batch, channel, height, width];
                             float initLatentsProperValue = initLatentsProper[batch, channel, height, width];
 
-                            //TODO: Apply the logic to compute the result based on the mask
+                            //Apply the logic to compute the result based on the mask
                             float newValue = (initLatentsProperValue * maskValue) + (latentsValue * (1f - maskValue));
                             result[batch, channel, height, width] = newValue;
                         }

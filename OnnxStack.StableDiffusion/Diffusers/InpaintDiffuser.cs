@@ -126,7 +126,7 @@ namespace OnnxStack.StableDiffusion.Services
                         for (int y = 0; y < height; y++)
                         {
                             var pixelSpan = img.GetRowSpan(y);
-                            var value = pixelSpan[x].PackedValue / 255.0f;
+                            var value = pixelSpan[x].A / 255.0f;
                             if (value < 0.5f)
                                 value = 0f;
                             else if (value >= 0.5f)
