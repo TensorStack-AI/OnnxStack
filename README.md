@@ -69,6 +69,22 @@ Image To Image Stable Diffusion is an advanced image processing and generation m
    Prompt: Dog wearing storm trooper helmet, head shot
 ```
 
+### **Image Inpainting**
+Image inpainting is an image modification/restoration technique that intelligently fills in missing or damaged portions of an image while maintaining visual consistency. It's used for tasks like photo restoration and object removal, creating seamless and convincing results.
+
+In the below example we use a simple mask image + prompt to add a rider to the horse
+The black part of the mask will be used buy the process to generate new content, in this case the rider
+
+| Input Image | Mask Image | Masked Image | Result
+| :--- | :--- | :--- | :--- |
+<img src="Assets/Samples/Inpaint-Original.png" width="256" alt="Image of browser inferencing on sample images."/> | <img src="Assets/Samples/Inpaint-Mask.png" width="256"  alt="Image of browser inferencing on sample images."/> |<img src="Assets/Samples/Inpaint-MaskedImage.PNG" width="256"  alt="Image of browser inferencing on sample images."/> |<img src="Assets/Samples/Inpaint-Result.png" width="256"  alt="Image of browser inferencing on sample images."/> |
+
+```
+   Prompt: Rider on horse
+```
+
+
+
 More information and Examples can be found in the `OnnxStack.StableDiffusion` project **[README](OnnxStack.StableDiffusion/README.md)**
 
 __________________________
