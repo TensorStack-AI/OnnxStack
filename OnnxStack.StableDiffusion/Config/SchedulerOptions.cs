@@ -48,7 +48,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// <value>
         /// The scale for the classifier-free guidance. The higher the number the more it will try to look like the prompt but the image quality may suffer.
         /// </value>
-        [Range(0f, 40f)]
+        [Range(0f, 30f)]
         public float GuidanceScale { get; set; } = 7.5f;
 
         /// <summary>
