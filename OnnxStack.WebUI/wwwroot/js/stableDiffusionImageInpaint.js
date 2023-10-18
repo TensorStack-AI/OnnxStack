@@ -217,6 +217,7 @@ const stableDiffusionImageInpaint = () => {
         if (outputImageUrl) {
             addInputResult(getWidth(), getHeight(), inputResultTemplate, { imageUrl: outputImageUrl });
             buttonExecute.removeAttr("disabled");
+            mask_init();
         }
     });
 
