@@ -40,7 +40,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// The number of steps to run inference for. The more steps the longer it will take to run the inference loop but the image quality should improve.
         /// </value>
         [Range(5, 200)]
-        public int InferenceSteps { get; set; } = 15;
+        public int InferenceSteps { get; set; } = 30;
 
         /// <summary>
         /// Gets or sets the guidance scale.

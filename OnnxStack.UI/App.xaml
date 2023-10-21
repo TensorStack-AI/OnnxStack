@@ -1,0 +1,148 @@
+﻿<Application x:Class="OnnxStack.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:OnnxStack.UI"
+             xmlns:SD_Enums="clr-namespace:OnnxStack.StableDiffusion.Enums;assembly=OnnxStack.StableDiffusion"
+             xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
+             xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
+             xmlns:models="clr-namespace:OnnxStack.UI.Models"
+             xmlns:converters="clr-namespace:OnnxStack.UI.Converters">
+    <Application.Resources>
+
+        <BitmapImage x:Key="PlaceholderImage" UriSource="/Images/placeholder.png" />
+
+        <FontFamily x:Key="FontAwesomeBrands">pack://application:,,,/Fonts/fa-brands-400.ttf#Font Awesome 5 Brands Regular</FontFamily>
+        <FontFamily x:Key="FontAwesomeDuotone">pack://application:,,,/Fonts/fa-duotone-900.ttf#Font Awesome 5 Duotone Solid</FontFamily>
+        <FontFamily x:Key="FontAwesomeLight">pack://application:,,,/Fonts/fa-light-300.ttf#Font Awesome 5 Pro Light</FontFamily>
+        <FontFamily x:Key="FontAwesomeRegular">pack://application:,,,/Fonts/fa-regular-400.ttf#Font Awesome 5 Pro Regular</FontFamily>
+        <FontFamily x:Key="FontAwesomeSolid">pack://application:,,,/Fonts/fa-solid-900.ttf#Font Awesome 5 Pro Solid</FontFamily>
+
+
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+
+        <ObjectDataProvider x:Key="SchedulerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:SchedulerType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="AlphaTransformType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:AlphaTransformType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="BetaScheduleType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:BetaScheduleType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="PredictionType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:PredictionType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="TimestepSpacingType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:TimestepSpacingType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="VarianceType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:VarianceType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+
+        <!--TODO: Style dictionary for themeing-->
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="2,3,0,0" />
+        </Style>
+
+        <Style TargetType="{x:Type ComboBox}">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="4,3,0,0" />
+
+        </Style>
+
+
+
+
+        <Style x:Key="ImageResultListBoxItem" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="LightGray" />
+            <Setter Property="Background" Value="WhiteSmoke"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <Border Name="Border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
+                            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
+        <DataTemplate DataType="{x:Type models:ImageResult}">
+            <DockPanel Width="200" Height="265" HorizontalAlignment="Center">
+                <StackPanel  DockPanel.Dock="Bottom" >
+                    <UniformGrid Columns="2" Rows="2" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding SchedulerType}" Margin="2,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
+                            <TextBlock Text="Steps:" Margin="2,0,0,0" FontSize="9" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                            <TextBlock Text="{Binding SchedulerOptions.InferenceSteps}" Margin="2,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Guidance:" Margin="2,0,0,0"  FontSize="9" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                            <TextBlock Text="{Binding SchedulerOptions.GuidanceScale}" Margin="2,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Seed:" Margin="2,0,0,0"  FontSize="9" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                            <TextBlock Text="{Binding SchedulerOptions.Seed}"  Margin="2,0,0,0" />
+                        </StackPanel>
+                    </UniformGrid>
+                    <UniformGrid Columns="6" Margin="0,2,0,2">
+                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveImageCommand}" CommandParameter="{Binding}">
+                            <userControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light"  Size="13" ToolTip="Save Image File"/>
+                        </Button>
+                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveBlueprintCommand}" CommandParameter="{Binding}" BorderThickness="0, 1">
+                            <userControls:FontAwesome Icon="&#xf121;" IconStyle="Light"  Size="13" ToolTip="Save Blueprint File"/>
+                        </Button>
+                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateTextToImageCommand}" CommandParameter="{Binding}">
+                            <userControls:FontAwesome Icon="&#xf15c;" IconStyle="Light"  Size="13" ToolTip="Send To Text To Image"/>
+                        </Button>
+                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageToImageCommand}" CommandParameter="{Binding}" BorderThickness="0, 1">
+                            <userControls:FontAwesome Icon="&#xf302;" IconStyle="Light"  Size="13" ToolTip="Send To Image To Image"/>
+                        </Button>
+                        <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageInpaintCommand}" CommandParameter="{Binding}" >
+                            <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light"  Size="13" ToolTip="Send To Image Inpaint"/>
+                        </Button>
+                        <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageUpscaleCommand}" CommandParameter="{Binding}" Padding="2,2" BorderThickness="0,1,1,1">
+                            <userControls:FontAwesome Icon="&#xf065;" IconStyle="Light" Size="13" ToolTip="Send To Upscaler"/>
+                        </Button>
+                    </UniformGrid>
+                </StackPanel>
+                <Border Margin="0,2"  BorderBrush="#c0c0c0" BorderThickness="1" Background="White" >
+                    <Image Source="{Binding Image}" DockPanel.Dock="Left"  Stretch="Uniform" VerticalAlignment="Center" />
+                </Border>
+            </DockPanel>
+        </DataTemplate>
+
+
+
+
+
+    </Application.Resources>
+</Application>

@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="appsettings.json" />
+    <None Remove="Fonts\fa-brands-400.ttf" />
+    <None Remove="Fonts\fa-duotone-900.ttf" />
+    <None Remove="Fonts\fa-light-300.ttf" />
+    <None Remove="Fonts\fa-regular-400.ttf" />
+    <None Remove="Fonts\fa-solid-900.ttf" />
+    <None Remove="Images\Icon.png" />
+    <None Remove="Images\placeholder.jpg" />
+    <None Remove="Images\placeholder.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="Themes\DarkTheme.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Resource Include="Fonts\fa-brands-400.ttf" />
+    <Resource Include="Fonts\fa-duotone-900.ttf" />
+    <Resource Include="Fonts\fa-light-300.ttf" />
+    <Resource Include="Fonts\fa-regular-400.ttf" />
+    <Resource Include="Fonts\fa-solid-900.ttf" />
+    <Resource Include="Images\Icon.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\placeholder.jpg">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Resource>
+    <Resource Include="Images\placeholder.png" />
+    <Resource Include="Themes\DarkTheme.xaml" />
+  </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.1" />
+        <PackageReference Include="OnnxStack.StableDiffusion" Version="0.4.0" Condition=" '$(Configuration)' == 'Release' " />
+        <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+  </ItemGroup>
+
+</Project>

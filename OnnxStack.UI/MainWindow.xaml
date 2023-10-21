@@ -1,0 +1,41 @@
+﻿<Window x:Class="OnnxStack.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OnnxStack.UI"
+        xmlns:views="clr-namespace:OnnxStack.UI.Views"
+        xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
+        mc:Ignorable="d"
+        Title="OnnxStack"
+        Width="1200"
+        Height="700"
+        MinWidth="820"
+        MinHeight="720"
+        Icon="/Images/Icon.png" Name="UI" 
+        RenderOptions.BitmapScalingMode="HighQuality"
+        RenderOptions.ClearTypeHint="Enabled"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType" 
+        TextOptions.TextHintingMode="Fixed">
+    <Grid DataContext="{Binding ElementName=UI}">
+        <TabControl SelectedIndex="{Binding SelectedTabIndex}" SelectedValue="{Binding SelectedTabItem}" SelectedValuePath="Content" DockPanel.Dock="Top" Margin="4">
+
+            <!--Text To Image-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf15c;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
+                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Text To Image" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:TextToImageView />
+            </TabItem>
+
+        </TabControl>
+    </Grid>
+</Window>

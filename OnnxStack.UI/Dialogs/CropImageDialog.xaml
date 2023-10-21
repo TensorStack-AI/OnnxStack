@@ -1,0 +1,44 @@
+﻿<Window x:Class="OnnxStack.UI.Dialogs.CropImageDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OnnxStack.UI.Dialogs"
+        xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
+        mc:Ignorable="d"
+        Name="UI"
+        Title="Crop Image" 
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner" 
+        MinHeight="500" MinWidth="500">
+    <DockPanel DataContext="{Binding ElementName=UI}" Margin="15">
+        <StackPanel  DockPanel.Dock="Bottom" >
+
+            <DockPanel VerticalAlignment="Bottom">
+                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Bottom">
+                    <Button Command="{Binding CropCommand}"  Content="Crop" Width="100" Height="25"></Button>
+                </StackPanel>
+             
+                <StackPanel >
+                    <TextBlock Text="Image File"/>
+                    <userControls:FilePickerTextBox FileName="{Binding ImageFile, Mode=TwoWay}" IsRequired="True"/>
+                </StackPanel>
+               
+            </DockPanel>
+           
+            <UniformGrid Columns="4" Margin="0,25,0,0">
+                <TextBlock/>
+                <TextBlock/>
+                <Button IsCancel="True" Command="{Binding CancelCommand}" MinWidth="100" Height="30">_Cancel</Button>
+                <Button IsDefault="True" Command="{Binding OkCommand}" MinWidth="100" Height="30">_Ok</Button>
+            </UniformGrid>
+        </StackPanel>
+
+        <StackPanel>
+            <Canvas Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  MouseWheel="Canvas_MouseWheel">
+                <Image Source="{Binding SourceImage}" Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  />
+                <Rectangle x:Name="CropFrame" Stroke="Gainsboro" StrokeThickness="2" Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" Fill="Transparent" MouseLeftButtonUp="Canvas_MouseLeftButtonUp" MouseLeftButtonDown="Canvas_MouseLeftButtonDown" MouseMove="Canvas_MouseMove" />
+            </Canvas>
+        </StackPanel>
+    </DockPanel>
+</Window>
