@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="OnnxStack.UI.Views.TextToImageView"
+﻿<UserControl x:Class="OnnxStack.UI.Views.ImageToImage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -22,7 +22,7 @@
             <DockPanel>
                 <StackPanel IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}">
                     <userControls:PromptControl PromptOptions="{Binding PromptOptions}" />
-                    <userControls:SchedulerControl SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" ProcessType="TextToImage" Margin="0, 10, 0 ,0"/>
+                    <userControls:SchedulerControl SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" ProcessType="ImageToImage" Margin="0, 10, 0 ,0"/>
                 </StackPanel>
             </DockPanel>
         </DockPanel>
@@ -41,8 +41,14 @@
                             <TextBlock Text="Generate" Margin="5,0,0,0"/>
                         </StackPanel>
                     </TabItem.Header>
-                    <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <Viewbox Margin="40" >
+                    <UniformGrid Columns="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Viewbox Margin="40,40,20,40" >
+                            <userControls:ImageInputControl 
+                                Result="{Binding InputImage, Mode=TwoWay}" 
+                                HasResult="{Binding HasInputResult, Mode=TwoWay}" 
+                                SchedulerOptions="{Binding SchedulerOptions}" />
+                        </Viewbox>
+                        <Viewbox Margin="20,40,40,40" >
                             <userControls:ImageResultControl 
                                 Result="{Binding ResultImage}" 
                                 HasResult="{Binding HasResult}" 
@@ -50,7 +56,7 @@
                                 ProgressValue="{Binding ProgressValue}" 
                                 SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" />
                         </Viewbox>
-                    </DockPanel>
+                    </UniformGrid>
                 </TabItem>
 
                 <!--History Tab-->

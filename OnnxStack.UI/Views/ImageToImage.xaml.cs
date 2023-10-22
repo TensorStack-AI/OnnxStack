@@ -15,9 +15,9 @@ using System.Windows.Controls;
 namespace OnnxStack.UI.Views
 {
     /// <summary>
-    /// Interaction logic for TextToImageView.xaml
+    /// Interaction logic for ImageToImage.xaml
     /// </summary>
-    public partial class TextToImageView : UserControl, INavigatable, INotifyPropertyChanged
+    public partial class ImageToImage : UserControl, INavigatable, INotifyPropertyChanged
     {
         private readonly ILogger<TextToImageView> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
@@ -27,15 +27,18 @@ namespace OnnxStack.UI.Views
         private int _progressValue;
         private bool _isGenerating;
         private int _selectedTabIndex;
+        private bool _hasInputResult;
+        private ImageInput _inputImage;
         private ImageResult _resultImage;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private CancellationTokenSource _cancelationTokenSource;
 
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="TextToImageView"/> class.
+        /// Initializes a new instance of the <see cref="ImageToImage"/> class.
         /// </summary>
-        public TextToImageView()
+        public ImageToImage()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
@@ -75,6 +78,12 @@ namespace OnnxStack.UI.Views
             set { _resultImage = value; NotifyPropertyChanged(); }
         }
 
+        public ImageInput InputImage
+        {
+            get { return _inputImage; }
+            set { _inputImage = value; NotifyPropertyChanged(); }
+        }
+
         public int ProgressValue
         {
             get { return _progressValue; }
@@ -99,6 +108,12 @@ namespace OnnxStack.UI.Views
             set { _hasResult = value; NotifyPropertyChanged(); }
         }
 
+        public bool HasInputResult
+        {
+            get { return _hasInputResult; }
+            set { _hasInputResult = value; NotifyPropertyChanged(); }
+        }
+
         public int SelectedTabIndex
         {
             get { return _selectedTabIndex; }
@@ -116,6 +131,12 @@ namespace OnnxStack.UI.Views
             Reset();
             HasResult = false;
             ResultImage = null;
+            HasInputResult = true;
+            InputImage = new ImageInput
+            {
+                Image = imageResult.Image,
+                FileName = "OnnxStack Generated Image"
+            };
             PromptOptions = new PromptOptionsModel
             {
                 Prompt = imageResult.Prompt,
@@ -141,7 +162,11 @@ namespace OnnxStack.UI.Views
                 Prompt = PromptOptions.Prompt,
                 NegativePrompt = PromptOptions.NegativePrompt,
                 SchedulerType = PromptOptions.SchedulerType,
-                ProcessType = ProcessType.TextToImage
+                ProcessType = ProcessType.ImageToImage,
+                InputImage = new StableDiffusion.Models.InputImage
+                {
+                    ImageBytes = InputImage.Image.GetImageBytes()
+                }
             };
 
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
@@ -156,6 +181,7 @@ namespace OnnxStack.UI.Views
             Reset();
         }
 
+
         /// <summary>
         /// Determines whether this instance can execute Generate.
         /// </summary>
@@ -164,7 +190,7 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteGenerate()
         {
-            return !IsGenerating && !string.IsNullOrEmpty(PromptOptions.Prompt);
+            return !IsGenerating && !string.IsNullOrEmpty(PromptOptions.Prompt) && HasInputResult;
         }
 
 
@@ -225,7 +251,7 @@ namespace OnnxStack.UI.Views
 
 
         /// <summary>
-        /// Executes the stable diffusion.
+        /// Executes the stable diffusion process.
         /// </summary>
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>

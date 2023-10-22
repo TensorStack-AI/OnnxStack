@@ -1,0 +1,44 @@
+﻿<UserControl x:Class="OnnxStack.UI.UserControls.ImageInputControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:OnnxStack.UI.UserControls"
+             xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
+             xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
+             xmlns:models="clr-namespace:OnnxStack.UI.Models"
+             mc:Ignorable="d" 
+             d:DesignWidth="500" Name="UI">
+    <UserControl.Resources>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Margin" Value="-4,0,0,-4"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border DataContext="{Binding ElementName=UI}" BorderBrush="LightGray" BorderThickness="2" >
+        <StackPanel Margin="2" >
+            <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512"/>
+            <UniformGrid  Columns="1" Height="30" Visibility="{Binding HasResult, Converter={StaticResource BooleanToHiddenConverter}}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,3">
+                    <TextBlock Text="Image File:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                    <TextBlock Text="{Binding Result.FileName}" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <!--<StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,3">
+                    <TextBlock Text="Size:" Margin="5,0,0,0" FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                    <TextBlock Text="{Binding Result.FileSize}" Margin="5,0,0,0"/>
+                </StackPanel>-->
+            </UniformGrid>
+            <DockPanel  Height="30">
+                <Button DockPanel.Dock="Right" Command="{Binding ClearImageCommand}" BorderThickness="0,1,1,1" Width="50">
+                    <userControls:FontAwesome Icon="&#xf2ed;" IconStyle="Light"  />
+                </Button>
+                <Button Command="{Binding LoadImageCommand}" ToolTip="Load Image File"  >
+                    <StackPanel Orientation="Horizontal">
+                        <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"  Size="13" />
+                        <TextBlock Text="Load Image" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+            </DockPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

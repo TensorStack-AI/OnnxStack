@@ -17,7 +17,7 @@
 
     <Border DataContext="{Binding ElementName=UI}" BorderBrush="LightGray" BorderThickness="2" >
         <StackPanel Margin="2">
-            <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width, FallbackValue=512}" Height="{Binding SchedulerOptions.Height, FallbackValue=512}" MinWidth="512" MinHeight="512"/>
+            <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width, FallbackValue=512}" Height="{Binding SchedulerOptions.Height, FallbackValue=512}" MinHeight="512" MinWidth="512"/>
             <StackPanel Visibility="{Binding HasResult, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Margin="0,4">
                 <ProgressBar Maximum="{Binding ProgressMax}" behaviors:SmoothProgressBarBehavior.SmoothValue="{Binding ProgressValue}" Height="22" />
             </StackPanel>

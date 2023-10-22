@@ -36,6 +36,21 @@
                 <views:TextToImageView />
             </TabItem>
 
+            <!--Image To Image-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
+                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Image To Image" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:ImageToImage />
+            </TabItem>
+
         </TabControl>
     </Grid>
 </Window>
