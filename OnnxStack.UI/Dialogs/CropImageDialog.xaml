@@ -9,36 +9,69 @@
         Name="UI"
         Title="Crop Image" 
         SizeToContent="WidthAndHeight"
-        WindowStartupLocation="CenterOwner" 
-        MinHeight="500" MinWidth="500">
+        WindowStartupLocation="CenterScreen" 
+        MinHeight="620" MinWidth="400">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15">
+        <DockPanel.Resources>
+            <SolidColorBrush x:Key="CropFrameBrush" Color="WhiteSmoke" />
+        </DockPanel.Resources>
         <StackPanel  DockPanel.Dock="Bottom" >
-
             <DockPanel VerticalAlignment="Bottom">
                 <StackPanel DockPanel.Dock="Right" VerticalAlignment="Bottom">
-                    <Button Command="{Binding CropCommand}"  Content="Crop" Width="100" Height="25"></Button>
+                    <Button Content="Crop" Command="{Binding CropCommand}" Visibility="{Binding IsCropped, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Width="100" Height="25" ></Button>
+                    <Button Content="Reset" Command="{Binding ResetCommand}" Visibility="{Binding IsCropped, Converter={StaticResource BooleanToVisibilityConverter}}" Width="100" Height="25"></Button>
                 </StackPanel>
-             
                 <StackPanel >
                     <TextBlock Text="Image File"/>
                     <userControls:FilePickerTextBox FileName="{Binding ImageFile, Mode=TwoWay}" IsRequired="True"/>
                 </StackPanel>
-               
             </DockPanel>
-           
             <UniformGrid Columns="4" Margin="0,25,0,0">
                 <TextBlock/>
                 <TextBlock/>
                 <Button IsCancel="True" Command="{Binding CancelCommand}" MinWidth="100" Height="30">_Cancel</Button>
-                <Button IsDefault="True" Command="{Binding OkCommand}" MinWidth="100" Height="30">_Ok</Button>
+                <Button IsDefault="True" Command="{Binding DoneCommand}" MinWidth="100" Height="30">_Done</Button>
             </UniformGrid>
         </StackPanel>
-
-        <StackPanel>
-            <Canvas Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  MouseWheel="Canvas_MouseWheel">
-                <Image Source="{Binding SourceImage}" Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  />
-                <Rectangle x:Name="CropFrame" Stroke="Gainsboro" StrokeThickness="2" Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" Fill="Transparent" MouseLeftButtonUp="Canvas_MouseLeftButtonUp" MouseLeftButtonDown="Canvas_MouseLeftButtonDown" MouseMove="Canvas_MouseMove" />
+        <Border BorderThickness="2" BorderBrush="Gainsboro" >
+            <Canvas Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  MouseWheel="CropFrame_MouseWheel">
+                <Image Source="{Binding SourceImage, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding ImageWidth}" Height="{Binding ImageHeight}" />
+                <Canvas x:Name="CropFrame" Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" Visibility="{Binding IsCropped, Converter={StaticResource InverseBooleanToVisibilityConverter}}"  MouseLeftButtonUp="CropFrame_MouseLeftButtonUp" MouseLeftButtonDown="CropFrame_MouseLeftButtonDown" MouseMove="CropFrame_MouseMove"  >
+                    <Grid>
+                        <Rectangle Width="{Binding Width, ElementName=CropFrame}" Height="{Binding Height, ElementName=CropFrame}"  Stroke="{StaticResource CropFrameBrush}" StrokeThickness="2" Fill="Transparent"/>
+                        <Grid Background="Transparent">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <userControls:FontAwesome Icon="&#xf047;" IconStyle="Light" Size="40" Color="{StaticResource CropFrameBrush}"/>
+                                <TextBlock Text="Drag to move" Foreground="{StaticResource CropFrameBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Mouse wheel to zoom" Foreground="{StaticResource CropFrameBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <Grid.Style>
+                                <Style TargetType="{x:Type Grid}">
+                                    <Setter Property="Opacity" Value="0"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Trigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To=".7" Duration="0:0:0.3"  />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.EnterActions>
+                                            <Trigger.ExitActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.3" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.ExitActions>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                        </Grid>
+                    </Grid>
+                </Canvas>
             </Canvas>
-        </StackPanel>
+        </Border>
     </DockPanel>
 </Window>

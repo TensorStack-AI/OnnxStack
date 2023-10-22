@@ -2,6 +2,7 @@
 using OnnxStack.UI.Models;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -29,6 +30,21 @@ namespace OnnxStack.UI
                 return image;
             }
         }
+
+        public static byte[] GetImageBytes(this BitmapSource image)
+        {
+            if (image == null)
+                return null;
+
+            using (var stream = new MemoryStream())
+            {
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(image));
+                encoder.Save(stream);
+                return stream.ToArray();
+            }
+        }
+
 
         public static async Task<bool> SaveImageFile(this ImageResult imageResult, string filename)
         {

@@ -22,6 +22,8 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+        <converters:BooleanToHiddenConverter x:Key="BooleanToHiddenConverter" />
+        <converters:InverseBooleanToHiddenConverter x:Key="InverseBooleanToHiddenConverter" />
 
         <ObjectDataProvider x:Key="SchedulerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
             <ObjectDataProvider.MethodParameters>

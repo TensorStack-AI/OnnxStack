@@ -2,7 +2,6 @@
 using OnnxStack.UI.Commands;
 using System;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -18,21 +17,21 @@ namespace OnnxStack.UI.Dialogs
     public partial class CropImageDialog : Window, INotifyPropertyChanged
     {
         private readonly ILogger<CropImageDialog> _logger;
-
-        private int _zoom = 100;
+        private double _zoom = 100;
         private double _scale = 1.0;
-        private int _maxWidth = 1024;
-        private int _maxHeight = 512;
+        private int _maxWidth = 960;
+        private int _maxHeight = 448;
         private bool _isCropped;
-        private int _cropWidth;
-        private int _cropHeight;
-        private double _imageWidth;
-        private double _imageHeight;
+        private double _cropWidth;
+        private double _cropHeight;
+        private double _imageWidth = 400;
+        private double _imageHeight = 400;
         private double _zoomX;
         private double _zoomY;
         private double _zoomWidth;
         private double _zoomHeight;
-
+        private int _requiredWidth;
+        private int _requiredHeight;
         private string _imageFile;
         private BitmapSource _sourceImage;
         private BitmapSource _resultImage;
@@ -40,18 +39,25 @@ namespace OnnxStack.UI.Dialogs
         private Point _cropClickPosition;
         private TranslateTransform _cropTransform;
 
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CropImageDialog"/> class.
+        /// </summary>
+        /// <param name="logger">The logger.</param>
         public CropImageDialog(ILogger<CropImageDialog> logger)
         {
             _logger = logger;
-            OkCommand = new AsyncRelayCommand(Ok, CanExecuteOk);
+            DoneCommand = new AsyncRelayCommand(Done, CanExecuteDone);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             CropCommand = new AsyncRelayCommand(Crop, CanExecuteCrop);
+            ResetCommand = new AsyncRelayCommand(ResetSource);
             InitializeComponent();
         }
 
-        public AsyncRelayCommand OkCommand { get; }
+        public AsyncRelayCommand DoneCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
-        public AsyncRelayCommand CropCommand { get; set; }
+        public AsyncRelayCommand CropCommand { get; }
+        public AsyncRelayCommand ResetCommand { get; }
 
         public BitmapSource SourceImage
         {
@@ -63,18 +69,6 @@ namespace OnnxStack.UI.Dialogs
         {
             get { return _imageFile; }
             set { _imageFile = value; NotifyPropertyChanged(); LoadImage(); }
-        }
-
-        public int CropWidth
-        {
-            get { return _cropWidth; }
-            set { _cropWidth = value; NotifyPropertyChanged(); }
-        }
-
-        public int CropHeight
-        {
-            get { return _cropHeight; }
-            set { _cropHeight = value; NotifyPropertyChanged(); }
         }
 
         public double ImageWidth
@@ -107,44 +101,56 @@ namespace OnnxStack.UI.Dialogs
             set { _isCropped = value; NotifyPropertyChanged(); }
         }
 
-        public void Initialize(int width, int height)
+
+        /// <summary>
+        /// Initializes the specified the Dialog.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        public void Initialize(int requiredWidth, int requiredHeight)
         {
-            CropWidth = width;
-            CropHeight = height;
+            _requiredWidth = requiredWidth;
+            _requiredHeight = requiredHeight;
         }
 
-        public BitmapSource GetImage()
+
+        /// <summary>
+        /// Gets the image.
+        /// </summary>
+        /// <returns></returns>
+        public BitmapSource GetImageResult()
         {
             return _resultImage?.Clone();
         }
 
-        public byte[] GetImageBytes()
-        {
-            if (_resultImage == null)
-                return null;
 
-            using (var stream = new MemoryStream())
-            {
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(_resultImage));
-                encoder.Save(stream);
-                return stream.ToArray();
-            }
-        }
-
-
-        private Task Ok()
+        /// <summary>
+        /// Called when the user is finished
+        /// </summary>
+        /// <returns></returns>
+        private Task Done()
         {
             DialogResult = true;
             return Task.CompletedTask;
         }
 
 
-        private bool CanExecuteOk()
+        /// <summary>
+        /// Determines whether this instance can execute Done.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute Done; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteDone()
         {
             return IsCropped;
         }
 
+
+        /// <summary>
+        /// Cancels this instance.
+        /// </summary>
+        /// <returns></returns>
         private Task Cancel()
         {
             DialogResult = false;
@@ -152,122 +158,230 @@ namespace OnnxStack.UI.Dialogs
         }
 
 
+        /// <summary>
+        /// Determines whether this instance can execute cancel.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute cancel; otherwise, <c>false</c>.
+        /// </returns>
         private bool CanExecuteCancel()
         {
             return true;
         }
 
-        private bool CanExecuteCrop()
-        {
-            return !string.IsNullOrEmpty(ImageFile) && !IsCropped;
-        }
 
+        /// <summary>
+        /// Crops this SourceImage.
+        /// </summary>
+        /// <returns></returns>
         private Task Crop()
         {
             _resultImage = CropAndResizeImage();
             Reset();
             IsCropped = true;
-            ImageWidth = CropWidth;
-            ImageHeight = CropHeight;
-            ZoomWidth = CropWidth;
-            ZoomHeight = CropHeight;
+            ImageWidth = _cropWidth;
+            ImageHeight = _cropHeight;
+            ZoomWidth = _cropWidth;
+            ZoomHeight = _cropHeight;
             SourceImage = _resultImage;
             // Set ResultImage to the Image control
             return Task.CompletedTask;
         }
 
 
+        /// <summary>
+        /// Determines whether this instance can execute Crop.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute Crop; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteCrop()
+        {
+            return !string.IsNullOrEmpty(ImageFile) && !IsCropped;
+        }
+
+
+        /// <summary>
+        /// Loads the image.
+        /// </summary>
         private void LoadImage()
         {
             Reset();
             SourceImage = new BitmapImage(new Uri(ImageFile));
-            var actualWidth = _sourceImage.Width;
-            var actualHeight = _sourceImage.Height;
-            if (actualWidth > _maxWidth || actualHeight > _maxHeight)
-            {
-                _scale = Math.Min(1, actualWidth > actualHeight
-                    ? (_maxHeight / actualHeight)
-                    : (_maxWidth / actualWidth));
-            }
+            var actualWidth = (double)_sourceImage.PixelWidth;
+            var actualHeight = (double)_sourceImage.PixelHeight;
 
+            // Scale Image
+            double scaleX = _maxWidth / actualWidth;
+            double scaleY = _maxHeight / actualHeight;
+            _scale = Math.Min(scaleX, scaleY);
             ImageWidth = actualWidth * _scale;
             ImageHeight = actualHeight * _scale;
-            ZoomWidth = CropWidth;
-            ZoomHeight = CropHeight;
+
+            // Scale Crop Rectangle
+            var cropScaleX = ImageWidth / _requiredWidth;
+            var cropScaleY = ImageHeight / _requiredHeight;
+            var cropScale = Math.Min(cropScaleX, cropScaleY);
+            _cropWidth = _requiredWidth * cropScale;
+            _cropHeight = _requiredHeight * cropScale;
+
+            ZoomWidth = _cropWidth;
+            ZoomHeight = _cropHeight;
+            CropFrame.RenderTransform = new TranslateTransform((ImageWidth - ZoomWidth) / 2, (ImageHeight - ZoomHeight) / 2);
             HandleZoom();
         }
 
+
+        /// <summary>
+        /// Resets this instance.
+        /// </summary>
         private void Reset()
         {
-            _zoom = 100;
+            _zoom = 96;
             _zoomX = 0;
             _zoomY = 0;
             _scale = 1;
             IsCropped = false;
+            _cropTransform = new TranslateTransform(0, 0);
             CropFrame.RenderTransform = new TranslateTransform(0, 0);
         }
 
+
+        /// <summary>
+        /// Resets the source image.
+        /// </summary>
+        /// <returns></returns>
+        private Task ResetSource()
+        {
+            LoadImage();
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Crops and resize image.
+        /// </summary>
+        /// <returns></returns>
         private BitmapSource CropAndResizeImage()
         {
             var zoom = _zoom / 100.0;
             var rect = new Int32Rect
             {
-                X = (int)(_zoomX / _scale),
-                Y = (int)(_zoomY / _scale),
-                Width = (int)((CropWidth * zoom) / _scale),
-                Height = (int)((CropHeight * zoom) / _scale)
+                X = (int)Math.Max(_zoomX / _scale, 0),
+                Y = (int)Math.Max(_zoomY / _scale, 0),
+                Width = (int)Math.Min((_cropWidth * zoom) / _scale, _sourceImage.PixelWidth),
+                Height = (int)Math.Min((_cropHeight * zoom) / _scale, _sourceImage.PixelHeight)
             };
 
-            var croppedBitmap = new CroppedBitmap(_sourceImage, rect);
-            var scaleX = (double)CropWidth / croppedBitmap.PixelWidth;
-            var scaleY = (double)CropHeight / croppedBitmap.PixelHeight;
-            var scaleTransform = new ScaleTransform(scaleX, scaleY);
-            return new TransformedBitmap(croppedBitmap, scaleTransform);
+            try
+            {
+                var croppedBitmap = new CroppedBitmap(_sourceImage, rect);
+                var scaleX = _cropWidth / croppedBitmap.PixelWidth;
+                var scaleY = _cropHeight / croppedBitmap.PixelHeight;
+                var scaleTransform = new ScaleTransform(scaleX, scaleY);
+                return new TransformedBitmap(croppedBitmap, scaleTransform);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cropping image");
+                DialogResult = false;
+                return null;
+            }
         }
 
 
+        /// <summary>
+        /// Gets the crop transfrom.
+        /// </summary>
+        /// <returns></returns>
+        private TranslateTransform GetCropTransfrom()
+        {
+            return CropFrame.RenderTransform as TranslateTransform;
+        }
+
+
+        /// <summary>
+        /// Handles the zoom.
+        /// </summary>
+        /// <param name="delta">The delta.</param>
         private void HandleZoom(int delta = 1)
         {
-            _zoom = delta > 0
-                ? Math.Min(++_zoom, 100)
-                : Math.Max(--_zoom, -90);
-            ZoomWidth = (CropWidth / 100.0) * _zoom;
-            ZoomHeight = (CropHeight / 100.0) * _zoom;
+            var isZoomIn = delta > 0;
+            var currentZoom = _zoom;
+            var newZoom = isZoomIn
+                ? Math.Min(++currentZoom, 500)
+                : Math.Max(--currentZoom, -90);
+
+            var transform = GetCropTransfrom();
+            var zoomWidth = (_cropWidth / 100.0) * newZoom;
+            var zoomHeight = (_cropHeight / 100.0) * newZoom;
+            var zoomX = transform.X + ((ZoomWidth - zoomWidth) / 2);
+            var zoomY = transform.Y + ((ZoomHeight - zoomHeight) / 2);
+            var outOfBounds = zoomX + CropFrame.ActualWidth > ImageWidth || zoomY + CropFrame.ActualHeight > ImageHeight || transform.X < 0 || transform.Y < 0;
+            if (isZoomIn && outOfBounds)
+                return;
+
+            _zoomX = zoomX;
+            _zoomY = zoomY;
+            _zoom = newZoom;
+            ZoomWidth = zoomWidth;
+            ZoomHeight = zoomHeight;
+            CropFrame.RenderTransform = new TranslateTransform(_zoomX, _zoomY);
         }
 
 
-        private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        /// <summary>
+        /// Handles the MouseLeftButtonDown event of the CropFrame control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        private void CropFrame_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-             _cropTransform = CropFrame.RenderTransform as TranslateTransform ?? new TranslateTransform();
+            _cropTransform = GetCropTransfrom();
             _cropIsDragging = true;
             _cropClickPosition = e.GetPosition(this);
             CropFrame.CaptureMouse();
         }
 
-        private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+
+        /// <summary>
+        /// Handles the MouseLeftButtonUp event of the CropFrame control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        private void CropFrame_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             _cropIsDragging = false;
             CropFrame.ReleaseMouseCapture();
         }
 
-        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+
+
+        /// <summary>
+        /// Handles the MouseMove event of the CropFrame control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseEventArgs"/> instance containing the event data.</param>
+        private void CropFrame_MouseMove(object sender, MouseEventArgs e)
         {
             if (!_cropIsDragging)
                 return;
 
             Point currentPosition = e.GetPosition(this);
-            var transform = CropFrame.RenderTransform as TranslateTransform ?? new TranslateTransform();
             var x = _cropTransform.X + (currentPosition.X - _cropClickPosition.X);
             var y = _cropTransform.Y + (currentPosition.Y - _cropClickPosition.Y);
             _zoomX = Math.Max(0, Math.Min(x, ImageWidth - ZoomWidth));
             _zoomY = Math.Max(0, Math.Min(y, ImageHeight - ZoomHeight));
-
-            transform.X = _zoomX;
-            transform.Y = _zoomY;
-            CropFrame.RenderTransform = new TranslateTransform(transform.X, transform.Y);
+            CropFrame.RenderTransform = new TranslateTransform(_zoomX, _zoomY);
         }
 
-        private void Canvas_MouseWheel(object sender, MouseWheelEventArgs e)
+
+        /// <summary>
+        /// Handles the MouseWheel event of the CropFrame control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseWheelEventArgs"/> instance containing the event data.</param>
+        private void CropFrame_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             HandleZoom(e.Delta);
         }
