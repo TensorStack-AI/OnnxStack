@@ -48,6 +48,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.1" />
+        <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
         <PackageReference Include="OnnxStack.StableDiffusion" Version="0.4.0" Condition=" '$(Configuration)' == 'Release' " />
         <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
     </ItemGroup>
