@@ -143,11 +143,8 @@ namespace OnnxStack.Web.Hubs
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
-            //TODO:
-            var model = new ModelOptions
-            {
-
-            };
+            //TODO: Model Selector
+            var model = _stableDiffusionService.Models.First();
 
             //3. Run stable diffusion
             if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
@@ -192,11 +189,8 @@ namespace OnnxStack.Web.Hubs
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
-            //TODO:
-            var model = new ModelOptions
-            {
-
-            };
+            //TODO: Model Selector
+            var model = _stableDiffusionService.Models.First();
 
             //4. Run stable diffusion
             if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
@@ -248,11 +242,8 @@ namespace OnnxStack.Web.Hubs
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
-            //TODO:
-            var model = new ModelOptions
-            {
-
-            };
+            //TODO: Model Selector
+            var model = _stableDiffusionService.Models.First();
 
             // 5. Run stable diffusion
             if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))

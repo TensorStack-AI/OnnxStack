@@ -31,6 +31,8 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
+            var model = _stableDiffusionService.Models.First();
+
             var seed = Random.Shared.Next();
             foreach (var generationPrompt in _generationPrompts)
             {
@@ -48,21 +50,15 @@ namespace OnnxStack.Console.Runner
                     promptOptions.SchedulerType = schedulerType;
 
                     OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(promptOptions, schedulerOptions, generationPrompt.Key);
+                    await GenerateImage(model, promptOptions, schedulerOptions, generationPrompt.Key);
                 }
             }
             OutputHelpers.WriteConsole("Complete :)", ConsoleColor.DarkMagenta);
             OutputHelpers.ReadConsole(ConsoleColor.Gray);
         }
 
-        private async Task<bool> GenerateImage(PromptOptions prompt, SchedulerOptions options, string key)
+        private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options, string key)
         {
-            //TODO:
-            var model = new ModelOptions
-            {
-
-            };
-
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}_{key}.png");
             var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
             if (result == null)

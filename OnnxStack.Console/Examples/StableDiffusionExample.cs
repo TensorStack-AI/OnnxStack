@@ -30,6 +30,8 @@ namespace OnnxStack.Console.Runner
 
             while (true)
             {
+                var model = _stableDiffusionService.Models.First();
+
                 OutputHelpers.WriteConsole("Please type a prompt and press ENTER", ConsoleColor.Yellow);
                 var prompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
 
@@ -52,20 +54,14 @@ namespace OnnxStack.Console.Runner
                     promptOptions.SchedulerType = schedulerType;
 
                     OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(promptOptions, schedulerOptions);
+                    await GenerateImage(model, promptOptions, schedulerOptions);
                 }
             }
         }
 
-        private async Task<bool> GenerateImage(PromptOptions prompt, SchedulerOptions options)
+        private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options)
         {
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
-            //TODO:
-            var model = new ModelOptions
-            {
-
-            };
-
             var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
             if (result == null)
                 return false;

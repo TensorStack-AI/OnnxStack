@@ -1,6 +1,7 @@
 ﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Services;
 using SixLabors.ImageSharp;
 using System.Diagnostics;
 
@@ -32,6 +33,8 @@ namespace OnnxStack.Console.Runner
             var negativePrompt = "painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon, graphic, text, crayon, graphite, abstract, easynegative, low quality, normal quality, worst quality, lowres, close up, cropped, out of frame, jpeg artifacts, duplicate, morbid, mutilated, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, glitch, deformed, mutated, cross-eyed, ugly, dehydrated, bad anatomy, bad proportions, gross proportions, cloned face, disfigured, malformed limbs, missing arms, missing legs fused fingers, too many fingers,extra fingers, extra limbs,, extra arms, extra legs,disfigured,";
             while (true)
             {
+                var model = _stableDiffusionService.Models.First();
+
                 var promptOptions = new PromptOptions
                 {
                     Prompt = prompt,
@@ -52,23 +55,16 @@ namespace OnnxStack.Console.Runner
                 {
                     promptOptions.SchedulerType = schedulerType;
                     OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(promptOptions, schedulerOptions);
+                    await GenerateImage(model, promptOptions, schedulerOptions);
                 }
             }
         }
 
 
-        private async Task<bool> GenerateImage(PromptOptions prompt, SchedulerOptions options)
+        private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options)
         {
             var timestamp = Stopwatch.GetTimestamp();
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
-
-            //TODO:
-            var model = new ModelOptions
-            {
-
-            };
-
             var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
             if (result is not null)
             {
