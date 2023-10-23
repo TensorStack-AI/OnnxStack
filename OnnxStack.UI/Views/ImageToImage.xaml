@@ -46,7 +46,8 @@
                             <userControls:ImageInputControl 
                                 Result="{Binding InputImage, Mode=TwoWay}" 
                                 HasResult="{Binding HasInputResult, Mode=TwoWay}" 
-                                SchedulerOptions="{Binding SchedulerOptions}" />
+                                SchedulerOptions="{Binding SchedulerOptions}"
+                                IsMaskEnabled="False"/>
                         </Viewbox>
                         <Viewbox Margin="20,40,40,40" >
                             <userControls:ImageResultControl 
