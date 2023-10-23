@@ -14,13 +14,14 @@
         <Style TargetType="{x:Type Label}">
             <Setter Property="Margin" Value="-4,0,0,-4"/>
         </Style>
+        <SolidColorBrush x:Key="RedHighlight"        Color="Red"            Opacity="0.5" />
     </UserControl.Resources>
 
     <Border DataContext="{Binding ElementName=UI}" BorderBrush="LightGray" BorderThickness="2" >
         <StackPanel Margin="2" >
-            <Canvas MinHeight="512" MinWidth="512">
+            <Canvas MinHeight="512" MinWidth="512" >
                 <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512"/>
-                <InkCanvas x:Name="MaskCanvas"  Background="Transparent" ForceCursor="True" Cursor="Pen" MinHeight="512" MinWidth="512"
+                <InkCanvas x:Name="MaskCanvas"  Background="Transparent" ForceCursor="True" Cursor="Pen" MinHeight="512" MinWidth="512" PreviewMouseLeftButtonDown="MaskCanvas_MouseLeftButtonDown"
                     IsEnabled="{Binding HasResult}"
                     EditingMode="{Binding MaskEditingMode}" 
                     Width="{Binding SchedulerOptions.Width}" 
@@ -28,7 +29,7 @@
                     DefaultDrawingAttributes="{Binding MaskAttributes}" 
                     Visibility="{Binding IsMaskEnabled, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </Canvas>
-           
+
             <UniformGrid  Columns="1" Height="30" Visibility="{Binding HasResult, Converter={StaticResource BooleanToHiddenConverter}}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,3">
                     <TextBlock Text="Image File:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
@@ -50,6 +51,15 @@
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" IsEnabled="{Binding HasResult}" Visibility="{Binding IsMaskEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Button DockPanel.Dock="Right" Command="{Binding SaveMaskCommand}"  Width="50" BorderThickness="1,1,0,1">
                             <userControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light"  />
+                            <Button.Style>
+                                <Style TargetType="{x:Type Button}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Path=HasMaskChanged}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource RedHighlight}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
                         </Button>
                         <Button DockPanel.Dock="Right" Command="{Binding MaskModeCommand}"  Width="50" Visibility="{Binding IsMaskEraserEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <userControls:FontAwesome Icon="&#xf304;" IconStyle="Light"  />

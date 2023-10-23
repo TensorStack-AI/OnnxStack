@@ -17,7 +17,8 @@ namespace OnnxStack.UI.UserControls
     {
         private readonly IDialogService _dialogService;
 
-        private int _maskDrawSize = 20;
+        private int _maskDrawSize;
+        private bool _hasMaskChanged;
         private bool _isMaskEraserEnabled;
         private DrawingAttributes _maskAttributes;
         private InkCanvasEditingMode _maskEditingMode = InkCanvasEditingMode.Ink;
@@ -30,6 +31,7 @@ namespace OnnxStack.UI.UserControls
             if (!DesignerProperties.GetIsInDesignMode(this))
                 _dialogService = App.GetService<IDialogService>();
 
+            MaskDrawSize = 20;
             LoadImageCommand = new AsyncRelayCommand(LoadImage);
             ClearImageCommand = new AsyncRelayCommand(ClearImage);
             MaskModeCommand = new AsyncRelayCommand(MaskMode);
@@ -58,7 +60,11 @@ namespace OnnxStack.UI.UserControls
         }
 
         public static readonly DependencyProperty MaskResultProperty =
-            DependencyProperty.Register("MaskResult", typeof(ImageInput), typeof(ImageInputControl));
+            DependencyProperty.Register("MaskResult", typeof(ImageInput), typeof(ImageInputControl), new PropertyMetadata((s, e) =>
+            {
+                if (e.NewValue is null && s is ImageInputControl control)
+                    control.ClearMask();
+            }));
 
         public SchedulerOptionsModel SchedulerOptions
         {
@@ -116,6 +122,12 @@ namespace OnnxStack.UI.UserControls
             set { _isMaskEraserEnabled = value; NotifyPropertyChanged(); }
         }
 
+        public bool HasMaskChanged
+        {
+            get { return _hasMaskChanged; }
+            set { _hasMaskChanged = value; NotifyPropertyChanged(); }
+        }
+
         public int MaskDrawSize
         {
             get { return _maskDrawSize; }
@@ -138,6 +150,7 @@ namespace OnnxStack.UI.UserControls
             loadImageDialog.Initialize(SchedulerOptions.Width, SchedulerOptions.Height);
             if (loadImageDialog.ShowDialog() == true)
             {
+                ClearImage();
                 Result = new ImageInput
                 {
                     Image = loadImageDialog.GetImageResult(),
@@ -158,11 +171,21 @@ namespace OnnxStack.UI.UserControls
             Result = null;
             MaskResult = null;
             HasResult = false;
+            ClearMask();
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Clears the mask.
+        /// </summary>
+        private void ClearMask()
+        {
             HasMaskResult = false;
+            HasMaskChanged = false;
             MaskCanvas.Strokes.Clear();
             IsMaskEraserEnabled = false;
             MaskEditingMode = InkCanvasEditingMode.Ink;
-            return Task.CompletedTask;
         }
 
 
@@ -178,6 +201,7 @@ namespace OnnxStack.UI.UserControls
                 FileName = "OnnxStack Generated Mask",
             };
             HasMaskResult = true;
+            HasMaskChanged = false;
             return Task.CompletedTask;
         }
 
@@ -236,12 +260,27 @@ namespace OnnxStack.UI.UserControls
             return renderBitmap;
         }
 
+
+        /// <summary>
+        /// Handles the MouseLeftButtonDown event of the MaskCanvas control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.Windows.Input.MouseButtonEventArgs"/> instance containing the event data.</param>
+        private void MaskCanvas_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            HasMaskResult = false;
+            HasMaskChanged = true;
+        }
+
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         public void NotifyPropertyChanged([CallerMemberName] string property = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
+
         #endregion
+
+
     }
 }
