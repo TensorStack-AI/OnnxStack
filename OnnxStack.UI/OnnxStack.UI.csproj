@@ -16,6 +16,7 @@
     <None Remove="Fonts\fa-regular-400.ttf" />
     <None Remove="Fonts\fa-solid-900.ttf" />
     <None Remove="Images\Icon.png" />
+    <None Remove="Images\loading.gif" />
     <None Remove="Images\placeholder.jpg" />
     <None Remove="Images\placeholder.png" />
   </ItemGroup>

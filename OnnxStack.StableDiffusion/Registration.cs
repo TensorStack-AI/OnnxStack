@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Common;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Services;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Memory;
@@ -19,8 +21,8 @@ namespace OnnxStack.Core
         {
             ConfigureLibraries();
             serviceCollection.AddOnnxStack();
+            serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<StableDiffusionConfig>(nameof(OnnxStackConfig)));
             serviceCollection.AddSingleton<IPromptService, PromptService>();
-            serviceCollection.AddSingleton<IDiffuserService, DiffuserService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
         }
 

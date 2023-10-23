@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Models;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
@@ -30,6 +31,7 @@ namespace OnnxStack.UI.Views
         private bool _hasInputResult;
         private ImageInput _inputImage;
         private ImageResult _resultImage;
+        private ModelOptionsModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private CancellationTokenSource _cancelationTokenSource;
@@ -59,6 +61,12 @@ namespace OnnxStack.UI.Views
         public AsyncRelayCommand GenerateCommand { get; }
         public AsyncRelayCommand ClearHistoryCommand { get; set; }
         public ObservableCollection<ImageResult> ImageResults { get; }
+
+        public ModelOptionsModel SelectedModel
+        {
+            get { return _selectedModel; }
+            set { _selectedModel = value; NotifyPropertyChanged(); }
+        }
 
         public PromptOptionsModel PromptOptions
         {
@@ -170,7 +178,7 @@ namespace OnnxStack.UI.Views
             };
 
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
-            var resultImage = await ExecuteStableDiffusion(promptOptions, schedulerOptions);
+            var resultImage = await ExecuteStableDiffusion(_selectedModel.ModelOptions, promptOptions, schedulerOptions);
             if (resultImage != null)
             {
                 ResultImage = resultImage;
@@ -190,7 +198,9 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteGenerate()
         {
-            return !IsGenerating && !string.IsNullOrEmpty(PromptOptions.Prompt) && HasInputResult;
+            return !IsGenerating
+                && !string.IsNullOrEmpty(PromptOptions.Prompt) 
+                && HasInputResult;
         }
 
 
@@ -256,13 +266,13 @@ namespace OnnxStack.UI.Views
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        private async Task<ImageResult> ExecuteStableDiffusion(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        private async Task<ImageResult> ExecuteStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
                 _cancelationTokenSource = new CancellationTokenSource();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 if (result == null)
                     return null;
 

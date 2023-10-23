@@ -143,8 +143,14 @@ namespace OnnxStack.Web.Hubs
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
+            //TODO:
+            var model = new ModelOptions
+            {
+
+            };
+
             //3. Run stable diffusion
-            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+            if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
                 return new StableDiffusionResult("Failed to run stable diffusion");
 
             //4. Return result
@@ -186,8 +192,14 @@ namespace OnnxStack.Web.Hubs
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
+            //TODO:
+            var model = new ModelOptions
+            {
+
+            };
+
             //4. Run stable diffusion
-            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+            if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
                 return new StableDiffusionResult("Failed to run stable diffusion");
 
             //5. Return result
@@ -236,8 +248,14 @@ namespace OnnxStack.Web.Hubs
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
+            //TODO:
+            var model = new ModelOptions
+            {
+
+            };
+
             // 5. Run stable diffusion
-            if (!await RunStableDiffusion(promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+            if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
                 return new StableDiffusionResult("Failed to run stable diffusion");
 
             // 6. Return result
@@ -253,11 +271,11 @@ namespace OnnxStack.Web.Hubs
         /// <param name="fileInfo">The file information.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<bool> RunStableDiffusion(PromptOptions promptOptions, SchedulerOptions schedulerOptions, string outputImage, CancellationToken cancellationToken)
+        private async Task<bool> RunStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, string outputImage, CancellationToken cancellationToken)
         {
             try
             {
-                var resultImage = await _stableDiffusionService.GenerateAsImageAsync(promptOptions, schedulerOptions, ProgressCallback(), cancellationToken);
+                var resultImage = await _stableDiffusionService.GenerateAsImageAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), cancellationToken);
                 if (resultImage is null)
                     return false;
 

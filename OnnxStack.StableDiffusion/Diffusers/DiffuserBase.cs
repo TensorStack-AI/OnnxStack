@@ -18,7 +18,6 @@ namespace OnnxStack.StableDiffusion.Diffusers
     public abstract class DiffuserBase : IDiffuser
     {
         protected readonly IPromptService _promptService;
-        protected readonly OnnxStackConfig _configuration;
         protected readonly IOnnxModelService _onnxModelService;
 
         /// <summary>
@@ -30,7 +29,6 @@ namespace OnnxStack.StableDiffusion.Diffusers
         {
             _promptService = promptService;
             _onnxModelService = onnxModelService;
-            _configuration = _onnxModelService.Configuration;
         }
 
 
@@ -51,7 +49,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected abstract DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps);
+        protected abstract DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps);
 
 
         /// <summary>
@@ -62,22 +60,22 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="progress">The progress.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public virtual async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
+        public virtual async Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
-     
+
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
                 // Process prompts
-                var promptEmbeddings = await _promptService.CreatePromptAsync(promptOptions.Prompt, promptOptions.NegativePrompt);
+                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions.Prompt, promptOptions.NegativePrompt);
 
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = PrepareLatents(promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -89,14 +87,14 @@ namespace OnnxStack.StableDiffusion.Diffusers
                     var inputTensor = scheduler.ScaleInput(latents.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
 
                     // Create Input Parameters
-                    var inputNames = _onnxModelService.GetInputNames(OnnxModelType.Unet);
+                    var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.Unet);
                     var inputParameters = CreateInputParameters(
                          NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
                          NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
                          NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings));
 
                     // Run Inference
-                    using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Unet, inputParameters))
+                    using (var inferResult = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputParameters))
                     {
                         var noisePred = inferResult.FirstElementAs<DenseTensor<float>>();
 
@@ -111,11 +109,11 @@ namespace OnnxStack.StableDiffusion.Diffusers
                         latents = scheduler.Step(noisePred, timestep, latents);
                     }
 
-                    progress?.Invoke(++step, timesteps.Count);
+                    progressCallback?.Invoke(++step, timesteps.Count);
                 }
 
                 // Decode Latents
-                return await DecodeLatents(schedulerOptions, latents);
+                return await DecodeLatents(modelOptions, schedulerOptions, latents);
             }
         }
 
@@ -125,23 +123,23 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="options">The options.</param>
         /// <param name="latents">The latents.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> DecodeLatents(SchedulerOptions options, DenseTensor<float> latents)
+        protected async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, SchedulerOptions options, DenseTensor<float> latents)
         {
             // Scale and decode the image latents with vae.
             // latents = 1 / 0.18215 * latents
-            latents = latents.MultipleTensorByFloat(1.0f / _configuration.ScaleFactor);
+            latents = latents.MultipleTensorByFloat(1.0f / model.ScaleFactor);
 
-            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.VaeDecoder);
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], latents));
 
             // Run inference.
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.VaeDecoder, inputParameters))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputParameters))
             {
                 var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                if (await _onnxModelService.IsEnabledAsync(OnnxModelType.SafetyChecker))
+                if (await _onnxModelService.IsEnabledAsync(model, OnnxModelType.SafetyChecker))
                 {
                     // Check if image contains NSFW content, 
-                    if (!await IsImageSafe(options, resultTensor))
+                    if (!await IsImageSafe(model, options, resultTensor))
                         return resultTensor.CloneEmpty().ToDenseTensor(); //TODO: blank image?, exception?, null?
                 }
                 return resultTensor.ToDenseTensor();
@@ -157,20 +155,20 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <returns>
         ///   <c>true</c> if the specified result image is safe; otherwise, <c>false</c>.
         /// </returns>
-        protected async Task<bool> IsImageSafe(SchedulerOptions options, DenseTensor<float> resultImage)
+        protected async Task<bool> IsImageSafe(IModelOptions model, SchedulerOptions options, DenseTensor<float> resultImage)
         {
             //clip input
             var inputTensor = ClipImageFeatureExtractor(options, resultImage);
 
             //images input
-            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.SafetyChecker);
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.SafetyChecker);
             var inputImagesTensor = inputTensor.ReorderTensor(new[] { 1, 224, 224, 3 });
             var inputParameters = CreateInputParameters(
                 NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
                 NamedOnnxValue.CreateFromTensor(inputNames[1], inputImagesTensor));
 
             // Run session and send the input data in to get inference output. 
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.SafetyChecker, inputParameters))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.SafetyChecker, inputParameters))
             {
                 var result = inferResult.LastElementAs<IEnumerable<bool>>();
                 return !result.First();

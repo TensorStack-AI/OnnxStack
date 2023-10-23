@@ -50,18 +50,18 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override DenseTensor<float> PrepareLatents(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             // Image input, decode, add noise, return as latent 0
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Width, options.Height });
-            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.VaeEncoder);
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeEncoder);
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageTensor));
-            using (var inferResult = _onnxModelService.RunInference(OnnxModelType.VaeEncoder, inputParameters))
+            using (var inferResult = _onnxModelService.RunInference(model, OnnxModelType.VaeEncoder, inputParameters))
             {
                 var sample = inferResult.FirstElementAs<DenseTensor<float>>();
                 var noisySample = sample
                     .AddTensors(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
-                    .MultipleTensorByFloat(_configuration.ScaleFactor);
+                    .MultipleTensorByFloat(model.ScaleFactor);
                 var noise = scheduler.CreateRandomSample(sample.Dimensions);
                 return scheduler.AddNoise(noisySample, noise, timesteps);
             }

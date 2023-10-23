@@ -1,10 +1,13 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,16 +20,26 @@ namespace OnnxStack.StableDiffusion.Services
     /// <seealso cref="OnnxStack.StableDiffusion.Common.IStableDiffusionService" />
     public sealed class StableDiffusionService : IStableDiffusionService
     {
-        private readonly IDiffuserService _schedulerService;
+        private readonly IDiffuser _textDiffuser;
+        private readonly IDiffuser _imageDiffuser;
+        private readonly IDiffuser _inpaintDiffuser;
+        private readonly IDiffuser _inpaintLegacyDiffuser;
+        private readonly StableDiffusionConfig _configuration;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
         /// </summary>
         /// <param name="schedulerService">The scheduler service.</param>
-        public StableDiffusionService(IDiffuserService schedulerService)
+        public StableDiffusionService(StableDiffusionConfig configuration, IOnnxModelService onnxModelService, IPromptService promptService)
         {
-            _schedulerService = schedulerService;
+            _configuration = configuration;
+            _textDiffuser = new TextDiffuser(onnxModelService, promptService);
+            _imageDiffuser = new ImageDiffuser(onnxModelService, promptService);
+            _inpaintDiffuser = new InpaintDiffuser(onnxModelService, promptService);
+            _inpaintLegacyDiffuser = new InpaintLegacyDiffuser(onnxModelService, promptService);
         }
+
+        public List<ModelOptions> Models => _configuration.OnnxModelSets;
 
 
         /// <summary>
@@ -37,9 +50,9 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="DenseTensor<float>"/></returns>
-        public async Task<DenseTensor<float>> GenerateAsync(PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<DenseTensor<float>> GenerateAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await _schedulerService.RunAsync(prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
+            return await RunAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
         }
 
 
@@ -51,9 +64,9 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="SixLabors.ImageSharp.Image<Rgba32>"/></returns>
-        public async Task<Image<Rgba32>> GenerateAsImageAsync(PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<Image<Rgba32>> GenerateAsImageAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await GenerateAsync(prompt, options, progressCallback, cancellationToken)
+            return await GenerateAsync(model, prompt, options, progressCallback, cancellationToken)
                 .ContinueWith(t => t.Result.ToImage(), cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -67,9 +80,9 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="byte[]"/></returns>
-        public async Task<byte[]> GenerateAsBytesAsync(PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<byte[]> GenerateAsBytesAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await GenerateAsync(prompt, options, progressCallback, cancellationToken)
+            return await GenerateAsync(model, prompt, options, progressCallback, cancellationToken)
                 .ContinueWith(t => t.Result.ToImageBytes(), cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -83,11 +96,23 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="System.IO.Stream"/></returns>
-        public async Task<Stream> GenerateAsStreamAsync(PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<Stream> GenerateAsStreamAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await GenerateAsync(prompt, options, progressCallback, cancellationToken)
+            return await GenerateAsync(model, prompt, options, progressCallback, cancellationToken)
                 .ContinueWith(t => t.Result.ToImageStream(), cancellationToken)
                 .ConfigureAwait(false);
+        }
+
+
+        private async Task<DenseTensor<float>> RunAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
+        {
+            return promptOptions.ProcessType switch
+            {
+                ProcessType.TextToImage => await _textDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                ProcessType.ImageToImage => await _imageDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                ProcessType.ImageInpaint => await _inpaintLegacyDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                _ => throw new NotImplementedException()
+            };
         }
     }
 }

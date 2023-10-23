@@ -1,12 +1,15 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
-using OnnxStack.Core.Config;
+using Models;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Views;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -22,22 +25,20 @@ namespace OnnxStack.UI
         private int _selectedTabIndex;
         private INavigatable _selectedTabItem;
         private readonly ILogger<MainWindow> _logger;
-        private readonly OnnxStackConfig _configuration;
+        private ObservableCollection<ModelOptionsModel> _models;
 
-        public MainWindow(OnnxStackConfig configuration, ILogger<MainWindow> logger)
+        public MainWindow(StableDiffusionConfig configuration, ILogger<MainWindow> logger)
         {
             _logger = logger;
-            _configuration = configuration;
             SaveImageCommand = new AsyncRelayCommand<ImageResult>(SaveImageFile);
             SaveBlueprintCommand = new AsyncRelayCommand<ImageResult>(SaveBlueprintFile);
             NavigateTextToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateTextToImage);
             NavigateImageToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImageToImage);
             NavigateImageInpaintCommand = new AsyncRelayCommand<ImageResult>(NavigateImageInpaint);
             NavigateImageUpscaleCommand = new AsyncRelayCommand<ImageResult>(NavigateImageUpscale);
+            Models = CreateModelOptions(configuration.OnnxModelSets);
             InitializeComponent();
         }
-
-
 
         public AsyncRelayCommand<ImageResult> SaveImageCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveBlueprintCommand { get; }
@@ -45,6 +46,12 @@ namespace OnnxStack.UI
         public AsyncRelayCommand<ImageResult> NavigateImageToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageInpaintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageUpscaleCommand { get; }
+
+        public ObservableCollection<ModelOptionsModel> Models
+        {
+            get { return _models; }
+            set { _models = value; NotifyPropertyChanged(); }
+        }
 
         public int SelectedTabIndex
         {
@@ -68,12 +75,10 @@ namespace OnnxStack.UI
             await NavigateToTab(ProcessType.ImageToImage, result);
         }
 
-
         private async Task NavigateImageInpaint(ImageResult result)
         {
             await NavigateToTab(ProcessType.ImageInpaint, result);
         }
-
 
         private Task NavigateImageUpscale(ImageResult result)
         {
@@ -87,6 +92,15 @@ namespace OnnxStack.UI
             await SelectedTabItem.NavigateAsync(imageResult);
         }
 
+        private ObservableCollection<ModelOptionsModel> CreateModelOptions(List<ModelOptions> onnxModelSets)
+        {
+            var models = onnxModelSets.Select(model => new ModelOptionsModel
+            {
+                Name = model.Name,
+                ModelOptions = model
+            });
+            return new ObservableCollection<ModelOptionsModel>(models);
+        }
 
         private async Task SaveImageFile(ImageResult imageResult)
         {

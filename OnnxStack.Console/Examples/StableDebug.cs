@@ -62,7 +62,14 @@ namespace OnnxStack.Console.Runner
         {
             var timestamp = Stopwatch.GetTimestamp();
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
-            var result = await _stableDiffusionService.GenerateAsImageAsync(prompt, options);
+
+            //TODO:
+            var model = new ModelOptions
+            {
+
+            };
+
+            var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
             if (result is not null)
             {
                 await result.SaveAsPngAsync(outputFilename);

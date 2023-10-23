@@ -10,12 +10,12 @@ using System.Text;
 using System.Threading.Tasks;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
+using System.Collections.Immutable;
 
 namespace OnnxStack.StableDiffusion.Services
 {
     public sealed class PromptService : IPromptService
     {
-        private readonly OnnxStackConfig _configuration;
         private readonly IOnnxModelService _onnxModelService;
 
         /// <summary>
@@ -23,9 +23,8 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public PromptService(OnnxStackConfig configuration, IOnnxModelService onnxModelService)
+        public PromptService(IOnnxModelService onnxModelService)
         {
-            _configuration = configuration;
             _onnxModelService = onnxModelService;
         }
 
@@ -36,26 +35,26 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="prompt">The prompt.</param>
         /// <param name="negativePrompt">The negative prompt.</param>
         /// <returns>Tensor containing all text embeds generated from the prompt and negative prompt</returns>
-        public async Task<DenseTensor<float>> CreatePromptAsync(string prompt, string negativePrompt)
+        public async Task<DenseTensor<float>> CreatePromptAsync(IModelOptions model, string prompt, string negativePrompt)
         {
             // Tokenize Prompt and NegativePrompt
-            var promptTokens = await DecodeTextAsync(prompt);
-            var negativePromptTokens = await DecodeTextAsync(negativePrompt);
+            var promptTokens = await DecodeTextAsync(model, prompt);
+            var negativePromptTokens = await DecodeTextAsync(model, negativePrompt);
             var maxPromptTokenCount = Math.Max(promptTokens.Length, negativePromptTokens.Length);
 
             Console.WriteLine($"Prompt -   Length: {prompt.Length}, Tokens: {promptTokens.Length}");
             Console.WriteLine($"N-Prompt - Length: {negativePrompt?.Length}, Tokens: {negativePromptTokens.Length}");
 
             // Generate embeds for tokens
-            var promptEmbeddings = await GenerateEmbedsAsync(promptTokens, maxPromptTokenCount);
-            var negativePromptEmbeddings = await GenerateEmbedsAsync(negativePromptTokens, maxPromptTokenCount);
+            var promptEmbeddings = await GenerateEmbedsAsync(model, promptTokens, maxPromptTokenCount);
+            var negativePromptEmbeddings = await GenerateEmbedsAsync(model, negativePromptTokens, maxPromptTokenCount);
 
             // Calculate embeddings
-            var textEmbeddings = new DenseTensor<float>(new[] { 2, promptEmbeddings.Count / _configuration.EmbeddingsLength, _configuration.EmbeddingsLength });
+            var textEmbeddings = new DenseTensor<float>(new[] { 2, promptEmbeddings.Count / model.EmbeddingsLength, model.EmbeddingsLength });
             for (var i = 0; i < promptEmbeddings.Count; i++)
             {
-                textEmbeddings[0, i / _configuration.EmbeddingsLength, i % _configuration.EmbeddingsLength] = negativePromptEmbeddings[i];
-                textEmbeddings[1, i / _configuration.EmbeddingsLength, i % _configuration.EmbeddingsLength] = promptEmbeddings[i];
+                textEmbeddings[0, i / model.EmbeddingsLength, i % model.EmbeddingsLength] = negativePromptEmbeddings[i];
+                textEmbeddings[1, i / model.EmbeddingsLength, i % model.EmbeddingsLength] = promptEmbeddings[i];
             }
             return textEmbeddings;
         }
@@ -66,18 +65,18 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="inputText">The input text.</param>
         /// <returns>Tokens generated for the specified text input</returns>
-        public async Task<int[]> DecodeTextAsync(string inputText)
+        public async Task<int[]> DecodeTextAsync(IModelOptions model, string inputText)
         {
             if (string.IsNullOrEmpty(inputText))
                 return Array.Empty<int>();
 
             // Create input tensor.
-            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.Tokenizer);
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.Tokenizer);
             var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("string_input", inputTensor));
+            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor));
 
             // Run inference.
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.Tokenizer, inputParameters))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.Tokenizer, inputParameters))
             {
                 var resultTensor = inferResult.FirstElementAs<DenseTensor<long>>();
                 return resultTensor.Select(x => (int)x).ToArray();
@@ -90,15 +89,15 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="tokenizedInput">The tokenized input.</param>
         /// <returns></returns>
-        public async Task<float[]> EncodeTokensAsync(int[] tokenizedInput)
+        public async Task<float[]> EncodeTokensAsync(IModelOptions model, int[] tokenizedInput)
         {
             // Create input tensor.
-            var inputNames = _onnxModelService.GetInputNames(OnnxModelType.TextEncoder);
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.TextEncoder);
             var inputTensor = TensorHelper.CreateTensor(tokenizedInput, new[] { 1, tokenizedInput.Length });
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor("input_ids", inputTensor));
+            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor));
 
             // Run inference.
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(OnnxModelType.TextEncoder, inputParameters))
+            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.TextEncoder, inputParameters))
             {
                 var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
                 return resultTensor.ToArray();
@@ -112,18 +111,18 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="inputTokens">The input tokens.</param>
         /// <param name="minimumLength">The minimum length.</param>
         /// <returns></returns>
-        private async Task<List<float>> GenerateEmbedsAsync(int[] inputTokens, int minimumLength)
+        private async Task<List<float>> GenerateEmbedsAsync(IModelOptions model, int[] inputTokens, int minimumLength)
         {
             // If less than minimumLength pad with blank tokens
             if (inputTokens.Length < minimumLength)
-                inputTokens = PadWithBlankTokens(inputTokens, minimumLength).ToArray();
+                inputTokens = PadWithBlankTokens(inputTokens, minimumLength, model.BlankTokenValueArray).ToArray();
 
             // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
             var embeddings = new List<float>();
-            foreach (var tokenBatch in inputTokens.Batch(_configuration.TokenizerLimit))
+            foreach (var tokenBatch in inputTokens.Batch(model.TokenizerLimit))
             {
-                var tokens = PadWithBlankTokens(tokenBatch, _configuration.TokenizerLimit);
-                embeddings.AddRange(await EncodeTokensAsync(tokens.ToArray()));
+                var tokens = PadWithBlankTokens(tokenBatch, model.TokenizerLimit, model.BlankTokenValueArray);
+                embeddings.AddRange(await EncodeTokensAsync(model, tokens.ToArray()));
             }
             return embeddings;
         }
@@ -135,11 +134,11 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="inputs">The inputs.</param>
         /// <param name="requiredLength">The the required length of the returned array.</param>
         /// <returns></returns>
-        private IEnumerable<int> PadWithBlankTokens(IEnumerable<int> inputs, int requiredLength)
+        private IEnumerable<int> PadWithBlankTokens(IEnumerable<int> inputs, int requiredLength, ImmutableArray<int> blankTokens)
         {
             var count = inputs.Count();
             if (requiredLength > count)
-                return inputs.Concat(_configuration.BlankTokenValueArray[..(requiredLength - count)]);
+                return inputs.Concat(blankTokens[..(requiredLength - count)]);
             return inputs;
         }
 

@@ -11,9 +11,27 @@ namespace OnnxStack.Core.Services
     {
 
         /// <summary>
-        /// Gets the configuration.
+        /// Loads the model.
         /// </summary>
-        OnnxStackConfig Configuration { get; }
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        Task<OnnxModelSet> LoadModel(IOnnxModel model);
+
+        /// <summary>
+        /// Unloads the model.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        Task<bool> UnloadModel(IOnnxModel model);
+
+        /// <summary>
+        /// Determines whether the specified model is loaded.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified model is loaded; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsModelLoaded(IOnnxModel model);
 
         /// <summary>
         /// Determines whether the specified model type is enabled.
@@ -22,7 +40,7 @@ namespace OnnxStack.Core.Services
         /// <returns>
         ///   <c>true</c> if the specified model type is enabled; otherwise, <c>false</c>.
         /// </returns>
-        bool IsEnabled(OnnxModelType modelType);
+        bool IsEnabled(IOnnxModel model, OnnxModelType modelType);
 
         /// <summary>
         /// Determines whether the specified model type is enabled.
@@ -31,7 +49,7 @@ namespace OnnxStack.Core.Services
         /// <returns>
         ///   <c>true</c> if the specified model type is enabled; otherwise, <c>false</c>.
         /// </returns>
-        Task<bool> IsEnabledAsync(OnnxModelType modelType);
+        Task<bool> IsEnabledAsync(IOnnxModel model, OnnxModelType modelType);
 
 
         /// <summary>
@@ -40,7 +58,7 @@ namespace OnnxStack.Core.Services
         /// <param name="modelType">Type of the model.</param>
         /// <param name="inputs">The inputs.</param>
         /// <returns></returns>
-        IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInference(OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
+        IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInference(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
 
 
         /// <summary>
@@ -49,7 +67,7 @@ namespace OnnxStack.Core.Services
         /// <param name="modelType">Type of the model.</param>
         /// <param name="inputs">The inputs.</param>
         /// <returns></returns>
-        Task<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> RunInferenceAsync(OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
+        Task<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
 
 
         /// <summary>
@@ -57,7 +75,7 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="modelType">Type of model.</param>
         /// <returns></returns>
-        IReadOnlyDictionary<string, NodeMetadata> GetInputMetadata(OnnxModelType modelType);
+        IReadOnlyDictionary<string, NodeMetadata> GetInputMetadata(IOnnxModel model, OnnxModelType modelType);
 
 
         /// <summary>
@@ -65,7 +83,7 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="modelType">Type of model.</param>
         /// <returns></returns>
-        IReadOnlyList<string> GetInputNames(OnnxModelType modelType);
+        IReadOnlyList<string> GetInputNames(IOnnxModel model, OnnxModelType modelType);
 
 
         /// <summary>
@@ -73,7 +91,7 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="modelType">Type of model.</param>
         /// <returns></returns>
-        IReadOnlyDictionary<string, NodeMetadata> GetOutputMetadata(OnnxModelType modelType);
+        IReadOnlyDictionary<string, NodeMetadata> GetOutputMetadata(IOnnxModel model, OnnxModelType modelType);
 
 
         /// <summary>
@@ -81,6 +99,6 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="modelType">Type of model.</param>
         /// <returns></returns>
-        IReadOnlyList<string> GetOutputNames(OnnxModelType modelType);
+        IReadOnlyList<string> GetOutputNames(IOnnxModel model, OnnxModelType modelType);
     }
 }

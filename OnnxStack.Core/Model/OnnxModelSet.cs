@@ -8,7 +8,7 @@ namespace OnnxStack.Core.Model
 {
     public class OnnxModelSet : IDisposable
     {
-        private readonly OnnxStackConfig _configuration;
+        private readonly IOnnxModelSetConfig _configuration;
         private readonly PrePackedWeightsContainer _prePackedWeightsContainer;
         private readonly ImmutableDictionary<OnnxModelType, OnnxModelSession> _modelSessions;
 
@@ -16,7 +16,7 @@ namespace OnnxStack.Core.Model
         /// Initializes a new instance of the <see cref="OnnxModelSet"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public OnnxModelSet(OnnxStackConfig configuration)
+        public OnnxModelSet(IOnnxModelSetConfig configuration)
         {
             _configuration = configuration;
             _prePackedWeightsContainer = new PrePackedWeightsContainer();
@@ -32,37 +32,7 @@ namespace OnnxStack.Core.Model
         /// Gets the name.
         /// </summary>
         public string Name => _configuration.Name;
-
-        /// <summary>
-        /// Gets the pad token identifier.
-        /// </summary>
-        public int PadTokenId => _configuration.PadTokenId;
-
-        /// <summary>
-        /// Gets the blank token identifier.
-        /// </summary>
-        public int BlankTokenId => _configuration.BlankTokenId;
-
-        /// <summary>
-        /// Gets the input token limit.
-        /// </summary>
-        public int InputTokenLimit => _configuration.InputTokenLimit;
-
-        /// <summary>
-        /// Gets the tokenizer limit.
-        /// </summary>
-        public int TokenizerLimit => _configuration.TokenizerLimit;
-
-        /// <summary>
-        /// Gets the length of the embeddings.
-        /// </summary>
-        public int EmbeddingsLength => _configuration.EmbeddingsLength;
-
-        /// <summary>
-        /// Gets the scale factor.
-        /// </summary>
-        public float ScaleFactor => _configuration.ScaleFactor;
-
+      
 
         /// <summary>
         /// Checks the specified model type exists in the set.
