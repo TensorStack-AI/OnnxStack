@@ -21,7 +21,7 @@ namespace OnnxStack.Core.Model
             _configuration = configuration;
             _prePackedWeightsContainer = new PrePackedWeightsContainer();
             _modelSessions = configuration.ModelConfigurations
-                .Where(x => !x.IsDisabled)
+                .Where(x => x.IsEnabled == true)
                 .ToImmutableDictionary(
                 modelConfig => modelConfig.Type,
                 modelConfig => new OnnxModelSession(modelConfig, _prePackedWeightsContainer));

@@ -27,7 +27,7 @@ namespace OnnxStack.Core.Services
         {
             _configuration = configuration;
             _onnxModelSets = new ConcurrentDictionary<string, OnnxModelSet>();
-            _onnxModelSetConfigs = new ConcurrentDictionary<string, OnnxModelSetConfig>(configuration.OnnxModelSets.ToDictionary(x => x.Name, x => x));
+            _onnxModelSetConfigs = _configuration.OnnxModelSets.ToConcurrentDictionary(x => x.Name, x => x);
         }
 
 
@@ -253,10 +253,12 @@ namespace OnnxStack.Core.Services
             if (_onnxModelSets.ContainsKey(model.Name))
                 return _onnxModelSets[model.Name];
 
-            if (!_onnxModelSetConfigs.ContainsKey(model.Name))
+            if (!_onnxModelSetConfigs.TryGetValue(model.Name, out var modelSetConfig))
                 throw new Exception($"Model {model.Name} not found in configuration");
 
-            var modelSetConfig = _onnxModelSetConfigs[model.Name];
+            if (!modelSetConfig.IsEnabled)
+                throw new Exception($"Model {model.Name} is not enabled");
+
             var modelSet = new OnnxModelSet(modelSetConfig);
             _onnxModelSets.TryAdd(model.Name, modelSet);
             return modelSet;

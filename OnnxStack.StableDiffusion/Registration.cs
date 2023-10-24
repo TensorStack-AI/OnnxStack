@@ -21,9 +21,9 @@ namespace OnnxStack.Core
         {
             ConfigureLibraries();
             serviceCollection.AddOnnxStack();
-            serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<StableDiffusionConfig>(nameof(OnnxStackConfig)));
             serviceCollection.AddSingleton<IPromptService, PromptService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
+            serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<StableDiffusionConfig>(nameof(OnnxStackConfig)));
         }
 
 

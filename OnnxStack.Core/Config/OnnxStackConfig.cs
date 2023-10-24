@@ -1,5 +1,6 @@
 ﻿using OnnxStack.Common.Config;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OnnxStack.Core.Config
 {
@@ -9,6 +10,13 @@ namespace OnnxStack.Core.Config
 
         public void Initialize()
         {
+            if (OnnxModelSets.IsNullOrEmpty())
+                return;
+
+            foreach (var modelSet in OnnxModelSets)
+            {
+                modelSet.ApplyConfigurationOverrides();
+            }
         }
     }
 }
