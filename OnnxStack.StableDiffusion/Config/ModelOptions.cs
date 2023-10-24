@@ -1,7 +1,5 @@
-﻿using OnnxStack.Common.Config;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.StableDiffusion.Common;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Config
 {

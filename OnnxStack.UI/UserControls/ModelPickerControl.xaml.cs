@@ -1,5 +1,5 @@
 ﻿using Models;
-using OnnxStack.Core.Services;
+using OnnxStack.StableDiffusion.Common;
 using OnnxStack.UI.Commands;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -14,13 +14,13 @@ namespace OnnxStack.UI.UserControls
     /// </summary>
     public partial class ModelPickerControl : UserControl, INotifyPropertyChanged
     {
-        private readonly IOnnxModelService _modelService;
+        private readonly IStableDiffusionService _stableDiffusionService;
 
         /// <summary>Initializes a new instance of the <see cref="ModelPickerControl" /> class.</summary>
         public ModelPickerControl()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
-                _modelService = App.GetService<IOnnxModelService>();
+                _stableDiffusionService = App.GetService<IStableDiffusionService>();
 
             LoadModelCommand = new AsyncRelayCommand(LoadModel);
             UnloadModelCommand = new AsyncRelayCommand(UnloadModel);
@@ -46,13 +46,13 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private async Task LoadModel()
         {
-            if (_modelService.IsModelLoaded(SelectedModel.ModelOptions))
+            if (_stableDiffusionService.IsModelLoaded(SelectedModel.ModelOptions))
                 return;
 
             SelectedModel.IsLoading = true;
-            await _modelService.LoadModel(SelectedModel.ModelOptions);
+            var result = await _stableDiffusionService.LoadModel(SelectedModel.ModelOptions);
             SelectedModel.IsLoading = false;
-            SelectedModel.IsLoaded = true;
+            SelectedModel.IsLoaded = result;
         }
 
 
@@ -61,11 +61,11 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private async Task UnloadModel()
         {
-            if (!_modelService.IsModelLoaded(SelectedModel.ModelOptions))
+            if (!_stableDiffusionService.IsModelLoaded(SelectedModel.ModelOptions))
                 return;
 
             SelectedModel.IsLoading = true;
-            await _modelService.UnloadModel(SelectedModel.ModelOptions);
+            await _stableDiffusionService.UnloadModel(SelectedModel.ModelOptions);
             SelectedModel.IsLoading = false;
             SelectedModel.IsLoaded = false;
         }

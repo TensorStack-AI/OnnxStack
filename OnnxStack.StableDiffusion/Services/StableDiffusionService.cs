@@ -24,7 +24,9 @@ namespace OnnxStack.StableDiffusion.Services
         private readonly IDiffuser _imageDiffuser;
         private readonly IDiffuser _inpaintDiffuser;
         private readonly IDiffuser _inpaintLegacyDiffuser;
+        private readonly IOnnxModelService _onnxModelService;
         private readonly StableDiffusionConfig _configuration;
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
@@ -33,14 +35,52 @@ namespace OnnxStack.StableDiffusion.Services
         public StableDiffusionService(StableDiffusionConfig configuration, IOnnxModelService onnxModelService, IPromptService promptService)
         {
             _configuration = configuration;
+            _onnxModelService = onnxModelService;
             _textDiffuser = new TextDiffuser(onnxModelService, promptService);
             _imageDiffuser = new ImageDiffuser(onnxModelService, promptService);
             _inpaintDiffuser = new InpaintDiffuser(onnxModelService, promptService);
             _inpaintLegacyDiffuser = new InpaintLegacyDiffuser(onnxModelService, promptService);
         }
 
+
+        /// <summary>
+        /// Gets the models.
+        /// </summary>
         public List<ModelOptions> Models => _configuration.OnnxModelSets;
 
+
+        /// <summary>
+        /// Loads the model.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        public async Task<bool> LoadModel(IModelOptions modelOptions)
+        {
+            var model = await _onnxModelService.LoadModel(modelOptions);
+            return model is not null;
+        }
+
+
+        /// <summary>
+        /// Unloads the model.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        public async Task<bool> UnloadModel(IModelOptions modelOptions)
+        {
+            return await _onnxModelService.UnloadModel(modelOptions);
+        }
+
+
+        /// <summary>
+        /// Is the model loaded.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        public bool IsModelLoaded(IModelOptions modelOptions)
+        {
+            return _onnxModelService.IsModelLoaded(modelOptions);
+        }
 
         /// <summary>
         /// Generates the StableDiffusion image using the prompt and options provided.

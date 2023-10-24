@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -12,7 +13,35 @@ namespace OnnxStack.StableDiffusion.Common
 {
     public interface IStableDiffusionService
     {
+
+        /// <summary>
+        /// Gets the models.
+        /// </summary>
         List<ModelOptions> Models { get; }
+
+        /// <summary>
+        /// Loads the model.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        Task<bool> LoadModel(IModelOptions modelOptions);
+
+
+        /// <summary>
+        /// Unloads the model.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        Task<bool> UnloadModel(IModelOptions modelOptions);
+
+        /// <summary>
+        /// Determines whether the specified model is loaded
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified model is loaded; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsModelLoaded(IModelOptions modelOptions);
 
         /// <summary>
         /// Generates the StableDiffusion image using the prompt and options provided.
