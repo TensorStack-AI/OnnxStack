@@ -17,6 +17,7 @@ namespace OnnxStack.StableDiffusion.Config
         public float ScaleFactor { get; set; }
         public ImmutableArray<int> BlankTokenValueArray { get; set; }
 
+        public bool IsEnabled { get; set; }
         public int DeviceId { get; set; }
         public string OnnxModelPath { get; set; }
         public int InterOpNumThreads { get; set; }
