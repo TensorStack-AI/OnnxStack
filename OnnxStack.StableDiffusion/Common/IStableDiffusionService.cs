@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;

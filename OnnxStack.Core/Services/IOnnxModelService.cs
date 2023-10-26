@@ -33,6 +33,14 @@ namespace OnnxStack.Core.Services
         /// </returns>
         bool IsModelLoaded(IOnnxModel model);
 
+
+        /// <summary>
+        /// Updates the model set.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        bool UpdateModelSet(IOnnxModelSetConfig modelSet);
+
         /// <summary>
         /// Determines whether the specified model type is enabled.
         /// </summary>

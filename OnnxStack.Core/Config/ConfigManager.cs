@@ -93,7 +93,12 @@ namespace OnnxStack.Core.Config
             SaveConfiguration<OnnxStackConfig>(configuration);
         }
 
-        public static void SaveConfiguration<T>(T configuration)
+        public static void SaveConfiguration<T>(T configuration) where T : class, IConfigSection
+        {
+            SaveConfiguration<T>(typeof(T).Name, configuration);
+        }
+
+        public static void SaveConfiguration<T>(string sectionName, T configuration) where T : class, IConfigSection
         {
           
             string appsettingStreamFile = GetAppSettingsFile();
@@ -104,7 +109,7 @@ namespace OnnxStack.Core.Config
                 appSettings = JsonSerializer.Deserialize<Dictionary<string, object>>(appsettingReadStream, GetSerializerOptions());
 
             // Set Object
-            appSettings[typeof(T).Name] = configuration;
+            appSettings[sectionName] = configuration;
 
             // Write out file
             var serializerOptions = GetSerializerOptions();

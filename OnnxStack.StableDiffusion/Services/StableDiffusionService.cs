@@ -150,7 +150,8 @@ namespace OnnxStack.StableDiffusion.Services
             {
                 ProcessType.TextToImage => await _textDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
                 ProcessType.ImageToImage => await _imageDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                ProcessType.ImageInpaint => await _inpaintLegacyDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                ProcessType.ImageInpaint => await _inpaintDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                ProcessType.ImageInpaintLegacy => await _inpaintLegacyDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
                 _ => throw new NotImplementedException()
             };
         }

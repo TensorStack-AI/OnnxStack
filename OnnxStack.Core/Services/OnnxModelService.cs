@@ -17,7 +17,7 @@ namespace OnnxStack.Core.Services
     {
         private readonly OnnxStackConfig _configuration;
         private readonly ConcurrentDictionary<string, OnnxModelSet> _onnxModelSets;
-        private readonly ConcurrentDictionary<string, OnnxModelSetConfig> _onnxModelSetConfigs;
+        private readonly ConcurrentDictionary<string, IOnnxModelSetConfig> _onnxModelSetConfigs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxModelService"/> class.
@@ -27,7 +27,19 @@ namespace OnnxStack.Core.Services
         {
             _configuration = configuration;
             _onnxModelSets = new ConcurrentDictionary<string, OnnxModelSet>();
-            _onnxModelSetConfigs = _configuration.OnnxModelSets.ToConcurrentDictionary(x => x.Name, x => x);
+            _onnxModelSetConfigs = _configuration.OnnxModelSets.ToConcurrentDictionary(x => x.Name, x => x as IOnnxModelSetConfig);
+        }
+
+
+        /// <summary>
+        /// Updates the model set.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        public bool UpdateModelSet(IOnnxModelSetConfig modelSet)
+        {
+            _onnxModelSetConfigs.TryRemove(modelSet.Name, out var existing);
+            return _onnxModelSetConfigs.TryAdd(modelSet.Name, modelSet);
         }
 
 

@@ -7,7 +7,6 @@ namespace OnnxStack.Core.Config
     {
         bool IsEnabled { get; set; }
         int DeviceId { get; set; }
-        string OnnxModelPath { get; set; }
         int InterOpNumThreads { get; set; }
         int IntraOpNumThreads { get; set; }
         ExecutionMode ExecutionMode { get; set; }

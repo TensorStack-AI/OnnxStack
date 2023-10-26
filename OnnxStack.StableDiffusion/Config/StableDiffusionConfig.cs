@@ -1,7 +1,9 @@
 ﻿using OnnxStack.Common.Config;
 using OnnxStack.Core;
+using OnnxStack.Core.Config;
+using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Config
@@ -15,10 +17,15 @@ namespace OnnxStack.StableDiffusion.Config
             if (OnnxModelSets.IsNullOrEmpty())
                 return;
 
+            var defaultTokenizer = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cliptokenizer.onnx");
+            if (!File.Exists(defaultTokenizer))
+                defaultTokenizer = string.Empty;
+
             foreach (var modelSet in OnnxModelSets)
             {
-                modelSet.ApplyConfigurationOverrides();
-                modelSet.BlankTokenValueArray = Enumerable.Repeat(modelSet.BlankTokenId, modelSet.InputTokenLimit).ToImmutableArray();
+                modelSet.InitBlankTokenArray();
+                foreach (var model in modelSet.ModelConfigurations.Where(x => x.Type == OnnxModelType.Tokenizer && string.IsNullOrEmpty(x.OnnxModelPath)))
+                    model.OnnxModelPath = defaultTokenizer;
             }
         }
     }

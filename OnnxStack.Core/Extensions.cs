@@ -53,7 +53,6 @@ namespace OnnxStack.Core
 
             foreach (var modelConfig in innxModelSetConfig.ModelConfigurations)
             {
-                modelConfig.IsEnabled = modelConfig.IsEnabled != false;
                 modelConfig.DeviceId ??= innxModelSetConfig.DeviceId;
                 modelConfig.ExecutionMode ??= innxModelSetConfig.ExecutionMode;
                 modelConfig.InterOpNumThreads ??= innxModelSetConfig.InterOpNumThreads;

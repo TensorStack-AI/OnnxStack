@@ -28,6 +28,7 @@ namespace OnnxStack.StableDiffusion.Config
     {
         TextToImage = 0,
         ImageToImage = 1,
-        ImageInpaint = 2
+        ImageInpaint = 2,
+        ImageInpaintLegacy = 3
     }
 }
