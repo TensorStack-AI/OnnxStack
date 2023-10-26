@@ -28,10 +28,11 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
+            var model = _stableDiffusionService.Models.First();
+            await _stableDiffusionService.LoadModel(model);
+
             while (true)
             {
-                var model = _stableDiffusionService.Models.First();
-
                 OutputHelpers.WriteConsole("Please type a prompt and press ENTER", ConsoleColor.Yellow);
                 var prompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
 
@@ -42,7 +43,7 @@ namespace OnnxStack.Console.Runner
                 {
                     Prompt = prompt,
                     NegativePrompt = negativePrompt,
-                   
+
                 };
 
                 var schedulerOptions = new SchedulerOptions

@@ -32,6 +32,7 @@ namespace OnnxStack.Console.Runner
             Directory.CreateDirectory(_outputDirectory);
 
             var model = _stableDiffusionService.Models.First();
+            await _stableDiffusionService.LoadModel(model);
 
             var seed = Random.Shared.Next();
             foreach (var generationPrompt in _generationPrompts)

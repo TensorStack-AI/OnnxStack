@@ -145,6 +145,7 @@ namespace OnnxStack.Web.Hubs
 
             //TODO: Model Selector
             var model = _stableDiffusionService.Models.First();
+            await _stableDiffusionService.LoadModel(model);
 
             //3. Run stable diffusion
             if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
@@ -191,6 +192,7 @@ namespace OnnxStack.Web.Hubs
 
             //TODO: Model Selector
             var model = _stableDiffusionService.Models.First();
+            await _stableDiffusionService.LoadModel(model);
 
             //4. Run stable diffusion
             if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
@@ -244,6 +246,7 @@ namespace OnnxStack.Web.Hubs
 
             //TODO: Model Selector
             var model = _stableDiffusionService.Models.First();
+            await _stableDiffusionService.LoadModel(model);
 
             // 5. Run stable diffusion
             if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
