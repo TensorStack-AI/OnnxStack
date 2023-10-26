@@ -5,6 +5,7 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -44,6 +45,8 @@ namespace OnnxStack.UI.Views
                 _logger = App.GetService<ILogger<TextToImageView>>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
+
+            SupportedDiffusers = new() { DiffuserType.TextToImage };
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             GenerateCommand = new AsyncRelayCommand(Generate, CanExecuteGenerate);
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
@@ -54,6 +57,7 @@ namespace OnnxStack.UI.Views
             InitializeComponent();
         }
 
+        public List<DiffuserType> SupportedDiffusers { get; }
         public AsyncRelayCommand CancelCommand { get; }
         public AsyncRelayCommand GenerateCommand { get; }
         public AsyncRelayCommand ClearHistoryCommand { get; set; }
@@ -113,6 +117,8 @@ namespace OnnxStack.UI.Views
             set { _selectedTabIndex = value; NotifyPropertyChanged(); }
         }
 
+     
+
 
         /// <summary>
         /// Called on Navigate
@@ -149,7 +155,7 @@ namespace OnnxStack.UI.Views
                 Prompt = PromptOptions.Prompt,
                 NegativePrompt = PromptOptions.NegativePrompt,
                 SchedulerType = PromptOptions.SchedulerType,
-                ProcessType = ProcessType.TextToImage
+                DiffuserType = DiffuserType.TextToImage
             };
 
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
@@ -257,7 +263,7 @@ namespace OnnxStack.UI.Views
                     Image = image,
                     Prompt = promptOptions.Prompt,
                     NegativePrompt = promptOptions.NegativePrompt,
-                    ProcessType = promptOptions.ProcessType,
+                    DiffuserType = promptOptions.DiffuserType,
                     SchedulerType = promptOptions.SchedulerType,
                     SchedulerOptions = schedulerOptions,
                     Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds

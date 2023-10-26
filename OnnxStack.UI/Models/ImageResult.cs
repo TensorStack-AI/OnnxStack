@@ -12,7 +12,7 @@ namespace OnnxStack.UI.Models
         public BitmapSource Image { get; init; }
 
         public DateTime Timestamp { get; } = DateTime.UtcNow;
-        public ProcessType ProcessType { get; init; }
+        public DiffuserType DiffuserType { get; init; }
         public string Prompt { get; init; }
         public string NegativePrompt { get; init; }
         public SchedulerType SchedulerType { get; init; }

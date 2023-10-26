@@ -4,17 +4,19 @@ using System.Runtime.CompilerServices;
 
 namespace Models
 {
-   public class ModelOptionsModel : INotifyPropertyChanged
+    public class ModelOptionsModel : INotifyPropertyChanged
     {
         private string _name;
         private bool _isLoaded;
         private bool _isLoading;
+        private bool _isEnabled;
+
         public string Name
         {
             get { return _name; }
             set { _name = value; NotifyPropertyChanged(); }
         }
-    
+
         public bool IsLoaded
         {
             get { return _isLoaded; }
@@ -27,8 +29,14 @@ namespace Models
             set { _isLoading = value; NotifyPropertyChanged(); }
         }
 
+        public bool IsEnabled
+        {
+            get { return _isEnabled; }
+            set { _isEnabled = value; NotifyPropertyChanged(); }
+        }
+
         public IModelOptions ModelOptions { get; set; }
-     
+
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

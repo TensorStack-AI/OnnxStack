@@ -11,51 +11,67 @@
             <Setter Property="Margin" Value="-4,0,0,-4"/>
         </Style>
         <Storyboard x:Key="LoadingAnimation" >
-            <DoubleAnimation Storyboard.TargetProperty="(Image.RenderTransform).(RotateTransform.Angle)" To="360" Duration="0:0:1" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="SpinnerIcon" Storyboard.TargetProperty="(Image.RenderTransform).(RotateTransform.Angle)" To="360" Duration="0:0:1" RepeatBehavior="Forever" />
         </Storyboard>
     </UserControl.Resources>
 
     <DockPanel DataContext="{Binding ElementName=UI}">
         <TextBlock DockPanel.Dock="Top" Text="Models"/>
         <DockPanel>
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding SelectedModel, Converter={StaticResource NullVisibilityConverter}}">
                 <Button BorderThickness="0,1,1,1" ToolTip="Load Model" Width="80"
-                    Command="{Binding LoadModelCommand}" 
-                    Visibility="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False, Converter={StaticResource InverseBooleanToVisibilityConverter}}" 
+                    Command="{Binding LoadCommand}" 
+                    Visibility="{Binding SelectedModel.IsLoaded, FallbackValue=Visible, TargetNullValue=Visible, Converter={StaticResource InverseBooleanToVisibilityConverter}}" 
                     IsEnabled="{Binding SelectedModel.IsLoading, Converter={StaticResource InverseBoolConverter}}">
                     <StackPanel Orientation="Horizontal">
-                        <local:FontAwesome Icon="&#xf110;"  Size="12" Margin="0,0,4,0" Width="12" Height="12"
+                        <local:FontAwesome x:Name="SpinnerIcon" Icon="&#xf110;"  Size="12" Margin="0,0,4,0" Width="12" Height="12"
                             RenderTransformOrigin="0.5,0.5"
                             Visibility="{Binding SelectedModel.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <local:FontAwesome.RenderTransform>
                                 <RotateTransform Angle="0"  />
                             </local:FontAwesome.RenderTransform>
-                            <local:FontAwesome.Style>
-                                <Style TargetType="local:FontAwesome">
-                                    <Style.Triggers>
-                                        <EventTrigger RoutedEvent="Loaded">
-                                            <BeginStoryboard Storyboard="{StaticResource LoadingAnimation}" />
-                                        </EventTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </local:FontAwesome.Style>
                         </local:FontAwesome>
                         <TextBlock Text="Load"/>
                     </StackPanel>
+                    <Button.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard x:Name="SpinnerIconAnimation" Storyboard="{StaticResource LoadingAnimation}" />
+                        </EventTrigger>
+                        <EventTrigger RoutedEvent="Unloaded">
+                            <StopStoryboard BeginStoryboardName="SpinnerIconAnimation" />
+                        </EventTrigger>
+                    </Button.Triggers>
                 </Button>
                 <Button BorderThickness="0,1,1,1" ToolTip="Unload Model" Width="80"
-                    Command="{Binding UnloadModelCommand}" 
-                    Visibility="{Binding SelectedModel.IsLoaded, FallbackValue=True, TargetNullValue=True, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Command="{Binding UnloadCommand}" 
+                    Visibility="{Binding SelectedModel.IsLoaded, FallbackValue=Collapsed, TargetNullValue=Collapsed, Converter={StaticResource BooleanToVisibilityConverter}}"
                     IsEnabled="{Binding SelectedModel.IsLoading, Converter={StaticResource InverseBoolConverter}}">
                     <TextBlock Text="Unload"/>
                 </Button>
             </StackPanel>
             <ComboBox 
                 DisplayMemberPath="Name" 
-                SelectedIndex="0"
-                ItemsSource="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=Models}" 
+                ItemsSource="{Binding Models}" 
                 SelectedItem="{Binding SelectedModel}" 
-                IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" />
+                IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" >
+                <ComboBox.ItemContainerStyle>
+                    <Style TargetType="{x:Type ComboBoxItem}">
+                        <Setter Property="Visibility" Value="Hidden" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                <Setter Property="Visibility">
+                                    <Setter.Value>
+                                        <MultiBinding Converter="{StaticResource DiffuserVisibilityConverter}">
+                                            <Binding Path="ModelOptions.Diffusers"/>
+                                            <Binding Path="SupportedDiffusers" ElementName="UI" />
+                                        </MultiBinding>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ComboBox.ItemContainerStyle>
+            </ComboBox>
         </DockPanel>
     </DockPanel>
 

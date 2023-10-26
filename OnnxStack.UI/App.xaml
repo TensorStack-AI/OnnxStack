@@ -7,10 +7,11 @@
              xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
              xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
              xmlns:models="clr-namespace:OnnxStack.UI.Models"
+             xmlns:coreConfig="clr-namespace:OnnxStack.Core.Config;assembly=OnnxStack.Core"
+             xmlns:onnxEnums="clr-namespace:Microsoft.ML.OnnxRuntime;assembly=Microsoft.ML.OnnxRuntime"
              xmlns:converters="clr-namespace:OnnxStack.UI.Converters">
     <Application.Resources>
 
-        <BitmapImage x:Key="LoadingImage" UriSource="/Images/loading.gif" />
         <BitmapImage x:Key="PlaceholderImage" UriSource="/Images/placeholder.png" />
         <Storyboard x:Key="LoadingAnimation">
             <DoubleAnimation Storyboard.TargetProperty="(Image.RenderTransform).(RotateTransform.Angle)" To="360" Duration="0:0:1" RepeatBehavior="Forever" />
@@ -27,6 +28,9 @@
         <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
         <converters:BooleanToHiddenConverter x:Key="BooleanToHiddenConverter" />
         <converters:InverseBooleanToHiddenConverter x:Key="InverseBooleanToHiddenConverter" />
+        <converters:NullVisibilityConverter x:Key="NullVisibilityConverter" />
+        <converters:InverseNullVisibilityConverter x:Key="InverseNullVisibilityConverter" />
+        <converters:DiffuserVisibilityConverter x:Key="DiffuserVisibilityConverter" />
 
         <ObjectDataProvider x:Key="SchedulerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -65,6 +69,19 @@
         </ObjectDataProvider>
 
 
+        <ObjectDataProvider x:Key="ExecutionProviderType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="coreConfig:ExecutionProvider"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="ExecutionModeType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="onnxEnums:ExecutionMode"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+
         <!--TODO: Style dictionary for themeing-->
         <Style TargetType="{x:Type TextBox}">
             <Setter Property="Height" Value="24" />
@@ -77,7 +94,23 @@
 
         </Style>
 
-
+        <Style x:Key="SplitTabControl" TargetType="{x:Type TabControl}" >
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <DockPanel Grid.Row="0" IsItemsHost="True" >
+                            </DockPanel>
+                            <ContentPresenter Grid.Row="1" ContentSource="SelectedContent"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
 
         <Style x:Key="ImageResultListBoxItem" TargetType="ListBoxItem">

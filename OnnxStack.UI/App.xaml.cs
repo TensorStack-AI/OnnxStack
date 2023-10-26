@@ -36,6 +36,8 @@ namespace OnnxStack.UI
 
             // Add Windows
             builder.Services.AddSingleton<MainWindow>();
+            builder.Services.AddTransient<MessageDialog>();
+            builder.Services.AddTransient<TextInputDialog>();
             builder.Services.AddTransient<CropImageDialog>();
             builder.Services.AddSingleton<IDialogService, DialogService>();
 

@@ -34,14 +34,14 @@ namespace OnnxStack.UI.UserControls
         public ObservableCollection<int> ValidSizes { get; }
 
 
-        public ProcessType ProcessType
+        public DiffuserType DiffuserType
         {
-            get { return (ProcessType)GetValue(ProcessTypeProperty); }
-            set { SetValue(ProcessTypeProperty, value); }
+            get { return (DiffuserType)GetValue(DiffuserTypeProperty); }
+            set { SetValue(DiffuserTypeProperty, value); }
         }
 
-        public static readonly DependencyProperty ProcessTypeProperty =
-            DependencyProperty.Register("ProcessType", typeof(ProcessType), typeof(SchedulerControl));
+        public static readonly DependencyProperty DiffuserTypeProperty =
+            DependencyProperty.Register("DiffuserType", typeof(DiffuserType), typeof(SchedulerControl));
 
 
 

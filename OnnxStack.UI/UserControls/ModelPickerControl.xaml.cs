@@ -1,7 +1,13 @@
 ﻿using Models;
 using OnnxStack.StableDiffusion.Common;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
+using OnnxStack.UI.Views;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -22,23 +28,50 @@ namespace OnnxStack.UI.UserControls
             if (!DesignerProperties.GetIsInDesignMode(this))
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
 
-            LoadModelCommand = new AsyncRelayCommand(LoadModel);
-            UnloadModelCommand = new AsyncRelayCommand(UnloadModel);
+            LoadCommand = new AsyncRelayCommand(LoadModel);
+            UnloadCommand = new AsyncRelayCommand(UnloadModel);
             InitializeComponent();
         }
 
-        public AsyncRelayCommand LoadModelCommand { get; set; }
-        public AsyncRelayCommand UnloadModelCommand { get; set; }
+        public AsyncRelayCommand LoadCommand { get; set; }
+        public AsyncRelayCommand UnloadCommand { get; set; }
 
+
+        /// <summary>
+        /// Gets or sets the models.
+        /// </summary>
+        public ObservableCollection<ModelOptionsModel> Models
+        {
+            get { return (ObservableCollection<ModelOptionsModel>)GetValue(ModelsProperty); }
+            set { SetValue(ModelsProperty, value); }
+        }
+        public static readonly DependencyProperty ModelsProperty =
+            DependencyProperty.Register("Models", typeof(ObservableCollection<ModelOptionsModel>), typeof(ModelPickerControl), new PropertyMetadata(propertyChangedCallback: OnModelsChanged));
+
+
+        /// <summary>
+        /// Gets or sets the supported diffusers.
+        /// </summary>
+        public List<DiffuserType> SupportedDiffusers
+        {
+            get { return (List<DiffuserType>)GetValue(SupportedDiffusersProperty); }
+            set { SetValue(SupportedDiffusersProperty, value); }
+        }
+        public static readonly DependencyProperty SupportedDiffusersProperty =
+            DependencyProperty.Register("SupportedDiffusers", typeof(List<DiffuserType>), typeof(ModelPickerControl));
+
+
+        /// <summary>
+        /// Gets or sets the selected model.
+        /// </summary>
         public ModelOptionsModel SelectedModel
         {
             get { return (ModelOptionsModel)GetValue(SelectedModelProperty); }
             set { SetValue(SelectedModelProperty, value); }
         }
-
-
         public static readonly DependencyProperty SelectedModelProperty =
             DependencyProperty.Register("SelectedModel", typeof(ModelOptionsModel), typeof(ModelPickerControl));
+
 
 
         /// <summary>
@@ -71,6 +104,20 @@ namespace OnnxStack.UI.UserControls
         }
 
 
+        /// <summary>
+        /// Called when the Models source collection has changes, via Settings most likely.
+        /// </summary>
+        /// <param name="owner">The owner.</param>
+        /// <param name="e">The <see cref="DependencyPropertyChangedEventArgs"/> instance containing the event data.</param>
+        private static void OnModelsChanged(DependencyObject owner, DependencyPropertyChangedEventArgs e)
+        {
+            if (owner is ModelPickerControl control)
+            {
+                control.SelectedModel = control.Models
+                    .Where(x => control.SupportedDiffusers.Any(x.ModelOptions.Diffusers.Contains))
+                    .FirstOrDefault(x => x.ModelOptions.IsEnabled);
+            }
+        }
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

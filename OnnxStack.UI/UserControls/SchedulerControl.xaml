@@ -21,7 +21,7 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
-                        <userControls:FontAwesome Icon="&#xf013;" IconStyle="Light"/>
+                        <userControls:FontAwesome Icon="&#xf1de;" IconStyle="Light"/>
                         <TextBlock Text="Options" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
@@ -88,7 +88,7 @@
                             <StackPanel.Style>
                                 <Style TargetType="{x:Type StackPanel}">
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Path=ProcessType}" Value="TextToImage">
+                                        <DataTrigger Binding="{Binding Path=DiffuserType}" Value="TextToImage">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -109,10 +109,10 @@
                             <StackPanel.Style>
                                 <Style TargetType="{x:Type StackPanel}">
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Path=ProcessType}" Value="TextToImage">
+                                        <DataTrigger Binding="{Binding Path=DiffuserType}" Value="TextToImage">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
-                                        <DataTrigger Binding="{Binding Path=ProcessType}" Value="ImageInpaint">
+                                        <DataTrigger Binding="{Binding Path=DiffuserType}" Value="ImageInpaint">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                     </Style.Triggers>

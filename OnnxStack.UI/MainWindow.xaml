@@ -19,10 +19,10 @@
         TextOptions.TextRenderingMode="ClearType" 
         TextOptions.TextHintingMode="Fixed">
     <Grid DataContext="{Binding ElementName=UI}">
-        <TabControl SelectedIndex="{Binding SelectedTabIndex}" SelectedValue="{Binding SelectedTabItem}" SelectedValuePath="Content" DockPanel.Dock="Top" Margin="4">
+        <TabControl Style="{StaticResource SplitTabControl}" SelectedIndex="{Binding SelectedTabIndex}" SelectedValue="{Binding SelectedTabItem}" SelectedValuePath="Content" DockPanel.Dock="Top" Margin="4">
 
             <!--Text To Image-->
-            <TabItem>
+            <TabItem Margin="1,0,0,0">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
@@ -64,6 +64,19 @@
                     </StackPanel>
                 </TabItem.Header>
                 <views:ImageInpaint />
+            </TabItem>
+
+            <!--Settings-->
+            <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf013;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Settings" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:Settings ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" />
             </TabItem>
 
         </TabControl>

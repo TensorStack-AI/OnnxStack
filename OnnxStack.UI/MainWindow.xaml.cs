@@ -67,17 +67,17 @@ namespace OnnxStack.UI
 
         private async Task NavigateTextToImage(ImageResult result)
         {
-            await NavigateToTab(ProcessType.TextToImage, result);
+            await NavigateToTab(DiffuserType.TextToImage, result);
         }
 
         private async Task NavigateImageToImage(ImageResult result)
         {
-            await NavigateToTab(ProcessType.ImageToImage, result);
+            await NavigateToTab(DiffuserType.ImageToImage, result);
         }
 
         private async Task NavigateImageInpaint(ImageResult result)
         {
-            await NavigateToTab(ProcessType.ImageInpaint, result);
+            await NavigateToTab(DiffuserType.ImageInpaint, result);
         }
 
         private Task NavigateImageUpscale(ImageResult result)
@@ -86,18 +86,20 @@ namespace OnnxStack.UI
         }
 
 
-        private async Task NavigateToTab(ProcessType processType, ImageResult imageResult)
+        private async Task NavigateToTab(DiffuserType diffuserType, ImageResult imageResult)
         {
-            SelectedTabIndex = (int)processType;
+            SelectedTabIndex = (int)diffuserType;
             await SelectedTabItem.NavigateAsync(imageResult);
         }
 
         private ObservableCollection<ModelOptionsModel> CreateModelOptions(List<ModelOptions> onnxModelSets)
         {
-            var models = onnxModelSets.Select(model => new ModelOptionsModel
+            var models = onnxModelSets
+            .Select(model => new ModelOptionsModel
             {
                 Name = model.Name,
-                ModelOptions = model
+                ModelOptions = model,
+                IsEnabled = model.IsEnabled
             });
             return new ObservableCollection<ModelOptionsModel>(models);
         }
@@ -112,6 +114,8 @@ namespace OnnxStack.UI
                     Filter = "png files (*.png)|*.png",
                     DefaultExt = "png",
                     AddExtension = true,
+                    RestoreDirectory = true,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
                     FileName = $"image-{imageResult.SchedulerOptions.Seed}.png"
                 };
 
@@ -141,6 +145,8 @@ namespace OnnxStack.UI
                     Filter = "json files (*.json)|*.json",
                     DefaultExt = "json",
                     AddExtension = true,
+                    RestoreDirectory = true,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
                     FileName = $"image-{imageResult.SchedulerOptions.Seed}.json"
                 };
 

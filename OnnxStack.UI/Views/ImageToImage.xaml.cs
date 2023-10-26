@@ -5,6 +5,7 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -47,6 +48,8 @@ namespace OnnxStack.UI.Views
                 _logger = App.GetService<ILogger<TextToImageView>>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
+
+            SupportedDiffusers = new() { DiffuserType.ImageToImage };
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             GenerateCommand = new AsyncRelayCommand(Generate, CanExecuteGenerate);
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
@@ -57,6 +60,7 @@ namespace OnnxStack.UI.Views
             InitializeComponent();
         }
 
+        public List<DiffuserType> SupportedDiffusers { get; }
         public AsyncRelayCommand CancelCommand { get; }
         public AsyncRelayCommand GenerateCommand { get; }
         public AsyncRelayCommand ClearHistoryCommand { get; set; }
@@ -170,7 +174,7 @@ namespace OnnxStack.UI.Views
                 Prompt = PromptOptions.Prompt,
                 NegativePrompt = PromptOptions.NegativePrompt,
                 SchedulerType = PromptOptions.SchedulerType,
-                ProcessType = ProcessType.ImageToImage,
+                DiffuserType = DiffuserType.ImageToImage,
                 InputImage = new StableDiffusion.Models.InputImage
                 {
                     ImageBytes = InputImage.Image.GetImageBytes()
@@ -285,7 +289,7 @@ namespace OnnxStack.UI.Views
                     Image = image,
                     Prompt = promptOptions.Prompt,
                     NegativePrompt = promptOptions.NegativePrompt,
-                    ProcessType = promptOptions.ProcessType,
+                    DiffuserType = promptOptions.DiffuserType,
                     SchedulerType = promptOptions.SchedulerType,
                     SchedulerOptions = schedulerOptions,
                     Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
