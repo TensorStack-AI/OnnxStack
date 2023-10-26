@@ -146,12 +146,12 @@ namespace OnnxStack.StableDiffusion.Services
 
         private async Task<DenseTensor<float>> RunAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
         {
-            return promptOptions.ProcessType switch
+            return promptOptions.DiffuserType switch
             {
-                ProcessType.TextToImage => await _textDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                ProcessType.ImageToImage => await _imageDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                ProcessType.ImageInpaint => await _inpaintDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                ProcessType.ImageInpaintLegacy => await _inpaintLegacyDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                DiffuserType.TextToImage => await _textDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                DiffuserType.ImageToImage => await _imageDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                DiffuserType.ImageInpaint => await _inpaintDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
+                DiffuserType.ImageInpaintLegacy => await _inpaintLegacyDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
                 _ => throw new NotImplementedException()
             };
         }

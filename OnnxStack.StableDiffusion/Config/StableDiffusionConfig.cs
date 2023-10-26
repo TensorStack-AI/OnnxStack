@@ -24,8 +24,14 @@ namespace OnnxStack.StableDiffusion.Config
             foreach (var modelSet in OnnxModelSets)
             {
                 modelSet.InitBlankTokenArray();
-                foreach (var model in modelSet.ModelConfigurations.Where(x => x.Type == OnnxModelType.Tokenizer && string.IsNullOrEmpty(x.OnnxModelPath)))
-                    model.OnnxModelPath = defaultTokenizer;
+                foreach (var model in modelSet.ModelConfigurations)
+                {
+                    if (model.Type == OnnxModelType.Tokenizer && string.IsNullOrEmpty(model.OnnxModelPath))
+                        model.OnnxModelPath = defaultTokenizer;
+
+                    if (!File.Exists(model.OnnxModelPath))
+                        modelSet.IsEnabled = false;
+                }
             }
         }
     }

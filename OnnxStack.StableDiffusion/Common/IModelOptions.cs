@@ -15,7 +15,7 @@ namespace OnnxStack.StableDiffusion.Common
         int TokenizerLimit { get; set; }
         int InputTokenLimit { get; set; }
         int EmbeddingsLength { get; set; }
-        List<ProcessType> Diffusers { get; set; }
+        List<DiffuserType> Diffusers { get; set; }
         ImmutableArray<int> BlankTokenValueArray { get; set; }
     }
 }

@@ -126,7 +126,7 @@ namespace OnnxStack.Web.Hubs
         private async Task<StableDiffusionResult> GenerateTextToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
-            promptOptions.ProcessType = ProcessType.TextToImage;
+            promptOptions.DiffuserType = DiffuserType.TextToImage;
             schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
 
             //1. Create filenames
@@ -166,7 +166,7 @@ namespace OnnxStack.Web.Hubs
         private async Task<StableDiffusionResult> GenerateImageToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
-            promptOptions.ProcessType = ProcessType.ImageToImage;
+            promptOptions.DiffuserType = DiffuserType.ImageToImage;
             schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
 
             //1. Create filenames
@@ -213,7 +213,7 @@ namespace OnnxStack.Web.Hubs
         private async Task<StableDiffusionResult> GenerateImageInpaintResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
-            promptOptions.ProcessType = ProcessType.ImageInpaint;
+            promptOptions.DiffuserType = DiffuserType.ImageInpaint;
             schedulerOptions.Seed = GenerateSeed(schedulerOptions.Seed);
 
             // 1. Create filenames

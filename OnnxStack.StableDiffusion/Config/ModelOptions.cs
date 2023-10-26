@@ -19,7 +19,7 @@ namespace OnnxStack.StableDiffusion.Config
         public int TokenizerLimit { get; set; }
         public int EmbeddingsLength { get; set; }
         public float ScaleFactor { get; set; }
-        public List<ProcessType> Diffusers { get; set; } = new List<ProcessType>();
+        public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();
 
         public int DeviceId { get; set; }
         public int InterOpNumThreads { get; set; }
