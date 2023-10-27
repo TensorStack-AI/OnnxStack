@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using NumSharp;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -99,6 +100,121 @@ namespace OnnxStack.StableDiffusion.Schedulers
             return TensorHelper.GetRandomTensor(Random, dimensions, initialNoiseSigma);
         }
 
+
+        /// <summary>
+        /// Gets the beta schedule.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual float[] GetBetaSchedule()
+        {
+            var betas = Enumerable.Empty<float>();
+            if (Options.TrainedBetas != null)
+            {
+                betas = Options.TrainedBetas;
+            }
+            else if (Options.BetaSchedule == BetaScheduleType.Linear)
+            {
+                betas = np.linspace(Options.BetaStart, Options.BetaEnd, Options.TrainTimesteps).ToArray<float>();
+            }
+            else if (Options.BetaSchedule == BetaScheduleType.ScaledLinear)
+            {
+                var start = (float)Math.Sqrt(Options.BetaStart);
+                var end = (float)Math.Sqrt(Options.BetaEnd);
+                betas = np.linspace(start, end, Options.TrainTimesteps)
+                    .ToArray<float>()
+                    .Select(x => x * x);
+            }
+            else if (Options.BetaSchedule == BetaScheduleType.SquaredCosCapV2)
+            {
+                betas = GetBetasForAlphaBar();
+            }
+            else if (Options.BetaSchedule == BetaScheduleType.Sigmoid)
+            {
+                var mul = Options.BetaEnd - Options.BetaStart;
+                var betaSig = np.linspace(-6f, 6f, Options.TrainTimesteps).ToArray<float>();
+                var sigmoidBetas = betaSig
+                    .Select(beta => 1.0f / (1.0f + (float)Math.Exp(-beta)))
+                    .ToArray();
+                betas = sigmoidBetas
+                    .Select(x => (x * mul) + Options.BetaStart)
+                    .ToArray();
+            }
+            return betas.ToArray();
+        }
+
+
+        /// <summary>
+        /// Gets the initial noise sigma.
+        /// </summary>
+        /// <param name="sigmas">The sigmas.</param>
+        /// <returns></returns>
+        protected virtual float GetInitNoiseSigma(float[] sigmas)
+        {
+            var maxSigma = sigmas.Max();
+            return Options.TimestepSpacing == TimestepSpacingType.Linspace
+                || Options.TimestepSpacing == TimestepSpacingType.Trailing
+                ? maxSigma : (float)Math.Sqrt(maxSigma * maxSigma + 1);
+        }
+
+
+        /// <summary>
+        /// Gets the timesteps.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual float[] GetTimesteps()
+        {
+            NDArray timestepsArray = null;
+            if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
+            {
+                timestepsArray = np.linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps);
+                timestepsArray = np.around(timestepsArray)["::1"];
+            }
+            else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
+            {
+                var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
+                timestepsArray = np.arange(0, (float)Options.InferenceSteps) * stepRatio;
+                timestepsArray = np.around(timestepsArray)["::1"];
+                timestepsArray += Options.StepsOffset;
+            }
+            else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
+            {
+                var stepRatio = Options.TrainTimesteps / (Options.InferenceSteps - 1);
+                timestepsArray = np.arange((float)Options.TrainTimesteps, 0, -stepRatio)["::-1"];
+                timestepsArray = np.around(timestepsArray);
+                timestepsArray -= 1;
+            }
+
+            return timestepsArray.ToArray<float>();
+        }
+
+
+        /// <summary>
+        /// Gets the predicted sample.
+        /// </summary>
+        /// <param name="modelOutput">The model output.</param>
+        /// <param name="sample">The sample.</param>
+        /// <param name="sigma">The sigma.</param>
+        /// <returns></returns>
+        protected virtual DenseTensor<float> GetPredictedSample(DenseTensor<float> modelOutput, DenseTensor<float> sample, float sigma)
+        {
+            DenseTensor<float> predOriginalSample = null;
+            if (Options.PredictionType == PredictionType.Epsilon)
+            {
+                predOriginalSample = sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma));
+            }
+            else if (Options.PredictionType == PredictionType.VariablePrediction)
+            {
+                var sigmaSqrt = (float)Math.Sqrt(sigma * sigma + 1);
+                predOriginalSample = sample.DivideTensorByFloat(sigmaSqrt)
+                    .AddTensors(modelOutput.MultipleTensorByFloat(-sigma / sigmaSqrt));
+            }
+            else if (Options.PredictionType == PredictionType.Sample)
+            {
+                //prediction_type not implemented yet: sample
+                predOriginalSample = sample.ToDenseTensor();
+            }
+            return predOriginalSample;
+        }
 
         /// <summary>
         /// Sets the initial noise sigma.

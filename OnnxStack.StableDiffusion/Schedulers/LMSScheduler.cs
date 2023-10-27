@@ -37,45 +37,16 @@ namespace OnnxStack.StableDiffusion.Schedulers
         {
             _sigmas = null;
             _derivatives = new Queue<DenseTensor<float>>();
-            var betas = Enumerable.Empty<float>();
-            if (!Options.TrainedBetas.IsNullOrEmpty())
-            {
-                betas = Options.TrainedBetas;
-            }
-            else if (Options.BetaSchedule == BetaScheduleType.Linear)
-            {
-                var steps = Options.TrainTimesteps - 1;
-                var delta = Options.BetaStart + (Options.BetaEnd - Options.BetaStart);
-                betas = Enumerable.Range(0, Options.TrainTimesteps)
-                    .Select(i => delta * i / steps);
-            }
-            else if (Options.BetaSchedule == BetaScheduleType.ScaledLinear)
-            {
-                var start = (float)Math.Sqrt(Options.BetaStart);
-                var end = (float)Math.Sqrt(Options.BetaEnd);
-                betas = np.linspace(start, end, Options.TrainTimesteps)
-                    .ToArray<float>()
-                    .Select(x => x * x);
-            }
-            else if (Options.BetaSchedule == BetaScheduleType.SquaredCosCapV2)
-            {
-                betas = GetBetasForAlphaBar();
-            }
 
-
+            var betas = GetBetaSchedule();
             var alphas = betas.Select(beta => 1 - beta);
             var cumulativeProduct = alphas.Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b));
 
-            // Create sigmas as a list and reverse it
             _sigmas = cumulativeProduct
                 .Select(alpha_prod => (float)Math.Sqrt((1 - alpha_prod) / alpha_prod))
                 .ToArray();
 
-            // standard deviation of the initial noise distrubution
-            var maxSigma = _sigmas.Max();
-            var initNoiseSigma = Options.TimestepSpacing == TimestepSpacingType.Linspace || Options.TimestepSpacing == TimestepSpacingType.Trailing
-                ? maxSigma
-                : (float)Math.Sqrt(maxSigma * maxSigma + 1);
+            var initNoiseSigma = GetInitNoiseSigma(_sigmas);
             SetInitNoiseSigma(initNoiseSigma);
         }
 
@@ -86,29 +57,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            NDArray timestepsArray = null;
-            if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
-            {
-                timestepsArray = np.linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps);
-                timestepsArray = np.around(timestepsArray);
-            }
-            else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
-            {
-                var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
-                timestepsArray = np.arange(0, (float)Options.InferenceSteps) * stepRatio;
-                timestepsArray = np.around(timestepsArray);
-                timestepsArray += Options.StepsOffset;
-            }
-            else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
-            {
-                var stepRatio = Options.TrainTimesteps / (Options.InferenceSteps - 1);
-                timestepsArray = np.arange(Options.TrainTimesteps, 0f, -stepRatio)["::-1"];
-                timestepsArray = np.around(timestepsArray);
-                timestepsArray -= 1;
-            }
-
             var sigmas = _sigmas.ToArray();
-            var timesteps = timestepsArray.ToArray<float>();
+            var timesteps = GetTimesteps();
             var log_sigmas = np.log(sigmas).ToArray<float>();
             var range = np.arange(0, (float)_sigmas.Length).ToArray<float>();
             sigmas = Interpolate(timesteps, range, _sigmas);
@@ -119,8 +69,9 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 timesteps = SigmaToTimestep(sigmas, log_sigmas);
             }
 
-            //  add 0.000 to the end of the sigmas
-            _sigmas = sigmas.Append(0.000f).ToArray();
+            _sigmas = sigmas
+                .Append(0.000f)
+                .ToArray();
 
             return timesteps.Select(x => (int)x)
                  .OrderByDescending(x => x)
@@ -144,9 +95,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
 
             // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
-            sample = sample.DivideTensorByFloat(sigma, sample.Dimensions);
-
-            return sample;
+            return sample.DivideTensorByFloat(sigma, sample.Dimensions);
         }
 
 
@@ -164,21 +113,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sigma = _sigmas[stepIndex];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
-            DenseTensor<float> predOriginalSample = null;
-            if (Options.PredictionType == PredictionType.Epsilon)
-            {
-                predOriginalSample = sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma));
-            }
-            else if (Options.PredictionType == PredictionType.VariablePrediction)
-            {
-                var sigmaSqrt = (float)Math.Sqrt(sigma * sigma + 1);
-                predOriginalSample = sample.DivideTensorByFloat(sigmaSqrt)
-                    .AddTensors(modelOutput.MultipleTensorByFloat(-sigma / sigmaSqrt));
-            }
-            else if (Options.PredictionType == PredictionType.Sample)
-            {
-                predOriginalSample = modelOutput.ToDenseTensor();
-            }
+            var predOriginalSample = GetPredictedSample(modelOutput, sample, sigma);
 
             // 2. Convert to an ODE derivative
             var derivativeSample = sample

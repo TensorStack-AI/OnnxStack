@@ -11,8 +11,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 {
     internal class DDPMScheduler : SchedulerBase
     {
-        private float[] _betas;
-        private List<float> _alphasCumulativeProducts;
+        private float[] _alphasCumProd;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DDPMScheduler"/> class.
@@ -33,43 +32,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         protected override void Initialize()
         {
-            var alphas = new List<float>();
-            if (Options.TrainedBetas != null)
-            {
-                _betas = Options.TrainedBetas.ToArray();
-            }
-            else if (Options.BetaSchedule == BetaScheduleType.Linear)
-            {
-                _betas = np.linspace(Options.BetaStart, Options.BetaEnd, Options.TrainTimesteps).ToArray<float>();
-            }
-            else if (Options.BetaSchedule == BetaScheduleType.ScaledLinear)
-            {
-                // This schedule is very specific to the latent diffusion model.
-                _betas = np.power(np.linspace(MathF.Sqrt(Options.BetaStart), MathF.Sqrt(Options.BetaEnd), Options.TrainTimesteps), 2).ToArray<float>();
-            }
-            else if (Options.BetaSchedule == BetaScheduleType.SquaredCosCapV2)
-            {
-                // Glide cosine schedule
-                _betas = GetBetasForAlphaBar();
-            }
-            //else if (betaSchedule == "sigmoid")
-            //{
-            //    // GeoDiff sigmoid schedule
-            //    var betas = np.linspace(-6, 6, numTrainTimesteps);
-            //    Betas = (np.multiply(np.exp(betas), (betaEnd - betaStart)) + betaStart).ToArray<float>();
-            //}
+            _alphasCumProd = null;
 
-
-            for (int i = 0; i < Options.TrainTimesteps; i++)
-            {
-                alphas.Add(1.0f - _betas[i]);
-            }
-
-            _alphasCumulativeProducts = new List<float> { alphas[0] };
-            for (int i = 1; i < Options.TrainTimesteps; i++)
-            {
-                _alphasCumulativeProducts.Add(_alphasCumulativeProducts[i - 1] * alphas[i]);
-            }
+            var betas = GetBetaSchedule();
+            var alphas = betas.Select(beta => 1.0f - beta);
+            _alphasCumProd = alphas
+                .Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b))
+                .ToArray();
 
             SetInitNoiseSigma(1.0f);
         }
@@ -82,29 +51,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected override int[] SetTimesteps()
         {
             // Create timesteps based on the specified strategy
-            NDArray timestepsArray = null;
-            if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
-            {
-                timestepsArray = np.linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps);
-                timestepsArray = np.around(timestepsArray)["::1"];
-            }
-            else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
-            {
-                var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
-                timestepsArray = np.arange(0, (float)Options.InferenceSteps) * stepRatio;
-                timestepsArray = np.around(timestepsArray)["::1"];
-                timestepsArray += Options.StepsOffset;
-            }
-            else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
-            {
-                var stepRatio = Options.TrainTimesteps / (Options.InferenceSteps - 1);
-                timestepsArray = np.arange((float)Options.TrainTimesteps, 0, -stepRatio)["::-1"];
-                timestepsArray = np.around(timestepsArray);
-                timestepsArray -= 1;
-            }
-
-            return timestepsArray
-                .ToArray<float>()
+            var timesteps = GetTimesteps();
+            return timesteps
                 .Select(x => (int)x)
                 .OrderByDescending(x => x)
                 .ToArray();
@@ -139,8 +87,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
             int previousTimestep = GetPreviousTimestep(currentTimestep);
 
             //# 1. compute alphas, betas
-            float alphaProdT = _alphasCumulativeProducts[currentTimestep];
-            float alphaProdTPrev = previousTimestep >= 0 ? _alphasCumulativeProducts[previousTimestep] : 1f;
+            float alphaProdT = _alphasCumProd[currentTimestep];
+            float alphaProdTPrev = previousTimestep >= 0 ? _alphasCumProd[previousTimestep] : 1f;
             float betaProdT = 1 - alphaProdT;
             float betaProdTPrev = 1 - alphaProdTPrev;
             float currentAlphaT = alphaProdT / alphaProdTPrev;
@@ -161,27 +109,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             //# 2. compute predicted original sample from predicted noise also called
             //# "predicted x_0" of formula (15) from https://arxiv.org/pdf/2006.11239.pdf
-            DenseTensor<float> predOriginalSample = null;
-            if (Options.PredictionType == PredictionType.Epsilon)
-            {
-                //pred_original_sample = (sample - beta_prod_t ** (0.5) * model_output) / alpha_prod_t ** (0.5)
-                var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
-                predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT), sampleBeta.Dimensions);
-            }
-            else if (Options.PredictionType == PredictionType.Sample)
-            {
-                predOriginalSample = modelOutput;
-            }
-            else if (Options.PredictionType == PredictionType.VariablePrediction)
-            {
-                // pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
-                var alphaSqrt = (float)Math.Sqrt(alphaProdT);
-                var betaSqrt = (float)Math.Sqrt(betaProdT);
-                predOriginalSample = sample
-                    .MultipleTensorByFloat(alphaSqrt)
-                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt));
-            }
-
+            var predOriginalSample = GetPredictedSample(modelOutput, sample, alphaProdT, betaProdT);
 
             //# 3. Clip or threshold "predicted x_0"
             if (Options.Thresholding)
@@ -234,6 +162,31 @@ namespace OnnxStack.StableDiffusion.Schedulers
         }
 
 
+        private DenseTensor<float> GetPredictedSample(DenseTensor<float> modelOutput, DenseTensor<float> sample, float alphaProdT, float betaProdT)
+        {
+            DenseTensor<float> predOriginalSample = null;
+            if (Options.PredictionType == PredictionType.Epsilon)
+            {
+                //pred_original_sample = (sample - beta_prod_t ** (0.5) * model_output) / alpha_prod_t ** (0.5)
+                var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
+                predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT), sampleBeta.Dimensions);
+            }
+            else if (Options.PredictionType == PredictionType.Sample)
+            {
+                predOriginalSample = modelOutput;
+            }
+            else if (Options.PredictionType == PredictionType.VariablePrediction)
+            {
+                // pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
+                var alphaSqrt = (float)Math.Sqrt(alphaProdT);
+                var betaSqrt = (float)Math.Sqrt(betaProdT);
+                predOriginalSample = sample
+                    .MultipleTensorByFloat(alphaSqrt)
+                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt));
+            }
+            return predOriginalSample;
+        }
+
         /// <summary>
         /// Adds noise to the sample.
         /// </summary>
@@ -245,7 +198,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         {
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
             int timestep = timesteps[0];
-            float alphaProd = _alphasCumulativeProducts[timestep];
+            float alphaProd = _alphasCumProd[timestep];
             float sqrtAlpha = (float)Math.Sqrt(alphaProd);
             float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
 
@@ -263,8 +216,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
         private float GetVariance(int timestep, float predictedVariance = 0f)
         {
             int prevTimestep = GetPreviousTimestep(timestep);
-            float alphaProdT = _alphasCumulativeProducts[timestep];
-            float alphaProdTPrev = prevTimestep >= 0 ? _alphasCumulativeProducts[prevTimestep] : 1.0f;
+            float alphaProdT = _alphasCumProd[timestep];
+            float alphaProdTPrev = prevTimestep >= 0 ? _alphasCumProd[prevTimestep] : 1.0f;
             float currentBetaT = 1 - alphaProdT / alphaProdTPrev;
 
             // For t > 0, compute predicted variance βt
@@ -384,8 +337,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
         protected override void Dispose(bool disposing)
         {
-            _betas = null;
-            _alphasCumulativeProducts = null;
+            _alphasCumProd = null;
             base.Dispose(disposing);
         }
     }
