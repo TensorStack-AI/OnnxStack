@@ -168,7 +168,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
                 predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT), sampleBeta.Dimensions);
             }
-            else if (Options.PredictionType == PredictionType.Aample)
+            else if (Options.PredictionType == PredictionType.Sample)
             {
                 predOriginalSample = modelOutput;
             }

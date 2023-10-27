@@ -3,7 +3,7 @@
     public enum PredictionType
     {
         Epsilon = 0,
-        Aample = 1,
+        Sample = 1,
         VariablePrediction = 2
     }
 }

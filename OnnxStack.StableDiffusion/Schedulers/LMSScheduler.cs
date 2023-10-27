@@ -14,7 +14,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
     public sealed class LMSScheduler : SchedulerBase
     {
         private float[] _sigmas;
-        private readonly List<DenseTensor<float>> _derivatives;
+        private Queue<DenseTensor<float>> _derivatives;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LMSScheduler"/> class.
@@ -27,10 +27,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
-        public LMSScheduler(SchedulerOptions schedulerOptions) : base(schedulerOptions)
-        {
-            _derivatives = new List<DenseTensor<float>>();
-        }
+        public LMSScheduler(SchedulerOptions schedulerOptions) : base(schedulerOptions) { }
 
 
         /// <summary>
@@ -38,6 +35,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         protected override void Initialize()
         {
+            _sigmas = null;
+            _derivatives = new Queue<DenseTensor<float>>();
             var betas = Enumerable.Empty<float>();
             if (!Options.TrainedBetas.IsNullOrEmpty())
             {
@@ -86,7 +85,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         /// <returns></returns>
         protected override int[] SetTimesteps()
-        { 
+        {
             NDArray timestepsArray = null;
             if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
             {
@@ -165,19 +164,30 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sigma = _sigmas[stepIndex];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
-            // sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma));
+            DenseTensor<float> predOriginalSample = null;
+            if (Options.PredictionType == PredictionType.Epsilon)
+            {
+                predOriginalSample = sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma));
+            }
+            else if (Options.PredictionType == PredictionType.VariablePrediction)
+            {
+                var sigmaSqrt = (float)Math.Sqrt(sigma * sigma + 1);
+                predOriginalSample = sample.DivideTensorByFloat(sigmaSqrt)
+                    .AddTensors(modelOutput.MultipleTensorByFloat(-sigma / sigmaSqrt));
+            }
+            else if (Options.PredictionType == PredictionType.Sample)
+            {
+                predOriginalSample = modelOutput.ToDenseTensor();
+            }
 
             // 2. Convert to an ODE derivative
             var derivativeSample = sample
-                .SubtractTensors(sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma)))
+                .SubtractTensors(predOriginalSample)
                 .DivideTensorByFloat(sigma, sample.Dimensions);
 
-            _derivatives.Add(derivativeSample);
+            _derivatives.Enqueue(derivativeSample);
             if (_derivatives.Count > order)
-            {
-                // remove first element
-                _derivatives.RemoveAt(0);
-            }
+                _derivatives.Dequeue();
 
             // 3. compute linear multistep coefficients
             order = Math.Min(stepIndex + 1, order);
