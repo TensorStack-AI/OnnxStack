@@ -281,6 +281,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 SchedulerType.LMS => new LMSScheduler(options),
                 SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
                 SchedulerType.DDPM => new DDPMScheduler(options),
+                SchedulerType.DDIM => new DDIMScheduler(options),
                 _ => default
             };
         }

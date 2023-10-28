@@ -11,6 +11,9 @@ namespace OnnxStack.StableDiffusion.Enums
         EulerAncestral = 1,
 
         [Display(Name = "DDPM")]
-        DDPM = 3
+        DDPM = 3,
+
+        [Display(Name = "DDIM")]
+        DDIM = 4
     }
 }
