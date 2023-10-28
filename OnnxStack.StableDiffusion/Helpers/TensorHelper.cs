@@ -109,9 +109,6 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
-
-
-
         /// <summary>
         /// Sums the tensors.
         /// </summary>
@@ -242,20 +239,9 @@ namespace OnnxStack.StableDiffusion.Helpers
         public static DenseTensor<float> Multiply(this DenseTensor<float> tensor1, DenseTensor<float> tensor2)
         {
             var result = new DenseTensor<float>(tensor1.Dimensions);
-            for (int batch = 0; batch < tensor1.Dimensions[0]; batch++)
+            for (int i = 0; i < tensor1.Length; i++)
             {
-                for (int channel = 0; channel < tensor1.Dimensions[1]; channel++)
-                {
-                    for (int height = 0; height < tensor1.Dimensions[2]; height++)
-                    {
-                        for (int width = 0; width < tensor1.Dimensions[3]; width++)
-                        {
-                            var value1 = tensor1[batch, channel, height, width];
-                            var value2 = tensor2[batch, channel, height, width];
-                            result[batch, channel, height, width] = value1 * value2;
-                        }
-                    }
-                }
+                result.SetValue(i, tensor1.GetValue(i) * tensor2.GetValue(i));
             }
             return result;
         }
@@ -270,22 +256,54 @@ namespace OnnxStack.StableDiffusion.Helpers
         public static DenseTensor<float> Divide(this DenseTensor<float> tensor1, DenseTensor<float> tensor2)
         {
             var result = new DenseTensor<float>(tensor1.Dimensions);
-            for (int batch = 0; batch < tensor1.Dimensions[0]; batch++)
+            for (int i = 0; i < tensor1.Length; i++)
             {
-                for (int channel = 0; channel < tensor1.Dimensions[1]; channel++)
-                {
-                    for (int height = 0; height < tensor1.Dimensions[2]; height++)
-                    {
-                        for (int width = 0; width < tensor1.Dimensions[3]; width++)
-                        {
-                            var value1 = tensor1[batch, channel, height, width];
-                            var value2 = tensor2[batch, channel, height, width];
-                            result[batch, channel, height, width] = value1 / value2;
-                        }
-                    }
-                }
+                result.SetValue(i, tensor1.GetValue(i) / tensor2.GetValue(i));
             }
             return result;
+        }
+
+
+        /// <summary>
+        /// Concatenates the specified tensors along the 0 axis.
+        /// </summary>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="tensor2">The tensor2.</param>
+        /// <param name="axis">The axis.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException">Only axis 0 is supported</exception>
+        public static DenseTensor<float> Concatenate(this DenseTensor<float> tensor1, DenseTensor<float> tensor2, int axis = 0)
+        {
+            if (axis != 0)
+                throw new NotImplementedException("Only axis 0 is supported");
+
+            var dimensions = tensor1.Dimensions.ToArray();
+            dimensions[0] += tensor2.Dimensions[0];
+            return CreateTensor(tensor1.Concat(tensor2).ToArray(), dimensions);
+        }
+
+
+        /// <summary>
+        /// Repeats the specified Tensor along the 0 axis.
+        /// </summary>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="count">The count.</param>
+        /// <param name="axis">The axis.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException">Only axis 0 is supported</exception>
+        public static DenseTensor<float> Repeat(this DenseTensor<float> tensor1, int count, int axis = 0)
+        {
+            if (axis != 0)
+                throw new NotImplementedException("Only axis 0 is supported");
+
+            var data = tensor1.ToArray();
+            var dimensions = tensor1.Dimensions.ToArray();
+            for (int i = 0; i < count; i++)
+            {
+                dimensions[0] += tensor1.Dimensions[0];
+                data = data.Concat(tensor1).ToArray();
+            }
+            return CreateTensor(data, dimensions);
         }
 
 

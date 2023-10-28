@@ -69,7 +69,10 @@ namespace OnnxStack.StableDiffusion.Diffusers
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
                 // Process prompts
-                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions.Prompt, promptOptions.NegativePrompt);
+                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, schedulerOptions);
+
+                // Should we perform classifier free guidance
+                var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
 
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
@@ -84,14 +87,13 @@ namespace OnnxStack.StableDiffusion.Diffusers
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputTensor = scheduler.ScaleInput(latents.Duplicate(schedulerOptions.GetScaledDimension(2)), timestep);
+                    var inputLatent = performGuidance
+                        ? latents.Repeat(1)
+                        : latents;
+                    var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
 
                     // Create Input Parameters
-                    var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.Unet);
-                    var inputParameters = CreateInputParameters(
-                         NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
-                         NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
-                         NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings));
+                    var inputParameters = CreateUnetInputParams(modelOptions, inputTensor, promptEmbeddings, timestep);
 
                     // Run Inference
                     using (var inferResult = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputParameters))
@@ -99,10 +101,8 @@ namespace OnnxStack.StableDiffusion.Diffusers
                         var noisePred = inferResult.FirstElementAs<DenseTensor<float>>();
 
                         // Perform guidance
-                        if (schedulerOptions.GuidanceScale > 1.0f)
-                        {
+                        if (performGuidance)
                             noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
-                        }
 
                         // Scheduler Step
                         latents = scheduler.Step(noisePred, timestep, latents);
@@ -200,6 +200,24 @@ namespace OnnxStack.StableDiffusion.Diffusers
 
 
         /// <summary>
+        /// Creates the Unet input parameters.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="inputTensor">The input tensor.</param>
+        /// <param name="promptEmbeddings">The prompt embeddings.</param>
+        /// <param name="timestep">The timestep.</param>
+        /// <returns></returns>
+        protected virtual IReadOnlyList<NamedOnnxValue> CreateUnetInputParams(IModelOptions model, DenseTensor<float> inputTensor, DenseTensor<float> promptEmbeddings, int timestep)
+        {
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.Unet);
+            return CreateInputParameters(
+                 NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
+                 NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
+                 NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings));
+        }
+
+
+        /// <summary>
         /// Determines whether the specified result image is not NSFW.
         /// </summary>
         /// <param name="resultImage">The result image.</param>
@@ -286,9 +304,9 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// </summary>
         /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        protected static IReadOnlyCollection<NamedOnnxValue> CreateInputParameters(params NamedOnnxValue[] parameters)
+        protected static IReadOnlyList<NamedOnnxValue> CreateInputParameters(params NamedOnnxValue[] parameters)
         {
-            return parameters.ToList().AsReadOnly();
+            return parameters.ToList();
         }
     }
 }
