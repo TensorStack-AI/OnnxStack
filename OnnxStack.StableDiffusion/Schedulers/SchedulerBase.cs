@@ -245,28 +245,24 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         protected float[] GetBetasForAlphaBar()
         {
-            var betas = new float[_options.TrainTimesteps];
-
             Func<float, float> alphaBarFn = null;
             if (_options.AlphaTransformType == AlphaTransformType.Cosine)
             {
-                alphaBarFn = t => (float)Math.Pow(Math.Cos((t + 0.008) / 1.008 * Math.PI / 2.0), 2.0);
+                alphaBarFn = t => (float)Math.Pow(Math.Cos((t + 0.008f) / 1.008f * Math.PI / 2.0f), 2.0f);
             }
             else if (_options.AlphaTransformType == AlphaTransformType.Exponential)
             {
-                alphaBarFn = t => (float)Math.Exp(t * -12.0);
+                alphaBarFn = t => (float)Math.Exp(t * -12.0f);
             }
 
-            for (int i = 0; i < _options.TrainTimesteps; i++)
-            {
-                float t1 = (float)i / _options.TrainTimesteps;
-                float t2 = (float)(i + 1) / _options.TrainTimesteps;
-                float alphaT1 = alphaBarFn(t1);
-                float alphaT2 = alphaBarFn(t2);
-                float beta = Math.Min(1 - alphaT2 / alphaT1, _options.MaximumBeta);
-                betas[i] = (float)Math.Max(beta, 0.0001);
-            }
-            return betas;
+            return Enumerable
+                .Range(0, _options.TrainTimesteps)
+                .Select(i =>
+                {
+                    var t1 = (float)i / _options.TrainTimesteps;
+                    var t2 = (float)(i + 1) / _options.TrainTimesteps;
+                    return Math.Min(1f - alphaBarFn(t2) / alphaBarFn(t1), _options.MaximumBeta);
+                }).ToArray();
         }
 
 
