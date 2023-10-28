@@ -8,7 +8,7 @@ using System.IO;
 
 namespace OnnxStack.StableDiffusion.Helpers
 {
-    internal static class ImageHelpers
+    public static class ImageHelpers
     {
         /// <summary>
         /// Converts to image.
