@@ -101,8 +101,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                         // Perform guidance
                         if (schedulerOptions.GuidanceScale > 1.0f)
                         {
-                            var (noisePredUncond, noisePredText) = noisePred.SplitTensor(schedulerOptions.GetScaledDimension());
-                            noisePred = noisePredUncond.PerformGuidance(noisePredText, schedulerOptions.GuidanceScale);
+                            noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
                         }
 
                         // Scheduler Step
@@ -144,6 +143,59 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 }
                 return resultTensor.ToDenseTensor();
             }
+        }
+
+        /// <summary>
+        /// Performs classifier free guidance
+        /// </summary>
+        /// <param name="noisePredUncond">The noise pred.</param>
+        /// <param name="noisePredText">The noise pred text.</param>
+        /// <param name="guidanceScale">The guidance scale.</param>
+        /// <returns></returns>
+        protected DenseTensor<float> PerformGuidance(DenseTensor<float> noisePrediction, double guidanceScale)
+        {
+            // Split Prompt and Negative Prompt predictions
+            var (noisePredCond, noisePredUncond) = SplitPredictedNoise(noisePrediction);
+            for (int i = 0; i < noisePredUncond.Dimensions[0]; i++)
+            {
+                for (int j = 0; j < noisePredUncond.Dimensions[1]; j++)
+                {
+                    for (int k = 0; k < noisePredUncond.Dimensions[2]; k++)
+                    {
+                        for (int l = 0; l < noisePredUncond.Dimensions[3]; l++)
+                        {
+                            noisePredUncond[i, j, k, l] = noisePredUncond[i, j, k, l] + (float)guidanceScale * (noisePredCond[i, j, k, l] - noisePredUncond[i, j, k, l]);
+                        }
+                    }
+                }
+            }
+            return noisePredUncond;
+        }
+
+
+        /// <summary>
+        /// Splits the predicted noise.
+        /// </summary>
+        /// <param name="predictedNoiseSample">The predicted noise sample.</param>
+        /// <returns>Split Prompt and Negative Prompt predictions</returns>
+        protected (DenseTensor<float> noisePredCond, DenseTensor<float> noisePredUncond) SplitPredictedNoise(DenseTensor<float> predictedNoiseSample)
+        {
+            var dimensions = predictedNoiseSample.Dimensions.ToArray();
+            dimensions[0] /= 2;
+            var noisePredCond = new DenseTensor<float>(dimensions);
+            var noisePredUncond = new DenseTensor<float>(dimensions);
+            for (int j = 0; j < 4; j++)
+            {
+                for (int k = 0; k < dimensions[2]; k++)
+                {
+                    for (int l = 0; l < dimensions[3]; l++)
+                    {
+                        noisePredUncond[0, j, k, l] = predictedNoiseSample[0, j, k, l];
+                        noisePredCond[0, j, k, l] = predictedNoiseSample[0, j + 4, k, l];
+                    }
+                }
+            }
+            return (noisePredCond, noisePredUncond);
         }
 
 
@@ -209,6 +261,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 return input;
             }
         }
+
 
 
         /// <summary>

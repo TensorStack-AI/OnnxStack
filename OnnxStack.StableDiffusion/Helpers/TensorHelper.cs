@@ -4,6 +4,11 @@ using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Helpers
 {
+
+    /// <summary>
+    /// TODO: Optimization, all functions in here are tensor copy, but not all need to be
+    /// probably some good mem/cpu gains here if a set of mutate and non-mutate functions were created
+    /// </summary>
     public static class TensorHelper
     {
         /// <summary>
@@ -104,34 +109,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
-        /// <summary>
-        /// Splits the tensor.
-        /// </summary>
-        /// <param name="tensorToSplit">The tensor to split.</param>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <param name="scaledHeight">Height of the scaled.</param>
-        /// <param name="scaledWidth">Width of the scaled.</param>
-        /// <returns></returns>
-        public static (DenseTensor<float> noisePredUncond, DenseTensor<float> noisePredText) SplitTensor(this DenseTensor<float> tensor, ReadOnlySpan<int> dimensions)
-        {
-            var tensor1 = new DenseTensor<float>(dimensions);
-            var tensor2 = new DenseTensor<float>(dimensions);
-            for (int i = 0; i < 1; i++)
-            {
-                for (int j = 0; j < 4; j++)
-                {
-                    for (int k = 0; k < dimensions[2]; k++)
-                    {
-                        for (int l = 0; l < dimensions[3]; l++)
-                        {
-                            tensor1[i, j, k, l] = tensor[i, j, k, l];
-                            tensor2[i, j, k, l] = tensor[i, j + 4, k, l];
-                        }
-                    }
-                }
-            }
-            return (tensor1, tensor2);
-        }
+
 
 
         /// <summary>
@@ -219,31 +197,6 @@ namespace OnnxStack.StableDiffusion.Helpers
             return inputImagesTensor;
         }
 
-
-        /// <summary>
-        /// Performs classifier free guidance
-        /// </summary>
-        /// <param name="noisePred">The noise pred.</param>
-        /// <param name="noisePredText">The noise pred text.</param>
-        /// <param name="guidanceScale">The guidance scale.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> PerformGuidance(this DenseTensor<float> noisePred, DenseTensor<float> noisePredText, double guidanceScale)
-        {
-            for (int i = 0; i < noisePred.Dimensions[0]; i++)
-            {
-                for (int j = 0; j < noisePred.Dimensions[1]; j++)
-                {
-                    for (int k = 0; k < noisePred.Dimensions[2]; k++)
-                    {
-                        for (int l = 0; l < noisePred.Dimensions[3]; l++)
-                        {
-                            noisePred[i, j, k, l] = noisePred[i, j, k, l] + (float)guidanceScale * (noisePredText[i, j, k, l] - noisePred[i, j, k, l]);
-                        }
-                    }
-                }
-            }
-            return noisePred;
-        }
 
 
         /// <summary>

@@ -1,5 +1,9 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using NumSharp;
+using OnnxStack.Core;
+using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
@@ -89,10 +93,10 @@ namespace OnnxStack.StableDiffusion.Schedulers
             //# 1. compute alphas, betas
             float alphaProdT = _alphasCumProd[currentTimestep];
             float alphaProdTPrev = previousTimestep >= 0 ? _alphasCumProd[previousTimestep] : 1f;
-            float betaProdT = 1 - alphaProdT;
-            float betaProdTPrev = 1 - alphaProdTPrev;
+            float betaProdT = 1f - alphaProdT;
+            float betaProdTPrev = 1f - alphaProdTPrev;
             float currentAlphaT = alphaProdT / alphaProdTPrev;
-            float currentBetaT = 1 - currentAlphaT;
+            float currentBetaT = 1f - currentAlphaT;
 
             float predictedVariance = 0;
 
@@ -143,7 +147,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 var varianceNoise = CreateRandomSample(modelOutput.Dimensions);
                 if (Options.VarianceType == VarianceType.FixedSmallLog)
                 {
-                    variance = varianceNoise.MultipleTensorByFloat(GetVariance(currentTimestep, predictedVariance));
+                    var v = GetVariance(currentTimestep, predictedVariance);
+                    variance = varianceNoise.MultipleTensorByFloat(v);
                 }
                 else if (Options.VarianceType == VarianceType.LearnedRange)
                 {

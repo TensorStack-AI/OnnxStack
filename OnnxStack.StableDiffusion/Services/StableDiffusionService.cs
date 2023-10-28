@@ -7,7 +7,9 @@ using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,13 +22,9 @@ namespace OnnxStack.StableDiffusion.Services
     /// <seealso cref="OnnxStack.StableDiffusion.Common.IStableDiffusionService" />
     public sealed class StableDiffusionService : IStableDiffusionService
     {
-        private readonly IDiffuser _textDiffuser;
-        private readonly IDiffuser _imageDiffuser;
-        private readonly IDiffuser _inpaintDiffuser;
-        private readonly IDiffuser _inpaintLegacyDiffuser;
         private readonly IOnnxModelService _onnxModelService;
         private readonly StableDiffusionConfig _configuration;
-
+        private readonly IDictionary<DiffuserType, IDiffuser> _diffusers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
@@ -36,10 +34,11 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _configuration = configuration;
             _onnxModelService = onnxModelService;
-            _textDiffuser = new TextDiffuser(onnxModelService, promptService);
-            _imageDiffuser = new ImageDiffuser(onnxModelService, promptService);
-            _inpaintDiffuser = new InpaintDiffuser(onnxModelService, promptService);
-            _inpaintLegacyDiffuser = new InpaintLegacyDiffuser(onnxModelService, promptService);
+            _diffusers = new ConcurrentDictionary<DiffuserType, IDiffuser>();
+            _diffusers.Add(DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService));
+            _diffusers.Add(DiffuserType.ImageToImage, new ImageDiffuser(onnxModelService, promptService));
+            _diffusers.Add(DiffuserType.ImageInpaint, new InpaintDiffuser(onnxModelService, promptService));
+            _diffusers.Add(DiffuserType.ImageInpaintLegacy, new InpaintLegacyDiffuser(onnxModelService, promptService));
         }
 
 
@@ -92,7 +91,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns>The diffusion result as <see cref="DenseTensor<float>"/></returns>
         public async Task<DenseTensor<float>> GenerateAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await RunAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
+            return await DiffuseAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
         }
 
 
@@ -144,16 +143,10 @@ namespace OnnxStack.StableDiffusion.Services
         }
 
 
-        private async Task<DenseTensor<float>> RunAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
+        private async Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
         {
-            return promptOptions.DiffuserType switch
-            {
-                DiffuserType.TextToImage => await _textDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                DiffuserType.ImageToImage => await _imageDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                DiffuserType.ImageInpaint => await _inpaintDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                DiffuserType.ImageInpaintLegacy => await _inpaintLegacyDiffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken),
-                _ => throw new NotImplementedException()
-            };
+            return await _diffusers[promptOptions.DiffuserType]
+                .DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken);
         }
     }
 }

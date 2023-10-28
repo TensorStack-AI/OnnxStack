@@ -58,6 +58,7 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
                     await GenerateImage(model, promptOptions, schedulerOptions);
                 }
+                break;
             }
         }
 

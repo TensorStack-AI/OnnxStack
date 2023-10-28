@@ -85,8 +85,7 @@ namespace OnnxStack.StableDiffusion.Services
                         // Perform guidance
                         if (schedulerOptions.GuidanceScale > 1.0f)
                         {
-                            var (noisePredUncond, noisePredText) = noisePred.SplitTensor(schedulerOptions.GetScaledDimension());
-                            noisePred = noisePredUncond.PerformGuidance(noisePredText, schedulerOptions.GuidanceScale);
+                            noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
                         }
 
                         // Scheduler Step
