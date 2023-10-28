@@ -22,7 +22,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
         public ImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
-            :base(onnxModelService, promptService)
+            : base(onnxModelService, promptService)
         {
         }
 
@@ -59,11 +59,15 @@ namespace OnnxStack.StableDiffusion.Services
             using (var inferResult = _onnxModelService.RunInference(model, OnnxModelType.VaeEncoder, inputParameters))
             {
                 var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                var noisySample = sample
-                    .AddTensors(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
-                    .MultipleTensorByFloat(model.ScaleFactor);
-                var noise = scheduler.CreateRandomSample(sample.Dimensions);
-                return scheduler.AddNoise(noisySample, noise, timesteps);
+                var scaledSample = sample
+                    .Add(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
+                    .MultiplyBy(model.ScaleFactor);
+
+                var noisySample = scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
+                if (prompt.BatchCount > 1)
+                    return noisySample.Repeat(prompt.BatchCount);
+
+                return noisySample;
             }
         }
 

@@ -46,6 +46,13 @@ namespace OnnxStack.StableDiffusion.Services
             var promptEmbeddings = await GenerateEmbedsAsync(model, promptTokens, maxPromptTokenCount);
             var negativePromptEmbeddings = await GenerateEmbedsAsync(model, negativePromptTokens, maxPromptTokenCount);
 
+            // If we have a batch, repeat the prompt embeddings
+            if(promptOptions.BatchCount > 1)
+            {
+                promptEmbeddings = promptEmbeddings.Repeat(promptOptions.BatchCount);
+                negativePromptEmbeddings = negativePromptEmbeddings.Repeat(promptOptions.BatchCount);
+            }
+
             // If we are doing guided diffusion, concatenate the negative prompt embeddings
             // If not we ingore the negative prompt embeddings
             if (schedulerOptions.GuidanceScale > 1)

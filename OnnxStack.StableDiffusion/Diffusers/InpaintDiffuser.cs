@@ -56,12 +56,10 @@ namespace OnnxStack.StableDiffusion.Services
                 var latents = PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Create Image Mask
-                var maskImage = PrepareMask(modelOptions, promptOptions, schedulerOptions)
-                    .Duplicate(schedulerOptions.GetScaledDimension(2, 1));
+                var maskImage = PrepareMask(modelOptions, promptOptions, schedulerOptions);
 
                 // Create Masked Image Latents
-                var maskedImage = PrepareImageMask(modelOptions, promptOptions, schedulerOptions)
-                    .Duplicate(schedulerOptions.GetScaledDimension(2));
+                var maskedImage = PrepareImageMask(modelOptions, promptOptions, schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -71,7 +69,7 @@ namespace OnnxStack.StableDiffusion.Services
 
                     // Create input tensor.
                     var inputLatent = performGuidance
-                        ? latents.Repeat(1)
+                        ? latents.Repeat(2)
                         : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     inputTensor = ConcatenateLatents(inputTensor, maskedImage, maskImage);
@@ -136,7 +134,14 @@ namespace OnnxStack.StableDiffusion.Services
                     }
                 });
 
-                return imageTensor.MultipleTensorByFloat(modelOptions.ScaleFactor);
+                imageTensor = imageTensor.MultiplyBy(modelOptions.ScaleFactor);
+                if (promptOptions.BatchCount > 1)
+                    imageTensor = imageTensor.Repeat(promptOptions.BatchCount);
+
+                if (schedulerOptions.GuidanceScale > 1f)
+                    imageTensor = imageTensor.Repeat(2);
+
+                return imageTensor;
             }
         }
 
@@ -200,7 +205,13 @@ namespace OnnxStack.StableDiffusion.Services
                 using (var inferResult = _onnxModelService.RunInference(modelOptions, OnnxModelType.VaeEncoder, inputParameters))
                 {
                     var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                    var scaledSample = sample.MultipleTensorByFloat(modelOptions.ScaleFactor);
+                    var scaledSample = sample.MultiplyBy(modelOptions.ScaleFactor);
+                    if (promptOptions.BatchCount > 1)
+                        scaledSample = scaledSample.Repeat(promptOptions.BatchCount);
+
+                    if (schedulerOptions.GuidanceScale > 1f)
+                        scaledSample = scaledSample.Repeat(2);
+
                     return scaledSample;
                 }
             }
@@ -230,7 +241,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            return scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma);
+            return scheduler.CreateRandomSample(options.GetScaledDimension(prompt.BatchCount), scheduler.InitNoiseSigma);
         }
 
 

@@ -16,6 +16,8 @@ namespace OnnxStack.StableDiffusion.Config
         public string NegativePrompt { get; set; }
         public SchedulerType SchedulerType { get; set; }
 
+        public int BatchCount { get; set; } = 1;
+
         public InputImage InputImage { get; set; }
 
         public InputImage InputImageMask { get; set; }

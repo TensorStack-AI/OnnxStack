@@ -42,7 +42,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            return scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma);
+            return scheduler.CreateRandomSample(options.GetScaledDimension(prompt.BatchCount), scheduler.InitNoiseSigma);
         }
     }
 }

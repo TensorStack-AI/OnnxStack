@@ -84,11 +84,12 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 var step = 0;
                 foreach (var timestep in timesteps)
                 {
+                    step++;
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
                     var inputLatent = performGuidance
-                        ? latents.Repeat(1)
+                        ? latents.Repeat(2)
                         : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
 
@@ -108,7 +109,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                         latents = scheduler.Step(noisePred, timestep, latents);
                     }
 
-                    progressCallback?.Invoke(++step, timesteps.Count);
+                    progressCallback?.Invoke(step, timesteps.Count);
                 }
 
                 // Decode Latents
@@ -125,8 +126,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         protected async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, SchedulerOptions options, DenseTensor<float> latents)
         {
             // Scale and decode the image latents with vae.
-            // latents = 1 / 0.18215 * latents
-            latents = latents.MultipleTensorByFloat(1.0f / model.ScaleFactor);
+            latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], latents));
@@ -145,6 +145,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             }
         }
 
+
         /// <summary>
         /// Performs classifier free guidance
         /// </summary>
@@ -152,50 +153,19 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="noisePredText">The noise pred text.</param>
         /// <param name="guidanceScale">The guidance scale.</param>
         /// <returns></returns>
-        protected DenseTensor<float> PerformGuidance(DenseTensor<float> noisePrediction, double guidanceScale)
+        protected DenseTensor<float> PerformGuidance(DenseTensor<float> noisePrediction, float guidanceScale)
         {
             // Split Prompt and Negative Prompt predictions
-            var (noisePredCond, noisePredUncond) = SplitPredictedNoise(noisePrediction);
-            for (int i = 0; i < noisePredUncond.Dimensions[0]; i++)
-            {
-                for (int j = 0; j < noisePredUncond.Dimensions[1]; j++)
-                {
-                    for (int k = 0; k < noisePredUncond.Dimensions[2]; k++)
-                    {
-                        for (int l = 0; l < noisePredUncond.Dimensions[3]; l++)
-                        {
-                            noisePredUncond[i, j, k, l] = noisePredUncond[i, j, k, l] + (float)guidanceScale * (noisePredCond[i, j, k, l] - noisePredUncond[i, j, k, l]);
-                        }
-                    }
-                }
-            }
-            return noisePredUncond;
-        }
-
-
-        /// <summary>
-        /// Splits the predicted noise.
-        /// </summary>
-        /// <param name="predictedNoiseSample">The predicted noise sample.</param>
-        /// <returns>Split Prompt and Negative Prompt predictions</returns>
-        protected (DenseTensor<float> noisePredCond, DenseTensor<float> noisePredUncond) SplitPredictedNoise(DenseTensor<float> predictedNoiseSample)
-        {
-            var dimensions = predictedNoiseSample.Dimensions.ToArray();
+            var dimensions = noisePrediction.Dimensions.ToArray();
             dimensions[0] /= 2;
-            var noisePredCond = new DenseTensor<float>(dimensions);
-            var noisePredUncond = new DenseTensor<float>(dimensions);
-            for (int j = 0; j < 4; j++)
-            {
-                for (int k = 0; k < dimensions[2]; k++)
-                {
-                    for (int l = 0; l < dimensions[3]; l++)
-                    {
-                        noisePredUncond[0, j, k, l] = predictedNoiseSample[0, j, k, l];
-                        noisePredCond[0, j, k, l] = predictedNoiseSample[0, j + 4, k, l];
-                    }
-                }
-            }
-            return (noisePredCond, noisePredUncond);
+
+            var length = (int)noisePrediction.Length / 2;
+            var noisePredCond = new DenseTensor<float>(noisePrediction.Buffer[length..], dimensions);
+            var noisePredUncond = new DenseTensor<float>(noisePrediction.Buffer[..length], dimensions);
+            return noisePredUncond
+                .Add(noisePredCond
+                .Subtract(noisePredUncond)
+                .MultiplyBy(guidanceScale));
         }
 
 

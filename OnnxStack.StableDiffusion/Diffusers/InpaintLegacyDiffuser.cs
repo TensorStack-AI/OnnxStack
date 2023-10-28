@@ -56,7 +56,7 @@ namespace OnnxStack.StableDiffusion.Services
 
                 // Add noise to original latent
                 var latents = scheduler.AddNoise(latentsOriginal, noise, timesteps);
-               
+
                 // Loop though the timesteps
                 var step = 0;
                 foreach (var timestep in timesteps)
@@ -65,7 +65,7 @@ namespace OnnxStack.StableDiffusion.Services
 
                     // Create input tensor.
                     var inputLatent = performGuidance
-                        ? latents.Repeat(1)
+                        ? latents.Repeat(2)
                         : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
 
@@ -131,10 +131,15 @@ namespace OnnxStack.StableDiffusion.Services
             using (var inferResult = _onnxModelService.RunInference(model, OnnxModelType.VaeEncoder, inputParameters))
             {
                 var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                var noisySample = sample
-                    .AddTensors(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
-                    .MultipleTensorByFloat(model.ScaleFactor);
-                return noisySample;
+                var scaledSample = sample
+                     .Add(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
+                     .MultiplyBy(model.ScaleFactor)
+                     .ToDenseTensor();
+
+                if (prompt.BatchCount > 1)
+                    return scaledSample.Repeat(prompt.BatchCount);
+
+                return scaledSample;
             }
         }
 
@@ -170,6 +175,10 @@ namespace OnnxStack.StableDiffusion.Services
                         }
                     }
                 });
+
+                if (promptOptions.BatchCount > 1)
+                    return maskTensor.Repeat(promptOptions.BatchCount);
+
                 return maskTensor;
             }
         }
