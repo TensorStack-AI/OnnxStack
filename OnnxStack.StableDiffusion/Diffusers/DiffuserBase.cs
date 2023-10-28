@@ -113,7 +113,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, schedulerOptions, latents);
+                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
             }
         }
 
@@ -123,26 +123,42 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="options">The options.</param>
         /// <param name="latents">The latents.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, SchedulerOptions options, DenseTensor<float> latents)
+        protected async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
-            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], latents));
-
-            // Run inference.
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputParameters))
+            var images = prompt.BatchCount > 1 
+                ? latents.Split(prompt.BatchCount) 
+                : new[] { latents };
+            var imageTensors = new List<DenseTensor<float>>();
+            foreach (var image in images)
             {
-                var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                if (await _onnxModelService.IsEnabledAsync(model, OnnxModelType.SafetyChecker))
+                var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
+                var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], image));
+
+                // Run inference.
+                using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputParameters))
                 {
-                    // Check if image contains NSFW content, 
-                    if (!await IsImageSafe(model, options, resultTensor))
-                        return resultTensor.CloneEmpty().ToDenseTensor(); //TODO: blank image?, exception?, null?
+                    var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
+                    if (await _onnxModelService.IsEnabledAsync(model, OnnxModelType.SafetyChecker))
+                    {
+                        // Check if image contains NSFW content, 
+                        if (!await IsImageSafe(model, options, resultTensor))
+                        {
+                            //TODO: blank image?, exception?, null?
+                            imageTensors.Add(resultTensor.CloneEmpty().ToDenseTensor());
+                            continue;
+                        }
+                    }
+
+                    if (prompt.BatchCount == 1)
+                        return resultTensor.ToDenseTensor();
+
+                    imageTensors.Add(resultTensor.ToDenseTensor());
                 }
-                return resultTensor.ToDenseTensor();
             }
+            return imageTensors.Join();
         }
 
 

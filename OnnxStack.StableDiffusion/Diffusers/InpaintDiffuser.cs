@@ -94,7 +94,7 @@ namespace OnnxStack.StableDiffusion.Services
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, schedulerOptions, latents);
+                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
             }
         }
 
