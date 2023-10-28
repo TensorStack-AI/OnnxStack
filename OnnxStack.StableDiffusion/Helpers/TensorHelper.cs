@@ -30,24 +30,6 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// </summary>
         /// <param name="tensor">The data.</param>
         /// <param name="value">The value.</param>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> DivideTensorByFloat(this DenseTensor<float> tensor, float value, ReadOnlySpan<int> dimensions)
-        {
-            var divTensor = new DenseTensor<float>(dimensions);
-            for (int i = 0; i < tensor.Length; i++)
-            {
-                divTensor.SetValue(i, tensor.GetValue(i) / value);
-            }
-            return divTensor;
-        }
-
-
-        /// <summary>
-        /// Divides the tensor by float.
-        /// </summary>
-        /// <param name="tensor">The data.</param>
-        /// <param name="value">The value.</param>
         /// <returns></returns>
         public static DenseTensor<float> DivideTensorByFloat(this DenseTensor<float> tensor, float value)
         {
@@ -132,37 +114,6 @@ namespace OnnxStack.StableDiffusion.Helpers
 
 
         /// <summary>
-        /// Duplicates the specified tensor.
-        /// </summary>
-        /// <param name="tensor">The data.</param>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> Duplicate(this DenseTensor<float> tensor, ReadOnlySpan<int> dimensions)
-        {
-            var dupTensor = tensor.Concat(tensor).ToArray();
-            return CreateTensor(dupTensor, dimensions);
-        }
-
-
-        /// <summary>
-        /// Subtracts the tensors.
-        /// </summary>
-        /// <param name="tensor">The tensor.</param>
-        /// <param name="subTensor">The sub tensor.</param>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> SubtractTensors(this DenseTensor<float> tensor, DenseTensor<float> subTensor, ReadOnlySpan<int> dimensions)
-        {
-            var result = new DenseTensor<float>(dimensions);
-            for (var i = 0; i < tensor.Length; i++)
-            {
-                result.SetValue(i, tensor.GetValue(i) - subTensor.GetValue(i));
-            }
-            return result;
-        }
-
-
-        /// <summary>
         /// Subtracts the tensors.
         /// </summary>
         /// <param name="tensor">The sample.</param>
@@ -170,7 +121,12 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <returns></returns>
         public static DenseTensor<float> SubtractTensors(this DenseTensor<float> tensor, DenseTensor<float> subTensor)
         {
-            return tensor.SubtractTensors(subTensor, tensor.Dimensions);
+            var result = new DenseTensor<float>(tensor.Dimensions);
+            for (var i = 0; i < tensor.Length; i++)
+            {
+                result.SetValue(i, tensor.GetValue(i) - subTensor.GetValue(i));
+            }
+            return result;
         }
 
 
@@ -196,7 +152,6 @@ namespace OnnxStack.StableDiffusion.Helpers
         }
 
 
-
         /// <summary>
         /// Clips the specified Tensor valuse to the specified minimum/maximum.
         /// </summary>
@@ -213,10 +168,6 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
             return clipTensor;
         }
-
-
-
-
 
 
         /// <summary>

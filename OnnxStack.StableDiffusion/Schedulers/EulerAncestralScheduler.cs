@@ -91,7 +91,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
 
             // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
-            return sample.DivideTensorByFloat(sigma, sample.Dimensions);
+            return sample.DivideTensorByFloat(sigma);
         }
 
 
@@ -124,7 +124,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             // 2. Convert to an ODE derivative
             var derivative = sample
                 .SubtractTensors(predOriginalSample)
-                .DivideTensorByFloat(sigma, predOriginalSample.Dimensions);
+                .DivideTensorByFloat(sigma);
 
             var delta = sigmaDown - sigma;
             var prevSample = sample.AddTensors(derivative.MultipleTensorByFloat(delta));
