@@ -279,6 +279,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             return prompt.SchedulerType switch
             {
                 SchedulerType.LMS => new LMSScheduler(options),
+                SchedulerType.Euler => new EulerScheduler(options),
                 SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
                 SchedulerType.DDPM => new DDPMScheduler(options),
                 SchedulerType.DDIM => new DDIMScheduler(options),

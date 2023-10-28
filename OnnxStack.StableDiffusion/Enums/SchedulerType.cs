@@ -7,8 +7,11 @@ namespace OnnxStack.StableDiffusion.Enums
         [Display(Name = "LMS")]
         LMS = 0,
 
+        [Display(Name = "Euler")]
+        Euler = 1,
+
         [Display(Name = "Euler Ancestral")]
-        EulerAncestral = 1,
+        EulerAncestral = 2,
 
         [Display(Name = "DDPM")]
         DDPM = 3,
