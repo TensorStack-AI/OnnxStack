@@ -17,6 +17,9 @@ namespace OnnxStack.StableDiffusion.Enums
         DDPM = 3,
 
         [Display(Name = "DDIM")]
-        DDIM = 4
+        DDIM = 4,
+
+        [Display(Name = "KDPM2")]
+        KDPM2 = 5
     }
 }

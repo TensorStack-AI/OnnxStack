@@ -276,7 +276,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected float[] Interpolate(float[] timesteps, float[] range, float[] sigmas)
         {
             // Create an output array with the same shape as timesteps
-            var result = new float[timesteps.Length + 1];
+            var result = new float[timesteps.Length];
 
             // Loop over each element of timesteps
             for (int i = 0; i < timesteps.Length; i++)

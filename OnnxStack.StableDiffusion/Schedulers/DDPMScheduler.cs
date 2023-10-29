@@ -1,9 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using NumSharp;
-using OnnxStack.Core;
-using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
