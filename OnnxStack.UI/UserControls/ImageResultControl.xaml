@@ -8,7 +8,7 @@
              xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
              xmlns:models="clr-namespace:OnnxStack.UI.Models"
              mc:Ignorable="d" 
-             d:DesignWidth="500" Name="UI">
+             d:DesignWidth="500" Name="UI" Focusable="True" PreviewKeyDown="OnPreviewKeyDown" MouseEnter="OnMouseEnter">
     <UserControl.Resources>
         <Style TargetType="{x:Type Label}">
             <Setter Property="Margin" Value="-4,0,0,-4"/>
@@ -17,7 +17,13 @@
 
     <Border DataContext="{Binding ElementName=UI}" BorderBrush="LightGray" BorderThickness="2" >
         <StackPanel Margin="2">
-            <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width, FallbackValue=512}" Height="{Binding SchedulerOptions.Height, FallbackValue=512}" MinHeight="512" MinWidth="512"/>
+            <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width, FallbackValue=512}" Height="{Binding SchedulerOptions.Height, FallbackValue=512}" MinHeight="512" MinWidth="512"   >
+                <Image.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Copy" Command="{Binding CopyImageCommand}" />
+                    </ContextMenu>
+                </Image.ContextMenu>
+            </Image>
             <StackPanel Visibility="{Binding HasResult, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Margin="0,4">
                 <ProgressBar Maximum="{Binding ProgressMax}" behaviors:SmoothProgressBarBehavior.SmoothValue="{Binding ProgressValue}" Height="22" />
             </StackPanel>

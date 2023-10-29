@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace OnnxStack.UI.UserControls
 {
@@ -14,10 +15,12 @@ namespace OnnxStack.UI.UserControls
         /// <summary>Initializes a new instance of the <see cref="ImageResultControl" /> class.</summary>
         public ImageResultControl()
         {
+            CopyImageCommand = new AsyncRelayCommand(CopyImage);
             UpdateSeedCommand = new AsyncRelayCommand<int>(UpdateSeed);
             InitializeComponent();
         }
 
+        public AsyncRelayCommand CopyImageCommand { get; }
         public AsyncRelayCommand<int> UpdateSeedCommand { get; }
 
         public ImageResult Result
@@ -76,6 +79,29 @@ namespace OnnxStack.UI.UserControls
             SchedulerOptions.Seed = previousSeed;
             return Task.CompletedTask;
         }
+
+        private Task CopyImage()
+        {
+            if (Result?.Image != null)
+                Clipboard.SetImage(Result.Image);
+
+            return Task.CompletedTask;
+        }
+
+        private async void OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                await CopyImage();
+                e.Handled = true;
+            }
+        }
+
+        private void OnMouseEnter(object sender, MouseEventArgs e)
+        {
+            Focus();
+        }
+
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
