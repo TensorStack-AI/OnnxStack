@@ -9,18 +9,25 @@
              xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
              xmlns:models="clr-namespace:OnnxStack.UI.Models"
              mc:Ignorable="d" 
-             d:DesignWidth="500" Name="UI">
+             d:DesignWidth="500" Name="UI" Focusable="True"  PreviewKeyDown="OnPreviewKeyDown" MouseEnter="OnMouseEnter" AllowDrop="True" PreviewDrop="OnPreviewDrop">
     <UserControl.Resources>
         <Style TargetType="{x:Type Label}">
             <Setter Property="Margin" Value="-4,0,0,-4"/>
         </Style>
-        <SolidColorBrush x:Key="RedHighlight"        Color="Red"            Opacity="0.5" />
+        <SolidColorBrush x:Key="RedHighlight" Color="Red"  Opacity="0.5" />
     </UserControl.Resources>
 
     <Border DataContext="{Binding ElementName=UI}" BorderBrush="LightGray" BorderThickness="2" >
         <StackPanel Margin="2" >
             <Canvas MinHeight="512" MinWidth="512" >
-                <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512"/>
+                <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512">
+                    <Image.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Copy" Command="{Binding CopyImageCommand}" IsEnabled="{Binding HasResult}" />
+                            <MenuItem Header="Paste" Command="{Binding PasteImageCommand}"  />
+                        </ContextMenu>
+                    </Image.ContextMenu>
+                </Image>
                 <InkCanvas x:Name="MaskCanvas"  Background="Transparent" ForceCursor="True" Cursor="Pen" MinHeight="512" MinWidth="512" PreviewMouseLeftButtonDown="MaskCanvas_MouseLeftButtonDown"
                     IsEnabled="{Binding HasResult}"
                     EditingMode="{Binding MaskEditingMode}" 

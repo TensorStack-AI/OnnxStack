@@ -1,13 +1,17 @@
-﻿using OnnxStack.UI.Commands;
+﻿using OnnxStack.Core;
+using OnnxStack.UI.Commands;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
+using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Ink;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -36,6 +40,8 @@ namespace OnnxStack.UI.UserControls
             ClearImageCommand = new AsyncRelayCommand(ClearImage);
             MaskModeCommand = new AsyncRelayCommand(MaskMode);
             SaveMaskCommand = new AsyncRelayCommand(SaveMask);
+            CopyImageCommand = new AsyncRelayCommand(CopyImage);
+            PasteImageCommand = new AsyncRelayCommand(PasteImage);
             InitializeComponent();
         }
 
@@ -43,7 +49,8 @@ namespace OnnxStack.UI.UserControls
         public AsyncRelayCommand ClearImageCommand { get; }
         public AsyncRelayCommand MaskModeCommand { get; }
         public AsyncRelayCommand SaveMaskCommand { get; }
-
+        public AsyncRelayCommand CopyImageCommand { get; }
+        public AsyncRelayCommand PasteImageCommand { get; }
         public ImageInput Result
         {
             get { return (ImageInput)GetValue(ResultProperty); }
@@ -146,18 +153,7 @@ namespace OnnxStack.UI.UserControls
         /// <returns></returns>
         private Task LoadImage()
         {
-            var loadImageDialog = _dialogService.GetDialog<CropImageDialog>();
-            loadImageDialog.Initialize(SchedulerOptions.Width, SchedulerOptions.Height);
-            if (loadImageDialog.ShowDialog() == true)
-            {
-                ClearImage();
-                Result = new ImageInput
-                {
-                    Image = loadImageDialog.GetImageResult(),
-                    FileName = loadImageDialog.ImageFile,
-                };
-                HasResult = true;
-            }
+            ShowCropImageDialog();
             return Task.CompletedTask;
         }
 
@@ -260,6 +256,70 @@ namespace OnnxStack.UI.UserControls
             return renderBitmap;
         }
 
+        private void ShowCropImageDialog(BitmapSource source = null, string sourceFile = null)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(sourceFile))
+                    source = new BitmapImage(new Uri(sourceFile));
+            }
+            catch { }
+
+            var loadImageDialog = _dialogService.GetDialog<CropImageDialog>();
+            loadImageDialog.Initialize(SchedulerOptions.Width, SchedulerOptions.Height, source);
+            if (loadImageDialog.ShowDialog() == true)
+            {
+                ClearImage();
+                Result = new ImageInput
+                {
+                    Image = loadImageDialog.GetImageResult(),
+                    FileName = loadImageDialog.ImageFile,
+                };
+                HasResult = true;
+            }
+        }
+
+
+        /// <summary>
+        /// Copies the image.
+        /// </summary>
+        /// <returns></returns>
+        private Task CopyImage()
+        {
+            if (Result?.Image != null)
+                Clipboard.SetImage(Result.Image);
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Paste the image.
+        /// </summary>
+        /// <returns></returns>
+        private Task PasteImage()
+        {
+            return HandleClipboardInput();
+        }
+
+
+        /// <summary>
+        /// Handles the clipboard input.
+        /// </summary>
+        /// <returns></returns>
+        private Task HandleClipboardInput()
+        {
+            if (Clipboard.ContainsImage())
+                ShowCropImageDialog(Clipboard.GetImage());
+            else if (Clipboard.ContainsFileDropList())
+            {
+                var imageFile = Clipboard.GetFileDropList()
+                    .OfType<string>()
+                    .FirstOrDefault();
+                ShowCropImageDialog(null, imageFile);
+            }
+            return Task.CompletedTask;
+        }
+
 
         /// <summary>
         /// Handles the MouseLeftButtonDown event of the MaskCanvas control.
@@ -272,15 +332,56 @@ namespace OnnxStack.UI.UserControls
             HasMaskChanged = true;
         }
 
+
+        /// <summary>
+        /// Called on key down.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The <see cref="KeyEventArgs"/> instance containing the event data.</param>
+        private async void OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                await HandleClipboardInput();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                await CopyImage();
+                e.Handled = true;
+            }
+        }
+
+
+        /// <summary>
+        /// Called when mouse enters.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The <see cref="MouseEventArgs"/> instance containing the event data.</param>
+        private void OnMouseEnter(object sender, MouseEventArgs e)
+        {
+            Focus();
+        }
+
+
+        /// <summary>
+        /// Called when [preview drop].
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The <see cref="DragEventArgs"/> instance containing the event data.</param>
+        private void OnPreviewDrop(object sender, DragEventArgs e)
+        {
+            var fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (!fileNames.IsNullOrEmpty())
+                ShowCropImageDialog(null, fileNames.FirstOrDefault());
+        }
+
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         public void NotifyPropertyChanged([CallerMemberName] string property = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
-
         #endregion
-
-
     }
 }

@@ -24,7 +24,17 @@
                 </StackPanel>
                 <StackPanel >
                     <TextBlock Text="Image File"/>
-                    <userControls:FilePickerTextBox FileName="{Binding ImageFile, Mode=TwoWay}" IsRequired="True"/>
+                    <userControls:FilePickerTextBox FileName="{Binding ImageFile, Mode=TwoWay}" IsEnabled="{Binding HasInitialImage, Converter={StaticResource InverseBoolConverter}}" IsRequired="True" />
+                    <StackPanel.Style>
+                        <Style TargetType="{x:Type StackPanel}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasInitialImage, FallbackValue=Visible}" Value="True">
+                                    <Setter Property="Visibility" Value="Hidden" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
                 </StackPanel>
             </DockPanel>
             <UniformGrid Columns="4" Margin="0,25,0,0">

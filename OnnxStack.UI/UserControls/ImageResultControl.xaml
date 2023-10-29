@@ -20,7 +20,7 @@
             <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width, FallbackValue=512}" Height="{Binding SchedulerOptions.Height, FallbackValue=512}" MinHeight="512" MinWidth="512"   >
                 <Image.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="Copy" Command="{Binding CopyImageCommand}" />
+                        <MenuItem Header="Copy" Command="{Binding CopyImageCommand}" IsEnabled="{Binding HasResult}" />
                     </ContextMenu>
                 </Image.ContextMenu>
             </Image>

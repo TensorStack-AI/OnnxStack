@@ -38,7 +38,8 @@ namespace OnnxStack.UI.Dialogs
         private bool _cropIsDragging;
         private Point _cropClickPosition;
         private TranslateTransform _cropTransform;
-
+        private bool _hasInitialImage;
+        private BitmapSource _initialImage;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CropImageDialog"/> class.
@@ -101,16 +102,28 @@ namespace OnnxStack.UI.Dialogs
             set { _isCropped = value; NotifyPropertyChanged(); }
         }
 
+        public bool HasInitialImage
+        {
+            get { return _hasInitialImage; }
+            set { _hasInitialImage = value; NotifyPropertyChanged(); }
+        }
+
 
         /// <summary>
         /// Initializes the specified the Dialog.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        public void Initialize(int requiredWidth, int requiredHeight)
+        public void Initialize(int requiredWidth, int requiredHeight, BitmapSource sourceImage = null)
         {
             _requiredWidth = requiredWidth;
             _requiredHeight = requiredHeight;
+            if (sourceImage != null)
+            {
+                HasInitialImage = true;
+                _initialImage = sourceImage;
+                LoadImage();
+            }
         }
 
 
@@ -197,7 +210,7 @@ namespace OnnxStack.UI.Dialogs
         /// </returns>
         private bool CanExecuteCrop()
         {
-            return !string.IsNullOrEmpty(ImageFile) && !IsCropped;
+            return (!string.IsNullOrEmpty(ImageFile) || HasInitialImage) && !IsCropped;
         }
 
 
@@ -207,7 +220,9 @@ namespace OnnxStack.UI.Dialogs
         private void LoadImage()
         {
             Reset();
-            SourceImage = new BitmapImage(new Uri(ImageFile));
+            SourceImage = _hasInitialImage
+                ? _initialImage.Clone()
+                : new BitmapImage(new Uri(_imageFile));
             var actualWidth = (double)_sourceImage.PixelWidth;
             var actualHeight = (double)_sourceImage.PixelHeight;
 
