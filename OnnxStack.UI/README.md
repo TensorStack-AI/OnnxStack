@@ -1,5 +1,5 @@
 <p align="center" width="100%">
-    <img width="80%" src="../Assets/OnnxStack - 640x320.png">
+    <img width="80%" src="Assets/OnnxStack - 640x320.png">
 </p>
 
 
@@ -41,7 +41,7 @@ So far `OnnxStack.StableDiffusion` as included `LMS Discrete`, `Euler Ancestral`
 *Example:*
 | LMS Scheduler | Euler Ancestral Scheduler | DDPM Scheduler | DDIM Scheduler
 | :--- | :--- | :--- |
-<img src="Assets/Samples/1207582124_30_7.5_30_LMS.png" width="256" alt="Image of browser inferencing on sample images."/> | <img src="Assets/Samples/1207582124_30_7.5_30_EulerAncestral.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="Assets/Samples/1207582124_30_7.5_30_DDPM.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="Assets/Samples/1207582124_30_7.5_30_DDIM.png" width="256"  alt="Image of browser inferencing on sample images."/> |
+<img src="../Assets/Samples/1207582124_30_7.5_30_LMS.png" width="256" alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_EulerAncestral.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_DDPM.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_DDIM.png" width="256"  alt="Image of browser inferencing on sample images."/> |
 
      Model: OpenJourney V4     Seed: A cyberpunk puppy     GuidanceScale: 7.5     NumInferenceSteps: 30     Prompt: A cyberpunk puppy
 
