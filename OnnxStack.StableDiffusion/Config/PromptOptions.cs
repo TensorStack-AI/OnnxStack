@@ -25,12 +25,4 @@ namespace OnnxStack.StableDiffusion.Config
         public bool HasInputImage => InputImage?.HasImage ?? false;
         public bool HasInputImageMask => InputImageMask?.HasImage ?? false;
     }
-
-    public enum DiffuserType
-    {
-        TextToImage = 0,
-        ImageToImage = 1,
-        ImageInpaint = 2,
-        ImageInpaintLegacy = 3
-    }
 }

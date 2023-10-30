@@ -1,5 +1,5 @@
 ﻿using OnnxStack.Core;
-using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;

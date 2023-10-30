@@ -1,4 +1,4 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.StableDiffusion.Enums;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

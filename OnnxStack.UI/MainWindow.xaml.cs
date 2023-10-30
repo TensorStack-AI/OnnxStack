@@ -2,6 +2,7 @@
 using Microsoft.Win32;
 using Models;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Views;

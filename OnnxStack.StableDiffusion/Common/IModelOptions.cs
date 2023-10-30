@@ -1,5 +1,4 @@
 ﻿using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
 using System.Collections.Immutable;

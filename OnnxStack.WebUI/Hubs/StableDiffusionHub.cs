@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.WebUI.Models;
 using Services;
 using SixLabors.ImageSharp;

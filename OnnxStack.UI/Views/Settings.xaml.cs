@@ -5,6 +5,7 @@ using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
