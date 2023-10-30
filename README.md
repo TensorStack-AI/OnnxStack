@@ -42,7 +42,7 @@ painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon
 ### **Schedulers**
 
 Many different scheduler algorithms can be used for this computation, each having its pro- and cons. 
-So far `OnnxStack.StableDiffusion` as included `LMS Discrete`, `Euler Ancestral` and `DDPM` options with more in the works.
+So far `OnnxStack.StableDiffusion` as included `LMS Discrete`, `Euler Ancestral`, and `DDPM`, and `DDIM` options with more in the works.
 
 *Example:*
 | LMS Scheduler | Euler Ancestral Scheduler | DDPM Scheduler |
