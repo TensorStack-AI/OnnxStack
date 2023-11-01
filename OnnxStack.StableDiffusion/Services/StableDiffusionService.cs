@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -8,6 +9,7 @@ using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -23,7 +25,7 @@ namespace OnnxStack.StableDiffusion.Services
     {
         private readonly IOnnxModelService _onnxModelService;
         private readonly StableDiffusionConfig _configuration;
-        private readonly IDictionary<DiffuserPipelineType, IPipeline> _pipelines;
+        private readonly ConcurrentDictionary<DiffuserPipelineType, IPipeline> _pipelines;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
@@ -33,8 +35,9 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _configuration = configuration;
             _onnxModelService = onnxModelService;
-            _pipelines.Add(DiffuserPipelineType.StableDiffusion, new StableDiffusionPipeline(onnxModelService, promptService));
-            _pipelines.Add(DiffuserPipelineType.LatentConsistency, new LatentConsistencyPipeline(onnxModelService, promptService));
+            _pipelines = new ConcurrentDictionary<DiffuserPipelineType, IPipeline>();
+            _pipelines.TryAdd(DiffuserPipelineType.StableDiffusion, new StableDiffusionPipeline(onnxModelService, promptService));
+            _pipelines.TryAdd(DiffuserPipelineType.LatentConsistency, new LatentConsistencyPipeline(onnxModelService, promptService));
         }
 
 
@@ -141,8 +144,7 @@ namespace OnnxStack.StableDiffusion.Services
 
         private async Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
         {
-            var pipeline = _pipelines[modelOptions.PipelineType];
-            if (pipeline is null)
+            if (!_pipelines.TryGetValue(modelOptions.PipelineType, out var pipeline))
                 throw new Exception("Pipeline not found or is unsupported");
 
             var diffuser = pipeline.GetDiffuser(promptOptions.DiffuserType);
