@@ -36,14 +36,14 @@ painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon
 ### **Schedulers**
 
 Many different scheduler algorithms can be used for this computation, each having its pro- and cons. 
-So far `OnnxStack.StableDiffusion` as included `LMS Discrete`, `Euler Ancestral` and `DDPM` and `DDIM` options with more in the works.
+So far `OnnxStack.StableDiffusion` as included `LMS Discrete`, `Euler`, `Euler Ancestral`, `DDPM`, `DDIM`, `KDPM2` options with more in the works.
 
 *Example:*
-| LMS Scheduler | Euler Ancestral Scheduler | DDPM Scheduler | DDIM Scheduler
-| :--- | :--- | :--- | :--- |
-<img src="../Assets/Samples/1207582124_30_7.5_30_LMS.png" width="256" alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_EulerAncestral.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_DDPM.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_DDIM.png" width="256"  alt="Image of browser inferencing on sample images."/> |
+| LMS Scheduler | Euler Scheduler | Euler Ancestral Scheduler | DDPM Scheduler | DDIM Scheduler | KDPM2 Scheduler
+| :--- | :--- | :--- | :--- | :--- | :--- |
+<img src="../Assets/Samples/1207582124_30_7.5_30_LMS.png" width="256" alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_Euler.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_EulerAncestral.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_DDPM.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_DDIM.png" width="256"  alt="Image of browser inferencing on sample images."/> | <img src="../Assets/Samples/1207582124_30_7.5_30_KDPM2.png" width="256"  alt="Image of browser inferencing on sample images."/> |
 
-     Model: OpenJourney V4     Seed: A cyberpunk puppy     GuidanceScale: 7.5     NumInferenceSteps: 30     Prompt: A cyberpunk puppy
+     Model: OpenJourney V4     Seed: 1207582124     GuidanceScale: 7.5     NumInferenceSteps: 30     Prompt: A cyberpunk puppy
 
 __________________________
 
