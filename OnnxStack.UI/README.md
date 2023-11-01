@@ -68,6 +68,18 @@ git clone https://huggingface.co/runwayml/stable-diffusion-v1-5 -b onnx
 ```
 
 
+## Stable Diffusion Models We've Converted To ONNX And Tested
+The following are othe stable diffusion models we've converted to ONNX and tested with OnnxStack.
+
+- [OpenJourney V4](https://huggingface.co/TheyCallMeHex/OpenJourney-V4-ONNX)
+- [DreamLike PhotoReal 2.0](https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX)
+- [CyberPunk Anime Diffusion](https://huggingface.co/TheyCallMeHex/Cyberpunk-Anime-Diffusion-ONNX)
+- [InkPunk Diffusion](https://huggingface.co/TheyCallMeHex/Inkpunk-Diffusion-ONNX)
+- [Mo-Di Diffusion](https://huggingface.co/TheyCallMeHex/Mo-Di-Diffusion-ONNX)
+- [epiCRealism](https://huggingface.co/TheyCallMeHex/epiCRealism-ONNX)
+- [Comic Diffusion](https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX)
+- [Redshift Diffusion](https://huggingface.co/TheyCallMeHex/Redshift-Diffusion-ONNX)
+
 ## Hardware Requirements
 You can choose between `Cpu` and `DirectML`(GPU) for inference, 
 Other `Microsoft.ML.OnnxRuntime.*` executors like `Cuda` may work but are untested
