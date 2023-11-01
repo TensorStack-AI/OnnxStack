@@ -2,15 +2,13 @@
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +23,7 @@ namespace OnnxStack.StableDiffusion.Services
     {
         private readonly IOnnxModelService _onnxModelService;
         private readonly StableDiffusionConfig _configuration;
-        private readonly IDictionary<DiffuserPipelineType, IDictionary<DiffuserType, IDiffuser>> _diffusers;
+        private readonly IDictionary<DiffuserPipelineType, IPipeline> _pipelines;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
@@ -35,21 +33,8 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _configuration = configuration;
             _onnxModelService = onnxModelService;
-            var stableDiffusionPipeline = new Dictionary<DiffuserType, IDiffuser>
-            {
-                { DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService) },
-                { DiffuserType.ImageToImage, new ImageDiffuser(onnxModelService, promptService) },
-                { DiffuserType.ImageInpaint, new InpaintDiffuser(onnxModelService, promptService) },
-                { DiffuserType.ImageInpaintLegacy, new InpaintLegacyDiffuser(onnxModelService, promptService) }
-            };
-
-            var latentConsistancyPipeline = new Dictionary<DiffuserType, IDiffuser>
-            {
-                //TODO: TextToImage and ImageToImage is supported with LCM
-            };
-
-            _diffusers.Add(DiffuserPipelineType.StableDiffusion, stableDiffusionPipeline);
-            _diffusers.Add(DiffuserPipelineType.LatentConsistency, latentConsistancyPipeline);
+            _pipelines.Add(DiffuserPipelineType.StableDiffusion, new StableDiffusionPipeline(onnxModelService, promptService));
+            _pipelines.Add(DiffuserPipelineType.LatentConsistency, new LatentConsistencyPipeline(onnxModelService, promptService));
         }
 
 
@@ -156,11 +141,11 @@ namespace OnnxStack.StableDiffusion.Services
 
         private async Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
         {
-            var pipeline = _diffusers[modelOptions.PipelineType];
+            var pipeline = _pipelines[modelOptions.PipelineType];
             if (pipeline is null)
                 throw new Exception("Pipeline not found or is unsupported");
 
-            var diffuser = pipeline[promptOptions.DiffuserType];
+            var diffuser = pipeline.GetDiffuser(promptOptions.DiffuserType);
             if (diffuser is null)
                 throw new Exception("Diffuser not found or is unsupported");
 
