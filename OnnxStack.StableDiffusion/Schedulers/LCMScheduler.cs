@@ -54,7 +54,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             //The default number of inference steps used to generate a linearly - spaced timestep schedule, from which we
             //will ultimately take `num_inference_steps` evenly spaced timesteps to form the final timestep schedule.
-            _originalInferenceSteps = Options.InferenceSteps;
+            _originalInferenceSteps = 30;
 
             SetInitNoiseSigma(1.0f);
         }
@@ -68,14 +68,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
         {
             // LCM Timesteps Setting
             // Currently, only linear spacing is supported.
-            var timeIncrement = (float)Options.TrainTimesteps / _originalInferenceSteps;
+            var timeIncrement = Options.TrainTimesteps / _originalInferenceSteps;
 
             //# LCM Training Steps Schedule
             var lcmOriginTimesteps = Enumerable.Range(1, _originalInferenceSteps)
                 .Select(x => x * timeIncrement - 1f)
                 .ToArray();
 
-            var skippingStep = (float)lcmOriginTimesteps.Length / Options.InferenceSteps;
+            var skippingStep = lcmOriginTimesteps.Length / Options.InferenceSteps;
 
             // LCM Inference Steps Schedule
             return lcmOriginTimesteps
@@ -199,12 +199,9 @@ namespace OnnxStack.StableDiffusion.Schedulers
             //self.sigma_data = 0.5  # Default: 0.5
             var sigmaData = 0.5f;
 
-            //c_skip = self.sigma_data * *2 / ((t / 0.1) * *2 + self.sigma_data * *2)
-            float cSkip = MathF.Pow(sigmaData, 2f) / (MathF.Pow(timestep / 0.1f, 2f) + MathF.Pow(sigmaData, 2f));
-
-            //c_out = (t / 0.1) / ((t / 0.1) * *2 + self.sigma_data * *2) * *0.5
-            float cOut = (timestep / 0.1f) / (MathF.Pow(timestep / 0.1f, 2f) + MathF.Pow(sigmaData, 2f)) * 0.5f;
-
+            float c = (MathF.Pow(timestep / 0.1f, 2f) + MathF.Pow(sigmaData, 2f));
+            float cSkip = MathF.Pow(sigmaData, 2f) / c;
+            float cOut = (timestep / 0.1f) / MathF.Pow(c, 0.5f);
             return (cSkip, cOut);
         }
 

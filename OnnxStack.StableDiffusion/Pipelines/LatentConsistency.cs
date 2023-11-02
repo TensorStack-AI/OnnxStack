@@ -1,6 +1,7 @@
 ﻿using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Diffusers;
+using OnnxStack.StableDiffusion.Diffusers.LatentConsistency;
 using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         {
             var diffusers = new Dictionary<DiffuserType, IDiffuser>
             {
-                //TODO: TextToImage and ImageToImage is supported with LCM
+               { DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService) }
             };
             _pipelineType = DiffuserPipelineType.LatentConsistency;
             _diffusers = new ConcurrentDictionary<DiffuserType, IDiffuser>(diffusers);
