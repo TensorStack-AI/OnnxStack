@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OnnxStack.StableDiffusion.Schedulers
+namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
     public sealed class LMSScheduler : SchedulerBase
     {
@@ -131,7 +131,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             // 4. compute previous sample based on the derivative path
             // Reverse list of tensors this.derivatives
-            var revDerivatives = Enumerable.Reverse(_derivatives);
+            var revDerivatives = _derivatives.Reverse();
 
             // Create list of tuples from the lmsCoeffs and reversed derivatives
             var lmsCoeffsAndDerivatives = lmsCoeffs

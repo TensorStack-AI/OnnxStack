@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OnnxStack.StableDiffusion.Schedulers
+namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 {
     internal class LCMScheduler : SchedulerBase
     {
@@ -197,11 +197,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
         public (float cSkip, float cOut) GetBoundaryConditionScalings(float timestep)
         {
             //self.sigma_data = 0.5  # Default: 0.5
-            var sigmaData = 0.5f;
+            var sigmaData = 0.1f;
 
-            float c = (MathF.Pow(timestep / 0.1f, 2f) + MathF.Pow(sigmaData, 2f));
+            float c = MathF.Pow(timestep / 0.1f, 2f) + MathF.Pow(sigmaData, 2f);
             float cSkip = MathF.Pow(sigmaData, 2f) / c;
-            float cOut = (timestep / 0.1f) / MathF.Pow(c, 0.5f);
+            float cOut = timestep / 0.1f / MathF.Pow(c, 0.5f);
             return (cSkip, cOut);
         }
 

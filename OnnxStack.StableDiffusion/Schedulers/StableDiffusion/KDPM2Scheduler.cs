@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OnnxStack.StableDiffusion.Schedulers
+namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
     internal class KDPM2Scheduler : SchedulerBase
     {
@@ -114,8 +114,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        /// <exception cref="System.ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
-        /// <exception cref="System.NotImplementedException">KDPM2Scheduler Thresholding currently not implemented</exception>
+        /// <exception cref="ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
+        /// <exception cref="NotImplementedException">KDPM2Scheduler Thresholding currently not implemented</exception>
         public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             float sigma;

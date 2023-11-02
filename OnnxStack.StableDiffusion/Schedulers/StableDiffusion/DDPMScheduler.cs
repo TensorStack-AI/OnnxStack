@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OnnxStack.StableDiffusion.Schedulers
+namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
     internal class DDPMScheduler : SchedulerBase
     {
@@ -79,8 +79,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        /// <exception cref="System.ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
-        /// <exception cref="System.NotImplementedException">DDPMScheduler Thresholding currently not implemented</exception>
+        /// <exception cref="ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
+        /// <exception cref="NotImplementedException">DDPMScheduler Thresholding currently not implemented</exception>
         public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             int currentTimestep = timestep;
@@ -316,7 +316,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var sortedIndices = np.argsort<float>(data);
 
             // Calculate the index corresponding to the percentile
-            var index = (int)Math.Ceiling((percentile / 100f) * (data.Shape[0] - 1));
+            var index = (int)Math.Ceiling(percentile / 100f * (data.Shape[0] - 1));
 
             // Retrieve the value at the calculated index
             var percentileValue = data[sortedIndices[index]];

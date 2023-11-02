@@ -7,6 +7,7 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Schedulers;
+using OnnxStack.StableDiffusion.Schedulers.LatentConsistency;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,8 +85,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         // Scheduler Step
                         var schedulerResult = scheduler.Step(noisePred, timestep, latents);
 
-                        latents = schedulerResult.PreviousSample;
-                        denoised = schedulerResult.ExtraSample;
+                        latents = schedulerResult.Result;
+                        denoised = schedulerResult.SampleData;
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
@@ -147,39 +148,20 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <returns></returns>
         public DenseTensor<float> GetGuidanceScaleEmbedding(float guidance, int embeddingDim = 256)
         {
-            // TODO:
-            //assert len(w.shape) == 1
-            //w = w * 1000.0
-
-            //half_dim = embedding_dim // 2
-            //emb = torch.log(torch.tensor(10000.0)) / (half_dim - 1)
-            //emb = torch.exp(torch.arange(half_dim, dtype = dtype) * -emb)
-            //emb = w.to(dtype)[:, None] * emb[None, :]
-            //emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim = 1)
-            //if embedding_dim % 2 == 1:  # zero pad
-            //    emb = torch.nn.functional.pad(emb, (0, 1))
-            //assert emb.shape == (w.shape[0], embedding_dim)
-            //return emb
-
-            var w = guidance - 1f;
-
-            var half_dim = embeddingDim / 2;
-
-            var log = MathF.Log(10000.0f) / (half_dim - 1);
-
-            var emb = Enumerable.Range(0, half_dim)
+            var scale = guidance - 1f;
+            var halfDim = embeddingDim / 2;
+            float log = MathF.Log(10000.0f) / (halfDim - 1);
+            var emb = Enumerable.Range(0, halfDim)
                 .Select(x => MathF.Exp(x * -log))
                 .ToArray();
             var embSin = emb.Select(MathF.Sin).ToArray();
             var embCos = emb.Select(MathF.Cos).ToArray();
-
-            DenseTensor<float> result = new DenseTensor<float>(new[] { 1, 2 * half_dim });
-            for (int i = 0; i < half_dim; i++)
+            var result = new DenseTensor<float>(new[] { 1, 2 * halfDim });
+            for (int i = 0; i < halfDim; i++)
             {
                 result[0, i] = embSin[i];
-                result[0, i + half_dim] = embCos[i];
+                result[0, i + halfDim] = embCos[i];
             }
-
             return result;
         }
     }

@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OnnxStack.StableDiffusion.Schedulers
+namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
     public sealed class EulerAncestralScheduler : SchedulerBase
     {

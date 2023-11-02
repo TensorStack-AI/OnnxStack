@@ -443,22 +443,4 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
         #endregion
     }
-
-
-    public class SchedulerStepResult
-    {
-        public SchedulerStepResult(DenseTensor<float> previousSample)
-        {
-            PreviousSample = previousSample;
-        }
-
-        public SchedulerStepResult(DenseTensor<float> previousSample, DenseTensor<float> extraSample)
-        {
-            ExtraSample = extraSample;
-            PreviousSample = previousSample;
-        }
-
-        public DenseTensor<float> PreviousSample { get; set; }
-        public DenseTensor<float> ExtraSample { get; set; }
-    }
 }

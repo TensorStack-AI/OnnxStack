@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OnnxStack.StableDiffusion.Schedulers
+namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
     internal class DDIMScheduler : SchedulerBase
     {
@@ -84,8 +84,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        /// <exception cref="System.ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
-        /// <exception cref="System.NotImplementedException">DDIMScheduler Thresholding currently not implemented</exception>
+        /// <exception cref="ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
+        /// <exception cref="NotImplementedException">DDIMScheduler Thresholding currently not implemented</exception>
         public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             //# See formulas (12) and (16) of DDIM paper https://arxiv.org/pdf/2010.02502.pdf
@@ -216,7 +216,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
             float betaProdT = 1f - alphaProdT;
             float betaProdTPrev = 1f - alphaProdTPrev;
-            float variance = (betaProdTPrev / betaProdT) * (1f - alphaProdT / alphaProdTPrev);
+            float variance = betaProdTPrev / betaProdT * (1f - alphaProdT / alphaProdTPrev);
             return variance;
         }
 

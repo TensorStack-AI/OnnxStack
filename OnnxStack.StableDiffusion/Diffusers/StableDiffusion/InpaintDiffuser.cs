@@ -87,7 +87,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                             noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
 
                         // Scheduler Step
-                        latents = scheduler.Step(noisePred, timestep, latents).PreviousSample;
+                        latents = scheduler.Step(noisePred, timestep, latents).Result;
                     }
 
                     progress?.Invoke(++step, timesteps.Count);
