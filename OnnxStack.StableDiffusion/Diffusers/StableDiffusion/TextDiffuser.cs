@@ -2,13 +2,11 @@
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Diffusers;
 using System.Collections.Generic;
-
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
-    public sealed class TextDiffuser : DiffuserBase
+    public sealed class TextDiffuser : StableDiffusionDiffuser
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TextDiffuser"/> class.
@@ -20,7 +18,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         {
         }
 
-
+ 
         /// <summary>
         /// Gets the timesteps.
         /// </summary>

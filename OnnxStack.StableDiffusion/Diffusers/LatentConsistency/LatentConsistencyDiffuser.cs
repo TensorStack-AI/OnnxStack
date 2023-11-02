@@ -6,27 +6,26 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Schedulers;
-using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
+using OnnxStack.StableDiffusion.Schedulers.LatentConsistency;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers
+namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
-    public abstract class DiffuserBase : IDiffuser
+    public abstract class LatentConsistencyDiffuser : IDiffuser
     {
         protected readonly IPromptService _promptService;
         protected readonly IOnnxModelService _onnxModelService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DiffuserBase"/> class.
+        /// Initializes a new instance of the <see cref="LatentConsistencyDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public DiffuserBase(IOnnxModelService onnxModelService, IPromptService promptService)
+        public LatentConsistencyDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
         {
             _promptService = promptService;
             _onnxModelService = onnxModelService;
@@ -66,20 +65,30 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
+            // LCM does not support classifier-free guidance
+            var guidance = schedulerOptions.GuidanceScale;
+            schedulerOptions.GuidanceScale = 0f;
+
+            // LCM does not support negative prompting
+            promptOptions.NegativePrompt = string.Empty;
+
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
                 // Process prompts
                 var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, schedulerOptions);
 
-                // Should we perform classifier free guidance
-                var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
-
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
 
                 // Create latent sample
                 var latents = PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+
+                // Get Guidance Scale Embedding
+                var guidanceEmbeddings = GetGuidanceScaleEmbedding(guidance);
+
+                // Denoised result
+                DenseTensor<float> denoised = null;
 
                 // Loop though the timesteps
                 var step = 0;
@@ -89,34 +98,31 @@ namespace OnnxStack.StableDiffusion.Diffusers
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputLatent = performGuidance
-                        ? latents.Repeat(2)
-                        : latents;
-                    var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
+                    var inputTensor = scheduler.ScaleInput(latents, timestep);
 
                     // Create Input Parameters
-                    var inputParameters = CreateUnetInputParams(modelOptions, inputTensor, promptEmbeddings, timestep);
+                    var inputParameters = CreateUnetInputParams(modelOptions, inputTensor, promptEmbeddings, guidanceEmbeddings, timestep);
 
                     // Run Inference
                     using (var inferResult = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputParameters))
                     {
                         var noisePred = inferResult.FirstElementAs<DenseTensor<float>>();
 
-                        // Perform guidance
-                        if (performGuidance)
-                            noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
-
                         // Scheduler Step
-                        latents = scheduler.Step(noisePred, timestep, latents).Result;
+                        var schedulerResult = scheduler.Step(noisePred, timestep, latents);
+
+                        latents = schedulerResult.Result;
+                        denoised = schedulerResult.SampleData;
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
+                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, denoised);
             }
         }
+
 
         /// <summary>
         /// Decodes the latents.
@@ -129,8 +135,8 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
-            var images = prompt.BatchCount > 1 
-                ? latents.Split(prompt.BatchCount) 
+            var images = prompt.BatchCount > 1
+                ? latents.Split(prompt.BatchCount)
                 : new[] { latents };
             var imageTensors = new List<DenseTensor<float>>();
             foreach (var image in images)
@@ -142,17 +148,6 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputParameters))
                 {
                     var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                    if (await _onnxModelService.IsEnabledAsync(model, OnnxModelType.SafetyChecker))
-                    {
-                        // Check if image contains NSFW content, 
-                        if (!await IsImageSafe(model, options, resultTensor))
-                        {
-                            //TODO: blank image?, exception?, null?
-                            imageTensors.Add(resultTensor.CloneEmpty().ToDenseTensor());
-                            continue;
-                        }
-                    }
-
                     if (prompt.BatchCount == 1)
                         return resultTensor.ToDenseTensor();
 
@@ -164,29 +159,6 @@ namespace OnnxStack.StableDiffusion.Diffusers
 
 
         /// <summary>
-        /// Performs classifier free guidance
-        /// </summary>
-        /// <param name="noisePredUncond">The noise pred.</param>
-        /// <param name="noisePredText">The noise pred text.</param>
-        /// <param name="guidanceScale">The guidance scale.</param>
-        /// <returns></returns>
-        protected virtual DenseTensor<float> PerformGuidance(DenseTensor<float> noisePrediction, float guidanceScale)
-        {
-            // Split Prompt and Negative Prompt predictions
-            var dimensions = noisePrediction.Dimensions.ToArray();
-            dimensions[0] /= 2;
-
-            var length = (int)noisePrediction.Length / 2;
-            var noisePredCond = new DenseTensor<float>(noisePrediction.Buffer[length..], dimensions);
-            var noisePredUncond = new DenseTensor<float>(noisePrediction.Buffer[..length], dimensions);
-            return noisePredUncond
-                .Add(noisePredCond
-                .Subtract(noisePredUncond)
-                .MultiplyBy(guidanceScale));
-        }
-
-
-        /// <summary>
         /// Creates the Unet input parameters.
         /// </summary>
         /// <param name="model">The model.</param>
@@ -194,98 +166,56 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="promptEmbeddings">The prompt embeddings.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected virtual IReadOnlyList<NamedOnnxValue> CreateUnetInputParams(IModelOptions model, DenseTensor<float> inputTensor, DenseTensor<float> promptEmbeddings, int timestep)
+        protected virtual IReadOnlyList<NamedOnnxValue> CreateUnetInputParams(IModelOptions model, DenseTensor<float> inputTensor, DenseTensor<float> promptEmbeddings, DenseTensor<float> guidanceEmbeddings, int timestep)
         {
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.Unet);
             return CreateInputParameters(
                  NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
                  NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
-                 NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings));
+                 NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings),
+                 NamedOnnxValue.CreateFromTensor(inputNames[3], guidanceEmbeddings));
         }
 
 
         /// <summary>
         /// Gets the scheduler.
         /// </summary>
+        /// <param name="prompt"></param>
         /// <param name="options">The options.</param>
-        /// <param name="schedulerConfig">The scheduler configuration.</param>
         /// <returns></returns>
-        protected virtual IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
+        protected IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
         {
             return prompt.SchedulerType switch
             {
-                SchedulerType.LMS => new LMSScheduler(options),
-                SchedulerType.Euler => new EulerScheduler(options),
-                SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
-                SchedulerType.DDPM => new DDPMScheduler(options),
-                SchedulerType.DDIM => new DDIMScheduler(options),
-                SchedulerType.KDPM2 => new KDPM2Scheduler(options),
+                SchedulerType.LCM => new LCMScheduler(options),
                 _ => default
             };
         }
 
 
         /// <summary>
-        /// Determines whether the specified result image is not NSFW.
+        /// Gets the guidance scale embedding.
         /// </summary>
-        /// <param name="resultImage">The result image.</param>
-        /// <param name="config">The configuration.</param>
-        /// <returns>
-        ///   <c>true</c> if the specified result image is safe; otherwise, <c>false</c>.
-        /// </returns>
-        protected async Task<bool> IsImageSafe(IModelOptions model, SchedulerOptions options, DenseTensor<float> resultImage)
-        {
-            //clip input
-            var inputTensor = ClipImageFeatureExtractor(options, resultImage);
-
-            //images input
-            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.SafetyChecker);
-            var inputImagesTensor = inputTensor.ReorderTensor(new[] { 1, 224, 224, 3 });
-            var inputParameters = CreateInputParameters(
-                NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
-                NamedOnnxValue.CreateFromTensor(inputNames[1], inputImagesTensor));
-
-            // Run session and send the input data in to get inference output. 
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.SafetyChecker, inputParameters))
-            {
-                var result = inferResult.LastElementAs<IEnumerable<bool>>();
-                return !result.First();
-            }
-        }
-
-
-        /// <summary>
-        /// Image feature extractor.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="embeddingDim">The embedding dim.</param>
         /// <returns></returns>
-        protected static DenseTensor<float> ClipImageFeatureExtractor(SchedulerOptions options, DenseTensor<float> imageTensor)
+        private DenseTensor<float> GetGuidanceScaleEmbedding(float guidance, int embeddingDim = 256)
         {
-            //convert tensor result to image
-            using (var image = imageTensor.ToImage())
+            var scale = guidance - 1f;
+            var halfDim = embeddingDim / 2;
+            float log = MathF.Log(10000.0f) / (halfDim - 1);
+            var emb = Enumerable.Range(0, halfDim)
+                .Select(x => MathF.Exp(x * -log))
+                .ToArray();
+            var embSin = emb.Select(MathF.Sin).ToArray();
+            var embCos = emb.Select(MathF.Cos).ToArray();
+            var result = new DenseTensor<float>(new[] { 1, 2 * halfDim });
+            for (int i = 0; i < halfDim; i++)
             {
-                // Resize image
-                ImageHelpers.Resize(image, new[] { 1, 3, 224, 224 });
-
-                // Preprocess image
-                var input = new DenseTensor<float>(new[] { 1, 3, 224, 224 });
-                var mean = new[] { 0.485f, 0.456f, 0.406f };
-                var stddev = new[] { 0.229f, 0.224f, 0.225f };
-                image.ProcessPixelRows(img =>
-                {
-                    for (int y = 0; y < image.Height; y++)
-                    {
-                        var pixelSpan = img.GetRowSpan(y);
-                        for (int x = 0; x < image.Width; x++)
-                        {
-                            input[0, 0, y, x] = (pixelSpan[x].R / 255f - mean[0]) / stddev[0];
-                            input[0, 1, y, x] = (pixelSpan[x].G / 255f - mean[1]) / stddev[1];
-                            input[0, 2, y, x] = (pixelSpan[x].B / 255f - mean[2]) / stddev[2];
-                        }
-                    }
-                });
-                return input;
+                result[0, i] = embSin[i];
+                result[0, i + halfDim] = embCos[i];
             }
+            return result;
         }
 
 

@@ -10,10 +10,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-
 namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
-    public sealed class ImageDiffuser : TextDiffuser
+    public sealed class ImageDiffuser : LatentConsistencyDiffuser
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageDiffuser"/> class.
@@ -69,6 +68,5 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 return noisySample;
             }
         }
-
     }
 }

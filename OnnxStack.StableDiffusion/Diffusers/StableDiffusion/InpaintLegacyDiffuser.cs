@@ -4,7 +4,6 @@ using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -16,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
-    public sealed class InpaintLegacyDiffuser : DiffuserBase
+    public sealed class InpaintLegacyDiffuser : StableDiffusionDiffuser
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="InpaintLegacyDiffuser"/> class.

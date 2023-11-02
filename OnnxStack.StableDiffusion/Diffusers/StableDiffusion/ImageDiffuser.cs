@@ -4,7 +4,6 @@ using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 using System;
@@ -14,7 +13,7 @@ using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
-    public sealed class ImageDiffuser : DiffuserBase
+    public sealed class ImageDiffuser : StableDiffusionDiffuser
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageDiffuser"/> class.

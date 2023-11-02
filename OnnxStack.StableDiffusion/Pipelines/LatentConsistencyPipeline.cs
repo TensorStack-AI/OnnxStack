@@ -1,28 +1,31 @@
 ﻿using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Diffusers;
-using OnnxStack.StableDiffusion.Diffusers.StableDiffusion;
+using OnnxStack.StableDiffusion.Diffusers.LatentConsistency;
 using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace OnnxStack.StableDiffusion.Pipelines
 {
-    public sealed class StableDiffusionPipeline : IPipeline
+    public sealed class LatentConsistencyPipeline : IPipeline
     {
         private readonly DiffuserPipelineType _pipelineType;
         private readonly ConcurrentDictionary<DiffuserType, IDiffuser> _diffusers;
 
-        public StableDiffusionPipeline(IOnnxModelService onnxModelService, IPromptService promptService)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LatentConsistencyPipeline"/> class.
+        /// </summary>
+        /// <param name="onnxModelService">The onnx model service.</param>
+        /// <param name="promptService">The prompt service.</param>
+        public LatentConsistencyPipeline(IOnnxModelService onnxModelService, IPromptService promptService)
         {
             var diffusers = new Dictionary<DiffuserType, IDiffuser>
             {
-                { DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService) },
-                { DiffuserType.ImageToImage, new ImageDiffuser(onnxModelService, promptService) },
-                { DiffuserType.ImageInpaint, new InpaintDiffuser(onnxModelService, promptService) },
-                { DiffuserType.ImageInpaintLegacy, new InpaintLegacyDiffuser(onnxModelService, promptService) }
+               { DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService) },
+               { DiffuserType.ImageToImage, new ImageDiffuser(onnxModelService, promptService) }
             };
-            _pipelineType = DiffuserPipelineType.StableDiffusion;
+            _pipelineType = DiffuserPipelineType.LatentConsistency;
             _diffusers = new ConcurrentDictionary<DiffuserType, IDiffuser>(diffusers);
         }
 

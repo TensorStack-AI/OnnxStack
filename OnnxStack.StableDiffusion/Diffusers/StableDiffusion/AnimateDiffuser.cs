@@ -2,15 +2,11 @@
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
-    public class AnimateDiffuser : DiffuserBase
+    public sealed class AnimateDiffuser : StableDiffusionDiffuser
     {
 
         /// <summary>
