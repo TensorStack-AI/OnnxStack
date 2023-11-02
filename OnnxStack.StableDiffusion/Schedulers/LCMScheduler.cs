@@ -29,6 +29,12 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
 
         /// <summary>
+        /// Gets the compatible pipeline.
+        /// </summary>
+        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.LatentConsistency;
+
+
+        /// <summary>
         /// Initializes this instance.
         /// </summary>
         protected override void Initialize()

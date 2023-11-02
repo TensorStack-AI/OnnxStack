@@ -123,7 +123,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="options">The options.</param>
         /// <param name="latents">The latents.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
+        protected virtual async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
@@ -169,7 +169,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="noisePredText">The noise pred text.</param>
         /// <param name="guidanceScale">The guidance scale.</param>
         /// <returns></returns>
-        protected DenseTensor<float> PerformGuidance(DenseTensor<float> noisePrediction, float guidanceScale)
+        protected virtual DenseTensor<float> PerformGuidance(DenseTensor<float> noisePrediction, float guidanceScale)
         {
             // Split Prompt and Negative Prompt predictions
             var dimensions = noisePrediction.Dimensions.ToArray();
@@ -200,6 +200,27 @@ namespace OnnxStack.StableDiffusion.Diffusers
                  NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
                  NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
                  NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings));
+        }
+
+
+        /// <summary>
+        /// Gets the scheduler.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="schedulerConfig">The scheduler configuration.</param>
+        /// <returns></returns>
+        protected virtual IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
+        {
+            return prompt.SchedulerType switch
+            {
+                SchedulerType.LMS => new LMSScheduler(options),
+                SchedulerType.Euler => new EulerScheduler(options),
+                SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
+                SchedulerType.DDPM => new DDPMScheduler(options),
+                SchedulerType.DDIM => new DDIMScheduler(options),
+                SchedulerType.KDPM2 => new KDPM2Scheduler(options),
+                _ => default
+            };
         }
 
 
@@ -266,27 +287,6 @@ namespace OnnxStack.StableDiffusion.Diffusers
             }
         }
 
-
-
-        /// <summary>
-        /// Gets the scheduler.
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="schedulerConfig">The scheduler configuration.</param>
-        /// <returns></returns>
-        protected static IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
-        {
-            return prompt.SchedulerType switch
-            {
-                SchedulerType.LMS => new LMSScheduler(options),
-                SchedulerType.Euler => new EulerScheduler(options),
-                SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
-                SchedulerType.DDPM => new DDPMScheduler(options),
-                SchedulerType.DDIM => new DDIMScheduler(options),
-                SchedulerType.KDPM2 => new KDPM2Scheduler(options),
-                _ => default
-            };
-        }
 
         /// <summary>
         /// Helper for creating the input parameters.

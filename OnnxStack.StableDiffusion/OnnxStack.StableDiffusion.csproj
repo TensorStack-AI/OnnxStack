@@ -61,4 +61,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Diffusers\LatentConsistency\" />
+  </ItemGroup>
+
 </Project>

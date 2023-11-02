@@ -14,7 +14,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Services
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
     public sealed class InpaintLegacyDiffuser : DiffuserBase
     {
@@ -167,7 +167,7 @@ namespace OnnxStack.StableDiffusion.Services
                         for (int y = 0; y < height; y++)
                         {
                             var pixelSpan = img.GetRowSpan(y);
-                            var value = (float)pixelSpan[x].A / 255.0f;
+                            var value = pixelSpan[x].A / 255.0f;
                             maskTensor[0, 0, y, x] = 1f - value;
                             maskTensor[0, 1, y, x] = 0f; // Needed for shape only
                             maskTensor[0, 2, y, x] = 0f; // Needed for shape only
@@ -207,7 +207,7 @@ namespace OnnxStack.StableDiffusion.Services
                             float initLatentsProperValue = initLatentsProper[batch, channel, height, width];
 
                             //Apply the logic to compute the result based on the mask
-                            float newValue = (initLatentsProperValue * maskValue) + (latentsValue * (1f - maskValue));
+                            float newValue = initLatentsProperValue * maskValue + latentsValue * (1f - maskValue);
                             result[batch, channel, height, width] = newValue;
                         }
                     }

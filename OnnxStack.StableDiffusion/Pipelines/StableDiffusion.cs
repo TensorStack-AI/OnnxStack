@@ -1,8 +1,8 @@
 ﻿using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Diffusers;
+using OnnxStack.StableDiffusion.Diffusers.StableDiffusion;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Services;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 

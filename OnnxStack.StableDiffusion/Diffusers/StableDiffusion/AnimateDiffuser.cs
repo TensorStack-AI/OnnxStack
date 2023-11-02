@@ -2,23 +2,24 @@
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Diffusers;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-
-namespace OnnxStack.StableDiffusion.Services
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
-    public sealed class TextDiffuser : DiffuserBase
+    public class AnimateDiffuser : DiffuserBase
     {
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="TextDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="AnimateDiffuser"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public TextDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
-            : base(onnxModelService, promptService)
-        {
-        }
+        /// <param name="promptService"></param>
+        public AnimateDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
+        : base(onnxModelService, promptService) { }
 
 
         /// <summary>
@@ -33,12 +34,15 @@ namespace OnnxStack.StableDiffusion.Services
             return scheduler.Timesteps;
         }
 
+
         /// <summary>
-        /// Prepares the latents for inference.
+        /// Prepares the latents.
         /// </summary>
+        /// <param name="model"></param>
         /// <param name="prompt">The prompt.</param>
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
+        /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
         protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {

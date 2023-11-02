@@ -14,7 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 
-namespace OnnxStack.StableDiffusion.Services
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
     public sealed class InpaintDiffuser : DiffuserBase
     {
@@ -171,9 +171,9 @@ namespace OnnxStack.StableDiffusion.Services
                         for (int y = 0; y < height; y++)
                         {
                             var pixelSpan = img.GetRowSpan(y);
-                            imageTensor[0, 0, y, x] = (pixelSpan[x].R / 127.5f) - 1f;
-                            imageTensor[0, 1, y, x] = (pixelSpan[x].G / 127.5f) - 1f;
-                            imageTensor[0, 2, y, x] = (pixelSpan[x].B / 127.5f) - 1f;
+                            imageTensor[0, 0, y, x] = pixelSpan[x].R / 127.5f - 1f;
+                            imageTensor[0, 1, y, x] = pixelSpan[x].G / 127.5f - 1f;
+                            imageTensor[0, 2, y, x] = pixelSpan[x].B / 127.5f - 1f;
                         }
                     }
                 });
