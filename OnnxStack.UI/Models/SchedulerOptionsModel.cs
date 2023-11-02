@@ -31,6 +31,7 @@ namespace OnnxStack.UI.Models
         private PredictionType _predictionType = PredictionType.Epsilon;
         private AlphaTransformType _alphaTransformType = AlphaTransformType.Cosine;
         private float _maximumBeta = 0.999f;
+        private int _originalInferenceSteps = 100;
 
         /// <summary>
         /// Gets or sets the height.
@@ -184,14 +185,23 @@ namespace OnnxStack.UI.Models
             get { return _predictionType; }
             set { _predictionType = value; NotifyPropertyChanged(); }
         }
-        public AlphaTransformType AlphaTransformType { get { return _alphaTransformType; } set { _alphaTransformType = value; NotifyPropertyChanged(); } }
+        public AlphaTransformType AlphaTransformType
+        {
+            get { return _alphaTransformType; }
+            set { _alphaTransformType = value; NotifyPropertyChanged(); }
+        }
+
         public float MaximumBeta
         {
             get { return _maximumBeta; }
             set { _maximumBeta = value; NotifyPropertyChanged(); }
         }
 
-
+        public int OriginalInferenceSteps
+        {
+            get { return _originalInferenceSteps; }
+            set { _originalInferenceSteps = value; NotifyPropertyChanged(); }
+        }
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

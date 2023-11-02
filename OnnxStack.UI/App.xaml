@@ -31,6 +31,7 @@
         <converters:NullVisibilityConverter x:Key="NullVisibilityConverter" />
         <converters:InverseNullVisibilityConverter x:Key="InverseNullVisibilityConverter" />
         <converters:DiffuserVisibilityConverter x:Key="DiffuserVisibilityConverter" />
+        <converters:PipelineVisibilityConverter x:Key="PipelineVisibilityConverter" />
 
         <ObjectDataProvider x:Key="SchedulerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
             <ObjectDataProvider.MethodParameters>

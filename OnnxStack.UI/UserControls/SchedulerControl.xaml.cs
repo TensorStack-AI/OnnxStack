@@ -1,5 +1,6 @@
 ﻿using Models;
 using OnnxStack.Core;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
@@ -94,14 +95,12 @@ namespace OnnxStack.UI.UserControls
 
             if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusion)
             {
-                OptionsConfig.StepsMin = 4;
-                OptionsConfig.StepsMax = 100;
+                SchedulerOptions.OriginalInferenceSteps = 100;
                 SchedulerOptions.InferenceSteps = 30;
             }
             else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistency)
             {
-                OptionsConfig.StepsMin = 1;
-                OptionsConfig.StepsMax = 50;
+                SchedulerOptions.OriginalInferenceSteps = 50;
                 SchedulerOptions.InferenceSteps = 6;
             }
         }

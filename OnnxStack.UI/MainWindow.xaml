@@ -11,7 +11,7 @@
         Width="1200"
         Height="700"
         MinWidth="820"
-        MinHeight="720"
+        MinHeight="780"
         Icon="/Images/Icon.png" Name="UI" 
         RenderOptions.BitmapScalingMode="HighQuality"
         RenderOptions.ClearTypeHint="Enabled"

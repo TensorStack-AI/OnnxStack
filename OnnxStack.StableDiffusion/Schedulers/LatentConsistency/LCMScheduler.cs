@@ -12,7 +12,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
     {
         private float[] _alphasCumProd;
         private float _finalAlphaCumprod;
-        private int _originalInferenceSteps;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LCMScheduler"/> class.
@@ -52,10 +51,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
                 ? 1.0f
             : _alphasCumProd.First();
 
-            //The default number of inference steps used to generate a linearly - spaced timestep schedule, from which we
-            //will ultimately take `num_inference_steps` evenly spaced timesteps to form the final timestep schedule.
-            _originalInferenceSteps = 50;
-
             SetInitNoiseSigma(1.0f);
         }
 
@@ -68,10 +63,10 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         {
             // LCM Timesteps Setting
             // Currently, only linear spacing is supported.
-            var timeIncrement = Options.TrainTimesteps / _originalInferenceSteps;
+            var timeIncrement = Options.TrainTimesteps / Options.OriginalInferenceSteps;
 
             //# LCM Training Steps Schedule
-            var lcmOriginTimesteps = Enumerable.Range(1, _originalInferenceSteps)
+            var lcmOriginTimesteps = Enumerable.Range(1, Options.OriginalInferenceSteps)
                 .Select(x => x * timeIncrement - 1f)
                 .ToArray();
 

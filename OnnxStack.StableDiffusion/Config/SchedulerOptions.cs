@@ -80,6 +80,6 @@ namespace OnnxStack.StableDiffusion.Config
         public AlphaTransformType AlphaTransformType { get; set; } = AlphaTransformType.Cosine;
         public float MaximumBeta { get; set; } = 0.999f;
 
-
+        public int OriginalInferenceSteps { get; set; } = 30;
     }
 }
