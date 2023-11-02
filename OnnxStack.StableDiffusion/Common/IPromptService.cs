@@ -6,7 +6,7 @@ namespace OnnxStack.StableDiffusion.Common
 {
     public interface IPromptService
     {
-        Task<DenseTensor<float>> CreatePromptAsync(IModelOptions model, PromptOptions promptOptions, SchedulerOptions schedulerOptions);
+        Task<DenseTensor<float>> CreatePromptAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled);
         Task<int[]> DecodeTextAsync(IModelOptions model, string inputText);
         Task<float[]> EncodeTokensAsync(IModelOptions model, int[] tokenizedInput);
     }

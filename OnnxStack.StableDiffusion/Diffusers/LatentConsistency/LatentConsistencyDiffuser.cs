@@ -65,10 +65,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
-            // LCM does not support classifier-free guidance
-            var guidance = schedulerOptions.GuidanceScale;
-            schedulerOptions.GuidanceScale = 0f;
-
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;
 
@@ -76,7 +72,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
                 // Process prompts
-                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, schedulerOptions);
+                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, false);
 
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
@@ -85,7 +81,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var latents = PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Get Guidance Scale Embedding
-                var guidanceEmbeddings = GetGuidanceScaleEmbedding(guidance);
+                var guidanceEmbeddings = GetGuidanceScaleEmbedding(schedulerOptions.GuidanceScale);
 
                 // Denoised result
                 DenseTensor<float> denoised = null;

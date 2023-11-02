@@ -35,7 +35,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="prompt">The prompt.</param>
         /// <param name="negativePrompt">The negative prompt.</param>
         /// <returns>Tensor containing all text embeds generated from the prompt and negative prompt</returns>
-        public async Task<DenseTensor<float>> CreatePromptAsync(IModelOptions model, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        public async Task<DenseTensor<float>> CreatePromptAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
         {
             // Tokenize Prompt and NegativePrompt
             var promptTokens = await DecodeTextAsync(model, promptOptions.Prompt);
@@ -55,7 +55,7 @@ namespace OnnxStack.StableDiffusion.Services
 
             // If we are doing guided diffusion, concatenate the negative prompt embeddings
             // If not we ingore the negative prompt embeddings
-            if (schedulerOptions.GuidanceScale > 1)
+            if (isGuidanceEnabled)
                 return negativePromptEmbeddings.Concatenate(promptEmbeddings);
 
             return promptEmbeddings;

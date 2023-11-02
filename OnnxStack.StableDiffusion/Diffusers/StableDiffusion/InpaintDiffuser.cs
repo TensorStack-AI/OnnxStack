@@ -42,11 +42,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
-                // Process prompts
-                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, schedulerOptions);
-
                 // Should we perform classifier free guidance
                 var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
+
+                // Process prompts
+                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
 
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
