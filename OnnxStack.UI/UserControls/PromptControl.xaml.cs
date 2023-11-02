@@ -76,6 +76,9 @@ namespace OnnxStack.UI.UserControls
         private void OnModelChanged(ModelOptionsModel model)
         {
             SchedulerTypes.Clear();
+            if (model is null)
+                return;
+
             if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusion)
             {
                 foreach (SchedulerType type in Enum.GetValues<SchedulerType>().Where(x => x != SchedulerType.LCM))

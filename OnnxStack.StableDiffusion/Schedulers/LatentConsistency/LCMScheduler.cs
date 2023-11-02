@@ -54,7 +54,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 
             //The default number of inference steps used to generate a linearly - spaced timestep schedule, from which we
             //will ultimately take `num_inference_steps` evenly spaced timesteps to form the final timestep schedule.
-            _originalInferenceSteps = 30;
+            _originalInferenceSteps = 50;
 
             SetInitNoiseSigma(1.0f);
         }

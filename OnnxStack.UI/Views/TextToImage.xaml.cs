@@ -131,6 +131,10 @@ namespace OnnxStack.UI.Views
             Reset();
             HasResult = false;
             ResultImage = null;
+            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.TextToImage))
+            {
+                SelectedModel = imageResult.Model;
+            }
             PromptOptions = new PromptOptionsModel
             {
                 Prompt = imageResult.Prompt,
@@ -262,6 +266,7 @@ namespace OnnxStack.UI.Views
                 return new ImageResult
                 {
                     Image = image,
+                    Model = _selectedModel,
                     Prompt = promptOptions.Prompt,
                     NegativePrompt = promptOptions.NegativePrompt,
                     DiffuserType = promptOptions.DiffuserType,

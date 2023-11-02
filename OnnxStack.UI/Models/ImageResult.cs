@@ -1,4 +1,5 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using Models;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using System;
 using System.Text.Json.Serialization;
@@ -10,6 +11,9 @@ namespace OnnxStack.UI.Models
     {
         [JsonIgnore]
         public BitmapSource Image { get; init; }
+
+        [JsonIgnore]
+        public ModelOptionsModel Model { get; set; }
 
         public DateTime Timestamp { get; } = DateTime.UtcNow;
         public DiffuserType DiffuserType { get; init; }

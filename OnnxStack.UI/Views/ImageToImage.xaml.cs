@@ -145,6 +145,10 @@ namespace OnnxStack.UI.Views
             HasResult = false;
             ResultImage = null;
             HasInputResult = true;
+            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageToImage))
+            {
+                SelectedModel = imageResult.Model;
+            }
             InputImage = new ImageInput
             {
                 Image = imageResult.Image,
@@ -288,6 +292,7 @@ namespace OnnxStack.UI.Views
                 return new ImageResult
                 {
                     Image = image,
+                    Model = _selectedModel,
                     Prompt = promptOptions.Prompt,
                     NegativePrompt = promptOptions.NegativePrompt,
                     DiffuserType = promptOptions.DiffuserType,

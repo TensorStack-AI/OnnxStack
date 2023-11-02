@@ -163,6 +163,11 @@ namespace OnnxStack.UI.Views
             HasInputResult = true;
             HasInputMaskResult = false;
             InputImageMask = null;
+            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint) 
+             || imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy))
+            {
+                SelectedModel = imageResult.Model;
+            }
             InputImage = new ImageInput
             {
                 Image = imageResult.Image,
@@ -314,6 +319,7 @@ namespace OnnxStack.UI.Views
                 return new ImageResult
                 {
                     Image = image,
+                    Model = _selectedModel,
                     Prompt = promptOptions.Prompt,
                     NegativePrompt = promptOptions.NegativePrompt,
                     DiffuserType = promptOptions.DiffuserType,
