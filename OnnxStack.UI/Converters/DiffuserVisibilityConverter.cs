@@ -14,10 +14,10 @@ namespace OnnxStack.UI.Converters
         {
             if (values.Length == 2 && values[0] is List<DiffuserType> viewTypes && values[1] is List<DiffuserType> modelTypes)
             {
-                return viewTypes.Any(modelTypes.Contains) ? Visibility.Visible : Visibility.Hidden;
+                return viewTypes.Any(modelTypes.Contains) ? Visibility.Visible : Visibility.Collapsed;
             }
 
-            return Visibility.Hidden; 
+            return Visibility.Collapsed; 
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

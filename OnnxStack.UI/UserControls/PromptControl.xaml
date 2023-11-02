@@ -24,7 +24,7 @@
             </StackPanel>
             <StackPanel>
                 <Label>Scheduler</Label>
-                <ComboBox ItemsSource="{Binding Source={StaticResource SchedulerType}}" SelectedItem="{Binding PromptOptions.SchedulerType}"/>
+                <ComboBox ItemsSource="{Binding SchedulerTypes}" SelectedItem="{Binding PromptOptions.SchedulerType}"/>
             </StackPanel>
         </StackPanel>
     </DockPanel>

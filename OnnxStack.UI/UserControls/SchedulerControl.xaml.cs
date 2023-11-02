@@ -1,10 +1,12 @@
-﻿using OnnxStack.Core;
+﻿using Models;
+using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -34,6 +36,20 @@ namespace OnnxStack.UI.UserControls
         public ObservableCollection<int> ValidSizes { get; }
 
 
+        public ModelOptionsModel SelectedModel
+        {
+            get { return (ModelOptionsModel)GetValue(SelectedModelProperty); }
+            set { SetValue(SelectedModelProperty, value); }
+        }
+
+        public static readonly DependencyProperty SelectedModelProperty =
+            DependencyProperty.Register("SelectedModel", typeof(ModelOptionsModel), typeof(SchedulerControl), new PropertyMetadata((d, e) =>
+            {
+                if (d is SchedulerControl schedulerControl)
+                    schedulerControl.OnModelChanged(e.NewValue as ModelOptionsModel);
+            }));
+
+
         public DiffuserType DiffuserType
         {
             get { return (DiffuserType)GetValue(DiffuserTypeProperty); }
@@ -60,6 +76,17 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         public static readonly DependencyProperty SchedulerOptionsProperty =
             DependencyProperty.Register("SchedulerOptions", typeof(SchedulerOptionsModel), typeof(SchedulerControl));
+
+
+
+        /// <summary>
+        /// Called when the selected model has changed.
+        /// </summary>
+        /// <param name="modelOptionsModel">The model options model.</param>
+        private void OnModelChanged(ModelOptionsModel model)
+        {
+           
+        }
 
 
         /// <summary>
