@@ -57,7 +57,11 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel>
-                                <UniformGrid Columns="3">
+                                <UniformGrid Columns="5">
+                                    <StackPanel>
+                                        <TextBlock Text="Pipeline" />
+                                        <ComboBox ItemsSource="{Binding Source={StaticResource DiffuserPipelineType}}" SelectedItem="{Binding SelectedModelSet.PipelineType}" />
+                                    </StackPanel>
                                     <StackPanel VerticalAlignment="Center">
                                         <CheckBox IsChecked="{Binding SelectedModelSet.IsEnabled}" Content="IsEnabled" />
                                     </StackPanel>

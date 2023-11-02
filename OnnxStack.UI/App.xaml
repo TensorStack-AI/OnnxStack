@@ -81,6 +81,12 @@
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
+        <ObjectDataProvider x:Key="DiffuserPipelineType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:DiffuserPipelineType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
 
         <!--TODO: Style dictionary for themeing-->
         <Style TargetType="{x:Type TextBox}">

@@ -269,6 +269,7 @@ namespace OnnxStack.UI.Views
                 PadTokenId = modelOptions.PadTokenId,
                 ScaleFactor = modelOptions.ScaleFactor,
                 TokenizerLimit = modelOptions.TokenizerLimit,
+                PipelineType = modelOptions.PipelineType,
                 EnableTextToImage = modelOptions.Diffusers.Contains(DiffuserType.TextToImage),
                 EnableImageToImage = modelOptions.Diffusers.Contains(DiffuserType.ImageToImage),
                 EnableImageInpaint = modelOptions.Diffusers.Contains(DiffuserType.ImageInpaint) || modelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
@@ -310,6 +311,7 @@ namespace OnnxStack.UI.Views
                 PadTokenId = editModel.PadTokenId,
                 ScaleFactor = editModel.ScaleFactor,
                 TokenizerLimit = editModel.TokenizerLimit,
+                PipelineType = editModel.PipelineType,
                 Diffusers = new List<DiffuserType>(editModel.GetDiffusers()),
                 ModelConfigurations = new List<OnnxModelSessionConfig>(editModel.ModelConfigurations.Select(x => new OnnxModelSessionConfig
                 {
@@ -369,6 +371,7 @@ namespace OnnxStack.UI.Views
         private bool _enableImageToImage;
         private bool _enableImageInpaint;
         private bool _enableImageInpaintLegacy;
+        private DiffuserPipelineType _pipelineType;
 
         public string Name
         {
@@ -482,6 +485,12 @@ namespace OnnxStack.UI.Views
         {
             get { return _modelConfigurations; }
             set { _modelConfigurations = value; NotifyPropertyChanged(); }
+        }
+
+        public DiffuserPipelineType PipelineType
+        {
+            get { return _pipelineType; }
+            set { _pipelineType = value; NotifyPropertyChanged(); }
         }
 
 
