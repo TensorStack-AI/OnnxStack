@@ -86,7 +86,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         /// <exception cref="System.ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
         /// <exception cref="System.NotImplementedException">DDIMScheduler Thresholding currently not implemented</exception>
-        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             //# See formulas (12) and (16) of DDIM paper https://arxiv.org/pdf/2010.02502.pdf
             //# Ideally, read DDIM paper in-detail understanding
@@ -176,7 +176,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             if (eta > 0)
                 prevSample = prevSample.AddTensors(CreateRandomSample(modelOutput.Dimensions).MultipleTensorByFloat(stdDevT));
 
-            return prevSample;
+            return new SchedulerStepResult(prevSample);
         }
 
 

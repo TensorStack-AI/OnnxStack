@@ -71,7 +71,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public abstract DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
+        public abstract SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
 
 
         /// <summary>
@@ -442,5 +442,23 @@ namespace OnnxStack.StableDiffusion.Schedulers
         }
 
         #endregion
+    }
+
+
+    public class SchedulerStepResult
+    {
+        public SchedulerStepResult(DenseTensor<float> previousSample)
+        {
+            PreviousSample = previousSample;
+        }
+
+        public SchedulerStepResult(DenseTensor<float> previousSample, DenseTensor<float> extraSample)
+        {
+            ExtraSample = extraSample;
+            PreviousSample = previousSample;
+        }
+
+        public DenseTensor<float> PreviousSample { get; set; }
+        public DenseTensor<float> ExtraSample { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Schedulers;
 using System;
 using System.Collections.Generic;
 
@@ -38,7 +39,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
+        SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
 
         /// <summary>
         /// Adds noise to the sample.

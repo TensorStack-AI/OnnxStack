@@ -116,7 +116,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         /// <exception cref="System.ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
         /// <exception cref="System.NotImplementedException">KDPM2Scheduler Thresholding currently not implemented</exception>
-        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             float sigma;
             float sigmaInterpol;
@@ -177,7 +177,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             }
 
             _stepIndex += 1;
-            return sample.AddTensors(derivative.MultipleTensorByFloat(dt));
+            return new SchedulerStepResult(sample.AddTensors(derivative.MultipleTensorByFloat(dt)));
         }
 
 

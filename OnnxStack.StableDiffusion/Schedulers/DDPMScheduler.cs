@@ -81,7 +81,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         /// <exception cref="System.ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
         /// <exception cref="System.NotImplementedException">DDPMScheduler Thresholding currently not implemented</exception>
-        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             int currentTimestep = timestep;
             int previousTimestep = GetPreviousTimestep(currentTimestep);
@@ -159,7 +159,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 predPrevSample = predPrevSample.AddTensors(variance);
             }
 
-            return predPrevSample;
+            return new SchedulerStepResult(predPrevSample);
         }
 
 

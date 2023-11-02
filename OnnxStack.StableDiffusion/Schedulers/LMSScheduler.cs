@@ -107,7 +107,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             int stepIndex = Timesteps.IndexOf(timestep);
             var sigma = _sigmas[stepIndex];
@@ -148,7 +148,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             }
 
             // Add the sumed tensor to the sample
-            return sample.AddTensors(lmsDerProduct.SumTensors(modelOutput.Dimensions));
+            return new SchedulerStepResult(sample.AddTensors(lmsDerProduct.SumTensors(modelOutput.Dimensions)));
         }
 
 

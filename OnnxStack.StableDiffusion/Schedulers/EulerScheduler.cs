@@ -108,7 +108,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             // TODO: Implement "extended settings for scheduler types"
             float s_churn = 0f;
@@ -140,7 +140,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 .DivideTensorByFloat(sigmaHat);
 
             var delta = _sigmas[stepIndex + 1] - sigmaHat;
-            return sample.AddTensors(derivative.MultipleTensorByFloat(delta));
+            return new SchedulerStepResult(sample.AddTensors(derivative.MultipleTensorByFloat(delta)));
         }
 
 

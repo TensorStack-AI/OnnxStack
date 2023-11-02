@@ -103,7 +103,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             var stepIndex = Timesteps.IndexOf(timestep);
             var sigma = _sigmas[stepIndex];
@@ -129,7 +129,8 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var delta = sigmaDown - sigma;
             var prevSample = sample.AddTensors(derivative.MultipleTensorByFloat(delta));
             var noise = CreateRandomSample(prevSample.Dimensions);
-            return prevSample.AddTensors(noise.MultipleTensorByFloat(sigmaUp));
+            prevSample = prevSample.AddTensors(noise.MultipleTensorByFloat(sigmaUp));
+            return new SchedulerStepResult(prevSample);
         }
 
 

@@ -107,7 +107,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override DenseTensor<float> Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
             //# Latent Consistency Models paper https://arxiv.org/abs/2310.04378
 
@@ -164,7 +164,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                     .AddTensors(denoised.MultipleTensorByFloat(MathF.Sqrt(alphaProdTPrev)))
                 : denoised;
 
-            return prevSample;
+            return new SchedulerStepResult(prevSample, denoised);
         }
 
 
