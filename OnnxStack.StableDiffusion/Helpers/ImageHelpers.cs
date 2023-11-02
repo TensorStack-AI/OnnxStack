@@ -260,7 +260,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             var width = dimensions[3];
             var height = dimensions[2];
             var channels = dimensions[1];
-            var imageArray = new DenseTensor<float>(new[] { 1, channels, width, height });
+            var imageArray = new DenseTensor<float>(new[] { 1, channels, height, width });
             image.ProcessPixelRows(img =>
             {
                 for (int x = 0; x < width; x++)

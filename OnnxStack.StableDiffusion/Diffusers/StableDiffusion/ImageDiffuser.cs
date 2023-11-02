@@ -53,7 +53,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             // Image input, decode, add noise, return as latent 0
-            var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Width, options.Height });
+            var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeEncoder);
             var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageTensor));
             using (var inferResult = _onnxModelService.RunInference(model, OnnxModelType.VaeEncoder, inputParameters))

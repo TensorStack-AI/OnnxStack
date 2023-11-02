@@ -19,7 +19,7 @@
 
     <Border DataContext="{Binding ElementName=UI}" BorderBrush="LightGray" BorderThickness="2" >
         <StackPanel Margin="2" >
-            <Canvas MinHeight="512" MinWidth="512" >
+            <Canvas Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512" ClipToBounds="True">
                 <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512">
                     <Image.ContextMenu>
                         <ContextMenu>
