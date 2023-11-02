@@ -17,7 +17,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         {
             var diffusers = new Dictionary<DiffuserType, IDiffuser>
             {
-               { DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService) }
+               { DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService) },
+               { DiffuserType.ImageToImage, new ImageDiffuser(onnxModelService, promptService) }
             };
             _pipelineType = DiffuserPipelineType.LatentConsistency;
             _diffusers = new ConcurrentDictionary<DiffuserType, IDiffuser>(diffusers);

@@ -5,8 +5,6 @@ using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Schedulers;
 using OnnxStack.StableDiffusion.Schedulers.LatentConsistency;
 using System;
 using System.Collections.Generic;
@@ -16,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
-    public sealed class TextDiffuser : DiffuserBase
+    public class TextDiffuser : DiffuserBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TextDiffuser"/> class.

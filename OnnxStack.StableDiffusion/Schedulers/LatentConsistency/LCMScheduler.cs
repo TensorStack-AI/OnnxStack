@@ -197,7 +197,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         public (float cSkip, float cOut) GetBoundaryConditionScalings(float timestep)
         {
             //self.sigma_data = 0.5  # Default: 0.5
-            var sigmaData = 0.1f;
+            var sigmaData = 0.5f;
 
             float c = MathF.Pow(timestep / 0.1f, 2f) + MathF.Pow(sigmaData, 2f);
             float cSkip = MathF.Pow(sigmaData, 2f) / c;
