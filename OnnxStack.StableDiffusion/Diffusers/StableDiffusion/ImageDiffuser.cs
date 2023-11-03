@@ -1,9 +1,11 @@
-﻿using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 using System;
@@ -20,10 +22,16 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public ImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
-            : base(onnxModelService, promptService)
+        public ImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionDiffuser> logger)
+            : base(onnxModelService, promptService, logger)
         {
         }
+
+
+        /// <summary>
+        /// Gets the type of the diffuser.
+        /// </summary>
+        public override DiffuserType DiffuserType => DiffuserType.ImageToImage;
 
 
         /// <summary>

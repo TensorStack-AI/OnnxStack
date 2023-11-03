@@ -29,7 +29,7 @@ namespace OnnxStack.UI
         {
             var builder = Host.CreateApplicationBuilder();
             builder.Logging.ClearProviders();
-            builder.Services.AddLogging((loggingBuilder) => loggingBuilder.SetMinimumLevel(LogLevel.Trace).AddWindowLogger());
+            builder.Services.AddLogging((loggingBuilder) => loggingBuilder.AddWindowLogger());
 
             // Add OnnxStackStableDiffusion
             builder.Services.AddOnnxStackStableDiffusion();

@@ -1,16 +1,20 @@
-﻿using OnnxStack.Core.Services;
+﻿using Microsoft.Extensions.Logging;
+using OnnxStack.Core;
+using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Diffusers.LatentConsistency;
 using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Pipelines
 {
     public sealed class LatentConsistencyPipeline : IPipeline
     {
         private readonly DiffuserPipelineType _pipelineType;
+        private readonly ILogger<LatentConsistencyPipeline> _logger;
         private readonly ConcurrentDictionary<DiffuserType, IDiffuser> _diffusers;
 
         /// <summary>
@@ -18,15 +22,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         /// <param name="onnxModelService">The onnx model service.</param>
         /// <param name="promptService">The prompt service.</param>
-        public LatentConsistencyPipeline(IOnnxModelService onnxModelService, IPromptService promptService)
+        public LatentConsistencyPipeline(IEnumerable<IDiffuser> diffusers, ILogger<LatentConsistencyPipeline> logger)
         {
-            var diffusers = new Dictionary<DiffuserType, IDiffuser>
-            {
-               { DiffuserType.TextToImage, new TextDiffuser(onnxModelService, promptService) },
-               { DiffuserType.ImageToImage, new ImageDiffuser(onnxModelService, promptService) }
-            };
+            _logger = logger;
             _pipelineType = DiffuserPipelineType.LatentConsistency;
-            _diffusers = new ConcurrentDictionary<DiffuserType, IDiffuser>(diffusers);
+            _diffusers = diffusers
+                .Where(x => x.PipelineType == _pipelineType)
+                .ToConcurrentDictionary(k => k.DiffuserType, v => v);
         }
 
 

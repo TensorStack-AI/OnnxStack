@@ -5,7 +5,6 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
@@ -31,13 +30,11 @@ namespace OnnxStack.StableDiffusion.Services
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
         /// </summary>
         /// <param name="schedulerService">The scheduler service.</param>
-        public StableDiffusionService(StableDiffusionConfig configuration, IOnnxModelService onnxModelService, IPromptService promptService)
+        public StableDiffusionService(StableDiffusionConfig configuration, IOnnxModelService onnxModelService, IEnumerable<IPipeline> pipelines)
         {
             _configuration = configuration;
             _onnxModelService = onnxModelService;
-            _pipelines = new ConcurrentDictionary<DiffuserPipelineType, IPipeline>();
-            _pipelines.TryAdd(DiffuserPipelineType.StableDiffusion, new StableDiffusionPipeline(onnxModelService, promptService));
-            _pipelines.TryAdd(DiffuserPipelineType.LatentConsistency, new LatentConsistencyPipeline(onnxModelService, promptService));
+            _pipelines = pipelines.ToConcurrentDictionary(k => k.PipelineType, k => k);
         }
 
 

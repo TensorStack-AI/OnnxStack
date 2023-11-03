@@ -1,14 +1,18 @@
-﻿using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,10 +26,16 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public InpaintDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
-            : base(onnxModelService, promptService)
+        public InpaintDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionDiffuser> logger)
+            : base(onnxModelService, promptService, logger)
         {
         }
+
+
+        /// <summary>
+        /// Gets the type of the diffuser.
+        /// </summary>
+        public override DiffuserType DiffuserType => DiffuserType.ImageInpaint;
 
 
         /// <summary>
@@ -34,10 +44,14 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="promptOptions">The options.</param>
         /// <param name="schedulerOptions">The scheduler configuration.</param>
         /// <returns></returns>
-        public override async Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progress = null, CancellationToken cancellationToken = default)
+        public override async Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
+
+            var diffuseTime = _logger?.LogBegin("Begin...");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
+
 
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
@@ -64,6 +78,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 var step = 0;
                 foreach (var timestep in timesteps)
                 {
+                    step++;
+                    var stepTime = Stopwatch.GetTimestamp();
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
@@ -89,11 +105,14 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                         latents = scheduler.Step(noisePred, timestep, latents).Result;
                     }
 
-                    progress?.Invoke(++step, timesteps.Count);
+                    progressCallback?.Invoke(step, timesteps.Count);
+                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
+                var result = await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
+                _logger?.LogEnd($"End", diffuseTime);
+                return result;
             }
         }
 

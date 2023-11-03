@@ -1,7 +1,9 @@
-﻿using Microsoft.ML.OnnxRuntime.Tensors;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
@@ -14,8 +16,14 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// </summary>
         /// <param name="onnxModelService">The onnx model service.</param>
         /// <param name="promptService"></param>
-        public AnimateDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
-        : base(onnxModelService, promptService) { }
+        public AnimateDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionDiffuser> logger)
+        : base(onnxModelService, promptService, logger) { }
+
+
+        /// <summary>
+        /// Gets the type of the diffuser.
+        /// </summary>
+        public override DiffuserType DiffuserType => DiffuserType.ImageToAnimation;
 
 
         /// <summary>

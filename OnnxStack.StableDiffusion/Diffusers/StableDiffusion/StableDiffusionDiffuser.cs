@@ -1,5 +1,7 @@
-﻿using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
@@ -9,6 +11,7 @@ using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,18 +22,31 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
     {
         protected readonly IPromptService _promptService;
         protected readonly IOnnxModelService _onnxModelService;
+        protected readonly ILogger<StableDiffusionDiffuser> _logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public StableDiffusionDiffuser(IOnnxModelService onnxModelService, IPromptService promptService)
+        public StableDiffusionDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionDiffuser> logger)
         {
+            _logger = logger;
             _promptService = promptService;
             _onnxModelService = onnxModelService;
         }
 
+
+        /// <summary>
+        /// Gets the type of the pipeline.
+        /// </summary>
+        public DiffuserPipelineType PipelineType => DiffuserPipelineType.StableDiffusion;
+
+
+        /// <summary>
+        /// Gets the type of the diffuser.
+        /// </summary>
+        public abstract DiffuserType DiffuserType { get; }
 
         /// <summary>
         /// Gets the timesteps.
@@ -53,7 +69,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
 
         /// <summary>
-        /// Rund the stable diffusion loop
+        /// Runs the stable diffusion loop
         /// </summary>
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
@@ -64,6 +80,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
+
+            var diffuseTime = _logger?.LogBegin("Begin...");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
 
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
@@ -85,6 +104,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 foreach (var timestep in timesteps)
                 {
                     step++;
+                    var stepTime = Stopwatch.GetTimestamp();
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
@@ -110,10 +130,13 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
+                    _logger?.LogEnd(LogLevel.Debug,$"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
+                var result = await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
+                _logger?.LogEnd($"End", diffuseTime);
+                return result;
             }
         }
 
@@ -126,6 +149,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         protected virtual async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
+            var timestamp =  _logger?.LogBegin("Begin...");
+
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
@@ -142,13 +167,15 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputParameters))
                 {
                     var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                    if (prompt.BatchCount == 1)
-                        return resultTensor.ToDenseTensor();
-
                     imageTensors.Add(resultTensor.ToDenseTensor());
                 }
             }
-            return imageTensors.Join();
+
+            var result = prompt.BatchCount > 1
+                ? imageTensors.Join()
+                : imageTensors.FirstOrDefault();
+            _logger?.LogEnd("End", timestamp);
+            return result;
         }
 
 
