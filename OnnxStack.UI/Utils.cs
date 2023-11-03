@@ -101,7 +101,8 @@ namespace OnnxStack.UI
                 TrainedBetas = model.TrainedBetas,
                 TrainTimesteps = model.TrainTimesteps,
                 UseKarrasSigmas = model.UseKarrasSigmas,
-                VarianceType = model.VarianceType
+                VarianceType = model.VarianceType,
+                OriginalInferenceSteps = model.OriginalInferenceSteps
             };
         }
 
@@ -131,7 +132,8 @@ namespace OnnxStack.UI
                 TrainedBetas = model.TrainedBetas,
                 TrainTimesteps = model.TrainTimesteps,
                 UseKarrasSigmas = model.UseKarrasSigmas,
-                VarianceType = model.VarianceType
+                VarianceType = model.VarianceType,
+                OriginalInferenceSteps = model.OriginalInferenceSteps,
             };
         }
 

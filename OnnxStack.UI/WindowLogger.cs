@@ -47,7 +47,7 @@ namespace OnnxStack.UI
             if (!IsEnabled(logLevel))
                 return;
 
-            //Utils.LogToWindow($"[{DateTime.Now}] [{logLevel}] - {formatter(state, exception)}\n");
+            Utils.LogToWindow($"[{DateTime.Now}] [{logLevel}] - {formatter(state, exception)}\n");
         }
 
 
