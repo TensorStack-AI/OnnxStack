@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
@@ -109,13 +110,23 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             int currentTimestep = timestep;
 
             // 1. get previous step value
-            int previousTimestep = GetPreviousTimestep(currentTimestep);
+            int prevIndex = Timesteps.IndexOf(currentTimestep) + 1;
+            int previousTimestep = prevIndex < Timesteps.Count 
+                ? Timesteps[prevIndex] 
+                : currentTimestep;
 
             //# 2. compute alphas, betas
             float alphaProdT = _alphasCumProd[currentTimestep];
-            float alphaProdTPrev = previousTimestep >= 0 ? _alphasCumProd[previousTimestep] : _finalAlphaCumprod;
+            float alphaProdTPrev = previousTimestep >= 0 
+                ? _alphasCumProd[previousTimestep] 
+                : _finalAlphaCumprod;
             float betaProdT = 1f - alphaProdT;
             float betaProdTPrev = 1f - alphaProdTPrev;
+            float alphaSqrt = MathF.Sqrt(alphaProdT);
+            float betaSqrt = MathF.Sqrt(betaProdT);
+            float betaProdTPrevSqrt = MathF.Sqrt(betaProdTPrev);
+            float alphaProdTPrevSqrt = MathF.Sqrt(alphaProdTPrev);
+
 
             // 3.Get scalings for boundary conditions
             (float cSkip, float cOut) = GetBoundaryConditionScalings(currentTimestep);
@@ -125,8 +136,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             DenseTensor<float> predOriginalSample = null;
             if (Options.PredictionType == PredictionType.Epsilon)
             {
-                var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
-                predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT));
+                predOriginalSample = sample
+                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt))
+                    .DivideTensorByFloat(alphaSqrt);
             }
             else if (Options.PredictionType == PredictionType.Sample)
             {
@@ -134,8 +146,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             }
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
-                var alphaSqrt = (float)Math.Sqrt(alphaProdT);
-                var betaSqrt = (float)Math.Sqrt(betaProdT);
                 predOriginalSample = sample
                     .MultipleTensorByFloat(alphaSqrt)
                     .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt));
@@ -155,8 +165,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             //# 7. Sample and inject noise z ~ N(0, I) for MultiStep Inference
             var prevSample = Timesteps.Count > 1
                 ? CreateRandomSample(modelOutput.Dimensions)
-                    .MultipleTensorByFloat(MathF.Sqrt(betaProdTPrev))
-                    .AddTensors(denoised.MultipleTensorByFloat(MathF.Sqrt(alphaProdTPrev)))
+                    .MultipleTensorByFloat(betaProdTPrevSqrt)
+                    .AddTensors(denoised.MultipleTensorByFloat(alphaProdTPrevSqrt))
                 : denoised;
 
             return new SchedulerStepResult(prevSample, denoised);
@@ -175,8 +185,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
             int timestep = timesteps[0];
             float alphaProd = _alphasCumProd[timestep];
-            float sqrtAlpha = (float)Math.Sqrt(alphaProd);
-            float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
+            float sqrtAlpha = MathF.Sqrt(alphaProd);
+            float sqrtOneMinusAlpha = MathF.Sqrt(1.0f - alphaProd);
 
             return noise
                 .MultipleTensorByFloat(sqrtOneMinusAlpha)
