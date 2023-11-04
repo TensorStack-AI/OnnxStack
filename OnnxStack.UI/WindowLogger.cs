@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 
 namespace OnnxStack.UI
 {
@@ -12,6 +13,13 @@ namespace OnnxStack.UI
     /// <seealso cref="Microsoft.Extensions.Logging.ILogger" />
     public sealed class WindowLogger : ILogger
     {
+        private readonly string _category;
+
+        public WindowLogger(string category)
+        {
+            _category = category.Split('.').LastOrDefault();
+        }
+
         /// <summary>
         /// Begins a logical operation scope.
         /// </summary>
@@ -47,7 +55,7 @@ namespace OnnxStack.UI
             if (!IsEnabled(logLevel))
                 return;
 
-            Utils.LogToWindow($"[{DateTime.Now}] [{logLevel}] - {formatter(state, exception)}\n");
+            Utils.LogToWindow($"[{DateTime.Now}] [{logLevel}] [{_category}] {formatter(state, exception)}\n");
         }
 
 
@@ -79,7 +87,7 @@ namespace OnnxStack.UI
         /// <returns>
         /// The instance of <see cref="T:Microsoft.Extensions.Logging.ILogger" /> that was created.
         /// </returns>
-        public ILogger CreateLogger(string categoryName) => new WindowLogger();
+        public ILogger CreateLogger(string categoryName) => new WindowLogger(categoryName);
 
         public void Dispose()
         {

@@ -295,6 +295,7 @@ namespace OnnxStack.UI.Views
                     Model = _selectedModel,
                     Prompt = promptOptions.Prompt,
                     NegativePrompt = promptOptions.NegativePrompt,
+                    PipelineType = _selectedModel.ModelOptions.PipelineType,
                     DiffuserType = promptOptions.DiffuserType,
                     SchedulerType = promptOptions.SchedulerType,
                     SchedulerOptions = schedulerOptions,

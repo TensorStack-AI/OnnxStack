@@ -163,7 +163,7 @@ namespace OnnxStack.UI.Views
             HasInputResult = true;
             HasInputMaskResult = false;
             InputImageMask = null;
-            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint) 
+            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint)
              || imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy))
             {
                 SelectedModel = imageResult.Model;
@@ -198,8 +198,8 @@ namespace OnnxStack.UI.Views
                 Prompt = PromptOptions.Prompt,
                 NegativePrompt = PromptOptions.NegativePrompt,
                 SchedulerType = PromptOptions.SchedulerType,
-                DiffuserType = SelectedModel.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint) 
-                    ? DiffuserType.ImageInpaint 
+                DiffuserType = SelectedModel.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint)
+                    ? DiffuserType.ImageInpaint
                     : DiffuserType.ImageInpaintLegacy,
                 InputImage = new StableDiffusion.Models.InputImage
                 {
@@ -213,7 +213,7 @@ namespace OnnxStack.UI.Views
 
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
             schedulerOptions.Strength = 1; // Make sure strength is 1 for Image Inpainting
-            var resultImage = await ExecuteStableDiffusion( _selectedModel.ModelOptions, promptOptions, schedulerOptions);
+            var resultImage = await ExecuteStableDiffusion(_selectedModel.ModelOptions, promptOptions, schedulerOptions);
             if (resultImage != null)
             {
                 ResultImage = resultImage;
@@ -233,9 +233,9 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteGenerate()
         {
-            return !IsGenerating 
-                && !string.IsNullOrEmpty(PromptOptions.Prompt) 
-                && HasInputResult 
+            return !IsGenerating
+                && !string.IsNullOrEmpty(PromptOptions.Prompt)
+                && HasInputResult
                 && HasInputMaskResult;
         }
 
@@ -322,6 +322,7 @@ namespace OnnxStack.UI.Views
                     Model = _selectedModel,
                     Prompt = promptOptions.Prompt,
                     NegativePrompt = promptOptions.NegativePrompt,
+                    PipelineType = _selectedModel.ModelOptions.PipelineType,
                     DiffuserType = promptOptions.DiffuserType,
                     SchedulerType = promptOptions.SchedulerType,
                     SchedulerOptions = schedulerOptions,
