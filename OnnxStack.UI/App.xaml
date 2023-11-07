@@ -12,7 +12,9 @@
              xmlns:converters="clr-namespace:OnnxStack.UI.Converters">
     <Application.Resources>
 
+        <BitmapImage x:Key="PlaceholderIcon" UriSource="/Images/Icon.png" />
         <BitmapImage x:Key="PlaceholderImage" UriSource="/Images/placeholder.png" />
+        <BitmapImage x:Key="PlaceholderImageSmall" UriSource="/Images/placeholder_sm.png" />
         <Storyboard x:Key="LoadingAnimation">
             <DoubleAnimation Storyboard.TargetProperty="(Image.RenderTransform).(RotateTransform.Angle)" To="360" Duration="0:0:1" RepeatBehavior="Forever" />
         </Storyboard>

@@ -14,6 +14,8 @@ using OnnxStack.UI.Dialogs;
 using System.Diagnostics;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using OnnxStack.UI.Views;
+using System.IO;
 
 namespace OnnxStack.UI
 {
@@ -33,6 +35,7 @@ namespace OnnxStack.UI
 
             // Add OnnxStackStableDiffusion
             builder.Services.AddOnnxStackStableDiffusion();
+            builder.Services.AddOnnxStackConfig<OnnxStackUIConfig>();
 
             // Add Windows
             builder.Services.AddSingleton<MainWindow>();
@@ -40,6 +43,7 @@ namespace OnnxStack.UI
             builder.Services.AddTransient<TextInputDialog>();
             builder.Services.AddTransient<CropImageDialog>();
             builder.Services.AddSingleton<IDialogService, DialogService>();
+            builder.Services.AddSingleton<IModelDownloadService, ModelDownloadService>();
 
             // Build App
             _applicationHost = builder.Build();

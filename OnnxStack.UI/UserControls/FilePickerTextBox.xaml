@@ -31,29 +31,23 @@
                     <Setter Property="Height" Value="25" />
                     <Setter Property="Padding" Value="1,3,1,1" />
                     <Setter Property="BorderThickness" Value="1,1,0,1" />
+                    <Setter Property="Text" Value="{Binding FileName, ElementName=UI, NotifyOnValidationError=False}" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsRequired}" Value="True">
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsEnabled, ElementName=UI}" Value="True"/>
+                                <Condition Binding="{Binding IsRequired}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
                             <Setter Property="Text">
                                 <Setter.Value>
-                                    <Binding Path="FileName" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding Path="FileName" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
                                         <Binding.ValidationRules>
                                             <local:FileExistsValidationRule IsRequired="True" ValidatesOnTargetUpdated="True" />
                                         </Binding.ValidationRules>
                                     </Binding>
                                 </Setter.Value>
                             </Setter>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding IsRequired}" Value="False">
-                            <Setter Property="Text">
-                                <Setter.Value>
-                                    <Binding Path="FileName" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
-                                        <Binding.ValidationRules>
-                                            <local:FileExistsValidationRule IsRequired="False" ValidatesOnTargetUpdated="True" />
-                                        </Binding.ValidationRules>
-                                    </Binding>
-                                </Setter.Value>
-                            </Setter>
-                        </DataTrigger>
+                        </MultiDataTrigger>
                     </Style.Triggers>
                 </Style>
             </TextBox.Style>

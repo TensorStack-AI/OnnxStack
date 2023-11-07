@@ -7,9 +7,12 @@
              xmlns:local="clr-namespace:OnnxStack.UI.Views"
              xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800" Name="UI">
-    <Grid DataContext="{Binding ElementName=UI}">
-        <DockPanel Margin="0,3,0,0">
+             d:DesignHeight="450"  Name="UI">
+    <DockPanel DataContext="{Binding ElementName=UI}" >
+
+        <DockPanel DockPanel.Dock="Left" Margin="0,3,0,0">
+
+            <!--Model ListBox-->
             <DockPanel DockPanel.Dock="Left" Width="300" >
                 <StackPanel DockPanel.Dock="Top">
                     <TextBlock Text="Models" />
@@ -21,120 +24,230 @@
                         <Button Content="Remove" Command="{Binding RemoveCommand}" />
                     </UniformGrid>
                 </StackPanel>
-
                 <ListBox Margin="0,0,0,2"
                         ItemsSource="{Binding UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}"
                         SelectedItem="{Binding SelectedModelSet, ElementName=UI}"
-                        DisplayMemberPath="Name" 
                         SelectedIndex="0">
                     <ListBox.DataContext>
-                        <CollectionViewSource Source="{Binding ModelSets, ElementName=UI}">
+                        <CollectionViewSource Source="{Binding ModelSets, ElementName=UI, UpdateSourceTrigger=PropertyChanged}" IsLiveSortingRequested="True">
                             <CollectionViewSource.SortDescriptions>
-                                <scm:SortDescription PropertyName="IsEnabled" Direction="Descending" />
+                                <scm:SortDescription PropertyName="IsEnabled" Direction="Descending"  />
+                                <scm:SortDescription PropertyName="IsInstalled" Direction="Descending" />
                                 <scm:SortDescription PropertyName="Name" Direction="Ascending" />
                             </CollectionViewSource.SortDescriptions>
                         </CollectionViewSource>
                     </ListBox.DataContext>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Margin" Value="0,1,0,0"/>
+                            <Setter Property="BorderThickness" Value="1" />
+                            <Setter Property="BorderBrush" Value="#c0c0c0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                                        <Border Name="Border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
+                                            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="{TemplateBinding Padding}" />
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger  Property="IsSelected" Value="True" >
+                                    <Setter Property="Background" Value="LightCyan" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Left">
+                                    <Image Source="{Binding ModelTemplate.ImageIcon, FallbackValue={StaticResource PlaceholderIcon}}" Height="34" Margin="0,1,3,1" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                                </StackPanel>
+                               
+                                <UniformGrid DockPanel.Dock="Right" Columns="1" Margin="2">
+                                    <userControls:FontAwesome Icon="&#xf205;" IconStyle="Light" Size="12" VerticalAlignment="Center">
+                                        <userControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type userControls:FontAwesome}">
+                                                <Setter Property="Color" Value="LightGray" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                                        <Setter Property="Color" Value="LimeGreen" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </userControls:FontAwesome.Style>
+                                    </userControls:FontAwesome>
+                                    <userControls:FontAwesome Icon="&#xf019;" IconStyle="Light" Size="12" VerticalAlignment="Center" >
+                                        <userControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type userControls:FontAwesome}">
+                                                <Setter Property="Color" Value="LightGray" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsInstalled}" Value="True">
+                                                        <Setter Property="Color" Value="LimeGreen" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </userControls:FontAwesome.Style>
+                                    </userControls:FontAwesome>
+                                </UniformGrid>
+
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                                    <TextBlock Text="{Binding PipelineType}" Opacity=".7" FontSize="11"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
                 </ListBox>
             </DockPanel>
 
+        </DockPanel>
 
-            <StackPanel Orientation="Horizontal">
-                <DockPanel Margin="6,15,0,0" >
-                    <StackPanel DockPanel.Dock="Top">
-                        <TextBlock Text="{Binding SelectedModelSet.Name}"  FontWeight="DemiBold" FontSize="19" Margin="0,0,0,10"/>
+        <DockPanel Margin="10" MaxWidth="850"  >
+
+            <StackPanel DockPanel.Dock="Top">
+
+                <!-- Details -->
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding SelectedModelSet.Name, FallbackValue=StableDiffusion}"  FontWeight="DemiBold" FontSize="19" Margin="0,0,0,0"/>
                     </StackPanel>
-                    <DockPanel DockPanel.Dock="Bottom">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <UniformGrid Columns="2" Margin="0,3,20,0">
+                            <TextBlock Text="Enabled" VerticalAlignment="Top" TextAlignment="Center" Padding="20,2" Margin="0,0,5,0" >
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Background" Value="LightGray" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedModelSet.IsEnabled}" Value="True">
+                                                <Setter Property="Background" Value="LimeGreen" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="Installed" VerticalAlignment="Top" TextAlignment="Center" Padding="20,2" Margin="0,0,5,0" >
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Background" Value="LightGray" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedModelSet.IsInstalled}" Value="True">
+                                                <Setter Property="Background" Value="LimeGreen" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </UniformGrid>
+                        <Button Content="Cancel" Command="{Binding InstallCancelCommand}"  Width="100" Height="26" Margin="10,0,0,8" Visibility="{Binding SelectedModelSet.IsDownloading, Converter={StaticResource BooleanToHiddenConverter}}"/>
+                        <Button  Command="{Binding SaveCommand}" Content="Save" Width="100" Height="26" Margin="10,0,0,8" Visibility="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBooleanToHiddenConverter}}"/>
+                    </StackPanel>
+                    <StackPanel></StackPanel>
+                </DockPanel>
+                <TextBlock Text="This model has been converted to ONNX and tested with OnnxStack" />
 
+                <!--Preview Images-->
+                <TextBlock Text="Preview Images" Margin="0,20, 0, 0" />
+                <UniformGrid Columns="6" >
+                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                        <userControls:CachedImage Stretch="Uniform"
+                            CacheName="{Binding SelectedModelSet.Name}" 
+                            ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[0]}" 
+                            Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
+                    </Border>
+                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                        <userControls:CachedImage Stretch="Uniform"
+                            CacheName="{Binding SelectedModelSet.Name}" 
+                            ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[1]}" 
+                            Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
+                    </Border>
+                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                        <userControls:CachedImage Stretch="Uniform"
+                             CacheName="{Binding SelectedModelSet.Name}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[2]}" 
+                             Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
+                    </Border>
+                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                        <userControls:CachedImage Stretch="Uniform"
+                             CacheName="{Binding SelectedModelSet.Name}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[3]}" 
+                             Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
+                    </Border>
+                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                        <userControls:CachedImage Stretch="Uniform"
+                             CacheName="{Binding SelectedModelSet.Name}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[4]}" 
+                             Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
+                    </Border>
+                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                        <userControls:CachedImage Stretch="Uniform"
+                             CacheName="{Binding SelectedModelSet.Name}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[5]}" 
+                             Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
+                    </Border>
+                </UniformGrid>
 
-                    </DockPanel>
-                    <StackPanel>
+                <UniformGrid DockPanel.Dock="Top" Columns="5" Margin="0,10">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="Pipeline:" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding SelectedModelSet.PipelineType}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="TextToImage:" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding SelectedModelSet.EnableTextToImage}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="ImageToImage:" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding SelectedModelSet.EnableImageToImage}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="ImageInpaint:" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding SelectedModelSet.EnableImageInpaint}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="InpaintLegacy:" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding SelectedModelSet.EnableImageInpaintLegacy}" />
+                    </StackPanel>
+                </UniformGrid>
+            </StackPanel>
 
-                        <Grid >
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="200" />
-                            </Grid.ColumnDefinitions>
+            <!--Template View-->
+            <DockPanel DockPanel.Dock="Top"  Visibility="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-                            <StackPanel>
-                                <UniformGrid Columns="5" >
-                                    <StackPanel>
-                                        <TextBlock Text="Pipeline" />
-                                        <ComboBox ItemsSource="{Binding Source={StaticResource DiffuserPipelineType}}" SelectedItem="{Binding SelectedModelSet.PipelineType}" />
-                                    </StackPanel>
-                                    <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
-                                        <TextBlock />
-                                        <CheckBox IsChecked="{Binding SelectedModelSet.IsEnabled}" Content="IsEnabled" />
-                                    </StackPanel>
-                                </UniformGrid>
-                                <TextBlock Text="Model Compatibility"  FontSize="13" FontWeight="DemiBold" Margin="0,10,0,10"/>
-                                <UniformGrid Columns="5" Margin="0,0,0,0">
-                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableTextToImage}"  Content="Text To Image" />
-                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageToImage}"  Content="Image To Image" />
-                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageInpaint}"  Content="Image Inpaint"/>
-                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageInpaintLegacy}" IsEnabled="{Binding SelectedModelSet.EnableImageInpaint}" Content="Image Inpaint (legacy)" />
-                                </UniformGrid>
+                <!--Install Options-->
+                <StackPanel DockPanel.Dock="Top" Visibility="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="Installation"  FontSize="13" FontWeight="DemiBold" Margin="0,5,0,2"/>
+                    <UniformGrid Columns="3" Height="30" IsEnabled="{Binding SelectedModelSet.IsDownloading, Converter={StaticResource InverseBoolConverter}}">
+                        <Button Content="Load From Folder" Command="{Binding InstallLocalCommand}" Margin="0,0,5,0"/>
+                        <Button Content="Huggingface Download" Margin="5,0,0,0" Command="{Binding InstallRemoteCommand}"/>
+                        <Button Content="Huggingface Clone" Margin="5,0,0,0" Command="{Binding InstallRepositoryCommand}"/>
+                    </UniformGrid>
+                    <ProgressBar Value="{Binding SelectedModelSet.ProgressValue}" Maximum="100" Height="15" Margin="0, 5, 0, 0" />
+                    <TextBlock Text="{Binding SelectedModelSet.ProgessText}" TextAlignment="Center" />
+                </StackPanel>
+
+            </DockPanel>
+
+            <!--Installed View-->
+            <DockPanel Visibility="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBooleanToHiddenConverter}}">
+
+                <TabControl>
+                    <TabItem Header="Configuration" >
+
+                        <!--Inference Options-->
+                        <StackPanel IsEnabled="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBoolConverter}}" Margin="5">
+                            <!--Options-->
+                            <StackPanel Visibility="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                <CheckBox IsChecked="{Binding SelectedModelSet.IsEnabled}" Content="IsEnabled" Margin="0, 0, 0 ,0"/>
                             </StackPanel>
 
-                            <UniformGrid Grid.Column="2" Columns="2" VerticalAlignment="Bottom" Height="30">
-                                <!--<Button Content="Cancel" />-->
-                                <Button Command="{Binding SaveCommand}" Content="Save"  />
-                            </UniformGrid>
-                        </Grid>
 
-
-                        <TextBlock Text="Model Details"  FontSize="13" FontWeight="DemiBold" Margin="0,10,0,2"/>
-
-                        <Grid >
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="200" />
-                            </Grid.ColumnDefinitions>
-
-                            <UniformGrid Columns="5">
+                            <UniformGrid Columns="5" Margin="0,10,0,0">
 
                                 <StackPanel Margin="0,0,4,0">
-                                    <TextBlock Text="ScaleFactor" />
-                                    <TextBox Text="{Binding SelectedModelSet.ScaleFactor}" />
-                                </StackPanel>
-
-                                <StackPanel Margin="0,0,4,0">
-                                    <TextBlock Text="EmbeddingsLength" />
-                                    <TextBox Text="{Binding SelectedModelSet.EmbeddingsLength}" />
-                                </StackPanel>
-
-                                <StackPanel Margin="0,0,4,0">
-                                    <TextBlock Text="TokenizerLimit" />
-                                    <TextBox Text="{Binding SelectedModelSet.TokenizerLimit}" />
-                                </StackPanel>
-
-                                <StackPanel Margin="0,0,4,0">
-                                    <TextBlock Text="PadTokenId" />
-                                    <TextBox Text="{Binding SelectedModelSet.PadTokenId}" />
-                                </StackPanel>
-
-                                <StackPanel>
-                                    <TextBlock Text="BlankTokenId" />
-                                    <TextBox Text="{Binding SelectedModelSet.BlankTokenId}" />
-                                </StackPanel>
-
-                            </UniformGrid>
-
-                        </Grid>
-
-
-                        <TextBlock Text="Execution Defaults"  FontSize="13" FontWeight="DemiBold" Margin="0,10,0,2"/>
-
-                        <Grid >
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="200" />
-                            </Grid.ColumnDefinitions>
-
-                            <UniformGrid Columns="5">
-
-                                <StackPanel Margin="0,0,4,0">
-                                    <TextBlock Text="Provider" />
+                                    <TextBlock Text="Execution Provider" />
                                     <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding SelectedModelSet.ExecutionProvider}" />
                                 </StackPanel>
 
@@ -165,145 +278,132 @@
                                     <TextBox Text="{Binding SelectedModelSet.IntraOpNumThreads}" />
                                 </StackPanel>
                             </UniformGrid>
+                        </StackPanel>
 
-                        </Grid>
+                    </TabItem>
 
+                    <TabItem Header="Advanced">
 
-                        <TextBlock Text="Model Files"  FontSize="13" FontWeight="DemiBold" Margin="0,10,0,2"/>
+                        <DockPanel Margin="5">
+                            <!--Model Config-->
+                            <StackPanel DockPanel.Dock="Top" IsEnabled="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBoolConverter}}">
 
+                                <UniformGrid Columns="5" >
+                                    <StackPanel Margin="0,0,4,0">
+                                        <TextBlock Text="Pipeline" />
+                                        <ComboBox ItemsSource="{Binding Source={StaticResource DiffuserPipelineType}}" SelectedItem="{Binding SelectedModelSet.PipelineType}" />
+                                    </StackPanel>
+                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableTextToImage}"  Content="Text To Image" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageToImage}"  Content="Image To Image" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageInpaint}"  Content="Image Inpaint" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageInpaintLegacy}" IsEnabled="{Binding SelectedModelSet.EnableImageInpaint}" Content="Image Inpaint (legacy)" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                </UniformGrid>
 
-                        <ItemsControl ItemsSource="{Binding SelectedModelSet.ModelConfigurations}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <DockPanel Margin="0,0,0,10">
+                                <UniformGrid Columns="5" Margin="0,5,0,0">
+                                    <StackPanel Margin="0,0,4,0">
+                                        <TextBlock Text="ScaleFactor" />
+                                        <TextBox Text="{Binding SelectedModelSet.ScaleFactor}" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,4,0">
+                                        <TextBlock Text="EmbeddingsLength" />
+                                        <TextBox Text="{Binding SelectedModelSet.EmbeddingsLength}" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,4,0">
+                                        <TextBlock Text="TokenizerLimit" />
+                                        <TextBox Text="{Binding SelectedModelSet.TokenizerLimit}" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,4,0">
+                                        <TextBlock Text="PadTokenId" />
+                                        <TextBox Text="{Binding SelectedModelSet.PadTokenId}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="BlankTokenId" />
+                                        <TextBox Text="{Binding SelectedModelSet.BlankTokenId}" />
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
 
-                                        <Grid DockPanel.Dock="Top">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="200" />
-                                            </Grid.ColumnDefinitions>
+                            <!--Model Files-->
+                            <DockPanel IsEnabled="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBoolConverter}}" Margin="0,5,0,0">
 
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="{Binding Type}" />
-                                                <userControls:FilePickerTextBox FileName="{Binding OnnxModelPath, Mode=TwoWay}" IsRequired="True" Filter="Onnx files (*.onnx)|*.onnx" Title="Model Selector" DefaultExt="onnx"/>
-                                            </StackPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" >
+                                    <ItemsControl ItemsSource="{Binding SelectedModelSet.ModelFiles}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,0,0,5">
 
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock />
-                                                <CheckBox IsChecked="{Binding IsOverrideEnabled}" Content="Override Defaults" Margin="5,0"/>
-                                            </StackPanel>
-                                        </Grid>
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="200" />
-                                            </Grid.ColumnDefinitions>
-
-
-                                            <UniformGrid Grid.Column="0" Columns="5" Visibility="{Binding IsOverrideEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,5,0,10">
-
-                                                <StackPanel Margin="0,0,4,0">
-                                                    <TextBlock Text="Provider" />
-                                                    <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding ExecutionProvider}" />
-                                                </StackPanel>
-
-                                                <StackPanel Margin="0,0,4,0">
-                                                    <TextBlock Text="Mode" />
-                                                    <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionModeType}}" SelectedItem="{Binding ExecutionMode}" />
-                                                </StackPanel>
-                                                <StackPanel Margin="0,0,4,0">
-                                                    <DockPanel>
-                                                        <TextBlock DockPanel.Dock="Left" Text="DeviceId" />
-                                                        <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    <!--File Picker-->
+                                                    <DockPanel DockPanel.Dock="Top">
+                                                        <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                                                            <TextBlock />
+                                                            <CheckBox IsChecked="{Binding IsOverrideEnabled}" Content="Override Defaults" Margin="5,0"/>
+                                                        </StackPanel>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Type}" />
+                                                            <userControls:FilePickerTextBox FileName="{Binding OnnxModelPath, Mode=TwoWay}" IsEnabled="{Binding SelectedModelSet.IsTemplate, ElementName=UI, Converter={StaticResource InverseBoolConverter}}" IsRequired="True" Filter="Onnx files (*.onnx)|*.onnx" Title="Model Selector" DefaultExt="onnx"/>
+                                                        </StackPanel>
                                                     </DockPanel>
-                                                    <TextBox Text="{Binding DeviceId, TargetNullValue=''}" />
-                                                </StackPanel>
-                                                <StackPanel Margin="0,0,4,0">
-                                                    <DockPanel>
-                                                        <TextBlock DockPanel.Dock="Left" Text="InterOp Threads" />
-                                                        <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                                    </DockPanel>
-                                                    <TextBox Text="{Binding InterOpNumThreads}" />
-                                                </StackPanel>
 
-                                                <StackPanel>
-                                                    <DockPanel>
-                                                        <TextBlock DockPanel.Dock="Left" Text="IntraOp Threads" />
-                                                        <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                                    </DockPanel>
-                                                    <TextBox Text="{Binding IntraOpNumThreads}" />
-                                                </StackPanel>
-                                            </UniformGrid>
-                                        </Grid>
+                                                    <!--Override Defaults-->
+                                                    <UniformGrid Grid.Column="0" Columns="5" Visibility="{Binding IsOverrideEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,5,0,10">
+                                                        <StackPanel Margin="0,0,4,0">
+                                                            <TextBlock Text="Provider" />
+                                                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding ExecutionProvider}" />
+                                                        </StackPanel>
+                                                        <StackPanel Margin="0,0,4,0">
+                                                            <TextBlock Text="Mode" />
+                                                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionModeType}}" SelectedItem="{Binding ExecutionMode}" />
+                                                        </StackPanel>
+                                                        <StackPanel Margin="0,0,4,0">
+                                                            <DockPanel>
+                                                                <TextBlock DockPanel.Dock="Left" Text="DeviceId" />
+                                                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                            </DockPanel>
+                                                            <TextBox Text="{Binding DeviceId, TargetNullValue=''}" />
+                                                        </StackPanel>
+                                                        <StackPanel Margin="0,0,4,0">
+                                                            <DockPanel>
+                                                                <TextBlock DockPanel.Dock="Left" Text="InterOp Threads" />
+                                                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                            </DockPanel>
+                                                            <TextBox Text="{Binding InterOpNumThreads}" />
+                                                        </StackPanel>
+                                                        <StackPanel>
+                                                            <DockPanel>
+                                                                <TextBlock DockPanel.Dock="Left" Text="IntraOp Threads" />
+                                                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                            </DockPanel>
+                                                            <TextBox Text="{Binding IntraOpNumThreads}" />
+                                                        </StackPanel>
+                                                    </UniformGrid>
+
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+
+                        </DockPanel>
 
 
 
-
-
-
-
-
-
-                                    </DockPanel>
-
-
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-
-                        </ItemsControl>
-
-
-
-
-
-
-                        <!--
-                    <StackPanel>
-    <TextBlock Text="Tokenizer" />
-    <userControls:FilePickerTextBox IsRequired="True"/>
-</StackPanel>
-               
-               <StackPanel>
-                   <TextBlock Text="Unet" />
-                   <userControls:FilePickerTextBox IsRequired="True"/>
-               </StackPanel>
-
-               <StackPanel>
-                   <TextBlock Text="TextEncoder" />
-                   <userControls:FilePickerTextBox IsRequired="True"/>
-               </StackPanel>
-
-               <StackPanel>
-                   <TextBlock Text="VaeEncoder" />
-                   <userControls:FilePickerTextBox IsRequired="True"/>
-               </StackPanel>
-
-               <StackPanel>
-                   <TextBlock Text="VaeDecoder" />
-                   <userControls:FilePickerTextBox IsRequired="True"/>
-               </StackPanel>
-               <StackPanel>
-                   <TextBlock Text="SafetyChecker"  />
-                   <userControls:FilePickerTextBox IsRequired="False" />
-               </StackPanel>-->
+                    </TabItem>
+                </TabControl>
 
 
 
 
 
 
-
-                    </StackPanel>
-
-                </DockPanel>
-            </StackPanel>
-
-         
-
+            </DockPanel>
 
 
         </DockPanel>
 
-    </Grid>
+        <DockPanel DockPanel.Dock="Bottom">
+
+        </DockPanel>
+
+    </DockPanel>
 </UserControl>

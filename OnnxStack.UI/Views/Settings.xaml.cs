@@ -1,4 +1,4 @@
-﻿using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.Extensions.Logging;
 using Models;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
@@ -14,8 +14,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,39 +29,64 @@ namespace OnnxStack.UI.Views
     /// </summary>
     public partial class Settings : UserControl, INavigatable, INotifyPropertyChanged
     {
-        private readonly StableDiffusionConfig _stableDiffusionConfig;
+        private readonly ILogger<Settings> _logger;
+        private readonly string _defaultTokenizerPath;
         private readonly IDialogService _dialogService;
         private readonly IOnnxModelService _onnxModelService;
+        private readonly OnnxStackUIConfig _onnxStackUIConfig;
+        private readonly IModelDownloadService _modelDownloadService;
+        private readonly StableDiffusionConfig _stableDiffusionConfig;
         private readonly IStableDiffusionService _stableDiffusionService;
-        private ModelOptionsModel _selectedModel;
-        private ModelSetEditModel _selectedModelSet;
-        private ObservableCollection<ModelSetEditModel> _modelSets;
 
+        private bool _isDownloading;
+        private ModelSetViewModel _selectedModelSet;
+        private ObservableCollection<ModelSetViewModel> _modelSets;
+        private CancellationTokenSource _downloadCancellationTokenSource;
+
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Settings"/> class.
+        /// </summary>
         public Settings()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
+                _logger = App.GetService<ILogger<Settings>>();
                 _dialogService = App.GetService<IDialogService>();
                 _onnxModelService = App.GetService<IOnnxModelService>();
                 _stableDiffusionConfig = App.GetService<StableDiffusionConfig>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
+                _onnxStackUIConfig = App.GetService<OnnxStackUIConfig>();
+                _modelDownloadService = App.GetService<IModelDownloadService>();
             }
+
+            var defaultTokenizerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cliptokenizer.onnx");
+            if (File.Exists(defaultTokenizerPath))
+                _defaultTokenizerPath = defaultTokenizerPath;
 
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             ResetCommand = new AsyncRelayCommand(Reset, CanExecuteReset);
             AddCommand = new AsyncRelayCommand(Add, CanExecuteAdd);
             CopyCommand = new AsyncRelayCommand(Copy, CanExecuteCopy);
             RemoveCommand = new AsyncRelayCommand(Remove, CanExecuteRemove);
-
+            InstallLocalCommand = new AsyncRelayCommand(InstallLocal, CanExecuteInstallLocal);
+            InstallRemoteCommand = new AsyncRelayCommand(InstallRemote, CanExecuteInstallRemote);
+            InstallRepositoryCommand = new AsyncRelayCommand(InstallRepository, CanExecuteInstallRepository);
+            InstallCancelCommand = new AsyncRelayCommand(InstallCancel);
             Initialize();
             InitializeComponent();
         }
+
 
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand ResetCommand { get; }
         public AsyncRelayCommand AddCommand { get; }
         public AsyncRelayCommand CopyCommand { get; }
         public AsyncRelayCommand RemoveCommand { get; }
+        public AsyncRelayCommand InstallLocalCommand { get; }
+        public AsyncRelayCommand InstallRemoteCommand { get; }
+        public AsyncRelayCommand InstallRepositoryCommand { get; }
+        public AsyncRelayCommand InstallCancelCommand { get; }
 
         public ObservableCollection<ModelOptionsModel> ModelOptions
         {
@@ -70,23 +97,13 @@ namespace OnnxStack.UI.Views
         public static readonly DependencyProperty ModelOptionsProperty =
             DependencyProperty.Register("ModelOptions", typeof(ObservableCollection<ModelOptionsModel>), typeof(Settings));
 
-        public ModelOptionsModel SelectedModelOption
-        {
-            get { return (ModelOptionsModel)GetValue(SelectedModelOptionProperty); }
-            set { SetValue(SelectedModelOptionProperty, value); }
-        }
-
-        public static readonly DependencyProperty SelectedModelOptionProperty =
-            DependencyProperty.Register("SelectedModelOption", typeof(ModelOptionsModel), typeof(Settings));
-
-
-        public ObservableCollection<ModelSetEditModel> ModelSets
+        public ObservableCollection<ModelSetViewModel> ModelSets
         {
             get { return _modelSets; }
-            set { _modelSets = value; }
+            set { _modelSets = value; NotifyPropertyChanged(); }
         }
 
-        public ModelSetEditModel SelectedModelSet
+        public ModelSetViewModel SelectedModelSet
         {
             get { return _selectedModelSet; }
             set { _selectedModelSet = value; NotifyPropertyChanged(); }
@@ -97,47 +114,396 @@ namespace OnnxStack.UI.Views
             return Task.CompletedTask;
         }
 
-        private async Task<bool> UnloadAndRemoveModelSet(string name)
+
+        #region Initialize/Reset
+
+        /// <summary>
+        /// Initializes the settings instance.
+        /// </summary>
+        private void Initialize()
         {
-            var modelSet = _stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == name);
-            if (modelSet is not null)
+            ModelSets = new ObservableCollection<ModelSetViewModel>();
+            foreach (var installedModel in _stableDiffusionConfig.OnnxModelSets.Select(CreateViewModel))
             {
-                // If model is loaded unload now
-                var isLoaded = _stableDiffusionService.IsModelLoaded(modelSet);
-                if (isLoaded)
-                    await _stableDiffusionService.UnloadModel(modelSet);
+                _logger.LogDebug($"Initialize ModelSet: {installedModel.Name}");
 
-                // Remove ViewModel
-                var viewModel = ModelOptions.FirstOrDefault(x => x.Name == modelSet.Name);
-                if (viewModel is not null)
-                    ModelOptions.Remove(viewModel);
+                // Find matching installed template
+                var template = _onnxStackUIConfig.ModelTemplates
+                    .Where(x => x.Status == ModelTemplateStatus.Installed)
+                    .FirstOrDefault(x => x.Name == installedModel.Name);
 
-                // Remove ModelSet
-                _stableDiffusionConfig.OnnxModelSets.Remove(modelSet);
-                return true;
+                // TODO: add extra template properties, images etc
+                installedModel.ModelTemplate = template;
+                ModelSets.Add(installedModel);
             }
-            return false;
+
+            // Add any Active templates
+            foreach (var templateModel in _onnxStackUIConfig.ModelTemplates.Where(x => x.Status == ModelTemplateStatus.Active).Select(CreateViewModel))
+            {
+                _logger.LogDebug($"Initialize ModelTemplate: {templateModel.Name}");
+
+                ModelSets.Add(templateModel);
+            }
         }
 
+
+        /// <summary>
+        /// Resets the settings instance.
+        /// </summary>
+        /// <returns></returns>
+        private Task Reset()
+        {
+            Initialize();
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Determines whether this instance can execute reset.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute reset; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteReset()
+        {
+            return true;
+        }
+
+        #endregion
+
+        #region Install
+
+
+        /// <summary>
+        /// Installs a local ModelSet.
+        /// </summary>
+        private async Task InstallLocal()
+        {
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
+                _logger.LogDebug($"Installing local ModelSet, ModelSet: {template.Name}, Directory: {folderDialog.SelectedPath}");
+                if (SetModelPaths(SelectedModelSet, folderDialog.SelectedPath))
+                {
+                    SelectedModelSet.IsEnabled = true;
+                    SelectedModelSet.IsInstalled = true;
+                    SelectedModelSet.IsTemplate = false;
+                    SelectedModelSet.ModelTemplate = template;
+                    await SaveModel(SelectedModelSet);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Determines whether this instance can execute InstallLocal.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute InstallLocal; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteInstallLocal()
+        {
+            return SelectedModelSet?.IsTemplate ?? false;
+        }
+
+
+
+        /// <summary>
+        /// Installs a model from a remote location.
+        /// </summary>
+        private Task InstallRemote()
+        {
+            if (_isDownloading)
+            {
+                MessageBox.Show("There is already a model download in progress");
+                return Task.CompletedTask;
+            }
+
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var modelSet = ModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
+                var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == modelSet.Name);
+                var repositoryUrl = template.Repository;
+                var modelDirectory = Path.Combine(folderDialog.SelectedPath, template.Repository.Split('/').LastOrDefault());
+
+                _logger.LogDebug($"Download remote ModelSet, ModelSet: {template.Name}, Directory: {folderDialog.SelectedPath}");
+
+                // Download File, do not await
+                _ = DownloadRemote(modelSet, template, modelDirectory);
+            }
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Determines whether this instance can execute InstallRemote.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute InstallRemote; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteInstallRemote()
+        {
+            return !_isDownloading;
+        }
+
+
+        /// <summary>
+        /// Installs a model from a git repository (GIT-LFS must be installed).
+        /// </summary>
+        private Task InstallRepository()
+        {
+            if (_isDownloading)
+            {
+                MessageBox.Show("There is already a model download in progress");
+                return Task.CompletedTask;
+            }
+
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var modelSet = ModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
+                var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == modelSet.Name);
+                var repositoryUrl = template.Repository;
+                var modelDirectory = Path.Combine(folderDialog.SelectedPath, template.Repository.Split('/').LastOrDefault());
+
+                _logger.LogDebug($"Download repository ModelSet, ModelSet: {template.Name}, Directory: {folderDialog.SelectedPath}");
+
+                // Download File, do not await
+                _ = DownloadRepository(modelSet, template, modelDirectory);
+            }
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Determines whether this instance can execute InstallRepository.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute InstallRepository; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteInstallRepository()
+        {
+            return !_isDownloading; // and has git-lfs installed
+        }
+
+
+
+        /// <summary>
+        /// Called when a model download is complete.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="modelDirectory">The model directory.</param>
+        private async Task OnDownloadComplete(ModelSetViewModel modelSet, string modelDirectory)
+        {
+            _logger.LogDebug($"Download complete, ModelSet: {modelSet.Name}, Directory: {modelDirectory}");
+
+            _isDownloading = false;
+            modelSet.IsDownloading = false;
+            if (!SetModelPaths(modelSet, modelDirectory))
+            {
+                _logger.LogError($"Failed to set model paths, ModelSet: {modelSet.Name}, Directory: {modelDirectory}");
+                return;
+            }
+
+            modelSet.IsEnabled = true;
+            modelSet.IsInstalled = true;
+            modelSet.IsTemplate = false;
+            await SaveModel(modelSet);
+            return;
+        }
+
+
+
+        /// <summary>
+        /// Cancels the current install download.
+        /// </summary>
+        /// <returns></returns>
+        private Task InstallCancel()
+        {
+            _logger.LogInformation($"Download canceled, ModelSet: {SelectedModelSet.Name}");
+            if (_isDownloading)
+                _downloadCancellationTokenSource?.Cancel();
+
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Downloads the remote model.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="template">The template.</param>
+        /// <param name="outputDirectory">The output directory.</param>
+        private async Task DownloadRemote(ModelSetViewModel modelSet, ModelConfigTemplate template, string outputDirectory)
+        {
+            try
+            {
+                _isDownloading = true;
+                modelSet.IsDownloading = true;
+                Action<string, double, double> progress = (f, fp, tp) =>
+                {
+                    modelSet.ProgessText = $"{f}";
+                    modelSet.ProgressValue = tp;
+                };
+
+
+                _downloadCancellationTokenSource = new CancellationTokenSource();
+                if (await _modelDownloadService.DownloadHttp(template, outputDirectory, progress, _downloadCancellationTokenSource.Token))
+                {
+                    await OnDownloadComplete(modelSet, outputDirectory);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _isDownloading = false;
+                modelSet.IsDownloading = false;
+                modelSet.ProgressValue = 0;
+                modelSet.ProgessText = $"Error: {ex.Message}";
+                _logger.LogError($"Error downloading remote ModelSet, ModelSet: {modelSet.Name}");
+            }
+        }
+
+
+        /// <summary>
+        /// Downloads the repository.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="template">The template.</param>
+        /// <param name="outputDirectory">The output directory.</param>
+        private async Task DownloadRepository(ModelSetViewModel modelSet, ModelConfigTemplate template, string outputDirectory)
+        {
+            try
+            {
+                _isDownloading = true;
+                modelSet.IsDownloading = true;
+                Action<string, double, double> progress = (f, fp, tp) =>
+                {
+                    modelSet.ProgessText = $"{f}";
+                    modelSet.ProgressValue = tp;
+                };
+
+                _downloadCancellationTokenSource = new CancellationTokenSource();
+                if (await _modelDownloadService.DownloadRepository(template, outputDirectory, progress, _downloadCancellationTokenSource.Token))
+                {
+                    await OnDownloadComplete(modelSet, outputDirectory);
+                }
+            }
+            catch (Exception ex)
+            {
+                _isDownloading = false;
+                modelSet.IsDownloading = false;
+                modelSet.ProgressValue = 0;
+                modelSet.ProgessText = $"Error: {ex.Message}";
+                _logger.LogError($"Error downloading repository ModelSet, ModelSet: {modelSet.Name}");
+            }
+        }
+
+
+        /// <summary>
+        /// Sets the model paths.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="modelDirectory">The model directory.</param>
+        /// <returns></returns>
+        private bool SetModelPaths(ModelSetViewModel modelSet, string modelDirectory)
+        {
+            var unetPath = Path.Combine(modelDirectory, "unet", "model.onnx");
+            var tokenizerPath = Path.Combine(modelDirectory, "tokenizer", "model.onnx");
+            var textEncoderPath = Path.Combine(modelDirectory, "text_encoder", "model.onnx");
+            var vaeDecoder = Path.Combine(modelDirectory, "vae_decoder", "model.onnx");
+            var vaeEncoder = Path.Combine(modelDirectory, "vae_encoder", "model.onnx");
+            if (!File.Exists(tokenizerPath))
+                tokenizerPath = _defaultTokenizerPath;
+
+            // Validate Files
+            foreach (var modelFile in new[] { unetPath, tokenizerPath, textEncoderPath, vaeDecoder, vaeEncoder })
+            {
+                if (!File.Exists(modelFile))
+                {
+                    _logger.LogError($"Model file not found, ModelFile: {modelFile}");
+                    return false;
+                }
+            }
+
+            // Set Model Paths
+            foreach (var modelConfig in modelSet.ModelFiles)
+            {
+                modelConfig.OnnxModelPath = modelConfig.Type switch
+                {
+                    OnnxModelType.Unet => unetPath,
+                    OnnxModelType.Tokenizer => tokenizerPath,
+                    OnnxModelType.TextEncoder => textEncoderPath,
+                    OnnxModelType.VaeDecoder => vaeDecoder,
+                    OnnxModelType.VaeEncoder => vaeEncoder,
+                    _ => default
+                };
+            }
+            return true;
+        }
+
+
+        #endregion
+
+        #region Save
+
+
+        /// <summary>
+        /// Saves the settings.
+        /// </summary>
         private async Task Save()
         {
             // Unload and Remove ModelSet
             await UnloadAndRemoveModelSet(SelectedModelSet.Name);
+            await SaveModel(SelectedModelSet);
+        }
+
+
+        /// <summary>
+        /// Determines whether this instance can execute save.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute save; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteSave()
+        {
+            return true;
+        }
+
+
+        /// <summary>
+        /// Saves the model.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        private async Task<bool> SaveModel(ModelSetViewModel modelSet)
+        {
+            _logger.LogInformation($"Saving configuration file...");
 
             // Create New ModelSet
-            var newModelOption = CreateModelOptions(SelectedModelSet);
+            var newModelOption = CreateModelOptions(modelSet);
             newModelOption.InitBlankTokenArray();
 
+            //Validate
+            if (!ValidateModelSet(newModelOption))
+            {
+                // Retuen error
+                _logger.LogError($"Failed to validate ModelSet, ModelSet: {modelSet.Name}");
+                return false;
+            }
 
             // Add to Config file
             _stableDiffusionConfig.OnnxModelSets.Add(newModelOption);
 
+            // Update Templater if one was used
+            UpdateTemplateStatus(newModelOption.Name, ModelTemplateStatus.Installed);
+
             // Save Config File
-            if (!await SaveConfigurationFile(_stableDiffusionConfig))
-            {
-                // LOG ME
-                return;
-            }
+            if (!await SaveConfigurationFile())
+                return false;
+
 
             // Update OnnxStack Service
             newModelOption.ApplyConfigurationOverrides();
@@ -146,44 +512,35 @@ namespace OnnxStack.UI.Views
             // Add new ViewModel
             ModelOptions.Add(new ModelOptionsModel
             {
-                Name = SelectedModelSet.Name,
+                Name = modelSet.Name,
                 ModelOptions = newModelOption,
-                IsEnabled = newModelOption.IsEnabled
+                IsEnabled = modelSet.IsEnabled,
             });
-            ModelOptions = new ObservableCollection<ModelOptionsModel>(ModelOptions);
-        }
 
-
-        private bool CanExecuteSave()
-        {
+            _logger.LogInformation($"Saving configuration complete.");
             return true;
         }
 
+        #endregion
 
-        private Task Reset()
-        {
-            Initialize();
-            return Task.CompletedTask;
-        }
+        #region Add/Copy/Remove
 
-        private bool CanExecuteReset()
-        {
-            return true;
-        }
 
+        /// <summary>
+        /// Adds a custom model
+        /// </summary>
+        /// <returns></returns>
         private Task Add()
         {
             var invalidNames = ModelSets.Select(x => x.Name).ToList();
             var textInputDialog = _dialogService.GetDialog<TextInputDialog>();
             if (textInputDialog.ShowDialog("Add Model Set", "Name", 1, 30, invalidNames))
             {
-                var models = Enum.GetValues<OnnxModelType>()
-                    .Where(x => x != OnnxModelType.SafetyChecker)
-                    .Select(x => new ModelSessionEditModel { Type = x });
-                var newModelSet = new ModelSetEditModel
+                var models = Enum.GetValues<OnnxModelType>().Select(x => new ModelFileViewModel { Type = x });
+                var newModelSet = new ModelSetViewModel
                 {
                     Name = textInputDialog.TextResult,
-                    ModelConfigurations = new ObservableCollection<ModelSessionEditModel>(models)
+                    ModelFiles = new ObservableCollection<ModelFileViewModel>(models)
                 };
                 ModelSets.Add(newModelSet);
                 SelectedModelSet = newModelSet;
@@ -191,20 +548,43 @@ namespace OnnxStack.UI.Views
             return Task.CompletedTask;
         }
 
+
+        /// <summary>
+        /// Determines whether this instance can execute add.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute add; otherwise, <c>false</c>.
+        /// </returns>
         private bool CanExecuteAdd()
         {
             return true;
         }
 
+
+
+        /// <summary>
+        /// Copies a modelSet.
+        /// </summary>
+        /// <returns></returns>
         private Task Copy()
         {
             var invalidNames = ModelSets.Select(x => x.Name).ToList();
             var textInputDialog = _dialogService.GetDialog<TextInputDialog>();
             if (textInputDialog.ShowDialog("Copy Model Set", "New Name", 1, 30, invalidNames))
             {
-                var original = _stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
-                var newModelSet = CreateEditModel(original);
+                var newModelSet = SelectedModelSet.IsTemplate
+                     ? CreateViewModel(_onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == SelectedModelSet.Name))
+                     : CreateViewModel(_stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name));
+
+                newModelSet.IsEnabled = false;
+                newModelSet.IsTemplate = false;
+                newModelSet.IsInstalled = false;
                 newModelSet.Name = textInputDialog.TextResult;
+                foreach (var item in newModelSet.ModelFiles)
+                {
+                    item.OnnxModelPath = item.Type == OnnxModelType.Tokenizer ? _defaultTokenizerPath : null;
+                }
+
                 ModelSets.Add(newModelSet);
                 SelectedModelSet = newModelSet;
             }
@@ -212,50 +592,191 @@ namespace OnnxStack.UI.Views
         }
 
 
+        /// <summary>
+        /// Determines whether this instance can execute copy.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute copy; otherwise, <c>false</c>.
+        /// </returns>
         private bool CanExecuteCopy()
         {
-            return _stableDiffusionConfig.OnnxModelSets.Any(x => x.Name == SelectedModelSet?.Name);
+            return SelectedModelSet?.IsInstalled ?? false;
         }
 
 
+        /// <summary>
+        /// Removes the modelset.
+        /// </summary>
         private async Task Remove()
         {
             var textInputDialog = _dialogService.GetDialog<MessageDialog>();
             if (textInputDialog.ShowDialog("Remove ModelSet", "Are you sure you want to remove this ModelSet?", MessageDialog.MessageDialogType.YesNo))
             {
                 // Unload and Remove ModelSet
-                if (await UnloadAndRemoveModelSet(SelectedModelSet.Name))
-                {
-                    if (!SaveConfigurationFile(_stableDiffusionConfig).Result)
-                    {
-                        // LOG ME
-                    }
-                }
+                await UnloadAndRemoveModelSet(SelectedModelSet.Name);
+
+                // Update Template if one was reomved
+                UpdateTemplateStatus(SelectedModelSet.Name, ModelTemplateStatus.Deleted);
+
+                // Save Config File
+                await SaveConfigurationFile();
 
                 // Remove from edit list
                 ModelSets.Remove(SelectedModelSet);
                 SelectedModelSet = ModelSets.FirstOrDefault();
 
-                // Notify ViewModel
+                // Force Rebind
                 ModelOptions = new ObservableCollection<ModelOptionsModel>(ModelOptions);
             }
         }
 
+
+        /// <summary>
+        /// Determines whether this instance can execute remove.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute remove; otherwise, <c>false</c>.
+        /// </returns>
         private bool CanExecuteRemove()
         {
+            return SelectedModelSet?.IsDownloading == false;
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+
+        /// <summary>
+        /// Unloads the and remove model set.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
+        private async Task<bool> UnloadAndRemoveModelSet(string name)
+        {
+            var onnxModelSet = _stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == name);
+            if (onnxModelSet is not null)
+            {
+                // If model is loaded unload now
+                var isLoaded = _stableDiffusionService.IsModelLoaded(onnxModelSet);
+                if (isLoaded)
+                    await _stableDiffusionService.UnloadModel(onnxModelSet);
+
+                // Remove ViewModel
+                var viewModel = ModelOptions.FirstOrDefault(x => x.Name == onnxModelSet.Name);
+                if (viewModel is not null)
+                    ModelOptions.Remove(viewModel);
+
+                // Remove ModelSet
+                _stableDiffusionConfig.OnnxModelSets.Remove(onnxModelSet);
+                return true;
+            }
+            return false;
+        }
+
+
+        /// <summary>
+        /// Updates the template status.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="status">The status.</param>
+        private void UpdateTemplateStatus(string name, ModelTemplateStatus status)
+        {
+            // Update Templater if one was used
+            var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == name);
+            if (template is not null)
+            {
+                template.Status = status;
+            }
+        }
+
+
+        /// <summary>
+        /// Validates the model set.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        private bool ValidateModelSet(ModelOptions model)
+        {
+            if (model == null)
+                return false;
+
+            if (!model.ModelConfigurations.Any())
+                return false;
+
+            if (model.ModelConfigurations.Any(x => !File.Exists(x.OnnxModelPath)))
+                return false;
+
+            if (!model.Diffusers.Any())
+                return false;
+
             return true;
         }
 
 
-        private void Initialize()
+        /// <summary>
+        /// Saves the configuration file.
+        /// </summary>
+        /// <returns></returns>
+        private Task<bool> SaveConfigurationFile()
         {
-            ModelSets = new ObservableCollection<ModelSetEditModel>(_stableDiffusionConfig.OnnxModelSets.Select(CreateEditModel));
+            try
+            {
+                ConfigManager.SaveConfiguration(_onnxStackUIConfig);
+                ConfigManager.SaveConfiguration(nameof(OnnxStackConfig), _stableDiffusionConfig);
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error saving configuration file, {ex.Message}");
+                return Task.FromResult(false);
+            }
         }
 
-        private ModelSetEditModel CreateEditModel(ModelOptions modelOptions)
+
+        /// <summary>
+        /// Creates the view model.
+        /// </summary>
+        /// <param name="modelTemplate">The model template.</param>
+        /// <returns></returns>
+        private ModelSetViewModel CreateViewModel(ModelConfigTemplate modelTemplate)
         {
-            return new ModelSetEditModel
+            return new ModelSetViewModel
             {
+                IsTemplate = true,
+                IsInstalled = false,
+                IsEnabled = false,
+                Name = modelTemplate.Name,
+                BlankTokenId = modelTemplate.BlankTokenId,
+                EmbeddingsLength = modelTemplate.EmbeddingsLength,
+                ExecutionProvider = ExecutionProvider.Cpu,
+                PadTokenId = modelTemplate.PadTokenId,
+                ScaleFactor = modelTemplate.ScaleFactor,
+                TokenizerLimit = modelTemplate.TokenizerLimit,
+                PipelineType = modelTemplate.PipelineType,
+                EnableTextToImage = modelTemplate.Diffusers.Contains(DiffuserType.TextToImage),
+                EnableImageToImage = modelTemplate.Diffusers.Contains(DiffuserType.ImageToImage),
+                EnableImageInpaint = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaint) || modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
+                EnableImageInpaintLegacy = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
+                ModelFiles = new ObservableCollection<ModelFileViewModel>(Enum.GetValues<OnnxModelType>().Select(x => new ModelFileViewModel { Type = x })),
+                ModelTemplate = modelTemplate
+            };
+        }
+
+
+        /// <summary>
+        /// Creates the view model.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        private ModelSetViewModel CreateViewModel(ModelOptions modelOptions)
+        {
+            var isValid = ValidateModelSet(modelOptions);
+            return new ModelSetViewModel
+            {
+                IsTemplate = false,
+                IsInstalled = isValid,
+                IsEnabled = isValid && modelOptions.IsEnabled,
                 Name = modelOptions.Name,
                 BlankTokenId = modelOptions.BlankTokenId,
                 DeviceId = modelOptions.DeviceId,
@@ -264,8 +785,6 @@ namespace OnnxStack.UI.Views
                 ExecutionProvider = modelOptions.ExecutionProvider,
                 IntraOpNumThreads = modelOptions.IntraOpNumThreads,
                 InterOpNumThreads = modelOptions.InterOpNumThreads,
-                InputTokenLimit = modelOptions.InputTokenLimit,
-                IsEnabled = modelOptions.IsEnabled,
                 PadTokenId = modelOptions.PadTokenId,
                 ScaleFactor = modelOptions.ScaleFactor,
                 TokenizerLimit = modelOptions.TokenizerLimit,
@@ -274,7 +793,7 @@ namespace OnnxStack.UI.Views
                 EnableImageToImage = modelOptions.Diffusers.Contains(DiffuserType.ImageToImage),
                 EnableImageInpaint = modelOptions.Diffusers.Contains(DiffuserType.ImageInpaint) || modelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
                 EnableImageInpaintLegacy = modelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
-                ModelConfigurations = new ObservableCollection<ModelSessionEditModel>(modelOptions.ModelConfigurations.Select(x => new ModelSessionEditModel
+                ModelFiles = new ObservableCollection<ModelFileViewModel>(modelOptions.ModelConfigurations.Select(x => new ModelFileViewModel
                 {
                     Type = x.Type,
                     DeviceId = x.DeviceId ?? modelOptions.DeviceId,
@@ -290,14 +809,21 @@ namespace OnnxStack.UI.Views
                         || x.IntraOpNumThreads.HasValue
                         || x.InterOpNumThreads.HasValue
                 }))
+
             };
         }
 
 
-        private ModelOptions CreateModelOptions(ModelSetEditModel editModel)
+        /// <summary>
+        /// Creates the model options.
+        /// </summary>
+        /// <param name="editModel">The edit model.</param>
+        /// <returns></returns>
+        private ModelOptions CreateModelOptions(ModelSetViewModel editModel)
         {
             return new ModelOptions
             {
+                IsEnabled = true,
                 Name = editModel.Name,
                 BlankTokenId = editModel.BlankTokenId,
                 DeviceId = editModel.DeviceId,
@@ -306,14 +832,12 @@ namespace OnnxStack.UI.Views
                 ExecutionProvider = editModel.ExecutionProvider,
                 IntraOpNumThreads = editModel.IntraOpNumThreads,
                 InterOpNumThreads = editModel.InterOpNumThreads,
-                InputTokenLimit = editModel.InputTokenLimit,
-                IsEnabled = editModel.IsEnabled,
                 PadTokenId = editModel.PadTokenId,
                 ScaleFactor = editModel.ScaleFactor,
                 TokenizerLimit = editModel.TokenizerLimit,
                 PipelineType = editModel.PipelineType,
                 Diffusers = new List<DiffuserType>(editModel.GetDiffusers()),
-                ModelConfigurations = new List<OnnxModelSessionConfig>(editModel.ModelConfigurations.Select(x => new OnnxModelSessionConfig
+                ModelConfigurations = new List<OnnxModelSessionConfig>(editModel.ModelFiles.Select(x => new OnnxModelSessionConfig
                 {
                     Type = x.Type,
                     OnnxModelPath = x.OnnxModelPath,
@@ -326,20 +850,7 @@ namespace OnnxStack.UI.Views
             };
         }
 
-
-        private Task<bool> SaveConfigurationFile(StableDiffusionConfig stableDiffusionConfig)
-        {
-            try
-            {
-                ConfigManager.SaveConfiguration(nameof(OnnxStackConfig), stableDiffusionConfig);
-                return Task.FromResult(true);
-            }
-            catch (Exception ex)
-            {
-                // LOG ME
-                return Task.FromResult(false);
-            }
-        }
+        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
@@ -349,244 +860,4 @@ namespace OnnxStack.UI.Views
         }
         #endregion
     }
-
-
-    public class ModelSetEditModel : INotifyPropertyChanged
-    {
-        private string _name;
-        private bool _isEnabled;
-        private int _deviceId;
-        private int _interOpNumThreads;
-        private int _intraOpNumThreads;
-        private ExecutionMode _executionMode;
-        private ExecutionProvider _executionProvider;
-        private ObservableCollection<ModelSessionEditModel> _modelConfigurations;
-        private int _padTokenId;
-        private int _blankTokenId;
-        private float _scaleFactor;
-        private int _tokenizerLimit;
-        private int _inputTokenLimit;
-        private int _embeddingsLength;
-        private bool _enableTextToImage;
-        private bool _enableImageToImage;
-        private bool _enableImageInpaint;
-        private bool _enableImageInpaintLegacy;
-        private DiffuserPipelineType _pipelineType;
-
-        public string Name
-        {
-            get { return _name; }
-            set { _name = value; NotifyPropertyChanged(); }
-        }
-
-        public bool IsEnabled
-        {
-            get { return _isEnabled; }
-            set { _isEnabled = value; NotifyPropertyChanged(); }
-        }
-
-        public int PadTokenId
-        {
-            get { return _padTokenId; }
-            set { _padTokenId = value; NotifyPropertyChanged(); }
-        }
-        public int BlankTokenId
-        {
-            get { return _blankTokenId; }
-            set { _blankTokenId = value; NotifyPropertyChanged(); }
-        }
-        public float ScaleFactor
-        {
-            get { return _scaleFactor; }
-            set { _scaleFactor = value; NotifyPropertyChanged(); }
-        }
-        public int TokenizerLimit
-        {
-            get { return _tokenizerLimit; }
-            set { _tokenizerLimit = value; NotifyPropertyChanged(); }
-        }
-        public int InputTokenLimit
-        {
-            get { return _inputTokenLimit; }
-            set { _inputTokenLimit = value; NotifyPropertyChanged(); }
-        }
-        public int EmbeddingsLength
-        {
-            get { return _embeddingsLength; }
-            set { _embeddingsLength = value; NotifyPropertyChanged(); }
-        }
-
-        public bool EnableTextToImage
-        {
-            get { return _enableTextToImage; }
-            set { _enableTextToImage = value; NotifyPropertyChanged(); }
-        }
-
-        public bool EnableImageToImage
-        {
-            get { return _enableImageToImage; }
-            set { _enableImageToImage = value; NotifyPropertyChanged(); }
-        }
-
-        public bool EnableImageInpaint
-        {
-            get { return _enableImageInpaint; }
-            set
-            {
-                _enableImageInpaint = value;
-                NotifyPropertyChanged();
-
-                if (!_enableImageInpaint)
-                    EnableImageInpaintLegacy = false;
-            }
-        }
-
-        public bool EnableImageInpaintLegacy
-        {
-            get { return _enableImageInpaintLegacy; }
-            set
-            {
-                _enableImageInpaintLegacy = value;
-                NotifyPropertyChanged();
-            }
-        }
-
-        public int DeviceId
-        {
-            get { return _deviceId; }
-            set { _deviceId = value; NotifyPropertyChanged(); }
-        }
-
-        public int InterOpNumThreads
-        {
-            get { return _interOpNumThreads; }
-            set { _interOpNumThreads = value; NotifyPropertyChanged(); }
-        }
-
-        public int IntraOpNumThreads
-        {
-            get { return _intraOpNumThreads; }
-            set { _intraOpNumThreads = value; NotifyPropertyChanged(); }
-        }
-
-        public ExecutionMode ExecutionMode
-        {
-            get { return _executionMode; }
-            set { _executionMode = value; NotifyPropertyChanged(); }
-        }
-
-        public ExecutionProvider ExecutionProvider
-        {
-            get { return _executionProvider; }
-            set { _executionProvider = value; NotifyPropertyChanged(); }
-        }
-
-        public ObservableCollection<ModelSessionEditModel> ModelConfigurations
-        {
-            get { return _modelConfigurations; }
-            set { _modelConfigurations = value; NotifyPropertyChanged(); }
-        }
-
-        public DiffuserPipelineType PipelineType
-        {
-            get { return _pipelineType; }
-            set { _pipelineType = value; NotifyPropertyChanged(); }
-        }
-
-
-        public IEnumerable<DiffuserType> GetDiffusers()
-        {
-            if (_enableTextToImage)
-                yield return DiffuserType.TextToImage;
-            if (_enableImageToImage)
-                yield return DiffuserType.ImageToImage;
-            if (_enableImageInpaint && !_enableImageInpaintLegacy)
-                yield return DiffuserType.ImageInpaint;
-            if (_enableImageInpaint && _enableImageInpaintLegacy)
-                yield return DiffuserType.ImageInpaintLegacy;
-        }
-
-        #region INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        public void NotifyPropertyChanged([CallerMemberName] string property = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
-        }
-        #endregion
-    }
-
-    public class ModelSessionEditModel : INotifyPropertyChanged
-    {
-        private OnnxModelType _type;
-        private string _onnnxModelPath;
-        private bool? _isEnabled;
-        private int? _deviceId;
-        private int? _interOpNumThreads;
-        private int? _intraOpNumThreads;
-        private ExecutionMode? _executionMode;
-        private ExecutionProvider? _executionProvider;
-
-        public string OnnxModelPath
-        {
-            get { return _onnnxModelPath; }
-            set { _onnnxModelPath = value; NotifyPropertyChanged(); }
-        }
-        public bool? IsEnabled
-        {
-            get { return _isEnabled; }
-            set { _isEnabled = value; NotifyPropertyChanged(); }
-        }
-        public int? DeviceId
-        {
-            get { return _deviceId; }
-            set { _deviceId = value; NotifyPropertyChanged(); }
-        }
-        public int? InterOpNumThreads
-        {
-            get { return _interOpNumThreads; }
-            set { _interOpNumThreads = value; NotifyPropertyChanged(); }
-        }
-        public int? IntraOpNumThreads
-        {
-            get { return _intraOpNumThreads; }
-            set { _intraOpNumThreads = value; NotifyPropertyChanged(); }
-        }
-        public ExecutionMode? ExecutionMode
-        {
-            get { return _executionMode; }
-            set { _executionMode = value; NotifyPropertyChanged(); }
-        }
-        public ExecutionProvider? ExecutionProvider
-        {
-            get { return _executionProvider; }
-            set { _executionProvider = value; NotifyPropertyChanged(); }
-        }
-
-        public OnnxModelType Type
-        {
-            get { return _type; }
-            set { _type = value; NotifyPropertyChanged(); }
-        }
-
-
-        private bool _isOverrideEnabled;
-
-        public bool IsOverrideEnabled
-        {
-            get { return _isOverrideEnabled; }
-            set { _isOverrideEnabled = value; NotifyPropertyChanged(); }
-        }
-
-
-
-        #region INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        public void NotifyPropertyChanged([CallerMemberName] string property = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
-        }
-        #endregion
-    }
-
-
 }

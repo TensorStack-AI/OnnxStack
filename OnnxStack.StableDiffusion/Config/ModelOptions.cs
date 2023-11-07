@@ -15,7 +15,6 @@ namespace OnnxStack.StableDiffusion.Config
         public bool IsEnabled { get; set; }
         public int PadTokenId { get; set; }
         public int BlankTokenId { get; set; }
-        public int InputTokenLimit { get; set; } = 2048;
         public int TokenizerLimit { get; set; }
         public int EmbeddingsLength { get; set; }
         public float ScaleFactor { get; set; }
@@ -34,7 +33,7 @@ namespace OnnxStack.StableDiffusion.Config
 
         public void InitBlankTokenArray()
         {
-            BlankTokenValueArray = Enumerable.Repeat(BlankTokenId, InputTokenLimit).ToImmutableArray();
+            BlankTokenValueArray = Enumerable.Repeat(BlankTokenId, 20480).ToImmutableArray();
         }
     }
 }

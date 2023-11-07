@@ -153,7 +153,6 @@ Each model can be assigned to its own device, which is handy if you have only a 
       "Name": "StableDiffusion 1.5",
       "PadTokenId": 49407,
       "BlankTokenId": 49407,
-      "InputTokenLimit": 512,
       "TokenizerLimit": 77,
       "EmbeddingsLength": 768,
       "ScaleFactor": 0.18215,

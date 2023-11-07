@@ -17,7 +17,9 @@
         RenderOptions.ClearTypeHint="Enabled"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType" 
-        TextOptions.TextHintingMode="Fixed">
+        TextOptions.TextHintingMode="Fixed"  
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
     <Grid DataContext="{Binding ElementName=UI}">
         <TabControl Style="{StaticResource SplitTabControl}" SelectedIndex="{Binding SelectedTabIndex}" SelectedValue="{Binding SelectedTabItem}" SelectedValuePath="Content" DockPanel.Dock="Top" Margin="4">
 

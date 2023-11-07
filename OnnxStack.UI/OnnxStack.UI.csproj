@@ -6,6 +6,7 @@
     <TargetFramework>net7.0-windows</TargetFramework>
     <Nullable>disable</Nullable>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
@@ -18,8 +19,8 @@
     <None Remove="Fonts\fa-solid-900.ttf" />
     <None Remove="Images\Icon.png" />
     <None Remove="Images\loading.gif" />
-    <None Remove="Images\placeholder.jpg" />
     <None Remove="Images\placeholder.png" />
+    <None Remove="Images\placeholder_sm.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,19 +38,15 @@
     <Resource Include="Fonts\fa-light-300.ttf" />
     <Resource Include="Fonts\fa-regular-400.ttf" />
     <Resource Include="Fonts\fa-solid-900.ttf" />
-    <Resource Include="Images\Icon.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Images\placeholder.jpg">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Resource>
+    <Resource Include="Images\Icon.png" />
     <Resource Include="Images\placeholder.png" />
+    <Resource Include="Images\placeholder_sm.png" />
     <Resource Include="Themes\DarkTheme.xaml" />
   </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="OnnxStack.StableDiffusion" Version="0.6.0" Condition=" '$(Configuration)' == 'Release' "/>
+        <PackageReference Include="LibGit2Sharp" Version="0.28.0" />
+        <PackageReference Include="OnnxStack.StableDiffusion" Version="0.6.0" Condition=" '$(Configuration)' == 'Release' " />
         <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
     </ItemGroup>
 
