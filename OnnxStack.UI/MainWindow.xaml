@@ -11,7 +11,7 @@
         Width="1200"
         Height="700"
         MinWidth="820"
-        MinHeight="780"
+        MinHeight="600"
         Icon="/Images/Icon.png" Name="UI" 
         RenderOptions.BitmapScalingMode="HighQuality"
         RenderOptions.ClearTypeHint="Enabled"
@@ -19,7 +19,8 @@
         TextOptions.TextRenderingMode="ClearType" 
         TextOptions.TextHintingMode="Fixed"  
         UseLayoutRounding="True"
-        SnapsToDevicePixels="True">
+        SnapsToDevicePixels="True"
+        Style="{StaticResource BaseWindow}">
     <Grid DataContext="{Binding ElementName=UI}">
         <TabControl Style="{StaticResource SplitTabControl}" SelectedIndex="{Binding SelectedTabIndex}" SelectedValue="{Binding SelectedTabItem}" SelectedValuePath="Content" DockPanel.Dock="Top" Margin="4">
 

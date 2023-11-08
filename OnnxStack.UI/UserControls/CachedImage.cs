@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using System.Windows.Media.Imaging;
 
 namespace OnnxStack.UI.UserControls
@@ -26,7 +27,7 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(ImageUrlProperty, value); }
         }
         public static readonly DependencyProperty ImageUrlProperty =
-                DependencyProperty.Register("ImageUrl", typeof(string), typeof(CachedImage), new PropertyMetadata((s,e) =>
+                DependencyProperty.Register("ImageUrl", typeof(string), typeof(CachedImage), new PropertyMetadata((s, e) =>
                 {
                     if (s is CachedImage cachedImage && e.NewValue is string imageUrl)
                         cachedImage.GetOrDownloadImage(imageUrl);

@@ -37,9 +37,19 @@ namespace OnnxStack.UI
             NavigateImageToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImageToImage);
             NavigateImageInpaintCommand = new AsyncRelayCommand<ImageResult>(NavigateImageInpaint);
             NavigateImageUpscaleCommand = new AsyncRelayCommand<ImageResult>(NavigateImageUpscale);
+
+            WindowCloseCommand = new AsyncRelayCommand(WindowClose);
+            WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
+            WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
+            WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             Models = CreateModelOptions(configuration.OnnxModelSets);
             InitializeComponent();
         }
+
+        public AsyncRelayCommand WindowMinimizeCommand { get; }
+        public AsyncRelayCommand WindowRestoreCommand { get; }
+        public AsyncRelayCommand WindowMaximizeCommand { get; }
+        public AsyncRelayCommand WindowCloseCommand { get; }
 
         public AsyncRelayCommand<ImageResult> SaveImageCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveBlueprintCommand { get; }
@@ -185,6 +195,37 @@ namespace OnnxStack.UI
         {
             OutputLog += message;
         }
+
+        #region BaseWindow
+
+        private Task WindowClose()
+        {
+            Close();
+            return Task.CompletedTask;
+        }
+
+        private Task WindowRestore()
+        {
+            if (WindowState == WindowState.Maximized)
+                WindowState = WindowState.Normal;
+            else
+                WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMinimize()
+        {
+            WindowState = WindowState.Minimized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMaximize()
+        {
+            WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

@@ -17,8 +17,11 @@
 
     <DockPanel DataContext="{Binding ElementName=UI}">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-            <Button Command="{Binding OpenFileDialogCommand}" Width="24" >
-                <local:FontAwesome Icon="&#xf002;" Size="12"/>
+            <Button Command="{Binding OpenFileDialogCommand}" Padding="15, 0">
+                <StackPanel Orientation="Horizontal">
+                    <local:FontAwesome Icon="&#xf002;" Size="12" />
+                    <TextBlock Text="Browse" Margin="4,0,0,0"/>
+                </StackPanel>
             </Button>
             <Button Command="{Binding ClearFileCommand}" Visibility="{Binding IsRequired, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Width="24" BorderThickness="0,1,1,1" >
                 <local:FontAwesome Icon="&#xf00d;" Size="15" IconStyle="Light"/>
@@ -27,7 +30,7 @@
         
         <TextBox>
             <TextBox.Style>
-                <Style TargetType="{x:Type TextBox}">
+                <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
                     <Setter Property="Height" Value="25" />
                     <Setter Property="Padding" Value="1,3,1,1" />
                     <Setter Property="BorderThickness" Value="1,1,0,1" />

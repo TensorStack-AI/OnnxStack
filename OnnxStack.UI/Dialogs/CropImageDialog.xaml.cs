@@ -48,6 +48,12 @@ namespace OnnxStack.UI.Dialogs
         public CropImageDialog(ILogger<CropImageDialog> logger)
         {
             _logger = logger;
+
+            WindowCloseCommand = new AsyncRelayCommand(WindowClose);
+            WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
+            WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
+            WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
+
             DoneCommand = new AsyncRelayCommand(Done, CanExecuteDone);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             CropCommand = new AsyncRelayCommand(Crop, CanExecuteCrop);
@@ -55,6 +61,10 @@ namespace OnnxStack.UI.Dialogs
             InitializeComponent();
         }
 
+        public AsyncRelayCommand WindowMinimizeCommand { get; }
+        public AsyncRelayCommand WindowRestoreCommand { get; }
+        public AsyncRelayCommand WindowMaximizeCommand { get; }
+        public AsyncRelayCommand WindowCloseCommand { get; }
         public AsyncRelayCommand DoneCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
         public AsyncRelayCommand CropCommand { get; }
@@ -401,6 +411,42 @@ namespace OnnxStack.UI.Dialogs
             HandleZoom(e.Delta);
         }
 
+
+        #region BaseWindow
+
+        private Task WindowClose()
+        {
+            Close();
+            return Task.CompletedTask;
+        }
+
+        private Task WindowRestore()
+        {
+            if (WindowState == WindowState.Maximized)
+                WindowState = WindowState.Normal;
+            else
+                WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMinimize()
+        {
+            WindowState = WindowState.Minimized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMaximize()
+        {
+            WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        private void OnContentRendered(object sender, EventArgs e)
+        {
+            InvalidateVisual();
+        }
+
+        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

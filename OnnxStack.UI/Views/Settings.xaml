@@ -41,7 +41,7 @@
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Margin" Value="0,1,0,0"/>
                             <Setter Property="BorderThickness" Value="1" />
-                            <Setter Property="BorderBrush" Value="#c0c0c0" />
+                            <Setter Property="BorderBrush" Value="{StaticResource ControlBrightDefaultBorderBrush }" />
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
                             <Setter Property="Template">
                                 <Setter.Value>
@@ -54,7 +54,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger  Property="IsSelected" Value="True" >
-                                    <Setter Property="Background" Value="LightCyan" />
+                                    <Setter Property="Background" Value="{StaticResource ControlMouseOverBackground}" />
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -63,17 +63,17 @@
                         <DataTemplate>
                             <DockPanel>
                                 <StackPanel DockPanel.Dock="Left">
-                                    <Image Source="{Binding ModelTemplate.ImageIcon, FallbackValue={StaticResource PlaceholderIcon}}" Height="34" Margin="0,1,3,1" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                                     <userControls:CachedImage ImageUrl="{Binding ModelTemplate.ImageIcon, IsAsync=True}" CacheName="{Binding Name}" Placeholder="{StaticResource PlaceholderIcon}" Height="34" Margin="0,1,3,1" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
                                 </StackPanel>
-                               
                                 <UniformGrid DockPanel.Dock="Right" Columns="1" Margin="2">
                                     <userControls:FontAwesome Icon="&#xf205;" IconStyle="Light" Size="12" VerticalAlignment="Center">
                                         <userControls:FontAwesome.Style>
                                             <Style TargetType="{x:Type userControls:FontAwesome}">
-                                                <Setter Property="Color" Value="LightGray" />
+                                                <Setter Property="Color" Value="{StaticResource ControlDisabledGlythColour}" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsEnabled}" Value="True">
                                                         <Setter Property="Color" Value="LimeGreen" />
+                                                        <Setter Property="Foreground" Value="{StaticResource ControlDarkerBackground}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -82,10 +82,11 @@
                                     <userControls:FontAwesome Icon="&#xf019;" IconStyle="Light" Size="12" VerticalAlignment="Center" >
                                         <userControls:FontAwesome.Style>
                                             <Style TargetType="{x:Type userControls:FontAwesome}">
-                                                <Setter Property="Color" Value="LightGray" />
+                                                <Setter Property="Color" Value="{StaticResource ControlDisabledGlythColour}" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsInstalled}" Value="True">
                                                         <Setter Property="Color" Value="LimeGreen" />
+                                                        <Setter Property="Foreground" Value="{StaticResource ControlDarkerBackground}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -119,10 +120,11 @@
                             <TextBlock Text="Enabled" VerticalAlignment="Top" TextAlignment="Center" Padding="20,2" Margin="0,0,5,0" >
                                 <TextBlock.Style>
                                     <Style TargetType="{x:Type TextBlock}">
-                                        <Setter Property="Background" Value="LightGray" />
+                                        <Setter Property="Background" Value="{StaticResource ContainerBorder}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding SelectedModelSet.IsEnabled}" Value="True">
                                                 <Setter Property="Background" Value="LimeGreen" />
+                                                <Setter Property="Foreground" Value="{StaticResource ControlDarkerBackground}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -131,10 +133,11 @@
                             <TextBlock Text="Installed" VerticalAlignment="Top" TextAlignment="Center" Padding="20,2" Margin="0,0,5,0" >
                                 <TextBlock.Style>
                                     <Style TargetType="{x:Type TextBlock}">
-                                        <Setter Property="Background" Value="LightGray" />
+                                        <Setter Property="Background" Value="{StaticResource ContainerBorder}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding SelectedModelSet.IsInstalled}" Value="True">
                                                 <Setter Property="Background" Value="LimeGreen" />
+                                                <Setter Property="Foreground" Value="{StaticResource ControlDarkerBackground}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -150,41 +153,41 @@
 
                 <!--Preview Images-->
                 <TextBlock Text="Preview Images" Margin="0,20, 0, 0" />
-                <UniformGrid Columns="6" >
-                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                <UniformGrid Columns="6" Margin="1">
+                    <Border BorderThickness="1" BorderBrush="{StaticResource ContainerBorder}" Margin="1">
                         <userControls:CachedImage Stretch="Uniform"
                             CacheName="{Binding SelectedModelSet.Name}" 
-                            ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[0]}" 
+                            ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[0], IsAsync=True}" 
                             Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
                     </Border>
-                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                    <Border BorderThickness="1" BorderBrush="{StaticResource ContainerBorder}" Margin="1">
                         <userControls:CachedImage Stretch="Uniform"
                             CacheName="{Binding SelectedModelSet.Name}" 
-                            ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[1]}" 
+                            ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[1], IsAsync=True}" 
                             Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
                     </Border>
-                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                    <Border BorderThickness="1" BorderBrush="{StaticResource ContainerBorder}" Margin="1">
                         <userControls:CachedImage Stretch="Uniform"
                              CacheName="{Binding SelectedModelSet.Name}" 
-                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[2]}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[2], IsAsync=True}" 
                              Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
                     </Border>
-                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                    <Border BorderThickness="1" BorderBrush="{StaticResource ContainerBorder}" Margin="1">
                         <userControls:CachedImage Stretch="Uniform"
                              CacheName="{Binding SelectedModelSet.Name}" 
-                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[3]}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[3], IsAsync=True}" 
                              Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
                     </Border>
-                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                    <Border BorderThickness="1" BorderBrush="{StaticResource ContainerBorder}" Margin="1">
                         <userControls:CachedImage Stretch="Uniform"
                              CacheName="{Binding SelectedModelSet.Name}" 
-                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[4]}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[4], IsAsync=True}" 
                              Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
                     </Border>
-                    <Border BorderThickness="1" BorderBrush="LightGray" Margin="1">
+                    <Border BorderThickness="1" BorderBrush="{StaticResource ContainerBorder}" Margin="1">
                         <userControls:CachedImage Stretch="Uniform"
                              CacheName="{Binding SelectedModelSet.Name}" 
-                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[5]}" 
+                             ImageUrl="{Binding SelectedModelSet.ModelTemplate.Images[5], IsAsync=True}" 
                              Placeholder="{Binding Source={StaticResource PlaceholderImageSmall}}"/>
                     </Border>
                 </UniformGrid>

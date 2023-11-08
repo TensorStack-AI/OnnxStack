@@ -24,10 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Page Remove="Themes\DarkTheme.xaml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
@@ -41,7 +37,6 @@
     <Resource Include="Images\Icon.png" />
     <Resource Include="Images\placeholder.png" />
     <Resource Include="Images\placeholder_sm.png" />
-    <Resource Include="Themes\DarkTheme.xaml" />
   </ItemGroup>
 
     <ItemGroup>
