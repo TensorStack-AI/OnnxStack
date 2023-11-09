@@ -15,7 +15,7 @@ namespace OnnxStack.UI.UserControls
         public FilePickerTextBox()
         {
             ClearFileCommand = new RelayCommand(ClearFile, CanExecuteClearFile);
-            OpenFileDialogCommand = new RelayCommand(OpenFilePicker, CanExecuteOpenFilePicker);
+            OpenFileDialogCommand = new RelayCommand(OpenPicker, CanExecuteOpenPicker);
             InitializeComponent();
         }
 
@@ -36,6 +36,9 @@ namespace OnnxStack.UI.UserControls
 
         public static readonly DependencyProperty IsRequiredProperty =
             DependencyProperty.Register("IsRequired", typeof(bool), typeof(FilePickerTextBox));
+
+        public static readonly DependencyProperty IsFolderPickerProperty =
+            DependencyProperty.Register("IsFolderPicker", typeof(bool), typeof(FilePickerTextBox));
 
 
         /// <summary>
@@ -116,6 +119,46 @@ namespace OnnxStack.UI.UserControls
 
 
         /// <summary>
+        /// Gets or sets a value indicating whether this instance is folder picker.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is folder picker; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsFolderPicker
+        {
+            get { return (bool)GetValue(IsFolderPickerProperty); }
+            set { SetValue(IsFolderPickerProperty, value); }
+        }
+
+
+        /// <summary>
+        /// Opens the picker.
+        /// </summary>
+        private void OpenPicker()
+        {
+            if (IsFolderPicker)
+            {
+                OpenFolderPicker();
+                return;
+            }
+
+            OpenFilePicker();
+        }
+
+
+        /// <summary>
+        /// Determines whether this instance can execute OpenPicker.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute OpenPicker; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteOpenPicker()
+        {
+            return true;
+        }
+
+
+        /// <summary>
         /// Opens the file picker.
         /// </summary>
         private void OpenFilePicker()
@@ -135,14 +178,19 @@ namespace OnnxStack.UI.UserControls
 
 
         /// <summary>
-        /// Determines whether this instance can execute OpenFilePicker.
+        /// Opens the folder picker.
         /// </summary>
-        /// <returns>
-        ///   <c>true</c> if this instance can execute OpenFilePicker; otherwise, <c>false</c>.
-        /// </returns>
-        private bool CanExecuteOpenFilePicker()
+        private void OpenFolderPicker()
         {
-            return true;
+            var folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = Title,
+                InitialDirectory = InitialDirectory,
+                UseDescriptionForTitle = true
+            };
+            var dialogResult = folderBrowserDialog.ShowDialog();
+            if (dialogResult == System.Windows.Forms.DialogResult.OK)
+                FileName = folderBrowserDialog.SelectedPath;
         }
 
 
@@ -174,6 +222,7 @@ namespace OnnxStack.UI.UserControls
     /// <seealso cref="System.Windows.Controls.ValidationRule" />
     public class FileExistsValidationRule : ValidationRule
     {
+        public bool IsFolder { get; set; }
         public bool IsRequired { get; set; }
 
         public override ValidationResult Validate(object value, CultureInfo cultureInfo)
@@ -182,8 +231,11 @@ namespace OnnxStack.UI.UserControls
             if (!IsRequired && string.IsNullOrEmpty(filename))
                 return ValidationResult.ValidResult;
 
-            if (!File.Exists(filename))
+            if (!IsFolder && !File.Exists(filename))
                 return new ValidationResult(false, $"File does not exist");
+
+            if (IsFolder && !Directory.Exists(filename))
+                return new ValidationResult(false, $"Directory does not exist");
 
             return ValidationResult.ValidResult;
         }
