@@ -28,9 +28,6 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
-            var model = _stableDiffusionService.Models.First();
-            await _stableDiffusionService.LoadModel(model);
-
             while (true)
             {
                 OutputHelpers.WriteConsole("Please type a prompt and press ENTER", ConsoleColor.Yellow);
@@ -50,12 +47,21 @@ namespace OnnxStack.Console.Runner
                 {
                     Seed = Random.Shared.Next()
                 };
-                foreach (var schedulerType in Enum.GetValues<SchedulerType>())
-                {
-                    promptOptions.SchedulerType = schedulerType;
 
-                    OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(model, promptOptions, schedulerOptions);
+                foreach (var model in _stableDiffusionService.Models)
+                {
+                    OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
+                    await _stableDiffusionService.LoadModel(model);
+
+                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
+                    {
+                        promptOptions.SchedulerType = schedulerType;
+                        OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
+                        await GenerateImage(model, promptOptions, schedulerOptions);
+                    }
+
+                    OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
+                    await _stableDiffusionService.UnloadModel(model);
                 }
             }
         }

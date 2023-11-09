@@ -31,28 +31,33 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
-            var model = _stableDiffusionService.Models.First();
-            await _stableDiffusionService.LoadModel(model);
-
             var seed = Random.Shared.Next();
-            foreach (var generationPrompt in _generationPrompts)
+            foreach (var model in _stableDiffusionService.Models)
             {
-                var promptOptions = new PromptOptions
-                {
-                    Prompt = generationPrompt.Value
-                };
+                OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
+                await _stableDiffusionService.LoadModel(model);
 
-                var schedulerOptions = new SchedulerOptions
+                foreach (var generationPrompt in _generationPrompts)
                 {
-                    Seed = Random.Shared.Next()
-                };
-                foreach (var schedulerType in Enum.GetValues<SchedulerType>())
-                {
-                    promptOptions.SchedulerType = schedulerType;
+                    var promptOptions = new PromptOptions
+                    {
+                        Prompt = generationPrompt.Value
+                    };
 
-                    OutputHelpers.WriteConsole("Generating Image...", ConsoleColor.Green);
-                    await GenerateImage(model, promptOptions, schedulerOptions, generationPrompt.Key);
+                    var schedulerOptions = new SchedulerOptions
+                    {
+                        Seed = Random.Shared.Next()
+                    };
+                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
+                    {
+                        promptOptions.SchedulerType = schedulerType;
+                        OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
+                        await GenerateImage(model, promptOptions, schedulerOptions, generationPrompt.Key);
+                    }
                 }
+
+                OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
+                await _stableDiffusionService.UnloadModel(model);
             }
             OutputHelpers.WriteConsole("Complete :)", ConsoleColor.DarkMagenta);
             OutputHelpers.ReadConsole(ConsoleColor.Gray);
