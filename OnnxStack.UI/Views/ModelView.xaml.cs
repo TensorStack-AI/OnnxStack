@@ -25,11 +25,11 @@ using System.Windows.Controls;
 namespace OnnxStack.UI.Views
 {
     /// <summary>
-    /// Interaction logic for Settings.xaml
+    /// Interaction logic for ModelView.xaml
     /// </summary>
-    public partial class Settings : UserControl, INavigatable, INotifyPropertyChanged
+    public partial class ModelView : UserControl, INavigatable, INotifyPropertyChanged
     {
-        private readonly ILogger<Settings> _logger;
+        private readonly ILogger<ModelView> _logger;
         private readonly string _defaultTokenizerPath;
         private readonly IDialogService _dialogService;
         private readonly IOnnxModelService _onnxModelService;
@@ -45,13 +45,13 @@ namespace OnnxStack.UI.Views
 
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Settings"/> class.
+        /// Initializes a new instance of the <see cref="ModelView"/> class.
         /// </summary>
-        public Settings()
+        public ModelView()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
-                _logger = App.GetService<ILogger<Settings>>();
+                _logger = App.GetService<ILogger<ModelView>>();
                 _dialogService = App.GetService<IDialogService>();
                 _onnxModelService = App.GetService<IOnnxModelService>();
                 _stableDiffusionConfig = App.GetService<StableDiffusionConfig>();
@@ -95,7 +95,7 @@ namespace OnnxStack.UI.Views
         }
 
         public static readonly DependencyProperty ModelOptionsProperty =
-            DependencyProperty.Register("ModelOptions", typeof(ObservableCollection<ModelOptionsModel>), typeof(Settings));
+            DependencyProperty.Register("ModelOptions", typeof(ObservableCollection<ModelOptionsModel>), typeof(ModelView));
 
         public ObservableCollection<ModelSetViewModel> ModelSets
         {

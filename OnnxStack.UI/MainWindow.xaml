@@ -76,23 +76,24 @@
                         <StackPanel Orientation="Horizontal">
                             <userControls:FontAwesome Icon="&#xf022;" IconStyle="Light"/>
                         </StackPanel>
-                        <TextBlock Text="Logs" Margin="5,0,0,0"/>
+                        <TextBlock Text="" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:Logger LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
-            <!--Settings-->
+
+            <!--Models-->
             <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
-                            <userControls:FontAwesome Icon="&#xf013;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf5fd;" IconStyle="Light"/>
                         </StackPanel>
-                        <TextBlock Text="Settings" Margin="5,0,0,0"/>
+                        <TextBlock Text="Models" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Settings ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,6,0,0"/>
+                <views:ModelView ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,6,0,0"/>
             </TabItem>
         </TabControl>
     </Grid>
