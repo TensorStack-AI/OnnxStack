@@ -10,7 +10,7 @@
              d:DesignHeight="450"  Name="UI">
     <DockPanel DataContext="{Binding ElementName=UI}" >
 
-        <DockPanel DockPanel.Dock="Left" Margin="0,3,0,0">
+        <DockPanel DockPanel.Dock="Left" Margin="3,3,0,0">
 
             <!--Model ListBox-->
             <DockPanel DockPanel.Dock="Left" Width="300" >
@@ -106,7 +106,7 @@
 
         </DockPanel>
 
-        <DockPanel Margin="10" MaxWidth="850"  >
+        <DockPanel Margin="10,10,10,0" MaxWidth="850"  >
 
             <StackPanel DockPanel.Dock="Top">
 
@@ -237,7 +237,7 @@
             <DockPanel Visibility="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBooleanToHiddenConverter}}">
 
                 <TabControl>
-                    <TabItem Header="Configuration" >
+                    <TabItem Header="Configuration" Width="150" Padding="0,0,0,5">
 
                         <!--Inference Options-->
                         <StackPanel IsEnabled="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBoolConverter}}" Margin="5">
@@ -285,7 +285,7 @@
 
                     </TabItem>
 
-                    <TabItem Header="Advanced">
+                    <TabItem Header="Advanced" Width="150" Padding="0,0,0,5">
 
                         <DockPanel Margin="5">
                             <!--Model Config-->

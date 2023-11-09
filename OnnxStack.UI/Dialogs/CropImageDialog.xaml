@@ -43,8 +43,8 @@
             <UniformGrid Columns="4" Margin="0,25,0,0">
                 <TextBlock/>
                 <TextBlock/>
+                <Button IsDefault="True" Command="{Binding DoneCommand}" MinWidth="100" Height="30">Done</Button>
                 <Button IsCancel="True" Command="{Binding CancelCommand}" MinWidth="100" Height="30">_Cancel</Button>
-                <Button IsDefault="True" Command="{Binding DoneCommand}" MinWidth="100" Height="30">_Done</Button>
             </UniformGrid>
         </StackPanel>
         <Border BorderThickness="2" BorderBrush="{StaticResource ContainerBorder}" >

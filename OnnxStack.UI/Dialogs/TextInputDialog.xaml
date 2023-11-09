@@ -32,8 +32,8 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
             <UniformGrid Columns="2" Height="30">
+                <Button Content="Ok" Command="{Binding SaveCommand}" IsDefault="True"/>
                 <Button Content="Cancel" Command="{Binding CancelCommand}" Width="100"/>
-                <Button Content="Ok" Command="{Binding SaveCommand}"/>
             </UniformGrid>
         </StackPanel>
     </DockPanel>

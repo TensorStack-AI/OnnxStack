@@ -32,7 +32,7 @@
                 </Button.Style>
             </Button>
             <UniformGrid Columns="2">
-                <Button Content="Yes" Command="{Binding YesCommand}" Width="100"/>
+                <Button Content="Yes" Command="{Binding YesCommand}" Width="100" IsDefault="True"/>
                 <Button Content="No" Command="{Binding NoCommand}"/>
                 <UniformGrid.Style>
                     <Style TargetType="{x:Type UniformGrid}">

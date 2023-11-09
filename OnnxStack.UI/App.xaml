@@ -170,6 +170,20 @@
 
         <Style TargetType="{x:Type GridSplitter}">
             <Setter Property="Background" Value="{StaticResource ControlDefaultBorderBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type GridSplitter}">
+                        <Grid>
+                            <Button  Padding="0" Margin="0" >
+                                <TextBlock Text="⁞" Foreground="{StaticResource ControlDefaultForeground}" />
+                            </Button>
+                            <Rectangle Fill="#00FFFFFF" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+
         </Style>
 
 
@@ -332,7 +346,7 @@
 
         <!--Button-->
         <LinearGradientBrush x:Key="ButtonBackground" EndPoint="0,1" StartPoint="0,0">
-            <GradientStop Color="#FF343434" Offset="0.0"/>
+            <GradientStop Color="#FF212222" Offset="0.0"/>
             <GradientStop Color="#FF2A2A2A" Offset="1.0"/>
         </LinearGradientBrush>
         <SolidColorBrush x:Key="ButtonForeground" Color="#FFC8C8C8"/>
@@ -638,7 +652,7 @@
                 </Grid.ColumnDefinitions>
                 <Popup x:Name="PART_Popup" AllowsTransparency="true" Grid.ColumnSpan="2" IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource Mode=TemplatedParent}}" Margin="1" Placement="Bottom" PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
                     <theme:SystemDropShadowChrome x:Name="shadow" Color="Transparent" MinWidth="{Binding ActualWidth, ElementName=templateRoot}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                        <Border x:Name="dropDownBorder" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}" BorderThickness="1">
+                        <Border x:Name="dropDownBorder" Background="{StaticResource ComboBoxBackground}" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}" BorderThickness="1" >
                             <ScrollViewer x:Name="DropDownScrollViewer">
                                 <Grid x:Name="grid" RenderOptions.ClearTypeHint="Enabled">
                                     <Canvas x:Name="canvas" HorizontalAlignment="Left" Height="0" VerticalAlignment="Top" Width="0">
@@ -1219,7 +1233,7 @@
             <Setter Property="Background" Value="{StaticResource TabItemBackground}"/>
             <Setter Property="BorderBrush" Value="{StaticResource TabItemBorder}"/>
             <Setter Property="Margin" Value="0"/>
-            <Setter Property="Padding" Value="6,2,6,2"/>
+            <Setter Property="Padding" Value="10,0,10,4"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
@@ -1389,7 +1403,7 @@
                                 <Setter Property="Panel.ZIndex" Value="1"/>
                                 <Setter Property="Margin" Value="-2,-2,-2,0"/>
                                 <Setter Property="Opacity" TargetName="innerBorder" Value="1"/>
-                                <Setter Property="BorderThickness" TargetName="innerBorder" Value="1,1,1,0"/>
+                                <Setter Property="BorderThickness" TargetName="innerBorder" Value="0,0,0,4"/>
                                 <Setter Property="BorderThickness" TargetName="mainBorder" Value="1,1,1,0"/>
                             </MultiDataTrigger>
                         </ControlTemplate.Triggers>
