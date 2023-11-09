@@ -76,10 +76,21 @@
                         <StackPanel Orientation="Horizontal">
                             <userControls:FontAwesome Icon="&#xf022;" IconStyle="Light"/>
                         </StackPanel>
-                        <TextBlock Text="" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:Logger LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
+            </TabItem>
+
+            <!--Settings Window-->
+            <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf013;" IconStyle="Light"/>
+                        </StackPanel>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:Settings Margin="0,6,0,0"/>
             </TabItem>
 
 
