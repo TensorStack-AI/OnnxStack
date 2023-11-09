@@ -108,5 +108,12 @@ namespace OnnxStack.Core.Services
         /// <param name="modelType">Type of model.</param>
         /// <returns></returns>
         IReadOnlyList<string> GetOutputNames(IOnnxModel model, OnnxModelType modelType);
+
+        /// <summary>
+        /// Gets the InferenceSession
+        /// </summary>
+        /// <param name="type">Type of the InferenceSession to get</param>
+        /// <returns></returns>
+        InferenceSession GetOnnxSession(OnnxModelType type);
     }
 }

@@ -106,6 +106,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 // Denoised result
                 DenseTensor<float> denoised = null;
 
+                var unetSession = _onnxModelService.GetOnnxSession(OnnxModelType.Unet);
+
                 // Loop though the timesteps
                 var step = 0;
                 foreach (var timestep in timesteps)
@@ -118,7 +120,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                     var inputTensor = scheduler.ScaleInput(latents, timestep);
 
                     // Create Input Parameters
-                    var inputParameters = CreateUnetInputParams(modelOptions, inputTensor, promptEmbeddings, guidanceEmbeddings, timestep);
+                    var inputParameters = CreateUnetInputParams(modelOptions, inputTensor, promptEmbeddings, guidanceEmbeddings, timestep, unetSession);
 
                     // Run Inference
                     using (var inferResult = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputParameters))
@@ -190,16 +192,25 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="promptEmbeddings">The prompt embeddings.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected virtual IReadOnlyList<NamedOnnxValue> CreateUnetInputParams(IModelOptions model, DenseTensor<float> inputTensor, DenseTensor<float> promptEmbeddings, DenseTensor<float> guidanceEmbeddings, int timestep)
+        protected virtual IReadOnlyList<NamedOnnxValue> CreateUnetInputParams(IModelOptions model, DenseTensor<float> inputTensor, DenseTensor<float> promptEmbeddings, DenseTensor<float> guidanceEmbeddings, int timestep, InferenceSession unetSession)
         {
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.Unet);
             return CreateInputParameters(
                  NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
-                 NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
+                 GetTimestep(model, timestep, inputNames, unetSession),
                  NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings),
                  NamedOnnxValue.CreateFromTensor(inputNames[3], guidanceEmbeddings));
         }
 
+        protected virtual NamedOnnxValue GetTimestep(IModelOptions model, int timestep, IReadOnlyList<string> inputNames, InferenceSession unetSession)
+        {
+            TensorElementType elementDataType = unetSession.InputMetadata["timestep"].ElementDataType;
+            if (elementDataType == TensorElementType.Float)
+                return NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<float>(new float[] { timestep }, new int[] { 1 }));
+            if (elementDataType == TensorElementType.Int64)
+                return NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 }));
+            throw new Exception($"Unable to map timestep to tensor value `{elementDataType}`");
+        }
 
         /// <summary>
         /// Gets the scheduler.

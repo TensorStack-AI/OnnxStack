@@ -174,6 +174,15 @@ namespace OnnxStack.Core.Services
             return OutputNamesInternal(model, modelType);
         }
 
+        /// <summary>
+        /// Gets the InferenceSession
+        /// </summary>
+        /// <param name="type">Type of the InferenceSession to get</param>
+        /// <returns></returns>
+        public InferenceSession GetOnnxSession(OnnxModelType type)
+        {
+            return _onnxModelSets.First().Value.GetSession(type);
+        }
 
         /// <summary>
         /// Runs inference on the specified model.
@@ -183,9 +192,16 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInternal(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
         {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .Run(inputs);
+            try
+            {
+                return GetModelSet(model)
+                    .GetSession(modelType)
+                    .Run(inputs);
+            }
+            catch (Exception ex)
+            {
+                return default;
+            }
         }
 
 
