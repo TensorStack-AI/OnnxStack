@@ -10,7 +10,88 @@
              d:DesignHeight="450" d:DesignWidth="800" Name="UI">
     <Grid DataContext="{Binding ElementName=UI}">
         <DockPanel>
-           
+
+ 
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+
+                <GroupBox Header="Model Settings"  MinWidth="200">
+                    <StackPanel Margin="5">
+                        <StackPanel Margin="0,10,0,0">
+                            <TextBlock Text="Cache Mode" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource ModelCacheMode}}" SelectedItem="{Binding UISettings.ModelCacheMode}" />
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+
+                <GroupBox Header="Image Settings"  MinWidth="400" Margin="10,0,0,0">
+                    <StackPanel Margin="5">
+                        <StackPanel Margin="0,10,0,0">
+                            <CheckBox x:Name="CheckBoxImageAutoSave" Content="Auto-Save Images" IsChecked="{Binding UISettings.ImageAutoSave}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,5,0,0">
+                            <CheckBox Content="Auto-Save Blueprints" IsEnabled="{Binding IsChecked, ElementName=CheckBoxImageAutoSave}" IsChecked="{Binding UISettings.ImageAutoSaveBlueprint}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,5,0,0">
+                            <TextBlock Text="Auto-Save Directory" />
+                            <userControls:FilePickerTextBox 
+                                IsFolderPicker="True"
+                                FileName="{Binding UISettings.ImageAutoSaveDirectory, Mode=TwoWay}"
+                                IsEnabled="{Binding IsChecked, ElementName=CheckBoxImageAutoSave}" 
+                                IsRequired="{Binding IsChecked, ElementName=CheckBoxImageAutoSave}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+
+                <GroupBox Header="Execution Defaults"  MinWidth="200" Margin="10,0,0,0">
+                    <StackPanel Margin="5">
+                        <StackPanel Margin="0,10,0,0">
+                            <TextBlock Text="Provider" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding UISettings.DefaultExecutionProvider}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,0,0">
+                            <TextBlock Text="Mode" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionModeType}}" SelectedItem="{Binding UISettings.DefaultExecutionMode}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,0,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="DeviceId" />
+                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBox Text="{Binding UISettings.DefaultDeviceId}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,0,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="InterOp Threads" />
+                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBox Text="{Binding UISettings.DefaultInterOpNumThreads}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,0,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="IntraOp Threads" />
+                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBox Text="{Binding UISettings.DefaultIntraOpNumThreads}" />
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+
+                <GroupBox Header="Save Settings" MinWidth="200" Margin="10,0,0,0">
+                    <StackPanel Margin="5">
+                        <StackPanel Margin="0,10,0,0">
+                            <Button Content="Save Changes" Height="30" Command="{Binding SaveCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+
+            <StackPanel></StackPanel>
+
         </DockPanel>
     </Grid>
 </UserControl>

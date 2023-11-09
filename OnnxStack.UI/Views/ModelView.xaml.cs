@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
 using Models;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
@@ -39,6 +40,7 @@ namespace OnnxStack.UI.Views
         private readonly IStableDiffusionService _stableDiffusionService;
 
         private bool _isDownloading;
+        private OnnxStackUIConfig _uiSettings;
         private ModelSetViewModel _selectedModelSet;
         private ObservableCollection<ModelSetViewModel> _modelSets;
         private CancellationTokenSource _downloadCancellationTokenSource;
@@ -77,6 +79,13 @@ namespace OnnxStack.UI.Views
             InitializeComponent();
         }
 
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelView));
 
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand ResetCommand { get; }
@@ -189,6 +198,11 @@ namespace OnnxStack.UI.Views
                     SelectedModelSet.IsEnabled = true;
                     SelectedModelSet.IsInstalled = true;
                     SelectedModelSet.IsTemplate = false;
+                    SelectedModelSet.DeviceId = UISettings.DefaultDeviceId;
+                    SelectedModelSet.ExecutionMode = UISettings.DefaultExecutionMode;
+                    SelectedModelSet.ExecutionProvider = UISettings.DefaultExecutionProvider;
+                    SelectedModelSet.InterOpNumThreads = UISettings.DefaultInterOpNumThreads;
+                    SelectedModelSet.IntraOpNumThreads = UISettings.DefaultIntraOpNumThreads;
                     SelectedModelSet.ModelTemplate = template;
                     await SaveModel(SelectedModelSet);
                 }
@@ -310,6 +324,11 @@ namespace OnnxStack.UI.Views
             modelSet.IsEnabled = true;
             modelSet.IsInstalled = true;
             modelSet.IsTemplate = false;
+            modelSet.DeviceId = UISettings.DefaultDeviceId;
+            modelSet.ExecutionMode = UISettings.DefaultExecutionMode;
+            modelSet.ExecutionProvider = UISettings.DefaultExecutionProvider;
+            modelSet.InterOpNumThreads = UISettings.DefaultInterOpNumThreads;
+            modelSet.IntraOpNumThreads = UISettings.DefaultIntraOpNumThreads;
             await SaveModel(modelSet);
             return;
         }
@@ -540,6 +559,11 @@ namespace OnnxStack.UI.Views
                 var newModelSet = new ModelSetViewModel
                 {
                     Name = textInputDialog.TextResult,
+                    DeviceId = UISettings.DefaultDeviceId,
+                    ExecutionMode = UISettings.DefaultExecutionMode,
+                    ExecutionProvider = UISettings.DefaultExecutionProvider,
+                    InterOpNumThreads = UISettings.DefaultInterOpNumThreads,
+                    IntraOpNumThreads = UISettings.DefaultIntraOpNumThreads,
                     ModelFiles = new ObservableCollection<ModelFileViewModel>(models)
                 };
                 ModelSets.Add(newModelSet);

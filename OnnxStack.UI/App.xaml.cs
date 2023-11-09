@@ -1,21 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
 using OnnxStack.Core;
-using OnnxStack.UI.Services;
 using OnnxStack.UI.Dialogs;
-using System.Diagnostics;
-using System.Windows.Controls;
+using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
+using System;
+using System.Windows;
 using System.Windows.Threading;
-using OnnxStack.UI.Views;
-using System.IO;
 
 namespace OnnxStack.UI
 {

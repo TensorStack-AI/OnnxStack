@@ -10,9 +10,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace OnnxStack.UI.Views
@@ -60,6 +62,14 @@ namespace OnnxStack.UI.Views
             ProgressMax = SchedulerOptions.InferenceSteps;
             InitializeComponent();
         }
+
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ImageToImage));
 
         public List<DiffuserType> SupportedDiffusers { get; }
         public AsyncRelayCommand CancelCommand { get; }
@@ -289,7 +299,7 @@ namespace OnnxStack.UI.Views
                 if (image == null)
                     return null;
 
-                return new ImageResult
+                var imageResult = new ImageResult
                 {
                     Image = image,
                     Model = _selectedModel,
@@ -301,6 +311,11 @@ namespace OnnxStack.UI.Views
                     SchedulerOptions = schedulerOptions,
                     Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
                 };
+
+                if (UISettings.ImageAutoSave)
+                    await imageResult.AutoSave(Path.Combine(UISettings.ImageAutoSaveDirectory, "ImageToImage"), UISettings.ImageAutoSaveBlueprint);
+
+                return imageResult;
             }
             catch (Exception ex)
             {

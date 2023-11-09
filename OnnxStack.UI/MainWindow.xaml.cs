@@ -28,9 +28,10 @@ namespace OnnxStack.UI
         private readonly ILogger<MainWindow> _logger;
         private ObservableCollection<ModelOptionsModel> _models;
 
-        public MainWindow(StableDiffusionConfig configuration, ILogger<MainWindow> logger)
+        public MainWindow(StableDiffusionConfig configuration, OnnxStackUIConfig uiSettings, ILogger<MainWindow> logger)
         {
             _logger = logger;
+            UISettings = uiSettings;
             SaveImageCommand = new AsyncRelayCommand<ImageResult>(SaveImageFile);
             SaveBlueprintCommand = new AsyncRelayCommand<ImageResult>(SaveBlueprintFile);
             NavigateTextToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateTextToImage);
@@ -50,13 +51,20 @@ namespace OnnxStack.UI
         public AsyncRelayCommand WindowRestoreCommand { get; }
         public AsyncRelayCommand WindowMaximizeCommand { get; }
         public AsyncRelayCommand WindowCloseCommand { get; }
-
         public AsyncRelayCommand<ImageResult> SaveImageCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveBlueprintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateTextToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageInpaintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageUpscaleCommand { get; }
+
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(MainWindow));
 
         public ObservableCollection<ModelOptionsModel> Models
         {

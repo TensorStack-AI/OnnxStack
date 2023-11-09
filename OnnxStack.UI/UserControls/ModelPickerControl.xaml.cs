@@ -4,6 +4,7 @@ using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
+using OnnxStack.UI.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -54,6 +55,16 @@ namespace OnnxStack.UI.UserControls
             DependencyProperty.Register("Models", typeof(ObservableCollection<ModelOptionsModel>), typeof(ModelPickerControl), new PropertyMetadata(propertyChangedCallback: OnModelsChanged));
 
 
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelPickerControl));
+
+
+
         /// <summary>
         /// Gets or sets the supported diffusers.
         /// </summary>
@@ -93,6 +104,15 @@ namespace OnnxStack.UI.UserControls
 
             try
             {
+                if (UISettings.ModelCacheMode == ModelCacheMode.Single)
+                {
+                    foreach (var model in Models.Where(x => x.IsLoaded))
+                    {
+                        _logger.LogInformation($"'{model.Name}' Unloading...");
+                        await _stableDiffusionService.UnloadModel(model.ModelOptions);
+                    }
+                }
+
                 SelectedModel.IsLoaded = await _stableDiffusionService.LoadModel(SelectedModel.ModelOptions);
             }
             catch (Exception ex)

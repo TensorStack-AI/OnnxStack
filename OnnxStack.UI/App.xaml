@@ -92,6 +92,11 @@
         </ObjectDataProvider>
 
 
+        <ObjectDataProvider x:Key="ModelCacheMode" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="models:ModelCacheMode"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
 
 
 

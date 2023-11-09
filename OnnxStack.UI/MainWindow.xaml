@@ -36,7 +36,7 @@
                         <TextBlock Text="Text To Image" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:TextToImageView Margin="0,6,0,0"/>
+                <views:TextToImageView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Image To Image-->
@@ -51,7 +51,7 @@
                         <TextBlock Text="Image To Image" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageToImage Margin="0,6,0,0"/>
+                <views:ImageToImage UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Image Inpaint-->
@@ -66,7 +66,7 @@
                         <TextBlock Text="Image Inpaint" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageInpaint Margin="0,6,0,0"/>
+                <views:ImageInpaint UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Log Window-->
@@ -78,7 +78,7 @@
                         </StackPanel>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Logger LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
+                <views:Logger UISettings="{Binding UISettings}" LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Settings Window-->
@@ -90,7 +90,7 @@
                         </StackPanel>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Settings Margin="0,6,0,0"/>
+                <views:Settings UISettings="{Binding UISettings, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
 
@@ -104,7 +104,7 @@
                         <TextBlock Text="Models" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ModelView ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,6,0,0"/>
+                <views:ModelView UISettings="{Binding UISettings}" ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,6,0,0"/>
             </TabItem>
         </TabControl>
     </Grid>
