@@ -15,6 +15,7 @@ namespace OnnxStack.UI.Views
         private ExecutionMode? _executionMode;
         private ExecutionProvider? _executionProvider;
         private bool _isOverrideEnabled;
+        private bool _hasChanged;
 
         public string OnnxModelPath
         {
@@ -64,10 +65,19 @@ namespace OnnxStack.UI.Views
             set { _isOverrideEnabled = value; NotifyPropertyChanged(); }
         }
 
+        public bool HasChanged
+        {
+            get { return _hasChanged; }
+            set { _hasChanged = value; NotifyPropertyChanged(); }
+        }
+
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         public void NotifyPropertyChanged([CallerMemberName] string property = "")
         {
+            if (!property.Equals(nameof(HasChanged)) && !HasChanged)
+                HasChanged = true;
+
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
         #endregion

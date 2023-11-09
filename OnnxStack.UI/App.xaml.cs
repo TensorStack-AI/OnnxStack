@@ -17,7 +17,6 @@ namespace OnnxStack.UI
     public partial class App : Application
     {
         private static IHost _applicationHost;
-        private static ILogger<App> _logger;
 
         public App()
         {

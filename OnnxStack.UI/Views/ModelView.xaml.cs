@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime;
+using Microsoft.Win32;
 using Models;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
@@ -18,6 +18,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -34,13 +36,11 @@ namespace OnnxStack.UI.Views
         private readonly string _defaultTokenizerPath;
         private readonly IDialogService _dialogService;
         private readonly IOnnxModelService _onnxModelService;
-        private readonly OnnxStackUIConfig _onnxStackUIConfig;
         private readonly IModelDownloadService _modelDownloadService;
         private readonly StableDiffusionConfig _stableDiffusionConfig;
         private readonly IStableDiffusionService _stableDiffusionService;
 
         private bool _isDownloading;
-        private OnnxStackUIConfig _uiSettings;
         private ModelSetViewModel _selectedModelSet;
         private ObservableCollection<ModelSetViewModel> _modelSets;
         private CancellationTokenSource _downloadCancellationTokenSource;
@@ -58,26 +58,41 @@ namespace OnnxStack.UI.Views
                 _onnxModelService = App.GetService<IOnnxModelService>();
                 _stableDiffusionConfig = App.GetService<StableDiffusionConfig>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
-                _onnxStackUIConfig = App.GetService<OnnxStackUIConfig>();
                 _modelDownloadService = App.GetService<IModelDownloadService>();
-            }
 
-            var defaultTokenizerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cliptokenizer.onnx");
-            if (File.Exists(defaultTokenizerPath))
-                _defaultTokenizerPath = defaultTokenizerPath;
+                // Set Default tokenizer path
+                var defaultTokenizerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cliptokenizer.onnx");
+                if (File.Exists(defaultTokenizerPath))
+                    _defaultTokenizerPath = defaultTokenizerPath;
+            }
 
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             ResetCommand = new AsyncRelayCommand(Reset, CanExecuteReset);
             AddCommand = new AsyncRelayCommand(Add, CanExecuteAdd);
             CopyCommand = new AsyncRelayCommand(Copy, CanExecuteCopy);
             RemoveCommand = new AsyncRelayCommand(Remove, CanExecuteRemove);
+            RenameCommand = new AsyncRelayCommand(Rename);
             InstallLocalCommand = new AsyncRelayCommand(InstallLocal, CanExecuteInstallLocal);
             InstallRemoteCommand = new AsyncRelayCommand(InstallRemote, CanExecuteInstallRemote);
             InstallRepositoryCommand = new AsyncRelayCommand(InstallRepository, CanExecuteInstallRepository);
             InstallCancelCommand = new AsyncRelayCommand(InstallCancel);
-            Initialize();
+            ImportCommand = new AsyncRelayCommand(Import);
+            ExportCommand = new AsyncRelayCommand(Export, CanExecuteExport);
             InitializeComponent();
         }
+
+        public AsyncRelayCommand SaveCommand { get; }
+        public AsyncRelayCommand ResetCommand { get; }
+        public AsyncRelayCommand AddCommand { get; }
+        public AsyncRelayCommand CopyCommand { get; }
+        public AsyncRelayCommand RemoveCommand { get; }
+        public AsyncRelayCommand RenameCommand { get; }
+        public AsyncRelayCommand ImportCommand { get; }
+        public AsyncRelayCommand ExportCommand { get; }
+        public AsyncRelayCommand InstallLocalCommand { get; }
+        public AsyncRelayCommand InstallRemoteCommand { get; }
+        public AsyncRelayCommand InstallRepositoryCommand { get; }
+        public AsyncRelayCommand InstallCancelCommand { get; }
 
         public OnnxStackUIConfig UISettings
         {
@@ -85,17 +100,11 @@ namespace OnnxStack.UI.Views
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelView));
-
-        public AsyncRelayCommand SaveCommand { get; }
-        public AsyncRelayCommand ResetCommand { get; }
-        public AsyncRelayCommand AddCommand { get; }
-        public AsyncRelayCommand CopyCommand { get; }
-        public AsyncRelayCommand RemoveCommand { get; }
-        public AsyncRelayCommand InstallLocalCommand { get; }
-        public AsyncRelayCommand InstallRemoteCommand { get; }
-        public AsyncRelayCommand InstallRepositoryCommand { get; }
-        public AsyncRelayCommand InstallCancelCommand { get; }
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelView), new PropertyMetadata(propertyChangedCallback: (s, e) =>
+            {
+                if (s is ModelView modelView && e.NewValue is OnnxStackUIConfig config)
+                    modelView.Initialize();
+            }));
 
         public ObservableCollection<ModelOptionsModel> ModelOptions
         {
@@ -137,17 +146,19 @@ namespace OnnxStack.UI.Views
                 _logger.LogDebug($"Initialize ModelSet: {installedModel.Name}");
 
                 // Find matching installed template
-                var template = _onnxStackUIConfig.ModelTemplates
+                var template = UISettings.ModelTemplates
                     .Where(x => x.Status == ModelTemplateStatus.Installed)
                     .FirstOrDefault(x => x.Name == installedModel.Name);
 
                 // TODO: add extra template properties, images etc
                 installedModel.ModelTemplate = template;
                 ModelSets.Add(installedModel);
+
+                installedModel.ResetChanges();
             }
 
             // Add any Active templates
-            foreach (var templateModel in _onnxStackUIConfig.ModelTemplates.Where(x => x.Status == ModelTemplateStatus.Active).Select(CreateViewModel))
+            foreach (var templateModel in UISettings.ModelTemplates.Where(x => x.Status == ModelTemplateStatus.Active).Select(CreateViewModel))
             {
                 _logger.LogDebug($"Initialize ModelTemplate: {templateModel.Name}");
 
@@ -191,7 +202,7 @@ namespace OnnxStack.UI.Views
             var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
             if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
+                var template = UISettings.ModelTemplates.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
                 _logger.LogDebug($"Installing local ModelSet, ModelSet: {template.Name}, Directory: {folderDialog.SelectedPath}");
                 if (SetModelPaths(SelectedModelSet, folderDialog.SelectedPath))
                 {
@@ -222,7 +233,6 @@ namespace OnnxStack.UI.Views
         }
 
 
-
         /// <summary>
         /// Installs a model from a remote location.
         /// </summary>
@@ -238,7 +248,7 @@ namespace OnnxStack.UI.Views
             if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 var modelSet = ModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
-                var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == modelSet.Name);
+                var template = UISettings.ModelTemplates.FirstOrDefault(x => x.Name == modelSet.Name);
                 var repositoryUrl = template.Repository;
                 var modelDirectory = Path.Combine(folderDialog.SelectedPath, template.Repository.Split('/').LastOrDefault());
 
@@ -259,7 +269,7 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteInstallRemote()
         {
-            return !_isDownloading;
+            return !_isDownloading && (SelectedModelSet?.ModelTemplate?.ModelFiles?.Any() ?? false);
         }
 
 
@@ -278,7 +288,7 @@ namespace OnnxStack.UI.Views
             if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 var modelSet = ModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name);
-                var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == modelSet.Name);
+                var template = UISettings.ModelTemplates.FirstOrDefault(x => x.Name == modelSet.Name);
                 var repositoryUrl = template.Repository;
                 var modelDirectory = Path.Combine(folderDialog.SelectedPath, template.Repository.Split('/').LastOrDefault());
 
@@ -299,7 +309,7 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteInstallRepository()
         {
-            return !_isDownloading; // and has git-lfs installed
+            return !_isDownloading && !string.IsNullOrEmpty(SelectedModelSet?.ModelTemplate?.Repository); // and has git-lfs installed
         }
 
 
@@ -488,7 +498,7 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteSave()
         {
-            return true;
+            return SelectedModelSet?.HasChanges() ?? false;
         }
 
 
@@ -536,13 +546,16 @@ namespace OnnxStack.UI.Views
                 IsEnabled = modelSet.IsEnabled,
             });
 
+            // Force Rebind
+            ModelOptions = new ObservableCollection<ModelOptionsModel>(ModelOptions);
+
             _logger.LogInformation($"Saving configuration complete.");
             return true;
         }
 
         #endregion
 
-        #region Add/Copy/Remove
+        #region Add/Copy/Remove/Rename
 
 
         /// <summary>
@@ -556,18 +569,30 @@ namespace OnnxStack.UI.Views
             if (textInputDialog.ShowDialog("Add Model Set", "Name", 1, 30, invalidNames))
             {
                 var models = Enum.GetValues<OnnxModelType>().Select(x => new ModelFileViewModel { Type = x });
-                var newModelSet = new ModelSetViewModel
+                var newModelTemplate = new ModelConfigTemplate
                 {
                     Name = textInputDialog.TextResult,
-                    DeviceId = UISettings.DefaultDeviceId,
-                    ExecutionMode = UISettings.DefaultExecutionMode,
-                    ExecutionProvider = UISettings.DefaultExecutionProvider,
-                    InterOpNumThreads = UISettings.DefaultInterOpNumThreads,
-                    IntraOpNumThreads = UISettings.DefaultIntraOpNumThreads,
-                    ModelFiles = new ObservableCollection<ModelFileViewModel>(models)
+                    Author = string.Empty,
+                    Repository = string.Empty,
+                    Description = string.Empty,
+                    Status = ModelTemplateStatus.Active,
+                    ImageIcon = string.Empty,
+                    Images = Enumerable.Range(0, 6).Select(x => string.Empty).ToList(),
+
+                    // TODO: Select pipleine in dialog, then setting any required bits
+                    PipelineType = DiffuserPipelineType.StableDiffusion,
+                    ScaleFactor = 0.18215f,
+                    TokenizerLimit = 77,
+                    PadTokenId = 49407,
+                    EmbeddingsLength = 768,
+                    BlankTokenId = 49407,
+                    Diffusers = Enum.GetValues<DiffuserType>().ToList(),
                 };
-                ModelSets.Add(newModelSet);
-                SelectedModelSet = newModelSet;
+
+                var modelSet = CreateViewModel(newModelTemplate);
+                ModelSets.Add(modelSet);
+                SelectedModelSet = modelSet;
+                UISettings.ModelTemplates.Add(newModelTemplate);
             }
             return Task.CompletedTask;
         }
@@ -597,16 +622,18 @@ namespace OnnxStack.UI.Views
             if (textInputDialog.ShowDialog("Copy Model Set", "New Name", 1, 30, invalidNames))
             {
                 var newModelSet = SelectedModelSet.IsTemplate
-                     ? CreateViewModel(_onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == SelectedModelSet.Name))
+                     ? CreateViewModel(UISettings.ModelTemplates.FirstOrDefault(x => x.Name == SelectedModelSet.Name))
                      : CreateViewModel(_stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name));
 
                 newModelSet.IsEnabled = false;
                 newModelSet.IsTemplate = false;
                 newModelSet.IsInstalled = false;
                 newModelSet.Name = textInputDialog.TextResult;
+                newModelSet.ModelTemplate.Name = textInputDialog.TextResult;
                 foreach (var item in newModelSet.ModelFiles)
                 {
                     item.OnnxModelPath = item.Type == OnnxModelType.Tokenizer ? _defaultTokenizerPath : null;
+                    item.IsOverrideEnabled = false;
                 }
 
                 ModelSets.Add(newModelSet);
@@ -666,6 +693,132 @@ namespace OnnxStack.UI.Views
             return SelectedModelSet?.IsDownloading == false;
         }
 
+
+        /// <summary>
+        /// Renames the model.
+        /// </summary>
+        private async Task Rename()
+        {
+            var invalidNames = ModelSets.Select(x => x.Name).ToList();
+            var textInputDialog = _dialogService.GetDialog<TextInputDialog>();
+            if (textInputDialog.ShowDialog("Rename Model Set", "New Name", 1, 30, invalidNames))
+            {
+                await UnloadAndRemoveModelSet(SelectedModelSet.Name);
+                SelectedModelSet.Name = textInputDialog.TextResult.Trim();
+                SelectedModelSet.ModelTemplate.Name = textInputDialog.TextResult.Trim();
+                await SaveModel(SelectedModelSet);
+            }
+        }
+
+        #endregion
+
+        #region Import/Export
+
+
+        /// <summary>
+        /// Imports a model template.
+        /// </summary>
+        private async Task Import()
+        {
+            try
+            {
+                var openFileDialog = new OpenFileDialog
+                {
+                    Title = "Import Model Template",
+                    Filter = "json files (*.json)|*.json",
+                    DefaultExt = "png",
+                    AddExtension = true,
+                    RestoreDirectory = true,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                };
+
+                var dialogResult = openFileDialog.ShowDialog();
+                if (dialogResult == false)
+                {
+                    _logger.LogInformation("Import template canceled");
+                    return;
+                }
+
+                var serializerOptions = new JsonSerializerOptions();
+                serializerOptions.Converters.Add(new JsonStringEnumConverter());
+                using var filestream = File.OpenRead(openFileDialog.FileName);
+                var modelTemplate = await JsonSerializer.DeserializeAsync<ModelConfigTemplate>(filestream, serializerOptions);
+                if (modelTemplate is null)
+                {
+                    _logger.LogError("Imported template was null");
+                    return;
+                }
+
+                if (ModelSets.Any(x => x.Name == modelTemplate.Name))
+                {
+                    _logger.LogError("Imported template already exixts");
+                    return;
+                }
+
+                // Add
+                ModelSets.Add(CreateViewModel(modelTemplate));
+
+                // add to config file and save
+                UISettings.ModelTemplates.Add(modelTemplate);
+                await SaveConfigurationFile();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Exception importing model template\n{ex}");
+            }
+        }
+
+
+        /// <summary>
+        /// Exports the model template.
+        /// </summary>
+        private async Task Export()
+        {
+            try
+            {
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Title = "Export Model Template",
+                    Filter = "json files (*.json)|*.json",
+                    DefaultExt = "png",
+                    AddExtension = true,
+                    RestoreDirectory = true,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                    FileName = $"{SelectedModelSet.Name}.json"
+                };
+
+                var dialogResult = saveFileDialog.ShowDialog();
+                if (dialogResult == false)
+                {
+                    _logger.LogInformation("Export template canceled");
+                    return;
+                }
+
+                // Write file
+                var serializerOptions = new JsonSerializerOptions();
+                serializerOptions.Converters.Add(new JsonStringEnumConverter());
+                serializerOptions.WriteIndented = true;
+                using (var appsettingWriteStream = File.Open(saveFileDialog.FileName, FileMode.Create))
+                    await JsonSerializer.SerializeAsync(appsettingWriteStream, SelectedModelSet.ModelTemplate, serializerOptions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Exception exporting model template\n{ex}");
+            }
+        }
+
+
+        /// <summary>
+        /// Determines whether this instance can execute Export.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance can execute Export; otherwise, <c>false</c>.
+        /// </returns>
+        private bool CanExecuteExport()
+        {
+            return SelectedModelSet?.ModelTemplate is not null;
+        }
+
         #endregion
 
         #region Helper Methods
@@ -707,9 +860,14 @@ namespace OnnxStack.UI.Views
         private void UpdateTemplateStatus(string name, ModelTemplateStatus status)
         {
             // Update Templater if one was used
-            var template = _onnxStackUIConfig.ModelTemplates.FirstOrDefault(x => x.Name == name);
+            var template = UISettings.ModelTemplates.FirstOrDefault(x => x.Name == name);
             if (template is not null)
             {
+                if (status == ModelTemplateStatus.Deleted)
+                {
+                    UISettings.ModelTemplates.Remove(template);
+                    return;
+                }
                 template.Status = status;
             }
         }
@@ -746,7 +904,7 @@ namespace OnnxStack.UI.Views
         {
             try
             {
-                ConfigManager.SaveConfiguration(_onnxStackUIConfig);
+                ConfigManager.SaveConfiguration(UISettings);
                 ConfigManager.SaveConfiguration(nameof(OnnxStackConfig), _stableDiffusionConfig);
                 return Task.FromResult(true);
             }
@@ -783,7 +941,24 @@ namespace OnnxStack.UI.Views
                 EnableImageInpaint = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaint) || modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
                 EnableImageInpaintLegacy = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
                 ModelFiles = new ObservableCollection<ModelFileViewModel>(Enum.GetValues<OnnxModelType>().Select(x => new ModelFileViewModel { Type = x })),
-                ModelTemplate = modelTemplate
+                ModelTemplate = new ModelConfigTemplate
+                {
+                    Name = modelTemplate.Name,
+                    Author = modelTemplate.Author,
+                    BlankTokenId = modelTemplate.BlankTokenId,
+                    PadTokenId = modelTemplate.PadTokenId,
+                    ScaleFactor = modelTemplate.ScaleFactor,
+                    TokenizerLimit = modelTemplate.TokenizerLimit,
+                    PipelineType = modelTemplate.PipelineType,
+                    Description = modelTemplate.Description,
+                    Diffusers = modelTemplate.Diffusers,
+                    EmbeddingsLength = modelTemplate.EmbeddingsLength,
+                    ImageIcon = modelTemplate.ImageIcon,
+                    Images = modelTemplate.Images,
+                    ModelFiles = modelTemplate.ModelFiles.ToList(),
+                    Repository = modelTemplate.Repository,
+                    Status = ModelTemplateStatus.Installed
+                }
             };
         }
 
@@ -832,8 +1007,25 @@ namespace OnnxStack.UI.Views
                         || x.ExecutionProvider.HasValue
                         || x.IntraOpNumThreads.HasValue
                         || x.InterOpNumThreads.HasValue
-                }))
-
+                })),
+                ModelTemplate = new ModelConfigTemplate
+                {
+                    Name = modelOptions.Name,
+                    Author = "",
+                    BlankTokenId = modelOptions.BlankTokenId,
+                    PadTokenId = modelOptions.PadTokenId,
+                    ScaleFactor = modelOptions.ScaleFactor,
+                    TokenizerLimit = modelOptions.TokenizerLimit,
+                    PipelineType = modelOptions.PipelineType,
+                    Description = "",
+                    Diffusers = modelOptions.Diffusers,
+                    EmbeddingsLength = modelOptions.EmbeddingsLength,
+                    ImageIcon = "",
+                    Images = Enumerable.Range(0, 6).Select(x => string.Empty).ToList(),
+                    ModelFiles = new List<string>(),
+                    Repository = "",
+                    Status = ModelTemplateStatus.Installed
+                }
             };
         }
 
@@ -847,7 +1039,7 @@ namespace OnnxStack.UI.Views
         {
             return new ModelOptions
             {
-                IsEnabled = true,
+                IsEnabled = editModel.IsEnabled,
                 Name = editModel.Name,
                 BlankTokenId = editModel.BlankTokenId,
                 DeviceId = editModel.DeviceId,

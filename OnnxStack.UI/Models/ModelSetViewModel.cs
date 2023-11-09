@@ -1,9 +1,11 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Enums;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace OnnxStack.UI.Views
@@ -33,6 +35,7 @@ namespace OnnxStack.UI.Views
         private string _progessText;
         private double _progressValue;
         private bool _isDownloading;
+        private bool _hasChanged;
 
         public string Name
         {
@@ -183,6 +186,12 @@ namespace OnnxStack.UI.Views
             set { _isTemplate = value; NotifyPropertyChanged(); }
         }
 
+        public bool HasChanged
+        {
+            get { return _hasChanged; }
+            set { _hasChanged = value; NotifyPropertyChanged(); }
+        }
+
 
         public IEnumerable<DiffuserType> GetDiffusers()
         {
@@ -200,8 +209,29 @@ namespace OnnxStack.UI.Views
         public event PropertyChangedEventHandler PropertyChanged;
         public void NotifyPropertyChanged([CallerMemberName] string property = "")
         {
+            if (!property.Equals(nameof(HasChanged)) && !HasChanged)
+                HasChanged = true;
+
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
+
+        internal bool HasChanges()
+        {
+            if (HasChanged)
+                return true;
+
+            return ModelFiles?.Any(x => x.HasChanged) ?? false;
+        }
+
+        internal void ResetChanges()
+        {
+            HasChanged = false;
+            foreach (var modelFile in ModelFiles)
+            {
+                modelFile.HasChanged = false;
+            }
+        }
+
         #endregion
     }
 
