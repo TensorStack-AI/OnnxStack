@@ -18,10 +18,12 @@
                     <TextBlock Text="Models" />
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Bottom">
-                    <UniformGrid Columns="3">
+                    <UniformGrid Columns="5">
                         <Button Content="Add" Command="{Binding AddCommand}" />
                         <Button Content="Copy" Command="{Binding CopyCommand}" />
                         <Button Content="Remove" Command="{Binding RemoveCommand}" />
+                        <Button Content="Import" Command="{Binding ImportCommand}" />
+                        <Button Content="Export" Command="{Binding ExportCommand}" />
                     </UniformGrid>
                 </StackPanel>
                 <ListBox Margin="0,0,0,2"
@@ -63,7 +65,7 @@
                         <DataTemplate>
                             <DockPanel>
                                 <StackPanel DockPanel.Dock="Left">
-                                     <userControls:CachedImage ImageUrl="{Binding ModelTemplate.ImageIcon, IsAsync=True}" CacheName="{Binding Name}" Placeholder="{StaticResource PlaceholderIcon}" Height="34" Margin="0,1,3,1" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                                    <userControls:CachedImage ImageUrl="{Binding ModelTemplate.ImageIcon, IsAsync=True}" CacheName="{Binding Name}" Placeholder="{StaticResource PlaceholderIcon}" Height="34" Margin="0,1,3,1" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
                                 </StackPanel>
                                 <UniformGrid DockPanel.Dock="Right" Columns="1" Margin="2">
                                     <userControls:FontAwesome Icon="&#xf205;" IconStyle="Light" Size="12" VerticalAlignment="Center">
@@ -149,7 +151,7 @@
                     </StackPanel>
                     <StackPanel></StackPanel>
                 </DockPanel>
-                <TextBlock Text="This model has been converted to ONNX and tested with OnnxStack" />
+                <TextBlock Text="{Binding SelectedModelSet.ModelTemplate.Description}" />
 
                 <!--Preview Images-->
                 <TextBlock Text="Preview Images" Margin="0,20, 0, 0" />
@@ -392,15 +394,69 @@
 
 
                     </TabItem>
+
+                    <TabItem Header="Details" Width="150" Padding="0,0,0,5">
+
+                        <StackPanel Margin="5">
+                            <UniformGrid Columns="3" >
+                                <DockPanel Margin="0,0,4,0">
+                                    <StackPanel DockPanel.Dock="Right" >
+                                        <TextBlock />
+                                        <Button Command="{Binding RenameCommand, ElementName=UI}" Content="Rename" Height="22" Padding="10,0" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Name" />
+                                        <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Name}" IsReadOnly="True"  />
+                                    </StackPanel>
+                                </DockPanel>
+                                <StackPanel Margin="0,0,4,0">
+                                    <TextBlock Text="Author" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Author}"  />
+                                </StackPanel>
+                            </UniformGrid>
+                            <StackPanel Margin="0,5,0,0">
+                                <TextBlock Text="Description" />
+                                <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Description}" />
+                            </StackPanel>
+                            <StackPanel Margin="0,5,0,0" >
+                                <TextBlock Text="Repository" />
+                                <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Repository}"  />
+                            </StackPanel>
+                            <UniformGrid>
+                                <StackPanel  Margin="0,5,5,0">
+                                    <TextBlock Text="Icon Image" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ImageIcon}"  />
+                                    <TextBlock Text="Preview Images" Margin="0,5,0,0"/>
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Images[0]}" Margin="0,2,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Images[1]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Images[2]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Images[3]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Images[4]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.Images[5]}" Margin="0,5,0,0" />
+                                </StackPanel>
+
+                                <StackPanel  Margin="5,5,0,0">
+                                    <TextBlock Text="Download Files" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[0]}" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[1]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[2]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[3]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[4]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[5]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[6]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[7]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[8]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[9]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[10]}" Margin="0,5,0,0" />
+                                    <TextBox Text="{Binding SelectedModelSet.ModelTemplate.ModelFiles[11]}" Margin="0,5,0,0" />
+                                </StackPanel>
+
+                            </UniformGrid>
+                        </StackPanel>
+                    </TabItem>
                 </TabControl>
 
-
-
-
-
-
             </DockPanel>
-
 
         </DockPanel>
 

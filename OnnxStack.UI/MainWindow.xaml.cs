@@ -140,7 +140,10 @@ namespace OnnxStack.UI
 
                 var dialogResult = saveFileDialog.ShowDialog();
                 if (dialogResult == false)
+                {
                     _logger.LogInformation("Saving image canceled");
+                    return;
+                }
 
                 var result = await imageResult.SaveImageFile(saveFileDialog.FileName);
                 if (!result)
@@ -171,7 +174,10 @@ namespace OnnxStack.UI
 
                 var dialogResult = saveFileDialog.ShowDialog();
                 if (dialogResult == false)
+                {
                     _logger.LogInformation("Saving image blueprint canceled");
+                    return;
+                }
 
                 var result = await imageResult.SaveBlueprintFile(saveFileDialog.FileName);
                 if (!result)
