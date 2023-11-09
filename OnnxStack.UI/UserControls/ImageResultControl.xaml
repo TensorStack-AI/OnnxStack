@@ -15,7 +15,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Border DataContext="{Binding ElementName=UI}" BorderBrush="LightGray" BorderThickness="2" >
+    <Border DataContext="{Binding ElementName=UI}" BorderBrush="{StaticResource ControlBrightDefaultBorderBrush}" BorderThickness="2" >
         <StackPanel Margin="2">
             <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width, FallbackValue=512}" Height="{Binding SchedulerOptions.Height, FallbackValue=512}" MinHeight="512" MinWidth="512"   >
                 <Image.ContextMenu>

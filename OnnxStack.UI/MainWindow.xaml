@@ -11,13 +11,16 @@
         Width="1200"
         Height="700"
         MinWidth="820"
-        MinHeight="780"
+        MinHeight="600"
         Icon="/Images/Icon.png" Name="UI" 
         RenderOptions.BitmapScalingMode="HighQuality"
         RenderOptions.ClearTypeHint="Enabled"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType" 
-        TextOptions.TextHintingMode="Fixed">
+        TextOptions.TextHintingMode="Fixed"  
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Style="{StaticResource BaseWindow}">
     <Grid DataContext="{Binding ElementName=UI}">
         <TabControl Style="{StaticResource SplitTabControl}" SelectedIndex="{Binding SelectedTabIndex}" SelectedValue="{Binding SelectedTabItem}" SelectedValuePath="Content" DockPanel.Dock="Top" Margin="4">
 
@@ -33,7 +36,7 @@
                         <TextBlock Text="Text To Image" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:TextToImageView Margin="0,10,0,0"/>
+                <views:TextToImageView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Image To Image-->
@@ -48,7 +51,7 @@
                         <TextBlock Text="Image To Image" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageToImage Margin="0,10,0,0"/>
+                <views:ImageToImage UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Image Inpaint-->
@@ -63,7 +66,7 @@
                         <TextBlock Text="Image Inpaint" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageInpaint Margin="0,10,0,0"/>
+                <views:ImageInpaint UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Log Window-->
@@ -73,23 +76,35 @@
                         <StackPanel Orientation="Horizontal">
                             <userControls:FontAwesome Icon="&#xf022;" IconStyle="Light"/>
                         </StackPanel>
-                        <TextBlock Text="Logs" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Logger LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,10,0,0"/>
+                <views:Logger UISettings="{Binding UISettings}" LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
-            <!--Settings-->
+            <!--Settings Window-->
             <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
                             <userControls:FontAwesome Icon="&#xf013;" IconStyle="Light"/>
                         </StackPanel>
-                        <TextBlock Text="Settings" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Settings ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,10,0,0"/>
+                <views:Settings UISettings="{Binding UISettings, Mode=TwoWay}" Margin="0,6,0,0"/>
+            </TabItem>
+
+
+            <!--Models-->
+            <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf5fd;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Models" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:ModelView UISettings="{Binding UISettings}" ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,6,0,0"/>
             </TabItem>
         </TabControl>
     </Grid>

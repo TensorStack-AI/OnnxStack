@@ -6,10 +6,15 @@
         mc:Ignorable="d"
         Name="UI"
         Icon="/Images/Icon.png"
+        MinWidth="400"
+        MaxWidth="400"
         SizeToContent="WidthAndHeight"
-        WindowStartupLocation="CenterScreen" 
-        MinWidth="400" MaxWidth="400">
-    <DockPanel DataContext="{Binding ElementName=UI}" Margin="15">
+        WindowStartupLocation="CenterOwner" 
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        Style="{StaticResource BaseWindow}" 
+        ContentRendered="OnContentRendered">
+    <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top">
             <TextBlock Text="{Binding Message}" TextAlignment="Center" TextWrapping="Wrap" />
         </StackPanel>
@@ -27,7 +32,7 @@
                 </Button.Style>
             </Button>
             <UniformGrid Columns="2">
-                <Button Content="Yes" Command="{Binding YesCommand}" Width="100"/>
+                <Button Content="Yes" Command="{Binding YesCommand}" Width="100" IsDefault="True"/>
                 <Button Content="No" Command="{Binding NoCommand}"/>
                 <UniformGrid.Style>
                     <Style TargetType="{x:Type UniformGrid}">

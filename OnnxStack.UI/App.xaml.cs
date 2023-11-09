@@ -1,18 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
 using OnnxStack.Core;
-using OnnxStack.UI.Services;
 using OnnxStack.UI.Dialogs;
-using System.Diagnostics;
-using System.Windows.Controls;
+using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
+using System;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace OnnxStack.UI
@@ -33,6 +27,7 @@ namespace OnnxStack.UI
 
             // Add OnnxStackStableDiffusion
             builder.Services.AddOnnxStackStableDiffusion();
+            builder.Services.AddOnnxStackConfig<OnnxStackUIConfig>();
 
             // Add Windows
             builder.Services.AddSingleton<MainWindow>();
@@ -40,6 +35,7 @@ namespace OnnxStack.UI
             builder.Services.AddTransient<TextInputDialog>();
             builder.Services.AddTransient<CropImageDialog>();
             builder.Services.AddSingleton<IDialogService, DialogService>();
+            builder.Services.AddSingleton<IModelDownloadService, ModelDownloadService>();
 
             // Build App
             _applicationHost = builder.Build();

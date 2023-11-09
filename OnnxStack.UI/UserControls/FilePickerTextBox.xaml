@@ -17,8 +17,11 @@
 
     <DockPanel DataContext="{Binding ElementName=UI}">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-            <Button Command="{Binding OpenFileDialogCommand}" Width="24" >
-                <local:FontAwesome Icon="&#xf002;" Size="12"/>
+            <Button Command="{Binding OpenFileDialogCommand}" Padding="15, 0">
+                <StackPanel Orientation="Horizontal">
+                    <local:FontAwesome Icon="&#xf002;" Size="12" />
+                    <TextBlock Text="Browse" Margin="4,0,0,0"/>
+                </StackPanel>
             </Button>
             <Button Command="{Binding ClearFileCommand}" Visibility="{Binding IsRequired, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Width="24" BorderThickness="0,1,1,1" >
                 <local:FontAwesome Icon="&#xf00d;" Size="15" IconStyle="Light"/>
@@ -27,33 +30,50 @@
         
         <TextBox>
             <TextBox.Style>
-                <Style TargetType="{x:Type TextBox}">
+                <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
                     <Setter Property="Height" Value="25" />
                     <Setter Property="Padding" Value="1,3,1,1" />
                     <Setter Property="BorderThickness" Value="1,1,0,1" />
+                    <Setter Property="Text" Value="{Binding FileName, ElementName=UI, NotifyOnValidationError=False}" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsRequired}" Value="True">
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsEnabled, ElementName=UI}" Value="True"/>
+                                <Condition Binding="{Binding IsRequired}" Value="True"/>
+                                <Condition Binding="{Binding IsFolderPicker}" Value="False"/>
+                            </MultiDataTrigger.Conditions>
                             <Setter Property="Text">
                                 <Setter.Value>
-                                    <Binding Path="FileName" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding Path="FileName" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
                                         <Binding.ValidationRules>
-                                            <local:FileExistsValidationRule IsRequired="True" ValidatesOnTargetUpdated="True" />
+                                            <local:FileExistsValidationRule IsRequired="True" IsFolder="False" ValidatesOnTargetUpdated="True" />
                                         </Binding.ValidationRules>
                                     </Binding>
                                 </Setter.Value>
                             </Setter>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding IsRequired}" Value="False">
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsEnabled, ElementName=UI}" Value="True"/>
+                                <Condition Binding="{Binding IsRequired}" Value="True"/>
+                                <Condition Binding="{Binding IsFolderPicker}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
                             <Setter Property="Text">
                                 <Setter.Value>
-                                    <Binding Path="FileName" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding Path="FileName" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
                                         <Binding.ValidationRules>
-                                            <local:FileExistsValidationRule IsRequired="False" ValidatesOnTargetUpdated="True" />
+                                            <local:FileExistsValidationRule IsRequired="True" IsFolder="True" ValidatesOnTargetUpdated="True" />
                                         </Binding.ValidationRules>
                                     </Binding>
                                 </Setter.Value>
                             </Setter>
-                        </DataTrigger>
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsRequired}" Value="False"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Validation.ErrorTemplate" Value="{x:Null}"/>
+                        </MultiDataTrigger>
                     </Style.Triggers>
                 </Style>
             </TextBox.Style>

@@ -8,20 +8,21 @@
              Name="UI" mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800" >
     <Grid DataContext="{Binding ElementName=UI}" >
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="340" />
-            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="4" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!--Control Panel-->
-        <DockPanel Grid.Column="0" DataContext="{Binding ElementName=UI}" Margin="3">
+        <DockPanel Grid.Column="0" DataContext="{Binding ElementName=UI}" Margin="3,3,3,0">
             <UniformGrid DockPanel.Dock="Bottom" Columns="2" Height="30">
-                <Button Content="Cancel" Command="{Binding CancelCommand}" BorderThickness="1,1,0,1"/>
-                <Button Content="Generate" Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}" Margin="0,0,1,0"/>
+                <Button Content="Generate" Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" IsDefault="True" Margin="1,0,0,0"/>
             </UniformGrid>
             <DockPanel>
                 <StackPanel IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}">
                     <userControls:ModelPickerControl 
+                        UISettings="{Binding UISettings}"
                         SupportedDiffusers="{Binding SupportedDiffusers}"
                         SelectedModel="{Binding SelectedModel, Mode=TwoWay}" Models="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=Models}"/>
                     <userControls:PromptControl 
@@ -36,10 +37,10 @@
             </DockPanel>
         </DockPanel>
 
-        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" />
+        <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="4" />
 
         <!--Content Panel-->
-        <DockPanel Grid.Column="2" >
+        <DockPanel Grid.Column="2" Margin="3,0,0,0">
 
             <!--Generate Tab-->
             <TabControl SelectedIndex="{Binding SelectedTabIndex}">

@@ -24,6 +24,14 @@ namespace OnnxStack.UI.Views
             InitializeComponent();
         }
 
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(Logger));
+
         public AsyncRelayCommand ResetCommand { get; }
 
 

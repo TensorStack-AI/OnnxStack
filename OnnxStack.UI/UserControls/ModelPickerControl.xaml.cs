@@ -1,8 +1,10 @@
-﻿using Models;
+﻿using Microsoft.Extensions.Logging;
+using Models;
+using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
-using OnnxStack.UI.Views;
+using OnnxStack.UI.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -20,13 +22,17 @@ namespace OnnxStack.UI.UserControls
     /// </summary>
     public partial class ModelPickerControl : UserControl, INotifyPropertyChanged
     {
+        private readonly ILogger<ModelPickerControl> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
 
         /// <summary>Initializes a new instance of the <see cref="ModelPickerControl" /> class.</summary>
         public ModelPickerControl()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
+            {
+                _logger = App.GetService<ILogger<ModelPickerControl>>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
+            }
 
             LoadCommand = new AsyncRelayCommand(LoadModel);
             UnloadCommand = new AsyncRelayCommand(UnloadModel);
@@ -47,6 +53,16 @@ namespace OnnxStack.UI.UserControls
         }
         public static readonly DependencyProperty ModelsProperty =
             DependencyProperty.Register("Models", typeof(ObservableCollection<ModelOptionsModel>), typeof(ModelPickerControl), new PropertyMetadata(propertyChangedCallback: OnModelsChanged));
+
+
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelPickerControl));
+
 
 
         /// <summary>
@@ -82,10 +98,30 @@ namespace OnnxStack.UI.UserControls
             if (_stableDiffusionService.IsModelLoaded(SelectedModel.ModelOptions))
                 return;
 
+            var elapsed = _logger.LogBegin($"'{SelectedModel.Name}' Loading...");
+            SelectedModel.IsLoaded = false;
             SelectedModel.IsLoading = true;
-            var result = await _stableDiffusionService.LoadModel(SelectedModel.ModelOptions);
+
+            try
+            {
+                if (UISettings.ModelCacheMode == ModelCacheMode.Single)
+                {
+                    foreach (var model in Models.Where(x => x.IsLoaded))
+                    {
+                        _logger.LogInformation($"'{model.Name}' Unloading...");
+                        await _stableDiffusionService.UnloadModel(model.ModelOptions);
+                    }
+                }
+
+                SelectedModel.IsLoaded = await _stableDiffusionService.LoadModel(SelectedModel.ModelOptions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An error occured while loading model '{SelectedModel.Name}' \n {ex}");
+            }
+
             SelectedModel.IsLoading = false;
-            SelectedModel.IsLoaded = result;
+            _logger.LogEnd($"'{SelectedModel.Name}' Loaded.", elapsed);
         }
 
 
@@ -97,10 +133,12 @@ namespace OnnxStack.UI.UserControls
             if (!_stableDiffusionService.IsModelLoaded(SelectedModel.ModelOptions))
                 return;
 
+            _logger.LogInformation($"'{SelectedModel.Name}' Unloading...");
             SelectedModel.IsLoading = true;
             await _stableDiffusionService.UnloadModel(SelectedModel.ModelOptions);
             SelectedModel.IsLoading = false;
             SelectedModel.IsLoaded = false;
+            _logger.LogInformation($"'{SelectedModel.Name}' Unloaded.");
         }
 
 

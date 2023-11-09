@@ -54,8 +54,9 @@
                 ItemsSource="{Binding Models}" 
                 SelectedItem="{Binding SelectedModel}" 
                 IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" >
+             
                 <ComboBox.ItemContainerStyle>
-                    <Style TargetType="{x:Type ComboBoxItem}">
+                    <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsEnabled}" Value="True">

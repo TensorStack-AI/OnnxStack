@@ -12,7 +12,6 @@ namespace OnnxStack.StableDiffusion.Common
         int BlankTokenId { get; set; }
         float ScaleFactor { get; set; }
         int TokenizerLimit { get; set; }
-        int InputTokenLimit { get; set; }
         int EmbeddingsLength { get; set; }
         DiffuserPipelineType PipelineType { get; set; }
         List<DiffuserType> Diffusers { get; set; }

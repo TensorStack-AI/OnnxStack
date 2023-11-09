@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
 using OnnxStack.UI.Commands;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -26,11 +27,19 @@ namespace OnnxStack.UI.Dialogs
         public TextInputDialog(ILogger<TextInputDialog> logger)
         {
             _logger = logger;
+            WindowCloseCommand = new AsyncRelayCommand(WindowClose);
+            WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
+            WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
+            WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             InitializeComponent();
+            ErrorMessage = string.Empty;
         }
-
+        public AsyncRelayCommand WindowMinimizeCommand { get; }
+        public AsyncRelayCommand WindowRestoreCommand { get; }
+        public AsyncRelayCommand WindowMaximizeCommand { get; }
+        public AsyncRelayCommand WindowCloseCommand { get; }
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
 
@@ -112,6 +121,41 @@ namespace OnnxStack.UI.Dialogs
         {
             return true;
         }
+
+        #region BaseWindow
+
+        private Task WindowClose()
+        {
+            Close();
+            return Task.CompletedTask;
+        }
+
+        private Task WindowRestore()
+        {
+            if (WindowState == WindowState.Maximized)
+                WindowState = WindowState.Normal;
+            else
+                WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMinimize()
+        {
+            WindowState = WindowState.Minimized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMaximize()
+        {
+            WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        private void OnContentRendered(object sender, EventArgs e)
+        {
+            InvalidateVisual();
+        }
+        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

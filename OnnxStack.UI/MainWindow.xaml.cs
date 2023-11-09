@@ -28,25 +28,43 @@ namespace OnnxStack.UI
         private readonly ILogger<MainWindow> _logger;
         private ObservableCollection<ModelOptionsModel> _models;
 
-        public MainWindow(StableDiffusionConfig configuration, ILogger<MainWindow> logger)
+        public MainWindow(StableDiffusionConfig configuration, OnnxStackUIConfig uiSettings, ILogger<MainWindow> logger)
         {
             _logger = logger;
+            UISettings = uiSettings;
             SaveImageCommand = new AsyncRelayCommand<ImageResult>(SaveImageFile);
             SaveBlueprintCommand = new AsyncRelayCommand<ImageResult>(SaveBlueprintFile);
             NavigateTextToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateTextToImage);
             NavigateImageToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImageToImage);
             NavigateImageInpaintCommand = new AsyncRelayCommand<ImageResult>(NavigateImageInpaint);
             NavigateImageUpscaleCommand = new AsyncRelayCommand<ImageResult>(NavigateImageUpscale);
+
+            WindowCloseCommand = new AsyncRelayCommand(WindowClose);
+            WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
+            WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
+            WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             Models = CreateModelOptions(configuration.OnnxModelSets);
             InitializeComponent();
         }
 
+        public AsyncRelayCommand WindowMinimizeCommand { get; }
+        public AsyncRelayCommand WindowRestoreCommand { get; }
+        public AsyncRelayCommand WindowMaximizeCommand { get; }
+        public AsyncRelayCommand WindowCloseCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveImageCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveBlueprintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateTextToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageInpaintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageUpscaleCommand { get; }
+
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(MainWindow));
 
         public ObservableCollection<ModelOptionsModel> Models
         {
@@ -185,6 +203,37 @@ namespace OnnxStack.UI
         {
             OutputLog += message;
         }
+
+        #region BaseWindow
+
+        private Task WindowClose()
+        {
+            Close();
+            return Task.CompletedTask;
+        }
+
+        private Task WindowRestore()
+        {
+            if (WindowState == WindowState.Maximized)
+                WindowState = WindowState.Normal;
+            else
+                WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMinimize()
+        {
+            WindowState = WindowState.Minimized;
+            return Task.CompletedTask;
+        }
+
+        private Task WindowMaximize()
+        {
+            WindowState = WindowState.Maximized;
+            return Task.CompletedTask;
+        }
+
+        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

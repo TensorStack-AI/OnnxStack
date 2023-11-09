@@ -2,7 +2,6 @@
 using OnnxStack.UI.Models;
 using System;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -74,6 +73,25 @@ namespace OnnxStack.UI
                 return File.Exists(filename);
             }
         }
+
+
+        public static async Task<bool> AutoSave(this ImageResult imageResult, string autosaveDirectory, bool includeBlueprint)
+        {
+            if (!Directory.Exists(autosaveDirectory))
+                Directory.CreateDirectory(autosaveDirectory);
+
+            var random = RandomString();
+            var imageFile = Path.Combine(autosaveDirectory,  $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
+            var blueprintFile = Path.Combine(autosaveDirectory,  $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
+            if (!await imageResult.SaveImageFile(imageFile))
+                return false;
+
+            if (includeBlueprint)
+                return await imageResult.SaveBlueprintFile(blueprintFile);
+
+            return true;
+        }
+
 
         public static SchedulerOptions ToSchedulerOptions(this SchedulerOptionsModel model)
         {

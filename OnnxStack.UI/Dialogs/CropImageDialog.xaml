@@ -9,13 +9,16 @@
         Name="UI"
         Icon="/Images/Icon.png"
         Title="Crop Image" 
+        MinHeight="620"
+        MinWidth="400"
         SizeToContent="WidthAndHeight"
-        WindowStartupLocation="CenterScreen" 
-        MinHeight="620" MinWidth="400">
-    <DockPanel DataContext="{Binding ElementName=UI}" Margin="15">
-        <DockPanel.Resources>
-            <SolidColorBrush x:Key="CropFrameBrush" Color="WhiteSmoke" />
-        </DockPanel.Resources>
+        WindowStartupLocation="CenterOwner" 
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        Style="{StaticResource BaseWindow}" 
+        ContentRendered="OnContentRendered">
+    <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
+
         <StackPanel  DockPanel.Dock="Bottom" >
             <DockPanel VerticalAlignment="Bottom">
                 <StackPanel DockPanel.Dock="Right" VerticalAlignment="Bottom">
@@ -40,11 +43,11 @@
             <UniformGrid Columns="4" Margin="0,25,0,0">
                 <TextBlock/>
                 <TextBlock/>
+                <Button IsDefault="True" Command="{Binding DoneCommand}" MinWidth="100" Height="30">Done</Button>
                 <Button IsCancel="True" Command="{Binding CancelCommand}" MinWidth="100" Height="30">_Cancel</Button>
-                <Button IsDefault="True" Command="{Binding DoneCommand}" MinWidth="100" Height="30">_Done</Button>
             </UniformGrid>
         </StackPanel>
-        <Border BorderThickness="2" BorderBrush="Gainsboro" >
+        <Border BorderThickness="2" BorderBrush="{StaticResource ContainerBorder}" >
             <Canvas Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  MouseWheel="CropFrame_MouseWheel">
                 <Image Source="{Binding SourceImage, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding ImageWidth}" Height="{Binding ImageHeight}" />
                 <Canvas x:Name="CropFrame" Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" Visibility="{Binding IsCropped, Converter={StaticResource InverseBooleanToVisibilityConverter}}"  MouseLeftButtonUp="CropFrame_MouseLeftButtonUp" MouseLeftButtonDown="CropFrame_MouseLeftButtonDown" MouseMove="CropFrame_MouseMove"  >

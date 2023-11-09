@@ -193,9 +193,18 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         protected virtual IReadOnlyList<NamedOnnxValue> CreateUnetInputParams(IModelOptions model, DenseTensor<float> inputTensor, DenseTensor<float> promptEmbeddings, DenseTensor<float> guidanceEmbeddings, int timestep)
         {
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.Unet);
+            var inputMetaData = _onnxModelService.GetInputMetadata(model, OnnxModelType.Unet);
+
+            // Some models support Long or Float, could be more but fornow just support these 2
+            var timesepMetaKey = inputNames[1];
+            var timestepMetaData = inputMetaData[timesepMetaKey];
+            var timestepNamedOnnxValue = timestepMetaData.ElementDataType == TensorElementType.Int64
+                ? NamedOnnxValue.CreateFromTensor(timesepMetaKey, new DenseTensor<long>(new long[] { timestep }, new int[] { 1 }))
+                : NamedOnnxValue.CreateFromTensor(timesepMetaKey, new DenseTensor<float>(new float[] { timestep }, new int[] { 1 }));
+
             return CreateInputParameters(
                  NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
-                 NamedOnnxValue.CreateFromTensor(inputNames[1], new DenseTensor<long>(new long[] { timestep }, new int[] { 1 })),
+                 timestepNamedOnnxValue,
                  NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings),
                  NamedOnnxValue.CreateFromTensor(inputNames[3], guidanceEmbeddings));
         }

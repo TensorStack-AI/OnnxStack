@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:OnnxStack.UI.UserControls"
+             xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
              mc:Ignorable="d" 
              d:DesignWidth="500" Name="UI">
     <UserControl.Resources>
@@ -16,11 +17,11 @@
         <StackPanel DockPanel.Dock="Top">
             <StackPanel>
                 <Label>Prompt</Label>
-                <TextBox Text="{Binding PromptOptions.Prompt, UpdateSourceTrigger=PropertyChanged}" Height="100" TextWrapping="Wrap"/>
+                <TextBox Text="{Binding PromptOptions.Prompt, UpdateSourceTrigger=PropertyChanged}" behaviors:ShiftEnterBehavior.Enable="True" Height="100" TextWrapping="Wrap"/>
             </StackPanel>
             <StackPanel>
                 <Label>Negative Prompt</Label>
-                <TextBox Text="{Binding PromptOptions.NegativePrompt}" Height="100" TextWrapping="Wrap"/>
+                <TextBox Text="{Binding PromptOptions.NegativePrompt}" behaviors:ShiftEnterBehavior.Enable="True" Height="100" TextWrapping="Wrap"/>
             </StackPanel>
             <StackPanel>
                 <Label>Scheduler</Label>

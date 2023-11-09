@@ -33,7 +33,7 @@
                             <TextBox Text="{Binding SchedulerOptions.Seed}"/>
                         </StackPanel>
                         <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left">
-                            <Button Command="{Binding RandomSeedCommand}" Height="24" Width="24" BorderThickness="0,1,1,1">
+                            <Button Command="{Binding RandomSeedCommand}" Height="22" Width="22" BorderThickness="0,1,1,1">
                                 <userControls:FontAwesome Icon="&#xf074;" IconStyle="Light"/>
                             </Button>
                         </StackPanel>
