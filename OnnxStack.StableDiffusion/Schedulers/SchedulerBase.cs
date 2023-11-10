@@ -205,13 +205,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
             DenseTensor<float> predOriginalSample = null;
             if (Options.PredictionType == PredictionType.Epsilon)
             {
-                predOriginalSample = sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigma));
+                predOriginalSample = sample.SubtractTensors(modelOutput.MultiplyTensorByFloat(sigma));
             }
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
                 var sigmaSqrt = (float)Math.Sqrt(sigma * sigma + 1);
                 predOriginalSample = sample.DivideTensorByFloat(sigmaSqrt)
-                    .AddTensors(modelOutput.MultipleTensorByFloat(-sigma / sigmaSqrt));
+                    .AddTensors(modelOutput.MultiplyTensorByFloat(-sigma / sigmaSqrt));
             }
             else if (Options.PredictionType == PredictionType.Sample)
             {
