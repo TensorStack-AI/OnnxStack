@@ -24,11 +24,11 @@
 	  "https://huggingface.co/TheyCallMeHex/LCM-Dreamshaper-V7-ONNX/resolve/main/vae_encoder/model.onnx"
   ],
   "Images": [
-    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7-ONNX/Preview1.png",
-    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7-ONNX/Preview2.png",
-    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7-ONNX/Preview3.png",
-    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7-ONNX/Preview4.png",
-    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7-ONNX/Preview5.png",
-    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7-ONNX/Preview6.png"
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7/Preview1.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7/Preview2.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7/Preview3.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7/Preview4.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7/Preview5.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7/Preview6.png"
   ]
 }
