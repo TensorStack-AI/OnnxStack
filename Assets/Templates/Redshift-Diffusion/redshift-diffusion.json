@@ -1,6 +1,6 @@
 {
  "Name": "Redshift-Diffusion",
- "Description": "",
+ "Description": "The tokens for Redshift Diffusion are: redshift style",
  "Author": "TheyCallMeHex",
  "Repository": "https://huggingface.co/TheyCallMeHex/Redshift-Diffusion-ONNX",
  "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Redshift-Diffusion/Icon.png",

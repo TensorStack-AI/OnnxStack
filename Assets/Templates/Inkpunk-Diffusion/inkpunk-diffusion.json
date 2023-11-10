@@ -1,6 +1,6 @@
 {
    "Name": "Inkpunk Diffusion",
-   "Description": "",
+   "Description": "The tokens for Inkpunk Diffusion are: nvinkpunk",
    "Author": "TheyCallMeHex",
    "Repository": "https://huggingface.co/TheyCallMeHex/Inkpunk-Diffusion-ONNX",
    "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Inkpunk-Diffusion/Icon.png",
