@@ -38,6 +38,7 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.ImageDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.InpaintDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.InpaintLegacyDiffuser>();
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.UpscaleDiffuser>();
 
             //LatentConsistency
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.TextDiffuser>();

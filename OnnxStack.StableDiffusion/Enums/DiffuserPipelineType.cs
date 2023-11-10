@@ -3,7 +3,6 @@
     public enum DiffuserPipelineType
     {
         StableDiffusion = 0,
-        LatentConsistency = 10,
-        Upscaler = 20
+        LatentConsistency = 10
     }
 }
