@@ -2,7 +2,7 @@
   "Name": "StableDiffusion 1.5",
   "Description": "This is a model that can be used to generate and modify images based on text prompts. It is a Latent Diffusion Model that uses a fixed, pretrained text encoder (CLIP ViT-L/14) as suggested in the Imagen paper.",
   "Author": "runwayml",
-  "Repository": "https://huggingface.co/runwayml/stable-diffusion-v1-5",
+  "Repository": "https://huggingface.co/runwayml/stable-diffusion-v1-5/tree/onnx",
   "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Icon.png",
   "Status": "Active",
   "PadTokenId": 49407,

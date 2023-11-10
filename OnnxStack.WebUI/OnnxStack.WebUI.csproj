@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.6.0" Condition=" '$(Configuration)' == 'Release' "/>
+    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.7.0" Condition=" '$(Configuration)' == 'Release' "/>
     <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
   </ItemGroup>
 
