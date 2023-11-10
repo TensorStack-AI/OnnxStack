@@ -8,6 +8,10 @@
 ![Nuget](https://img.shields.io/nuget/dt/OnnxStack.Core)
 [![StableDiffusion Badge](https://img.shields.io/nuget/v/OnnxStack.StableDiffusion?color=4bc51e&label=OnnxStack.StableDiffusion)](https://www.nuget.org/packages/OnnxStack.StableDiffusion)
 ![Nuget](https://img.shields.io/nuget/dt/OnnxStack.StableDiffusion)
+[![Discord](https://img.shields.io/discord/1170119641545314375?label=Discord&)](https://discord.gg/YmUpFaaFsf)
+[![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCaWjlIC2uz8hDIZCBXjyDRw)](https://www.youtube.com/@OnnxStack)
+
+
 
 
 
