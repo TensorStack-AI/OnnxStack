@@ -3,7 +3,7 @@
   "Description": "DreamShaper started as a model to have an alternative to MidJourney in the open source world.",
   "Author": "TheyCallMeHex",
   "Repository": "https://huggingface.co/TheyCallMeHex/LCM-Dreamshaper-V7-ONNX",
-  "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7-ONNX/Icon.png",
+  "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/LCM-Dreamshaper-V7/Icon.png",
   "Status": "Active",
   "PadTokenId": 49407,
   "BlankTokenId": 49407,
