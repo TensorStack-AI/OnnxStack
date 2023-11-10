@@ -1,0 +1,34 @@
+{
+  "Name": "StableDiffusion 1.5",
+  "Description": "This is a model that can be used to generate and modify images based on text prompts. It is a Latent Diffusion Model that uses a fixed, pretrained text encoder (CLIP ViT-L/14) as suggested in the Imagen paper.",
+  "Author": "runwayml",
+  "Repository": "https://huggingface.co/runwayml/stable-diffusion-v1-5/tree/onnx",
+  "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Icon.png",
+  "Status": "Active",
+  "PadTokenId": 49407,
+  "BlankTokenId": 49407,
+  "TokenizerLimit": 77,
+  "EmbeddingsLength": 768,
+  "ScaleFactor": 0.18215,
+  "PipelineType": "StableDiffusion",
+  "Diffusers": [
+    "TextToImage",
+    "ImageToImage",
+    "ImageInpaintLegacy"
+  ],
+  "ModelFiles": [
+    "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/onnx/unet/model.onnx",
+    "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/onnx/unet/weights.pb",
+    "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/onnx/text_encoder/model.onnx",
+    "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/onnx/vae_decoder/model.onnx",
+    "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/onnx/vae_encoder/model.onnx"
+  ],
+  "Images": [
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Preview1.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Preview2.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Preview3.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Preview4.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Preview5.png",
+    "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/stable-diffusion-v1-5/Preview6.png"
+  ]
+}

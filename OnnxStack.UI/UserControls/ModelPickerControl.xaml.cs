@@ -110,6 +110,7 @@ namespace OnnxStack.UI.UserControls
                     {
                         _logger.LogInformation($"'{model.Name}' Unloading...");
                         await _stableDiffusionService.UnloadModel(model.ModelOptions);
+                        model.IsLoaded = false;
                     }
                 }
 

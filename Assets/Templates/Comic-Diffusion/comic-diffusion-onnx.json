@@ -1,0 +1,35 @@
+{
+	"Name": "Comic-Diffusion",
+	"Description": "The tokens for Comic Diffusion are: charliebo artstyle, holliemengert artstyle, marioalberti artstyle, pepelarraz artstyle, andreasrocha artstyle, jamesdaly artstyle, comicmay artstyle",
+	"Author": "TheyCallMeHex",
+	"Repository": "https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX",
+	"ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Icon.png",
+	"Status": "Active",
+	"PadTokenId": 49407,
+	"BlankTokenId": 49407,
+	"TokenizerLimit": 77,
+	"EmbeddingsLength": 768,
+	"ScaleFactor": 0.18215,
+	"PipelineType": "StableDiffusion",
+	"Diffusers": [
+	"TextToImage",
+	"ImageToImage",
+	"ImageInpaintLegacy"
+	],
+	"ModelFiles": [
+	"https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX/resolve/main/tokenizer/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX/resolve/main/unet/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX/resolve/main/unet/model.onnx_data",
+	"https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX/resolve/main/text_encoder/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX/resolve/main/vae_decoder/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX/resolve/main/vae_encoder/model.onnx"
+	],
+	"Images": [
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Preview1.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Preview2.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Preview3.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Preview4.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Preview5.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Preview6.png"
+	]
+}

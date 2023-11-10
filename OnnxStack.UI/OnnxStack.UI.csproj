@@ -40,12 +40,13 @@
   </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="OnnxStack.StableDiffusion" Version="0.6.0" Condition=" '$(Configuration)' == 'Release' " />
+        <PackageReference Include="OnnxStack.StableDiffusion" Version="0.7.0" Condition=" '$(Configuration)' == 'Release' " />
         <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
     </ItemGroup>
 
 
     <ItemGroup>
+        <PackageReference Include="LibGit2Sharp" Version="0.28.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />

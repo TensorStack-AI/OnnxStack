@@ -1,0 +1,35 @@
+{
+    "Name": "DreamLike PhotoReal 2.0",
+    "Description": "",
+    "Author": "TheyCallMeHex",
+    "Repository": "https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX",
+    "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/DreamLike-PhotoReal-2.0/Icon.png",
+    "Status": "Active",
+    "PadTokenId": 49407,
+    "BlankTokenId": 49407,
+    "TokenizerLimit": 77,
+    "EmbeddingsLength": 768,
+    "ScaleFactor": 0.18215,
+    "PipelineType": "StableDiffusion",
+    "Diffusers": [
+      "TextToImage",
+      "ImageToImage",
+      "ImageInpaintLegacy"
+    ],
+    "ModelFiles": [
+	"https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX/resolve/main/tokenizer/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX/resolve/main/unet/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX/resolve/main/unet/model.onnx_data",
+	"https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX/resolve/main/text_encoder/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX/resolve/main/vae_decoder/model.onnx",
+	"https://huggingface.co/TheyCallMeHex/DreamLike-PhotoReal-2.0-ONNX/resolve/main/vae_encoder/model.onnx"
+    ],
+    "Images": [
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/DreamLike-PhotoReal-2.0/Preview1.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/DreamLike-PhotoReal-2.0/Preview2.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/DreamLike-PhotoReal-2.0/Preview3.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/DreamLike-PhotoReal-2.0/Preview4.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/DreamLike-PhotoReal-2.0/Preview5.png",
+	"https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/DreamLike-PhotoReal-2.0/Preview6.png"
+    ]
+}
