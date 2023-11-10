@@ -1,6 +1,6 @@
 {
    "Name": "Ghibli Diffusion",
-   "Description": "",
+   "Description": "The tokens for Ghibli Diffusion are: ghibli style",
    "Author": "TheyCallMeHex",
    "Repository": "https://huggingface.co/TheyCallMeHex/Ghibli-Diffusion-ONNX",
    "ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Ghibli-Diffusion/Icon.png",

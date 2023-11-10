@@ -1,6 +1,6 @@
 {
 	"Name": "Comic-Diffusion",
-	"Description": "",
+	"Description": "The tokens for Comic Diffusion are: charliebo artstyle, holliemengert artstyle, marioalberti artstyle, pepelarraz artstyle, andreasrocha artstyle, jamesdaly artstyle, comicmay artstyle",
 	"Author": "TheyCallMeHex",
 	"Repository": "https://huggingface.co/TheyCallMeHex/Comic-Diffusion-ONNX",
 	"ImageIcon": "https://raw.githubusercontent.com/saddam213/OnnxStack/master/Assets/Templates/Comic-Diffusion/Icon.png",
