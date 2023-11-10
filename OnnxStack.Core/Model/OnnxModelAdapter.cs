@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OnnxStack.Core.Config;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Model
 {
-    public class OnnxModelAdapter
+    public class OnnxModelAdapter : IOnnxModel
     {
-        // TODO: Load LoRA file
+        public string Name { get; set; }
     }
 }
