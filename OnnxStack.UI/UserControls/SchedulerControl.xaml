@@ -213,7 +213,8 @@
                             <TextBox Text="{Binding SchedulerOptions.OriginalInferenceSteps}"/>
                         </StackPanel>
                         <StackPanel Margin="1,0,1,0">
-                         
+                            <Label>NoiseLevel</Label>
+                            <TextBox Text="{Binding SchedulerOptions.NoiseLevel}"/>
                         </StackPanel>
                         <StackPanel VerticalAlignment="Bottom">
                          

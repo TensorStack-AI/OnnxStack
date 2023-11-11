@@ -69,6 +69,22 @@
                 <views:ImageInpaint UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
+            <!--Image Upscale-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf066;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
+                            <userControls:FontAwesome Icon="&#xf065;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Image To Image" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:ImageUpscaleView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+            </TabItem>
+
+
             <!--Log Window-->
             <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TabItem.Header>

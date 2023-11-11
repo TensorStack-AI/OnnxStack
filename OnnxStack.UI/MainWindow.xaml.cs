@@ -99,9 +99,9 @@ namespace OnnxStack.UI
             await NavigateToTab(DiffuserType.ImageInpaint, result);
         }
 
-        private Task NavigateImageUpscale(ImageResult result)
+        private async Task NavigateImageUpscale(ImageResult result)
         {
-            return Task.CompletedTask;
+            await NavigateToTab(DiffuserType.ImageInpaintLegacy, result);
         }
 
 

@@ -32,6 +32,7 @@ namespace OnnxStack.UI.Models
         private AlphaTransformType _alphaTransformType = AlphaTransformType.Cosine;
         private float _maximumBeta = 0.999f;
         private int _originalInferenceSteps = 100;
+        private int _noiseLevel = 20;
 
         /// <summary>
         /// Gets or sets the height.
@@ -202,6 +203,13 @@ namespace OnnxStack.UI.Models
             get { return _originalInferenceSteps; }
             set { _originalInferenceSteps = value; NotifyPropertyChanged(); }
         }
+
+        public int NoiseLevel
+        {
+            get { return _noiseLevel; }
+            set { _noiseLevel = value; NotifyPropertyChanged(); }
+        }
+
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

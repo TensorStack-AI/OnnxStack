@@ -81,8 +81,8 @@ namespace OnnxStack.UI
                 Directory.CreateDirectory(autosaveDirectory);
 
             var random = RandomString();
-            var imageFile = Path.Combine(autosaveDirectory,  $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
-            var blueprintFile = Path.Combine(autosaveDirectory,  $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
+            var imageFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
+            var blueprintFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
             if (!await imageResult.SaveImageFile(imageFile))
                 return false;
 
@@ -120,7 +120,8 @@ namespace OnnxStack.UI
                 TrainTimesteps = model.TrainTimesteps,
                 UseKarrasSigmas = model.UseKarrasSigmas,
                 VarianceType = model.VarianceType,
-                OriginalInferenceSteps = model.OriginalInferenceSteps
+                OriginalInferenceSteps = model.OriginalInferenceSteps,
+                NoiseLevel = model.NoiseLevel
             };
         }
 
@@ -152,6 +153,7 @@ namespace OnnxStack.UI
                 UseKarrasSigmas = model.UseKarrasSigmas,
                 VarianceType = model.VarianceType,
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
+                NoiseLevel = model.NoiseLevel,
             };
         }
 
