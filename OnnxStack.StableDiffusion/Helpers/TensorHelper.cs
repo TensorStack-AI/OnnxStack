@@ -248,7 +248,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="axis">The axis.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException">Only axis 0 is supported</exception>
-        public static DenseTensor<float> Repeat(this DenseTensor<float> tensor1, int count, int axis = 0)
+        public static DenseTensor<T> Repeat<T>(this DenseTensor<T> tensor1, int count, int axis = 0)
         {
             if (axis != 0)
                 throw new NotImplementedException("Only axis 0 is supported");
@@ -258,12 +258,12 @@ namespace OnnxStack.StableDiffusion.Helpers
 
             var length = (int)tensor1.Length;
             var totalLength = length * count;
-            var buffer = new float[totalLength].AsMemory();
+            var buffer = new T[totalLength].AsMemory();
             for (int i = 0; i < count; i++)
             {
                 tensor1.Buffer.CopyTo(buffer[(i * length)..]);
             }
-            return new DenseTensor<float>(buffer, dimensions);
+            return new DenseTensor<T>(buffer, dimensions);
         }
 
 

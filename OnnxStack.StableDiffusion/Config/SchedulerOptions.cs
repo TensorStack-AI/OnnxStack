@@ -81,5 +81,7 @@ namespace OnnxStack.StableDiffusion.Config
         public float MaximumBeta { get; set; } = 0.999f;
 
         public int OriginalInferenceSteps { get; set; } = 50;
+
+        public int NoiseLevel { get; set; } = 20;
     }
 }
