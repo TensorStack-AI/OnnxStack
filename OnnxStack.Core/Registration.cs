@@ -18,6 +18,7 @@ namespace OnnxStack.Core
         {
             serviceCollection.AddSingleton(ConfigManager.LoadConfiguration());
             serviceCollection.AddSingleton<IOnnxModelService, OnnxModelService>();
+            serviceCollection.AddSingleton<IOnnxModelAdaptaterService, OnnxModelAdaptaterService>();
         }
 
 
