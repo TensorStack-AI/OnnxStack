@@ -9,7 +9,6 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
-using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -70,13 +69,19 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                 // Create latent sample
                 var latents = PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                ImageHelpers.TensorToImageDebug(latents, $@"Examples\UpscaleDebug\Latent.png");
 
                 // Create Image Tensor
                 var image = promptOptions.InputImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width });
+                ImageHelpers.TensorToImageDebug(image, $@"Examples\UpscaleDebug\Image.png");
 
                 // Add noise to image
-                var noise = lowResScheduler.CreateRandomSample(image.Dimensions);
+                var noise = scheduler.CreateRandomSample(image.Dimensions);
+                ImageHelpers.TensorToImageDebug(latents, $@"Examples\UpscaleDebug\Noise.png");
+
                 image = lowResScheduler.AddNoise(image, noise, new[] { schedulerOptions.NoiseLevel });
+                ImageHelpers.TensorToImageDebug(image, $@"Examples\UpscaleDebug\NoiseImage.png");
+
                 var noiseLevelTensor = new DenseTensor<long>(new[] { (long)schedulerOptions.NoiseLevel }, new[] { 1 });
                 if (performGuidance)
                 {
@@ -114,6 +119,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                         // Scheduler Step
                         latents = scheduler.Step(noisePred, timestep, latents).Result;
+
+                       ImageHelpers.TensorToImageDebug(latents, $@"Examples\UpscaleDebug\Latent_{step}.png");
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
@@ -221,7 +228,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            return scheduler.CreateRandomSample(new[] { prompt.BatchCount, 4, options.Height, options.Width });
+            return scheduler.CreateRandomSample(new[] { prompt.BatchCount, 4, options.Height, options.Width }, scheduler.InitNoiseSigma);
         }
 
 
