@@ -40,14 +40,16 @@ namespace OnnxStack.Console.Runner
                     Seed = Random.Shared.Next(),
 
                     GuidanceScale = 8,
-                    InferenceSteps = 8,
+                    InferenceSteps = 20,
                     Strength = 0.6f
                 };
 
                 var batchOptions = new BatchOptions
                 {
-                    BatchType = BatchOptionType.Seed,
-                    Count = 5
+                    BatchType = BatchOptionType.Guidance,
+                    ValueFrom = 4,
+                    ValueTo = 20,
+                    Increment = 0.5f
                 };
 
                 foreach (var model in _stableDiffusionService.Models)
@@ -55,8 +57,10 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModel(model);
 
+                    var batchIndex = 0;
                     var callback = (int batch, int batchCount, int step, int steps) =>
                     {
+                        batchIndex = batch;
                         OutputHelpers.WriteConsole($"Image: {batch}/{batchCount} - Step: {step}/{steps}", ConsoleColor.Cyan);
                     };
 
@@ -65,8 +69,8 @@ namespace OnnxStack.Console.Runner
                         promptOptions.SchedulerType = schedulerType;
                         await foreach (var result in _stableDiffusionService.GenerateBatchAsync(model, promptOptions, schedulerOptions, batchOptions, callback))
                         {
-                            var outputFilename = Path.Combine(_outputDirectory, $"{schedulerOptions.Seed}.png");
-                            var image = result.ToImage();
+                            var outputFilename = Path.Combine(_outputDirectory, $"{batchIndex}_{result.SchedulerOptions.Seed}.png");
+                            var image = result.ImageResult.ToImage();
                             await image.SaveAsPngAsync(outputFilename);
                             OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                         }

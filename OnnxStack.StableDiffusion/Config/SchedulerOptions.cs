@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public class SchedulerOptions
+    public record SchedulerOptions
     {
         /// <summary>
         /// Gets or sets the height.

@@ -2,6 +2,7 @@
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
@@ -94,7 +95,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<DenseTensor<float>> GenerateBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<BatchResult> GenerateBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates a batch of StableDiffusion image using the prompt and options provided.

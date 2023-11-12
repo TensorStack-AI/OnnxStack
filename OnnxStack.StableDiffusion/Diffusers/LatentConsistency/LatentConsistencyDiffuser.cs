@@ -8,6 +8,7 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Schedulers.LatentConsistency;
 using System;
 using System.Collections.Generic;
@@ -113,7 +114,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public async IAsyncEnumerable<DenseTensor<float>> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation]CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var diffuseBatchTime = _logger?.LogBegin("Begin...");
             _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
@@ -122,23 +123,23 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             var performGuidance = false;
             promptOptions.NegativePrompt = string.Empty;
 
-            var batchIndex = 1;
-            var batchCount = batchOptions.Count;
-            var schedulerCallback = (int p, int t) => progressCallback?.Invoke(batchIndex, batchCount, p, t);
-
             // Process prompts
             var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
 
-            if (batchOptions.BatchType == BatchOptionType.Seed)
+            // Generate batch options
+            var batchSchedulerOptions = BatchGenerator.GenerateBatch(batchOptions, schedulerOptions);
+
+            var batchIndex = 1;
+            var batchCount = batchSchedulerOptions.Count;
+            var schedulerCallback = (int p, int t) => progressCallback?.Invoke(batchIndex, batchCount, p, t);
+
+            foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
-                var randomSeeds = Enumerable.Range(0, Math.Max(1, batchOptions.Count)).Select(x => Random.Shared.Next());
-                foreach (var randomSeed in randomSeeds)
-                {
-                    schedulerOptions.Seed = randomSeed;
-                    yield return await RunSchedulerSteps(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken);
-                    batchIndex++;
-                }
+                yield return new BatchResult(batchSchedulerOption, await RunSchedulerSteps(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
+                batchIndex++;
             }
+
+            _logger?.LogEnd($"End", diffuseBatchTime);
         }
 
 
