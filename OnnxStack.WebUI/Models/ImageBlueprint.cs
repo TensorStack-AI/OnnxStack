@@ -14,7 +14,7 @@ namespace OnnxStack.WebUI.Models
             OutputImageUrl = outputImageUrl;
             Prompt = prompt.Prompt;
             NegativePrompt = prompt.NegativePrompt;
-            SchedulerType = prompt.SchedulerType;
+            SchedulerType = options.SchedulerType;
             DiffuserType = prompt.DiffuserType;
         }
 

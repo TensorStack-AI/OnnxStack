@@ -1,4 +1,6 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using Models;
+using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Models;
 using System;
 using System.IO;
@@ -121,7 +123,8 @@ namespace OnnxStack.UI
                 UseKarrasSigmas = model.UseKarrasSigmas,
                 VarianceType = model.VarianceType,
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
-                NoiseLevel = model.NoiseLevel
+                NoiseLevel = model.NoiseLevel,
+                SchedulerType = model.SchedulerType
             };
         }
 
@@ -154,6 +157,7 @@ namespace OnnxStack.UI
                 VarianceType = model.VarianceType,
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
                 NoiseLevel = model.NoiseLevel,
+                SchedulerType = model.SchedulerType
             };
         }
 
@@ -162,10 +166,36 @@ namespace OnnxStack.UI
             return new PromptOptionsModel
             {
                 Prompt = promptOptions.Prompt,
-                NegativePrompt = promptOptions.NegativePrompt,
-                SchedulerType = promptOptions.SchedulerType
+                NegativePrompt = promptOptions.NegativePrompt
             };
         }
+
+
+
+        public static BatchOptionsModel ToBatchOptionsModel(this BatchOptions batchOptions)
+        {
+            return new BatchOptionsModel
+            {
+                BatchType = batchOptions.BatchType,
+                ValueTo = batchOptions.ValueTo,
+                Increment = batchOptions.Increment,
+                ValueFrom = batchOptions.ValueFrom
+            };
+        }
+
+
+        public static BatchOptions ToBatchOptions(this BatchOptionsModel batchOptionsModel)
+        {
+            return new BatchOptions
+            {
+                BatchType = batchOptionsModel.BatchType,
+                ValueTo = batchOptionsModel.ValueTo,
+                Increment = batchOptionsModel.Increment,
+                ValueFrom = batchOptionsModel.ValueFrom
+            };
+        }
+
+
 
         public static void LogToWindow(string message)
         {

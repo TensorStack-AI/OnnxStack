@@ -26,7 +26,10 @@
                     </StackPanel>
                 </TabItem.Header>
                 <StackPanel Margin="2">
-
+                    <StackPanel>
+                        <Label>Scheduler</Label>
+                        <ComboBox ItemsSource="{Binding SchedulerTypes}" SelectedItem="{Binding SchedulerOptions.SchedulerType}"/>
+                    </StackPanel>
                     <UniformGrid Columns="4" Margin="0,2,0,0">
                         <StackPanel>
                             <Label>Seed</Label>
@@ -73,7 +76,7 @@
                     </UniformGrid>
 
                     <UniformGrid Columns="2" Margin="0,10,0,10">
-                       
+
 
                         <StackPanel Margin="0,0,5,0">
                             <DockPanel>
@@ -217,7 +220,7 @@
                             <TextBox Text="{Binding SchedulerOptions.NoiseLevel}"/>
                         </StackPanel>
                         <StackPanel VerticalAlignment="Bottom">
-                         
+
                         </StackPanel>
                     </UniformGrid>
 
@@ -229,6 +232,158 @@
 
                 </StackPanel>
             </TabItem>
+
+            <!--Automation-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <userControls:FontAwesome Icon="&#xf544;" IconStyle="Light"/>
+                        <TextBlock Text="Automation" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <StackPanel Margin="5">
+
+                    <CheckBox Content="Enable Automation" IsChecked="{Binding BatchOptions.IsAutomationEnabled}" Margin="0,10,0,0"/>
+
+                    <StackPanel IsEnabled="{Binding BatchOptions.IsAutomationEnabled}">
+
+                        <StackPanel>
+                            <Label>Automation Type</Label>
+                            <ComboBox ItemsSource="{Binding Source={StaticResource BatchOptionType}}" SelectedItem="{Binding BatchOptions.BatchType}"/>
+                        </StackPanel>
+
+                        <!--Seed-->
+                        <StackPanel Margin="0,10">
+                            <UniformGrid Columns="3">
+                                <TextBlock Text="Count"/>
+                                <TextBlock />
+                                <TextBlock />
+                            </UniformGrid>
+                            <UniformGrid Columns="3">
+                                <TextBox Text="{Binding BatchOptions.ValueTo}" Margin="2,0"/>
+                                <TextBlock />
+                                <TextBlock />
+                            </UniformGrid>
+                            <StackPanel.Style>
+                                <Style TargetType="{x:Type StackPanel}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Seed" >
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+
+                        <!--Step-->
+                        <StackPanel Margin="0,10">
+                            <UniformGrid Columns="3">
+                                <TextBlock Text="Start Step"/>
+                                <TextBlock Text="End Step"/>
+                                <TextBlock Text="Increment"/>
+                            </UniformGrid>
+                            <UniformGrid Columns="3">
+                                <TextBox Text="{Binding BatchOptions.ValueFrom}" Margin="0,0,2,0"/>
+                                <TextBox Text="{Binding BatchOptions.ValueTo}" Margin="2,0"/>
+                                <TextBox Text="{Binding BatchOptions.Increment}" Margin="2,0,0,0"/>
+                            </UniformGrid>
+                            <StackPanel.Style>
+                                <Style TargetType="{x:Type StackPanel}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Step" >
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+
+
+                        <!--Guidance-->
+                        <StackPanel Margin="0,10">
+                            <UniformGrid Columns="3">
+                                <TextBlock Text="Start Value"/>
+                                <TextBlock Text="End Value"/>
+                                <TextBlock Text="Increment"/>
+                            </UniformGrid>
+                            <UniformGrid Columns="3">
+                                <TextBox Text="{Binding BatchOptions.ValueFrom}" Margin="0,0,2,0"/>
+                                <TextBox Text="{Binding BatchOptions.ValueTo}" Margin="2,0"/>
+                                <TextBox Text="{Binding BatchOptions.Increment}" Margin="2,0,0,0"/>
+                            </UniformGrid>
+                            <StackPanel.Style>
+                                <Style TargetType="{x:Type StackPanel}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Guidance" >
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+
+
+                        <!--Strength-->
+                        <StackPanel Margin="0,10">
+                            <UniformGrid Columns="3">
+                                <TextBlock Text="Start Value"/>
+                                <TextBlock Text="End Value"/>
+                                <TextBlock Text="Increment"/>
+                            </UniformGrid>
+                            <UniformGrid Columns="3">
+                                <TextBox Text="{Binding BatchOptions.ValueFrom}" Margin="0,0,2,0"/>
+                                <TextBox Text="{Binding BatchOptions.ValueTo}" Margin="2,0"/>
+                                <TextBox Text="{Binding BatchOptions.Increment}" Margin="2,0,0,0"/>
+                            </UniformGrid>
+                            <StackPanel.Style>
+                                <Style TargetType="{x:Type StackPanel}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Strength" >
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+
+                        <!--Progress-->
+                        <StackPanel Margin="0,5">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="Steps " />
+                                <TextBlock Text="{Binding BatchOptions.StepValue}" DockPanel.Dock="Left" />
+                                <TextBlock Text=" / " />
+                                <TextBlock Text="{Binding BatchOptions.StepsValue}" DockPanel.Dock="Right"/>
+                            </StackPanel>
+                            <ProgressBar Value="{Binding BatchOptions.StepValue}" Maximum="{Binding BatchOptions.StepsValue}" Height="22"/>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0 ">
+                                <TextBlock Text="Batch " />
+                                <TextBlock Text="{Binding BatchOptions.BatchValue}" DockPanel.Dock="Left" />
+                                <TextBlock Text=" / " />
+                                <TextBlock Text="{Binding BatchOptions.BatchsValue}" DockPanel.Dock="Right"/>
+                            </StackPanel>
+                            <ProgressBar Value="{Binding BatchOptions.BatchValue}" Maximum="{Binding BatchOptions.BatchsValue}" Height="22"/>
+                        </StackPanel>
+
+                    </StackPanel>
+
+                </StackPanel>
+            </TabItem>
+
+
+
+            <TabControl.Template>
+                <ControlTemplate TargetType="TabControl">
+                    <DockPanel>
+                        <UniformGrid IsItemsHost="True" Rows="1" DockPanel.Dock="Top"></UniformGrid>
+                        <ContentPresenter ContentSource="SelectedContent"></ContentPresenter>
+                    </DockPanel>
+                </ControlTemplate>
+            </TabControl.Template>
         </TabControl>
     </DockPanel>
 </UserControl>

@@ -1,7 +1,6 @@
-﻿using OnnxStack.Core;
+﻿using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner
@@ -53,9 +52,9 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModel(model);
 
-                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
+                    foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
                     {
-                        promptOptions.SchedulerType = schedulerType;
+                        schedulerOptions.SchedulerType = schedulerType;
                         OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
                         await GenerateImage(model, promptOptions, schedulerOptions);
                     }
@@ -68,13 +67,13 @@ namespace OnnxStack.Console.Runner
 
         private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options)
         {
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
             var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
             if (result == null)
                 return false;
 
             await result.SaveAsPngAsync(outputFilename);
-            OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
+            OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
             return true;
         }
     }

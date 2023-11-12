@@ -52,7 +52,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
             var diffuseTime = _logger?.LogBegin("Begin...");
-            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
             // Get Scheduler
             using (var lowResScheduler = new DDPMScheduler())

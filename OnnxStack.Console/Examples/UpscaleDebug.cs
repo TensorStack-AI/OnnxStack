@@ -32,7 +32,7 @@ namespace OnnxStack.Console.Runner
             var promptOptions = new PromptOptions
             {
                 Prompt = "a white cat",
-                SchedulerType = SchedulerType.EulerAncestral,
+     
                 InputImage = new StableDiffusion.Models.InputImage(File.ReadAllBytes(@"C:\Users\Deven\Pictures\1low_res_cat.png")),
                 DiffuserType = DiffuserType.ImageUpscale
             };
@@ -43,7 +43,7 @@ namespace OnnxStack.Console.Runner
                 //Seed = Random.Shared.Next(),
                 GuidanceScale = 0,
                 InferenceSteps = 100,
-
+                SchedulerType = SchedulerType.EulerAncestral,
                 NoiseLevel = 20,
                 Width = 128,
                 Height = 128
@@ -54,8 +54,8 @@ namespace OnnxStack.Console.Runner
 
            // foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
             {
-                promptOptions.SchedulerType =  SchedulerType.Euler;
-                OutputHelpers.WriteConsole($"Generating {promptOptions.SchedulerType} Image...", ConsoleColor.Green);
+
+                OutputHelpers.WriteConsole($"Generating {schedulerOptions.SchedulerType} Image...", ConsoleColor.Green);
                 await GenerateImage(model, promptOptions, schedulerOptions);
             }
 
@@ -67,12 +67,12 @@ namespace OnnxStack.Console.Runner
         private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options)
         {
             var timestamp = Stopwatch.GetTimestamp();
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
             var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
             if (result is not null)
             {
                 await result.SaveAsPngAsync(outputFilename);
-                OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
+                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                 OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);
                 return true;
             }

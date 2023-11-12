@@ -33,6 +33,7 @@ namespace OnnxStack.UI.Models
         private float _maximumBeta = 0.999f;
         private int _originalInferenceSteps = 100;
         private int _noiseLevel = 20;
+        private SchedulerType _schedulerType;
 
         /// <summary>
         /// Gets or sets the height.
@@ -208,6 +209,13 @@ namespace OnnxStack.UI.Models
         {
             get { return _noiseLevel; }
             set { _noiseLevel = value; NotifyPropertyChanged(); }
+        }
+
+        
+        public SchedulerType SchedulerType
+        {
+            get { return _schedulerType; }
+            set { _schedulerType = value; NotifyPropertyChanged(); }
         }
 
 
