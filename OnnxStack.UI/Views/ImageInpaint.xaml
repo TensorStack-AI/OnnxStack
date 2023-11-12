@@ -19,23 +19,26 @@
                 <Button Content="Cancel" Command="{Binding CancelCommand}" Margin="0,0,1,0"/>
                 <Button Content="Generate" Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" IsDefault="True" Margin="1,0,0,0"/>
             </UniformGrid>
-            <DockPanel>
-                <StackPanel IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}">
-                    <userControls:ModelPickerControl 
-                        UISettings="{Binding UISettings}"
-                        SupportedDiffusers="{Binding SupportedDiffusers}"
-                        SelectedModel="{Binding SelectedModel, Mode=TwoWay}" Models="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=Models}" />
-                    <userControls:PromptControl
-                         SelectedModel="{Binding SelectedModel}"
-                         PromptOptions="{Binding PromptOptions}" 
-                         IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}"/>
-                    <userControls:SchedulerControl 
-                         SelectedModel="{Binding SelectedModel}"
-                         DiffuserType="ImageInpaint" 
-                         SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
-                         IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" 
-                         Margin="0, 10, 0 ,0"/>
-                </StackPanel>
+            <DockPanel IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}">
+                <UniformGrid Rows="2">
+                    <DockPanel>
+                        <userControls:ModelPickerControl DockPanel.Dock="Top"
+                            UISettings="{Binding UISettings}"
+                            SupportedDiffusers="{Binding SupportedDiffusers}"
+                            SelectedModel="{Binding SelectedModel, Mode=TwoWay}" Models="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=Models}" />
+                        <userControls:PromptControl
+                            SelectedModel="{Binding SelectedModel}"
+                            PromptOptions="{Binding PromptOptions}" 
+                            IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}"/>
+                    </DockPanel>
+                    <userControls:SchedulerControl DockPanel.Dock="Bottom"
+                        SelectedModel="{Binding SelectedModel}"
+                        DiffuserType="ImageInpaint" 
+                        BatchOptions="{Binding BatchOptions}"
+                        SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
+                        IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" 
+                        Margin="0, 10, 0 ,0"/>
+                </UniformGrid>
             </DockPanel>
         </DockPanel>
 

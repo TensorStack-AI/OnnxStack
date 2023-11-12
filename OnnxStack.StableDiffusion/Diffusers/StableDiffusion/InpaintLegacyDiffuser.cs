@@ -53,17 +53,38 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
             var diffuseTime = _logger?.LogBegin("Begin...");
-            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
-            // Get Scheduler
+            // Should we perform classifier free guidance
+            var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
+
+            // Process prompts
+            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
+
+            // Run Scheduler steps
+            var schedulerResult = await RunSchedulerSteps(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
+
+            _logger?.LogEnd($"End", diffuseTime);
+
+            return schedulerResult;
+        }
+
+
+        /// <summary>
+        /// Runs the scheduler steps.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="promptEmbeddings">The prompt embeddings.</param>
+        /// <param name="performGuidance">if set to <c>true</c> [perform guidance].</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        protected override async Task<DenseTensor<float>> RunSchedulerSteps(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        {
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
-                // Should we perform classifier free guidance
-                var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
-
-                // Process prompts
-                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
-
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
 
@@ -120,9 +141,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 }
 
                 // Decode Latents
-                var result = await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
-                _logger?.LogEnd($"End", diffuseTime);
-                return result;
+                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
             }
         }
 
