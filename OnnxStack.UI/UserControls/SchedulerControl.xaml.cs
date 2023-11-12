@@ -82,6 +82,18 @@ namespace OnnxStack.UI.UserControls
             DependencyProperty.Register("SchedulerOptions", typeof(SchedulerOptionsModel), typeof(SchedulerControl));
 
 
+        public BatchOptionsModel BatchOptions
+        {
+            get { return (BatchOptionsModel)GetValue(BatchOptionsProperty); }
+            set { SetValue(BatchOptionsProperty, value); }
+        }
+        public static readonly DependencyProperty BatchOptionsProperty =
+            DependencyProperty.Register("BatchOptions", typeof(BatchOptionsModel), typeof(SchedulerControl));
+
+
+
+
+
         /// <summary>
         /// Gets or sets the options configuration.
         /// </summary>

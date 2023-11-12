@@ -19,7 +19,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         {
             if (batchOptions.BatchType == BatchOptionType.Seed)
             {
-                return Enumerable.Range(0, Math.Max(1, batchOptions.Count))
+                return Enumerable.Range(0, Math.Max(1, (int)batchOptions.ValueTo))
                     .Select(x => Random.Shared.Next())
                     .Select(x => schedulerOptions with { Seed = x })
                     .ToList();

@@ -3,8 +3,10 @@ using Models;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.UserControls;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 
 namespace OnnxStack.UI.Views
 {
@@ -36,6 +39,7 @@ namespace OnnxStack.UI.Views
         private ModelOptionsModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
+        private BatchOptionsModel _batchOptions;
         private CancellationTokenSource _cancelationTokenSource;
 
         /// <summary>
@@ -55,6 +59,7 @@ namespace OnnxStack.UI.Views
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
             PromptOptions = new PromptOptionsModel();
             SchedulerOptions = new SchedulerOptionsModel();
+            BatchOptions = new BatchOptionsModel();
             ImageResults = new ObservableCollection<ImageResult>();
             ProgressMax = SchedulerOptions.InferenceSteps;
             InitializeComponent();
@@ -93,6 +98,12 @@ namespace OnnxStack.UI.Views
             set { _schedulerOptions = value; NotifyPropertyChanged(); }
         }
 
+        public BatchOptionsModel BatchOptions
+        {
+            get { return _batchOptions; }
+            set { _batchOptions = value; NotifyPropertyChanged(); }
+        }
+
         public ImageResult ResultImage
         {
             get { return _resultImage; }
@@ -129,7 +140,7 @@ namespace OnnxStack.UI.Views
             set { _selectedTabIndex = value; NotifyPropertyChanged(); }
         }
 
-     
+
 
 
         /// <summary>
@@ -172,13 +183,28 @@ namespace OnnxStack.UI.Views
                 DiffuserType = DiffuserType.TextToImage
             };
 
+            var batchOptions = BatchOptions.ToBatchOptions();
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
-            var resultImage = await ExecuteStableDiffusion(_selectedModel.ModelOptions, promptOptions, schedulerOptions);
-            if (resultImage != null)
+
+            try
             {
-                ResultImage = resultImage;
-                ImageResults.Add(resultImage);
-                HasResult = true;
+                await foreach (var resultImage in ExecuteStableDiffusion(_selectedModel.ModelOptions, promptOptions, schedulerOptions, batchOptions))
+                {
+                    if (resultImage != null)
+                    {
+                        ResultImage = resultImage;
+                        ImageResults.Add(resultImage);
+                        HasResult = true;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation($"Generate was canceled.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error during Generate\n{ex}");
             }
 
             Reset();
@@ -258,44 +284,46 @@ namespace OnnxStack.UI.Views
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        private async Task<ImageResult> ExecuteStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        private async IAsyncEnumerable<ImageResult> ExecuteStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions)
         {
-            try
+            _cancelationTokenSource = new CancellationTokenSource();
+            if (!BatchOptions.IsAutomationEnabled)
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                _cancelationTokenSource = new CancellationTokenSource();
                 var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
-                if (result == null)
-                    return null;
-
-                var image = Utils.CreateBitmap(result);
-                if (image == null)
-                    return null;
-
-                var imageResult = new ImageResult
-                {
-                    Image = image,
-                    Model = _selectedModel,
-                    Prompt = promptOptions.Prompt,
-                    NegativePrompt = promptOptions.NegativePrompt,
-                    PipelineType = _selectedModel.ModelOptions.PipelineType,
-                    DiffuserType = promptOptions.DiffuserType,
-                    SchedulerType = schedulerOptions.SchedulerType,
-                    SchedulerOptions = schedulerOptions,
-                    Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
-                };
-
-                if (UISettings.ImageAutoSave)
-                    await imageResult.AutoSave(Path.Combine(UISettings.ImageAutoSaveDirectory, "TextToImage"), UISettings.ImageAutoSaveBlueprint);
-
-                return imageResult;
-
+                yield return await GenerateResult(result, promptOptions, schedulerOptions, timestamp);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error generating image");
-                return null;
+                await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
+                {
+                    var timestamp = Stopwatch.GetTimestamp();
+                    yield return await GenerateResult(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
+                }
             }
+        }
+
+
+        private async Task<ImageResult> GenerateResult(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        {
+            var image = Utils.CreateBitmap(imageBytes);
+
+            var imageResult = new ImageResult
+            {
+                Image = image,
+                Model = _selectedModel,
+                Prompt = promptOptions.Prompt,
+                NegativePrompt = promptOptions.NegativePrompt,
+                PipelineType = _selectedModel.ModelOptions.PipelineType,
+                DiffuserType = promptOptions.DiffuserType,
+                SchedulerType = schedulerOptions.SchedulerType,
+                SchedulerOptions = schedulerOptions,
+                Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
+            };
+
+            if (UISettings.ImageAutoSave)
+                await imageResult.AutoSave(Path.Combine(UISettings.ImageAutoSaveDirectory, "TextToImage"), UISettings.ImageAutoSaveBlueprint);
+            return imageResult;
         }
 
 
@@ -319,6 +347,28 @@ namespace OnnxStack.UI.Views
                 });
             };
         }
+
+        private Action<int, int, int, int> ProgressBatchCallback()
+        {
+            return (batchIndex, batchCount, step, steps) =>
+            {
+                App.UIInvoke(() =>
+                {
+                    if (_cancelationTokenSource.IsCancellationRequested)
+                        return;
+
+                    if (BatchOptions.BatchsValue != batchCount)
+                        BatchOptions.BatchsValue = batchCount;
+                    if (BatchOptions.BatchValue != batchIndex)
+                        BatchOptions.BatchValue = batchIndex;
+                    if (BatchOptions.StepValue != step)
+                        BatchOptions.StepValue = step;
+                    if (BatchOptions.StepsValue != steps)
+                        BatchOptions.StepsValue = steps;
+                });
+            };
+        }
+
 
 
         #region INotifyPropertyChanged

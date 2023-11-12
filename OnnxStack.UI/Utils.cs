@@ -1,4 +1,5 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using Models;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Models;
 using System;
@@ -82,8 +83,8 @@ namespace OnnxStack.UI
                 Directory.CreateDirectory(autosaveDirectory);
 
             var random = RandomString();
-            var imageFile = Path.Combine(autosaveDirectory,  $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
-            var blueprintFile = Path.Combine(autosaveDirectory,  $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
+            var imageFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
+            var blueprintFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
             if (!await imageResult.SaveImageFile(imageFile))
                 return false;
 
@@ -166,6 +167,33 @@ namespace OnnxStack.UI
                 NegativePrompt = promptOptions.NegativePrompt
             };
         }
+
+
+
+        public static BatchOptionsModel ToBatchOptionsModel(this BatchOptions batchOptions)
+        {
+            return new BatchOptionsModel
+            {
+                BatchType = batchOptions.BatchType,
+                ValueTo = batchOptions.ValueTo,
+                Increment = batchOptions.Increment,
+                ValueFrom = batchOptions.ValueFrom
+            };
+        }
+
+
+        public static BatchOptions ToBatchOptions(this BatchOptionsModel batchOptionsModel)
+        {
+            return new BatchOptions
+            {
+                BatchType = batchOptionsModel.BatchType,
+                ValueTo = batchOptionsModel.ValueTo,
+                Increment = batchOptionsModel.Increment,
+                ValueFrom = batchOptionsModel.ValueFrom
+            };
+        }
+
+
 
         public static void LogToWindow(string message)
         {

@@ -34,6 +34,7 @@
                     <userControls:SchedulerControl  DockPanel.Dock="Bottom"
                           SelectedModel="{Binding SelectedModel}"
                           DiffuserType="ImageToImage" 
+                          BatchOptions="{Binding BatchOptions}"
                           SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
                           IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" 
                           Margin="0, 10, 0 ,0"/>
