@@ -8,11 +8,13 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -82,17 +84,76 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
             var diffuseTime = _logger?.LogBegin("Begin...");
-            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
+            // Should we perform classifier free guidance
+            var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
+
+            // Process prompts
+            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
+
+            // Run Scheduler steps
+            var schedulerResult = await RunSchedulerSteps(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
+
+            _logger?.LogEnd($"End", diffuseTime);
+
+            return schedulerResult;
+        }
+
+
+        /// <summary>
+        /// Runs the stable diffusion batch loop
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation]CancellationToken cancellationToken = default)
+        {
+            var diffuseBatchTime = _logger?.LogBegin("Begin...");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
+
+            // Should we perform classifier free guidance
+            var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
+
+            // Process prompts
+            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
+
+            // Generate batch options
+            var batchSchedulerOptions = BatchGenerator.GenerateBatch(modelOptions, batchOptions, schedulerOptions);
+
+            var batchIndex = 1;
+            var schedulerCallback = (int step, int steps) => progressCallback?.Invoke(batchIndex, batchSchedulerOptions.Count, step, steps);
+            foreach (var batchSchedulerOption in batchSchedulerOptions)
+            {
+                yield return new BatchResult(batchSchedulerOption, await RunSchedulerSteps(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
+                batchIndex++;
+            }
+
+            _logger?.LogEnd($"End", diffuseBatchTime);
+        }
+
+
+        /// <summary>
+        /// Runs the scheduler steps.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="promptEmbeddings">The prompt embeddings.</param>
+        /// <param name="performGuidance">if set to <c>true</c> [perform guidance].</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        protected virtual async Task<DenseTensor<float>> RunSchedulerSteps(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        {
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
-                // Should we perform classifier free guidance
-                var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
-
-                // Process prompts
-                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
-
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
 
@@ -130,13 +191,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
-                    _logger?.LogEnd(LogLevel.Debug,$"Step {step}/{timesteps.Count}", stepTime);
+                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Decode Latents
-                var result = await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
-                _logger?.LogEnd($"End", diffuseTime);
-                return result;
+                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
             }
         }
 
@@ -149,7 +208,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         protected virtual async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
-            var timestamp =  _logger?.LogBegin("Begin...");
+            var timestamp = _logger?.LogBegin("Begin...");
 
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
@@ -237,7 +296,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         protected virtual IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
         {
-            return prompt.SchedulerType switch
+            return options.SchedulerType switch
             {
                 SchedulerType.LMS => new LMSScheduler(options),
                 SchedulerType.Euler => new EulerScheduler(options),

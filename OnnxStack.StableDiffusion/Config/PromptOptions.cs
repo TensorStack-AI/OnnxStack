@@ -14,7 +14,6 @@ namespace OnnxStack.StableDiffusion.Config
 
         [StringLength(512)]
         public string NegativePrompt { get; set; }
-        public SchedulerType SchedulerType { get; set; }
 
         public int BatchCount { get; set; } = 1;
 

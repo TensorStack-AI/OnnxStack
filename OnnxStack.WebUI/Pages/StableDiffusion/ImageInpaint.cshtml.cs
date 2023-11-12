@@ -39,12 +39,13 @@ namespace OnnxStack.WebUI.Pages.StableDiffusion
 
             Prompt = new PromptOptions
             {
-               SchedulerType = SchedulerType.DDPM
+
             };
 
             Options = new SchedulerOptions
             {
-               Strength = 1.0f,
+                SchedulerType = SchedulerType.DDPM,
+                Strength = 1.0f,
             };
         }
     }

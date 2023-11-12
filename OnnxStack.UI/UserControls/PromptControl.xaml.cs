@@ -18,8 +18,6 @@ namespace OnnxStack.UI.UserControls
     /// </summary>
     public partial class PromptControl : UserControl, INotifyPropertyChanged
     {
-        private ObservableCollection<SchedulerType> _schedulerTypes = new();
-
         /// <summary>Initializes a new instance of the <see cref="PromptControl" /> class.</summary>
         public PromptControl()
         {
@@ -56,41 +54,8 @@ namespace OnnxStack.UI.UserControls
         }
 
         public static readonly DependencyProperty SelectedModelProperty =
-            DependencyProperty.Register("SelectedModel", typeof(ModelOptionsModel), typeof(PromptControl), new PropertyMetadata((d, e) =>
-            {
-                if (d is PromptControl schedulerControl)
-                    schedulerControl.OnModelChanged(e.NewValue as ModelOptionsModel);
-            }));
+            DependencyProperty.Register("SelectedModel", typeof(ModelOptionsModel), typeof(PromptControl));
 
-        public ObservableCollection<SchedulerType> SchedulerTypes
-        {
-            get { return _schedulerTypes; }
-            set { _schedulerTypes = value; NotifyPropertyChanged(); }
-        }
-
-
-        /// <summary>
-        /// Called when the selected model has changed.
-        /// </summary>
-        /// <param name="modelOptionsModel">The model options model.</param>
-        private void OnModelChanged(ModelOptionsModel model)
-        {
-            SchedulerTypes.Clear();
-            if (model is null)
-                return;
-
-            if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusion)
-            {
-                foreach (SchedulerType type in Enum.GetValues<SchedulerType>().Where(x => x != SchedulerType.LCM))
-                    SchedulerTypes.Add(type);
-            }
-            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistency)
-            {
-                SchedulerTypes.Add(SchedulerType.LCM);
-            }
-
-            PromptOptions.SchedulerType = SchedulerTypes.FirstOrDefault();
-        }
 
         /// <summary>
         /// Resets the parameters.

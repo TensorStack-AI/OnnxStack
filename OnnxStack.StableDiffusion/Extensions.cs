@@ -1,13 +1,12 @@
 ﻿using Microsoft.ML.OnnxRuntime;
-using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace OnnxStack.StableDiffusion
 {
-    internal static class Extensions
+    public static class Extensions
     {
         /// <summary>
         /// Gets the first element and casts it to the specified type.
@@ -15,7 +14,7 @@ namespace OnnxStack.StableDiffusion
         /// <typeparam name="T">Desired return type</typeparam>
         /// <param name="collection">The collection.</param>
         /// <returns>Firts element in the collection cast as <see cref="T"/></returns>
-        public static T FirstElementAs<T>(this IDisposableReadOnlyCollection<DisposableNamedOnnxValue> collection)
+        internal static T FirstElementAs<T>(this IDisposableReadOnlyCollection<DisposableNamedOnnxValue> collection)
         {
             if (collection is null || collection.Count == 0)
                 return default;
@@ -34,7 +33,7 @@ namespace OnnxStack.StableDiffusion
         /// <typeparam name="T">Desired return type</typeparam>
         /// <param name="collection">The collection.</param>
         /// <returns>Last element in the collection cast as <see cref="T"/></returns>
-        public static T LastElementAs<T>(this IDisposableReadOnlyCollection<DisposableNamedOnnxValue> collection)
+        internal static T LastElementAs<T>(this IDisposableReadOnlyCollection<DisposableNamedOnnxValue> collection)
         {
             if (collection is null || collection.Count == 0)
                 return default;
@@ -53,7 +52,7 @@ namespace OnnxStack.StableDiffusion
         /// <param name="options">The options.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException">Width must be divisible by 64</exception>
-        public static int GetScaledWidth(this SchedulerOptions options)
+        internal static int GetScaledWidth(this SchedulerOptions options)
         {
             if (options.Width % 64 > 0)
                 throw new ArgumentOutOfRangeException(nameof(options.Width), $"{nameof(options.Width)} must be divisible by 64");
@@ -68,7 +67,7 @@ namespace OnnxStack.StableDiffusion
         /// <param name="options">The options.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException">Height must be divisible by 64</exception>
-        public static int GetScaledHeight(this SchedulerOptions options)
+        internal static int GetScaledHeight(this SchedulerOptions options)
         {
             if (options.Height % 64 > 0)
                 throw new ArgumentOutOfRangeException(nameof(options.Height), $"{nameof(options.Height)} must be divisible by 64");
@@ -84,9 +83,36 @@ namespace OnnxStack.StableDiffusion
         /// <param name="batch">The batch.</param>
         /// <param name="channels">The channels.</param>
         /// <returns>Tensor dimension of [batch, channels, (Height / 8), (Width / 8)]</returns>
-        public static int[] GetScaledDimension(this SchedulerOptions options, int batch = 1, int channels = 4)
+        internal static int[] GetScaledDimension(this SchedulerOptions options, int batch = 1, int channels = 4)
         {
             return new[] { batch, channels, options.GetScaledHeight(), options.GetScaledWidth() };
+        }
+
+
+        /// <summary>
+        /// Gets the pipeline schedulers.
+        /// </summary>
+        /// <param name="pipelineType">Type of the pipeline.</param>
+        /// <returns></returns>
+        public static SchedulerType[] GetSchedulerTypes(this DiffuserPipelineType pipelineType)
+        {
+            return pipelineType switch
+            {
+                DiffuserPipelineType.StableDiffusion => new[]
+                {
+                    SchedulerType.LMS,
+                    SchedulerType.Euler,
+                    SchedulerType.EulerAncestral,
+                    SchedulerType.DDPM,
+                    SchedulerType.DDIM,
+                    SchedulerType.KDPM2
+                },
+                DiffuserPipelineType.LatentConsistency => new[]
+                {
+                    SchedulerType.LCM
+                },
+                _ => default
+            };
         }
     }
 }
