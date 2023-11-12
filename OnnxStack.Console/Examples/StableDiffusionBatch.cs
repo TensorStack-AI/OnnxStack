@@ -1,7 +1,5 @@
-﻿using OnnxStack.Core;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 
@@ -31,22 +29,10 @@ namespace OnnxStack.Console.Runner
 
             while (true)
             {
-                OutputHelpers.WriteConsole("Please type a prompt and press ENTER", ConsoleColor.Yellow);
-                var prompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
-
-                OutputHelpers.WriteConsole("Please type a negative prompt and press ENTER (optional)", ConsoleColor.Yellow);
-                var negativePrompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
-
-                OutputHelpers.WriteConsole("Please enter a batch count and press ENTER", ConsoleColor.Yellow);
-                var batch = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
-                int.TryParse(batch, out var batchCount);
-                batchCount = Math.Max(1, batchCount);
 
                 var promptOptions = new PromptOptions
                 {
-                    Prompt = prompt,
-                    NegativePrompt = negativePrompt,
-                    BatchCount = batchCount
+                    Prompt = "Photo of a cat"
                 };
 
                 var schedulerOptions = new SchedulerOptions
@@ -54,8 +40,14 @@ namespace OnnxStack.Console.Runner
                     Seed = Random.Shared.Next(),
 
                     GuidanceScale = 8,
-                    InferenceSteps = 22,
+                    InferenceSteps = 8,
                     Strength = 0.6f
+                };
+
+                var batchOptions = new BatchOptions
+                {
+                    BatchType = BatchOptionType.Seed,
+                    Count = 5
                 };
 
                 foreach (var model in _stableDiffusionService.Models)
@@ -63,36 +55,27 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModel(model);
 
-                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
+                    var callback = (int batch, int batchCount, int step, int steps) =>
+                    {
+                        OutputHelpers.WriteConsole($"Image: {batch}/{batchCount} - Step: {step}/{steps}", ConsoleColor.Cyan);
+                    };
+
+                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType).Take(1))
                     {
                         promptOptions.SchedulerType = schedulerType;
-                        OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
-                        await GenerateImage(model, promptOptions, schedulerOptions);
+                        await foreach (var result in _stableDiffusionService.GenerateBatchAsync(model, promptOptions, schedulerOptions, batchOptions, callback))
+                        {
+                            var outputFilename = Path.Combine(_outputDirectory, $"{schedulerOptions.Seed}.png");
+                            var image = result.ToImage();
+                            await image.SaveAsPngAsync(outputFilename);
+                            OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
+                        }
                     }
 
                     OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.UnloadModel(model);
                 }
             }
-        }
-
-        private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options)
-        {
-
-            var result = await _stableDiffusionService.GenerateAsync(model, prompt, options);
-            if (result == null)
-                return false;
-
-            var imageTensors = result.Split(prompt.BatchCount);
-            for (int i = 0; i < imageTensors.Length; i++)
-            {
-                var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}_{i}.png");
-                var image = imageTensors[i].ToImage();
-                await image.SaveAsPngAsync(outputFilename);
-                OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
-            }
-
-            return true;
         }
     }
 }

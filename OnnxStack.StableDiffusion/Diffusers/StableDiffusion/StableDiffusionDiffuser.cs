@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -84,15 +85,76 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
             var diffuseTime = _logger?.LogBegin("Begin...");
             _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
 
+            // Should we perform classifier free guidance
+            var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
+
+            // Process prompts
+            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
+
+            // Run Scheduler steps
+            var schedulerResult = await RunSchedulerSteps(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
+
+            _logger?.LogEnd($"End", diffuseTime);
+
+            return schedulerResult;
+        }
+
+
+        /// <summary>
+        /// Runs the stable diffusion batch loop
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public async IAsyncEnumerable<DenseTensor<float>> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation]CancellationToken cancellationToken = default)
+        {
+            var diffuseBatchTime = _logger?.LogBegin("Begin...");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
+
+            // Should we perform classifier free guidance
+            var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
+
+            var batchIndex = 1;
+            var batchCount = batchOptions.Count;
+            var schedulerCallback = (int p,int t) => progressCallback?.Invoke(batchIndex, batchCount, p, t);
+
+            // Process prompts
+            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
+
+            if (batchOptions.BatchType == BatchOptionType.Seed)
+            {
+                var randomSeeds = Enumerable.Range(0, Math.Max(1, batchOptions.Count)).Select(x => Random.Shared.Next());
+                foreach (var randomSeed in randomSeeds)
+                {
+                    schedulerOptions.Seed = randomSeed;
+                    yield return await RunSchedulerSteps(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken);
+                    batchIndex++;
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Runs the scheduler steps.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="promptEmbeddings">The prompt embeddings.</param>
+        /// <param name="performGuidance">if set to <c>true</c> [perform guidance].</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        protected virtual async Task<DenseTensor<float>> RunSchedulerSteps(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        {
             // Get Scheduler
             using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
             {
-                // Should we perform classifier free guidance
-                var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
-
-                // Process prompts
-                var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
-
                 // Get timesteps
                 var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
 
@@ -130,31 +192,12 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
-                    _logger?.LogEnd(LogLevel.Debug,$"Step {step}/{timesteps.Count}", stepTime);
+                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Decode Latents
-                var result = await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
-                _logger?.LogEnd($"End", diffuseTime);
-                return result;
+                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
             }
-        }
-
-
-        /// <summary>
-        /// Runs the stable diffusion batch loop
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public IAsyncEnumerable<DenseTensor<float>> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
         }
 
 
@@ -166,7 +209,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         protected virtual async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
-            var timestamp =  _logger?.LogBegin("Begin...");
+            var timestamp = _logger?.LogBegin("Begin...");
 
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
