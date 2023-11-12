@@ -58,8 +58,8 @@ namespace OnnxStack.UI.Views
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             GenerateCommand = new AsyncRelayCommand(Generate, CanExecuteGenerate);
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
-            PromptOptions = new PromptOptionsModel { SchedulerType = StableDiffusion.Enums.SchedulerType.DDPM };
-            SchedulerOptions = new SchedulerOptionsModel();
+            PromptOptions = new PromptOptionsModel();
+            SchedulerOptions = new SchedulerOptionsModel { SchedulerType = SchedulerType.DDPM };
             ImageResults = new ObservableCollection<ImageResult>();
             ProgressMax = SchedulerOptions.InferenceSteps;
             InitializeComponent();
@@ -186,8 +186,7 @@ namespace OnnxStack.UI.Views
             PromptOptions = new PromptOptionsModel
             {
                 Prompt = imageResult.Prompt,
-                NegativePrompt = imageResult.NegativePrompt,
-                SchedulerType = imageResult.SchedulerType
+                NegativePrompt = imageResult.NegativePrompt
             };
             SchedulerOptions = imageResult.SchedulerOptions.ToSchedulerOptionsModel();
             SelectedTabIndex = 0;
@@ -207,7 +206,6 @@ namespace OnnxStack.UI.Views
             {
                 Prompt = PromptOptions.Prompt,
                 NegativePrompt = PromptOptions.NegativePrompt,
-                SchedulerType = PromptOptions.SchedulerType,
                 DiffuserType = SelectedModel.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint)
                     ? DiffuserType.ImageInpaint
                     : DiffuserType.ImageInpaintLegacy,
@@ -334,7 +332,7 @@ namespace OnnxStack.UI.Views
                     NegativePrompt = promptOptions.NegativePrompt,
                     PipelineType = _selectedModel.ModelOptions.PipelineType,
                     DiffuserType = promptOptions.DiffuserType,
-                    SchedulerType = promptOptions.SchedulerType,
+                    SchedulerType = schedulerOptions.SchedulerType,
                     SchedulerOptions = schedulerOptions,
                     Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
                 };

@@ -55,7 +55,7 @@ namespace OnnxStack.Console.Runner
 
                     foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
                     {
-                        promptOptions.SchedulerType = schedulerType;
+                        schedulerOptions.SchedulerType = schedulerType;
                         OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
                         await GenerateImage(model, promptOptions, schedulerOptions);
                     }
@@ -68,13 +68,13 @@ namespace OnnxStack.Console.Runner
 
         private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options)
         {
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{prompt.SchedulerType}.png");
+            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
             var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
             if (result == null)
                 return false;
 
             await result.SaveAsPngAsync(outputFilename);
-            OutputHelpers.WriteConsole($"{prompt.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
+            OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
             return true;
         }
     }

@@ -1,4 +1,5 @@
 ﻿using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,9 +31,16 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
             else if (batchOptions.BatchType == BatchOptionType.Guidance)
             {
-                var totalIncrements = (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment;
-                return Enumerable.Range(0, Math.Max(1, (int)totalIncrements))
+                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
+                return Enumerable.Range(0, totalIncrements)
                   .Select(x => schedulerOptions with { GuidanceScale = batchOptions.ValueFrom + (batchOptions.Increment * x) })
+                  .ToList();
+            }
+            else if (batchOptions.BatchType == BatchOptionType.Strength)
+            {
+                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
+                return Enumerable.Range(0, totalIncrements)
+                  .Select(x => schedulerOptions with { Strength = batchOptions.ValueFrom + (batchOptions.Increment * x) })
                   .ToList();
             }
             return new List<SchedulerOptions>();

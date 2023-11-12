@@ -7,6 +7,7 @@ using OnnxStack.UI.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,6 +21,7 @@ namespace OnnxStack.UI.UserControls
     public partial class SchedulerControl : UserControl, INotifyPropertyChanged
     {
         private SchedulerOptionsConfig _optionsConfig = new();
+        private ObservableCollection<SchedulerType> _schedulerTypes = new();
 
         /// <summary>Initializes a new instance of the <see cref="SchedulerControl" /> class.</summary>
         public SchedulerControl()
@@ -33,6 +35,12 @@ namespace OnnxStack.UI.UserControls
         public ICommand ResetParametersCommand { get; }
         public ICommand RandomSeedCommand { get; }
         public ObservableCollection<int> ValidSizes { get; }
+
+        public ObservableCollection<SchedulerType> SchedulerTypes
+        {
+            get { return _schedulerTypes; }
+            set { _schedulerTypes = value; NotifyPropertyChanged(); }
+        }
 
         /// <summary>
         /// Gets or sets the selected model.
@@ -103,6 +111,23 @@ namespace OnnxStack.UI.UserControls
                 SchedulerOptions.OriginalInferenceSteps = 50;
                 SchedulerOptions.InferenceSteps = 6;
             }
+
+
+            SchedulerTypes.Clear();
+            if (model is null)
+                return;
+
+            if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusion)
+            {
+                foreach (SchedulerType type in Enum.GetValues<SchedulerType>().Where(x => x != SchedulerType.LCM))
+                    SchedulerTypes.Add(type);
+            }
+            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistency)
+            {
+                SchedulerTypes.Add(SchedulerType.LCM);
+            }
+
+            SchedulerOptions.SchedulerType = SchedulerTypes.FirstOrDefault();
         }
 
 

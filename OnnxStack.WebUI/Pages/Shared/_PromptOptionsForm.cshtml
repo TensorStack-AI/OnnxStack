@@ -17,9 +17,9 @@
             @Html.TextAreaFor(m => m.NegativePrompt, new { @class = "form-control form-control-sm", @rows = 2 })
             @Html.ValidationMessageFor(m => m.NegativePrompt, "", new { @class = "text-danger" })
         </div>
-        <div class="w-100">
+@*         <div class="w-100">
             <small>Scheduler</small>
             @Html.DropDownListFor( m => m.SchedulerType,Html.GetEnumSelectList<SchedulerType>(), new { @class = "form-control form-select-sm"})
-        </div>
+        </div> *@
     </div>
 </form>

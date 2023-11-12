@@ -10,7 +10,6 @@ namespace OnnxStack.UI.Models
     {
         private string _prompt;
         private string _negativePrompt;
-        private SchedulerType _schedulerType;
 
         [Required]
         [StringLength(512, MinimumLength = 1)]
@@ -26,13 +25,6 @@ namespace OnnxStack.UI.Models
             get { return _prompt; }
             set { _prompt = value; NotifyPropertyChanged(); }
         }
-
-        public SchedulerType SchedulerType
-        {
-            get { return _schedulerType; }
-            set { _schedulerType = value; NotifyPropertyChanged(); }
-        }
- 
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

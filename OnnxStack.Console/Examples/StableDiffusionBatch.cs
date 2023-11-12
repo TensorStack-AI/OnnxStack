@@ -1,5 +1,6 @@
 ﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using SixLabors.ImageSharp;
 
@@ -66,7 +67,7 @@ namespace OnnxStack.Console.Runner
 
                     foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType).Take(1))
                     {
-                        promptOptions.SchedulerType = schedulerType;
+                        schedulerOptions.SchedulerType = schedulerType;
                         await foreach (var result in _stableDiffusionService.GenerateBatchAsync(model, promptOptions, schedulerOptions, batchOptions, callback))
                         {
                             var outputFilename = Path.Combine(_outputDirectory, $"{batchIndex}_{result.SchedulerOptions.Seed}.png");

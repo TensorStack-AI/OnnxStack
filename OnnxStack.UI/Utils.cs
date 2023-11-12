@@ -1,4 +1,5 @@
 ﻿using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Models;
 using System;
 using System.IO;
@@ -120,7 +121,8 @@ namespace OnnxStack.UI
                 TrainTimesteps = model.TrainTimesteps,
                 UseKarrasSigmas = model.UseKarrasSigmas,
                 VarianceType = model.VarianceType,
-                OriginalInferenceSteps = model.OriginalInferenceSteps
+                OriginalInferenceSteps = model.OriginalInferenceSteps,
+                SchedulerType = model.SchedulerType
             };
         }
 
@@ -152,6 +154,7 @@ namespace OnnxStack.UI
                 UseKarrasSigmas = model.UseKarrasSigmas,
                 VarianceType = model.VarianceType,
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
+                SchedulerType = model.SchedulerType
             };
         }
 
@@ -160,8 +163,7 @@ namespace OnnxStack.UI
             return new PromptOptionsModel
             {
                 Prompt = promptOptions.Prompt,
-                NegativePrompt = promptOptions.NegativePrompt,
-                SchedulerType = promptOptions.SchedulerType
+                NegativePrompt = promptOptions.NegativePrompt
             };
         }
 

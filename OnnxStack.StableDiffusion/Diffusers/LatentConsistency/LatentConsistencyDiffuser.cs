@@ -85,7 +85,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
             var diffuseTime = _logger?.LogBegin("Begin...");
-            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
             // LCM does not support negative prompting
             var performGuidance = false;
@@ -117,7 +117,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         public async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var diffuseBatchTime = _logger?.LogBegin("Begin...");
-            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {promptOptions.SchedulerType}");
+            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
             // LCM does not support negative prompting
             var performGuidance = false;
@@ -130,9 +130,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             var batchSchedulerOptions = BatchGenerator.GenerateBatch(batchOptions, schedulerOptions);
 
             var batchIndex = 1;
-            var batchCount = batchSchedulerOptions.Count;
-            var schedulerCallback = (int p, int t) => progressCallback?.Invoke(batchIndex, batchCount, p, t);
-
+            var schedulerCallback = (int step, int steps) => progressCallback?.Invoke(batchIndex, batchSchedulerOptions.Count, step, steps);
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
                 yield return new BatchResult(batchSchedulerOption, await RunSchedulerSteps(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
@@ -281,7 +279,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <returns></returns>
         protected IScheduler GetScheduler(PromptOptions prompt, SchedulerOptions options)
         {
-            return prompt.SchedulerType switch
+            return options.SchedulerType switch
             {
                 SchedulerType.LCM => new LCMScheduler(options),
                 _ => default

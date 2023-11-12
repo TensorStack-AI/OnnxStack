@@ -26,7 +26,10 @@
                     </StackPanel>
                 </TabItem.Header>
                 <StackPanel Margin="2">
-
+                    <StackPanel>
+                        <Label>Scheduler</Label>
+                        <ComboBox ItemsSource="{Binding SchedulerTypes}" SelectedItem="{Binding SchedulerOptions.SchedulerType}"/>
+                    </StackPanel>
                     <UniformGrid Columns="4" Margin="0,2,0,0">
                         <StackPanel>
                             <Label>Seed</Label>

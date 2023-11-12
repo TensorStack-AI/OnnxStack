@@ -149,8 +149,7 @@ namespace OnnxStack.UI.Views
             PromptOptions = new PromptOptionsModel
             {
                 Prompt = imageResult.Prompt,
-                NegativePrompt = imageResult.NegativePrompt,
-                SchedulerType = imageResult.SchedulerType
+                NegativePrompt = imageResult.NegativePrompt
             };
             SchedulerOptions = imageResult.SchedulerOptions.ToSchedulerOptionsModel();
             SelectedTabIndex = 0;
@@ -170,7 +169,6 @@ namespace OnnxStack.UI.Views
             {
                 Prompt = PromptOptions.Prompt,
                 NegativePrompt = PromptOptions.NegativePrompt,
-                SchedulerType = PromptOptions.SchedulerType,
                 DiffuserType = DiffuserType.TextToImage
             };
 
@@ -282,7 +280,7 @@ namespace OnnxStack.UI.Views
                     NegativePrompt = promptOptions.NegativePrompt,
                     PipelineType = _selectedModel.ModelOptions.PipelineType,
                     DiffuserType = promptOptions.DiffuserType,
-                    SchedulerType = promptOptions.SchedulerType,
+                    SchedulerType = schedulerOptions.SchedulerType,
                     SchedulerOptions = schedulerOptions,
                     Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
                 };

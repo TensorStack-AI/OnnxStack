@@ -12,21 +12,16 @@
             <Setter Property="Margin" Value="-4,0,0,-4"/>
         </Style>
     </UserControl.Resources>
-
-    <DockPanel DataContext="{Binding ElementName=UI}">
-        <StackPanel DockPanel.Dock="Top">
-            <StackPanel>
-                <Label>Prompt</Label>
-                <TextBox Text="{Binding PromptOptions.Prompt, UpdateSourceTrigger=PropertyChanged}" behaviors:ShiftEnterBehavior.Enable="True" Height="100" TextWrapping="Wrap"/>
-            </StackPanel>
-            <StackPanel>
-                <Label>Negative Prompt</Label>
-                <TextBox Text="{Binding PromptOptions.NegativePrompt}" behaviors:ShiftEnterBehavior.Enable="True" Height="100" TextWrapping="Wrap"/>
-            </StackPanel>
-            <StackPanel>
-                <Label>Scheduler</Label>
-                <ComboBox ItemsSource="{Binding SchedulerTypes}" SelectedItem="{Binding PromptOptions.SchedulerType}"/>
-            </StackPanel>
-        </StackPanel>
+    <DockPanel DataContext="{Binding ElementName=UI}" >
+        <UniformGrid Rows="2" DockPanel.Dock="Top" >
+            <DockPanel>
+                <Label DockPanel.Dock="Top">Prompt</Label>
+                <TextBox Text="{Binding PromptOptions.Prompt, UpdateSourceTrigger=PropertyChanged}" behaviors:ShiftEnterBehavior.Enable="True"  TextWrapping="Wrap"/>
+            </DockPanel>
+            <DockPanel>
+                <Label  DockPanel.Dock="Top">Negative Prompt</Label>
+                <TextBox Text="{Binding PromptOptions.NegativePrompt}" behaviors:ShiftEnterBehavior.Enable="True"  TextWrapping="Wrap"/>
+            </DockPanel>
+        </UniformGrid>
     </DockPanel>
 </UserControl>

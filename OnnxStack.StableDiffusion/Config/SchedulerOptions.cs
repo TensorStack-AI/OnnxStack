@@ -7,6 +7,11 @@ namespace OnnxStack.StableDiffusion.Config
     public record SchedulerOptions
     {
         /// <summary>
+        /// Gets or sets the type of scheduler.
+        /// </summary>
+        public SchedulerType SchedulerType { get; set; }
+
+        /// <summary>
         /// Gets or sets the height.
         /// </summary>
         /// <value>
