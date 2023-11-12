@@ -145,6 +145,23 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 
 
         /// <summary>
+        /// Runs the stable diffusion batch loop
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IAsyncEnumerable<DenseTensor<float>> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        /// <summary>
         /// Decodes the latents.
         /// </summary>
         /// <param name="options">The options.</param>
@@ -261,5 +278,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         {
             return parameters.ToList();
         }
+
+       
     }
 }
