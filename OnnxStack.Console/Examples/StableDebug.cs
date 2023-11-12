@@ -1,7 +1,7 @@
-﻿using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.StableDiffusion;
+using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Services;
 using SixLabors.ImageSharp;
 using System.Diagnostics;
 
@@ -54,7 +54,7 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModel(model);
 
-                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
+                    foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
                     {
                         schedulerOptions.SchedulerType = schedulerType;
                         OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);

@@ -1,8 +1,9 @@
 ﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion;
 using SixLabors.ImageSharp;
+using OnnxStack.StableDiffusion.Helpers;
 
 namespace OnnxStack.Console.Runner
 {
@@ -47,10 +48,7 @@ namespace OnnxStack.Console.Runner
 
                 var batchOptions = new BatchOptions
                 {
-                    BatchType = BatchOptionType.Guidance,
-                    ValueFrom = 4,
-                    ValueTo = 20,
-                    Increment = 0.5f
+                    BatchType = BatchOptionType.Scheduler
                 };
 
                 foreach (var model in _stableDiffusionService.Models)
@@ -65,16 +63,12 @@ namespace OnnxStack.Console.Runner
                         OutputHelpers.WriteConsole($"Image: {batch}/{batchCount} - Step: {step}/{steps}", ConsoleColor.Cyan);
                     };
 
-                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType).Take(1))
+                    await foreach (var result in _stableDiffusionService.GenerateBatchAsync(model, promptOptions, schedulerOptions, batchOptions, callback))
                     {
-                        schedulerOptions.SchedulerType = schedulerType;
-                        await foreach (var result in _stableDiffusionService.GenerateBatchAsync(model, promptOptions, schedulerOptions, batchOptions, callback))
-                        {
-                            var outputFilename = Path.Combine(_outputDirectory, $"{batchIndex}_{result.SchedulerOptions.Seed}.png");
-                            var image = result.ImageResult.ToImage();
-                            await image.SaveAsPngAsync(outputFilename);
-                            OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
-                        }
+                        var outputFilename = Path.Combine(_outputDirectory, $"{batchIndex}_{result.SchedulerOptions.Seed}.png");
+                        var image = result.ImageResult.ToImage();
+                        await image.SaveAsPngAsync(outputFilename);
+                        OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
                     }
 
                     OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);

@@ -5,6 +5,7 @@
         Seed = 0,
         Step = 1,
         Guidance = 2,
-        Strength = 3
+        Strength = 3,
+        Scheduler = 4
     }
 }

@@ -127,7 +127,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
 
             // Generate batch options
-            var batchSchedulerOptions = BatchGenerator.GenerateBatch(batchOptions, schedulerOptions);
+            var batchSchedulerOptions = BatchGenerator.GenerateBatch(modelOptions, batchOptions, schedulerOptions);
 
             var batchIndex = 1;
             var schedulerCallback = (int step, int steps) => progressCallback?.Invoke(batchIndex, batchSchedulerOptions.Count, step, steps);

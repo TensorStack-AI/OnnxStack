@@ -1,7 +1,6 @@
-﻿using OnnxStack.Core;
+﻿using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using SixLabors.ImageSharp;
 using System.Collections.ObjectModel;
 
@@ -48,7 +47,7 @@ namespace OnnxStack.Console.Runner
                     {
                         Seed = Random.Shared.Next()
                     };
-                    foreach (var schedulerType in Helpers.GetPipelineSchedulers(model.PipelineType))
+                    foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
                     {
                         schedulerOptions.SchedulerType = schedulerType;
                         OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
