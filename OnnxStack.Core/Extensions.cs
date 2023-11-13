@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace OnnxStack.Core
 {
@@ -168,6 +169,22 @@ namespace OnnxStack.Core
         public static ConcurrentDictionary<T, U> ToConcurrentDictionary<S, T, U>(this IEnumerable<S> source, Func<S, T> keySelector, Func<S, U> elementSelector) where T : notnull
         {
             return new ConcurrentDictionary<T, U>(source.ToDictionary(keySelector, elementSelector));
+        }
+
+
+        /// <summary>
+        /// Gets the full prod of a dimension
+        /// </summary>
+        /// <param name="array">The dimension array.</param>
+        /// <returns></returns>
+        public static T GetBufferLength<T>(this T[] array) where T : INumber<T>
+        {
+            T result = T.One;
+            foreach (T element in array)
+            {
+                result *= element;
+            }
+            return result;
         }
     }
 }
