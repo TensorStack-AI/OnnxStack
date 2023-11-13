@@ -1,9 +1,11 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace OnnxStack.Core
 {
@@ -169,5 +171,60 @@ namespace OnnxStack.Core
         {
             return new ConcurrentDictionary<T, U>(source.ToDictionary(keySelector, elementSelector));
         }
+
+
+        /// <summary>
+        /// Gets the full prod of a dimension
+        /// </summary>
+        /// <param name="array">The dimension array.</param>
+        /// <returns></returns>
+        public static T GetBufferLength<T>(this T[] array) where T : INumber<T>
+        {
+            T result = T.One;
+            foreach (T element in array)
+            {
+                result *= element;
+            }
+            return result;
+        }
+
+
+        /// <summary>
+        /// Gets the full prod of a dimension
+        /// </summary>
+        /// <param name="array">The dimension array.</param>
+        /// <returns></returns>
+        public static T GetBufferLength<T>(this ReadOnlySpan<T> array) where T : INumber<T>
+        {
+            T result = T.One;
+            foreach (T element in array)
+            {
+                result *= element;
+            }
+            return result;
+        }
+
+
+        public static long[] ToLong(this ReadOnlySpan<int> array)
+        {
+            return Array.ConvertAll(array.ToArray(), Convert.ToInt64);
+        }
+    
+        public static int[] ToInt(this long[] array)
+        {
+            return Array.ConvertAll(array, Convert.ToInt32);
+        }
+
+        public static long[] ToLong(this int[] array)
+        {
+            return Array.ConvertAll(array, Convert.ToInt64);
+        }
+
+
+        public static OrtValue ToOrtValue<T>(this DenseTensor<T> tensor) where T : unmanaged
+        {
+            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
+        }
+
     }
 }
