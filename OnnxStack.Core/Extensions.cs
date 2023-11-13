@@ -186,5 +186,37 @@ namespace OnnxStack.Core
             }
             return result;
         }
+
+
+        /// <summary>
+        /// Gets the full prod of a dimension
+        /// </summary>
+        /// <param name="array">The dimension array.</param>
+        /// <returns></returns>
+        public static T GetBufferLength<T>(this ReadOnlySpan<T> array) where T : INumber<T>
+        {
+            T result = T.One;
+            foreach (T element in array)
+            {
+                result *= element;
+            }
+            return result;
+        }
+
+
+        public static long[] ToLong(this ReadOnlySpan<int> array)
+        {
+            return Array.ConvertAll(array.ToArray(), Convert.ToInt64);
+        }
+    
+        public static int[] ToInt(this long[] array)
+        {
+            return Array.ConvertAll(array, Convert.ToInt32);
+        }
+
+        public static long[] ToLong(this int[] array)
+        {
+            return Array.ConvertAll(array, Convert.ToInt64);
+        }
     }
 }

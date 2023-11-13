@@ -217,13 +217,20 @@ namespace OnnxStack.StableDiffusion.Diffusers
             foreach (var image in images)
             {
                 var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
-                var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], image));
+                var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
 
-                // Run inference.
-                using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputParameters))
+                var outputDim = new[] { 1, 3, options.Height, options.Width };
+                var outputBuffer = new DenseTensor<float>(outputDim);
+                using (var inputTensorValue = OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, image.Buffer, image.Dimensions.ToLong()))
+                using (var outputTensorValue = OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, outputBuffer.Buffer, outputDim.ToLong()))
                 {
-                    var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                    imageTensors.Add(resultTensor.ToDenseTensor());
+                    var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
+                    var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
+                    var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
+                    using (var imageResult = results.First())
+                    {
+                        imageTensors.Add(images.Length == 1 ? outputBuffer : outputBuffer.ToDenseTensor());
+                    }
                 }
             }
 
