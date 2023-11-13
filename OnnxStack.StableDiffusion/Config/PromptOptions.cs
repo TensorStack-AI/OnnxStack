@@ -15,7 +15,7 @@ namespace OnnxStack.StableDiffusion.Config
         [StringLength(512)]
         public string NegativePrompt { get; set; }
 
-        public int BatchCount { get; set; } = 1;
+        public int BatchCount { get; set; } = 1; // Delete  Me
 
         public InputImage InputImage { get; set; }
 
