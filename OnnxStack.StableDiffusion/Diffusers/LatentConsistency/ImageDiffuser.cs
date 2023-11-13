@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OnnxStack.Core;
 
 namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
@@ -55,24 +56,32 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override async Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            // Image input, decode, add noise, return as latent 0
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeEncoder);
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageTensor));
-            using (var inferResult = _onnxModelService.RunInference(model, OnnxModelType.VaeEncoder, inputParameters))
+            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeEncoder);
+
+            //TODO: Model Config, Channels
+            var outputBuffer = new DenseTensor<float>(options.GetScaledDimension());
+            using (var inputTensorValue = imageTensor.ToOrtValue())
+            using (var outputTensorValue = outputBuffer.ToOrtValue())
             {
-                var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                var scaledSample = sample
-                    .Add(scheduler.CreateRandomSample(sample.Dimensions, options.InitialNoiseLevel))
-                    .MultiplyBy(model.ScaleFactor);
+                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
+                var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inputs, outputs);
+                using (var result = results.First())
+                {
+                    var scaledSample = outputBuffer
+                       .Add(scheduler.CreateRandomSample(outputBuffer.Dimensions, options.InitialNoiseLevel))
+                       .MultiplyBy(model.ScaleFactor);
 
-                var noisySample = scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
-                if (prompt.BatchCount > 1)
-                    return Task.FromResult(noisySample.Repeat(prompt.BatchCount));
+                    var noisySample = scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
+                    if (prompt.BatchCount > 1)
+                        return noisySample.Repeat(prompt.BatchCount);
 
-                return Task.FromResult(noisySample);
+                    return noisySample;
+                }
             }
         }
     }
