@@ -173,9 +173,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                        .Add(scheduler.CreateRandomSample(outputBuffer.Dimensions, options.InitialNoiseLevel))
                        .MultiplyBy(model.ScaleFactor);
 
-                    if (prompt.BatchCount > 1)
-                        return scaledSample.Repeat(prompt.BatchCount);
-
                     return scaledSample;
                 }
             }
@@ -213,9 +210,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                         }
                     }
                 });
-
-                if (promptOptions.BatchCount > 1)
-                    return maskTensor.Repeat(promptOptions.BatchCount);
 
                 return maskTensor;
             }
