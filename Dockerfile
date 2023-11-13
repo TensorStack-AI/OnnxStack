@@ -9,6 +9,6 @@ RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.d
 RUN git clone https://huggingface.co/runwayml/stable-diffusion-v1-5 -b onnx
 
 COPY . .
-RUN ls -ltr
 RUN dotnet build OnnxStackCore.sln
-RUN dotnet test OnnxStackCore.sln
+
+ENTRYPOINT ["dotnet", "test", "OnnxStackCore.sln"]
