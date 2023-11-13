@@ -64,7 +64,6 @@ public class StableDiffusionTests
             Prompt = "an astronaut riding a horse in space",
             NegativePrompt = "blurry,ugly,cartoon",
             BatchCount = 1,
-            SchedulerType = SchedulerType.EulerAncestral,
             DiffuserType = DiffuserType.TextToImage
         };
 
@@ -72,6 +71,7 @@ public class StableDiffusionTests
         {
             Width = 512,
             Height = 512,
+            SchedulerType = SchedulerType.EulerAncestral,
             InferenceSteps = 10,
             GuidanceScale = 7.0f,
             Seed = 1
