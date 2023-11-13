@@ -39,38 +39,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
 
         /// <summary>
-        /// Run the stable diffusion loop
-        /// </summary>
-        /// <param name="modelOptions"></param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="progress">The progress.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public override async Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            // Create random seed if none was set
-            schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
-
-            var diffuseTime = _logger?.LogBegin("Begin...");
-            _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
-
-            // Should we perform classifier free guidance
-            var performGuidance = schedulerOptions.GuidanceScale > 1.0f;
-
-            // Process prompts
-            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
-
-            // Run Scheduler steps
-            var schedulerResult = await RunSchedulerSteps(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
-
-            _logger?.LogEnd($"End", diffuseTime);
-
-            return schedulerResult;
-        }
-
-
-        /// <summary>
         /// Runs the scheduler steps.
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
@@ -81,15 +49,15 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> RunSchedulerSteps(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStep(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            using (var scheduler = GetScheduler(promptOptions, schedulerOptions))
+            using (var scheduler = GetScheduler(schedulerOptions))
             {
                 // Get timesteps
-                var timesteps = GetTimesteps(promptOptions, schedulerOptions, scheduler);
+                var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latentsOriginal = PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latentsOriginal = await PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Create masks sample
                 var maskImage = PrepareMask(modelOptions, promptOptions, schedulerOptions);
@@ -153,7 +121,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
+        protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
             var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
             var start = Math.Max(options.InferenceSteps - inittimestep, 0);
@@ -168,7 +136,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             // Image input, decode, add noise, return as latent 0
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Width, options.Height });
@@ -183,9 +151,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                      .ToDenseTensor();
 
                 if (prompt.BatchCount > 1)
-                    return scaledSample.Repeat(prompt.BatchCount);
+                    return Task.FromResult(scaledSample.Repeat(prompt.BatchCount));
 
-                return scaledSample;
+                return Task.FromResult(scaledSample);
             }
         }
 
