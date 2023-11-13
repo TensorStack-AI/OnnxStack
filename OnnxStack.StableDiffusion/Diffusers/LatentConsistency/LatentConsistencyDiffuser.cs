@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -63,7 +62,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;
@@ -104,6 +103,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 // Denoised result
                 DenseTensor<float> denoised = null;
 
+                // Get Model metadata
+                var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.Unet);
+                var outputNames = _onnxModelService.GetOutputNames(modelOptions, OnnxModelType.Unet);
+                var inputMetaData = _onnxModelService.GetInputMetadata(modelOptions, OnnxModelType.Unet);
+
                 // Loop though the timesteps
                 var step = 0;
                 foreach (var timestep in timesteps)
@@ -115,19 +119,33 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latents, timestep);
 
-                    // Create Input Parameters
-                    var inputParameters = CreateUnetInputParams(modelOptions, inputTensor, promptEmbeddings, guidanceEmbeddings, timestep);
-
-                    // Run Inference
-                    using (var inferResult = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputParameters))
+                    var outputBuffer = new DenseTensor<float>(schedulerOptions.GetScaledDimension());
+                    using (var outputTensorValue = outputBuffer.ToOrtValue())
+                    using (var inputTensorValue = inputTensor.ToOrtValue())
+                    using (var timestepOrtValue = CreateTimestepNamedOrtValue(inputMetaData, inputNames[1], timestep))
+                    using (var promptTensorValue = promptEmbeddings.ToOrtValue())
+                    using (var guidanceTensorValue = guidanceEmbeddings.ToOrtValue())
                     {
-                        var noisePred = inferResult.FirstElementAs<DenseTensor<float>>();
+                        var inputs = new Dictionary<string, OrtValue>
+                        {
+                            { inputNames[0], inputTensorValue },
+                            { inputNames[1], timestepOrtValue },
+                            { inputNames[2], promptTensorValue },
+                            { inputNames[3], guidanceTensorValue }
+                        };
 
-                        // Scheduler Step
-                        var schedulerResult = scheduler.Step(noisePred, timestep, latents);
+                        var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
+                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputs, outputs);
+                        using (var result = results.First())
+                        {
+                            var noisePred = outputBuffer;
 
-                        latents = schedulerResult.Result;
-                        denoised = schedulerResult.SampleData;
+                            // Scheduler Step
+                            var schedulerResult = scheduler.Step(noisePred, timestep, latents);
+
+                            latents = schedulerResult.Result;
+                            denoised = schedulerResult.SampleData;
+                        }
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
@@ -137,27 +155,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 // Decode Latents
                 return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, denoised);
             }
-        }
-
-
-        /// <summary>
-        /// Creates the Unet input parameters.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <param name="inputTensor">The input tensor.</param>
-        /// <param name="promptEmbeddings">The prompt embeddings.</param>
-        /// <param name="timestep">The timestep.</param>
-        /// <returns></returns>
-        protected IReadOnlyList<NamedOnnxValue> CreateUnetInputParams(IModelOptions model, DenseTensor<float> inputTensor, DenseTensor<float> promptEmbeddings, DenseTensor<float> guidanceEmbeddings, int timestep)
-        {
-            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.Unet);
-            var inputMetaData = _onnxModelService.GetInputMetadata(model, OnnxModelType.Unet);
-            var timestepNamedOnnxValue = CreateTimestepNamedOnnxValue(inputMetaData, inputNames[1], timestep);
-            return CreateInputParameters(
-                 NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor),
-                 timestepNamedOnnxValue,
-                 NamedOnnxValue.CreateFromTensor(inputNames[2], promptEmbeddings),
-                 NamedOnnxValue.CreateFromTensor(inputNames[3], guidanceEmbeddings));
         }
 
 

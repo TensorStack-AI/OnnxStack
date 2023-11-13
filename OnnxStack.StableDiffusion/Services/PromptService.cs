@@ -47,7 +47,7 @@ namespace OnnxStack.StableDiffusion.Services
             var negativePromptEmbeddings = await GenerateEmbedsAsync(model, negativePromptTokens, maxPromptTokenCount);
 
             // If we have a batch, repeat the prompt embeddings
-            if(promptOptions.BatchCount > 1)
+            if (promptOptions.BatchCount > 1)
             {
                 promptEmbeddings = promptEmbeddings.Repeat(promptOptions.BatchCount);
                 negativePromptEmbeddings = negativePromptEmbeddings.Repeat(promptOptions.BatchCount);
@@ -67,21 +67,24 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="inputText">The input text.</param>
         /// <returns>Tokens generated for the specified text input</returns>
-        public async Task<int[]> DecodeTextAsync(IModelOptions model, string inputText)
+        public Task<int[]> DecodeTextAsync(IModelOptions model, string inputText)
         {
             if (string.IsNullOrEmpty(inputText))
-                return Array.Empty<int>();
+                return Task.FromResult(Array.Empty<int>());
 
-            // Create input tensor.
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.Tokenizer);
+            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.Tokenizer);
             var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor));
-
-            // Run inference.
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.Tokenizer, inputParameters))
+            using (var inputTensorValue = OrtValue.CreateFromStringTensor(inputTensor))
             {
-                var resultTensor = inferResult.FirstElementAs<DenseTensor<long>>();
-                return resultTensor.Select(x => (int)x).ToArray();
+                var outputs = new string[] { outputNames[0] };
+                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
+                var results = _onnxModelService.RunInference(model, OnnxModelType.Tokenizer, inputs, outputs);
+                using (var result = results.First())
+                {
+                    var resultData = result.GetTensorDataAsSpan<long>().ToArray();
+                    return Task.FromResult(Array.ConvertAll(resultData, Convert.ToInt32));
+                }
             }
         }
 
@@ -95,14 +98,21 @@ namespace OnnxStack.StableDiffusion.Services
         {
             // Create input tensor.
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.TextEncoder);
-            var inputTensor = TensorHelper.CreateTensor(tokenizedInput, new[] { 1, tokenizedInput.Length });
-            var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], inputTensor));
+            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.TextEncoder);
 
-            // Run inference.
-            using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.TextEncoder, inputParameters))
+            var inputDim = new[] { 1L, tokenizedInput.Length };
+            var outputDim = new[] { 1L, tokenizedInput.Length, model.EmbeddingsLength };
+            var outputBuffer = new float[outputDim.GetBufferLength()];
+            using (var inputTensorValue = OrtValue.CreateTensorValueFromMemory(tokenizedInput, inputDim))
+            using (var outputTensorValue = OrtValue.CreateTensorValueFromMemory(outputBuffer, outputDim))
             {
-                var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                return resultTensor.ToArray();
+                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
+                var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.TextEncoder, inputs, outputs);
+                using (var result = results.First())
+                {
+                    return outputBuffer;
+                }
             }
         }
 
