@@ -79,6 +79,29 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
+        /// Runs the inference Use when output size is unknown
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputs">The inputs.</param>
+        /// <param name="outputs">The outputs.</param>
+        /// <returns></returns>
+        IReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs);
+
+
+        /// <summary>
+        /// Runs the inference asynchronously, Use when output size is known
+        /// Output buffer size must be known and set before inference is run
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputs">The inputs.</param>
+        /// <param name="outputs">The outputs.</param>
+        /// <returns></returns>
+        Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, Dictionary<string, OrtValue> outputs);
+
+
+        /// <summary>
         /// Gets the Sessions input metadata.
         /// </summary>
         /// <param name="modelType">Type of model.</param>
@@ -108,5 +131,6 @@ namespace OnnxStack.Core.Services
         /// <param name="modelType">Type of model.</param>
         /// <returns></returns>
         IReadOnlyList<string> GetOutputNames(IOnnxModel model, OnnxModelType modelType);
+
     }
 }

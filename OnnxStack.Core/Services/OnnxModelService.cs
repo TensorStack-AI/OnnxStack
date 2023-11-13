@@ -181,6 +181,34 @@ namespace OnnxStack.Core.Services
         /// <param name="modelType">Type of the model.</param>
         /// <param name="inputs">The inputs.</param>
         /// <returns></returns>
+        public IReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs)
+        {
+            return GetModelSet(model)
+                .GetSession(modelType)
+                .Run(new RunOptions(), inputs, outputs);
+        }
+
+
+        /// <summary>
+        /// Runs inference on the specified model.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputs">The inputs.</param>
+        /// <returns></returns>
+        public Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, Dictionary<string, OrtValue> outputs)
+        {
+            return GetModelSet(model)
+                .GetSession(modelType)
+                .RunAsync(new RunOptions(), inputs.Keys, inputs.Values, outputs.Keys, outputs.Values);
+        }
+
+
+        /// <summary>
+        /// Runs inference on the specified model.
+        /// </summary>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputs">The inputs.</param>
+        /// <returns></returns>
         private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInternal(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
         {
             return GetModelSet(model)

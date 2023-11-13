@@ -217,13 +217,20 @@ namespace OnnxStack.StableDiffusion.Diffusers
             foreach (var image in images)
             {
                 var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
-                var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], image));
+                var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
 
-                // Run inference.
-                using (var inferResult = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputParameters))
+                var outputDim = new[] { 1, 3, options.Height, options.Width };
+                var outputBuffer = new DenseTensor<float>(outputDim);
+                using (var inputTensorValue = image.ToOrtValue())
+                using (var outputTensorValue = outputBuffer.ToOrtValue())
                 {
-                    var resultTensor = inferResult.FirstElementAs<DenseTensor<float>>();
-                    imageTensors.Add(resultTensor.ToDenseTensor());
+                    var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
+                    var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
+                    var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
+                    using (var imageResult = results.First())
+                    {
+                        imageTensors.Add(outputBuffer);
+                    }
                 }
             }
 
@@ -236,19 +243,19 @@ namespace OnnxStack.StableDiffusion.Diffusers
 
 
         /// <summary>
-        /// Creates the timestep NamedOnnxValue based on its NodeMetadata type.
+        /// Creates the timestep OrtValue based on its NodeMetadata type.
         /// </summary>
         /// <param name="nodeMetadata">The node metadata.</param>
         /// <param name="timestepInputName">Name of the timestep input.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected static NamedOnnxValue CreateTimestepNamedOnnxValue(IReadOnlyDictionary<string, NodeMetadata> nodeMetadata, string timestepInputName, int timestep)
+        protected static OrtValue CreateTimestepNamedOrtValue(IReadOnlyDictionary<string, NodeMetadata> nodeMetadata, string timestepInputName, int timestep)
         {
             // Some models support Long or Float, could be more but fornow just support these 2
             var timestepMetaData = nodeMetadata[timestepInputName];
             return timestepMetaData.ElementDataType == TensorElementType.Int64
-                ? NamedOnnxValue.CreateFromTensor(timestepInputName, new DenseTensor<long>(new long[] { timestep }, new int[] { 1 }))
-                : NamedOnnxValue.CreateFromTensor(timestepInputName, new DenseTensor<float>(new float[] { timestep }, new int[] { 1 }));
+                ? OrtValue.CreateTensorValueFromMemory(new long[] { timestep }, new long[] { 1 })
+                : OrtValue.CreateTensorValueFromMemory(new float[] { timestep }, new long[] { 1 });
         }
 
 
