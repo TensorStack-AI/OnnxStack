@@ -74,7 +74,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
 
-                    var outputBuffer = new DenseTensor<float>(schedulerOptions.GetScaledDimension());
+                    var outputBuffer = new DenseTensor<float>(schedulerOptions.GetScaledDimension(performGuidance ? 2 : 1));
                     using (var outputTensorValue = outputBuffer.ToOrtValue())
                     using (var inputTensorValue = inputTensor.ToOrtValue())
                     using (var timestepOrtValue = CreateTimestepNamedOrtValue(inputMetaData, inputNames[1], timestep))
