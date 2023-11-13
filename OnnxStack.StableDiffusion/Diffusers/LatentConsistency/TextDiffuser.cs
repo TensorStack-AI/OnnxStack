@@ -5,6 +5,7 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
@@ -16,9 +17,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
         public TextDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<LatentConsistencyDiffuser> logger)
-            : base(onnxModelService, promptService, logger)
-        {
-        }
+            : base(onnxModelService, promptService, logger) { }
+
 
         /// <summary>
         /// Gets the type of the diffuser.
@@ -33,7 +33,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
+        protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
             return scheduler.Timesteps;
         }
@@ -46,9 +46,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            return scheduler.CreateRandomSample(options.GetScaledDimension(prompt.BatchCount), scheduler.InitNoiseSigma);
+            return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(prompt.BatchCount), scheduler.InitNoiseSigma));
         }
     }
 }
