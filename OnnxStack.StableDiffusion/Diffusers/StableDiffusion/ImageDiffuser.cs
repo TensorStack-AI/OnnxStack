@@ -11,7 +11,7 @@ using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
@@ -41,7 +41,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override IReadOnlyList<int> GetTimesteps(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler)
+        protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
             // Image2Image we narrow step the range by the Strength
             var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
@@ -57,7 +57,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override DenseTensor<float> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             // Image input, decode, add noise, return as latent 0
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
@@ -72,9 +72,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                 var noisySample = scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
                 if (prompt.BatchCount > 1)
-                    return noisySample.Repeat(prompt.BatchCount);
+                    return Task.FromResult(noisySample.Repeat(prompt.BatchCount));
 
-                return noisySample;
+                return Task.FromResult(noisySample);
             }
         }
 
