@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using System;
 using System.Collections.Concurrent;
@@ -218,5 +219,12 @@ namespace OnnxStack.Core
         {
             return Array.ConvertAll(array, Convert.ToInt64);
         }
+
+
+        public static OrtValue ToOrtValue<T>(this DenseTensor<T> tensor) where T : unmanaged
+        {
+            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
+        }
+
     }
 }

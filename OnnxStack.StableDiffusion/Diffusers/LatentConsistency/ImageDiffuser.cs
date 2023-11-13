@@ -63,10 +63,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeEncoder);
 
             //TODO: Model Config, Channels
-            var outputDim = options.GetScaledDimension();
-            var outputBuffer = new DenseTensor<float>(outputDim);
-            using (var inputTensorValue = OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, imageTensor.Buffer, imageTensor.Dimensions.ToLong()))
-            using (var outputTensorValue = OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, outputBuffer.Buffer, outputDim.ToLong()))
+            var outputBuffer = new DenseTensor<float>(options.GetScaledDimension());
+            using (var inputTensorValue = imageTensor.ToOrtValue())
+            using (var outputTensorValue = outputBuffer.ToOrtValue())
             {
                 var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
                 var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
