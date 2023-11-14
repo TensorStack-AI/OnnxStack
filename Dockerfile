@@ -8,6 +8,9 @@ RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.d
 # Clone the Stable Diffusion 1.5 base model
 RUN git clone https://huggingface.co/runwayml/stable-diffusion-v1-5 -b onnx
 
+# Clone the LCM Dreamshaper V7 model
+RUN git clone https://huggingface.co/TheyCallMeHex/LCM-Dreamshaper-V7-ONNX
+
 COPY . .
 RUN dotnet build OnnxStackCore.sln
 

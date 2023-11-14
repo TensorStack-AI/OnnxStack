@@ -24,24 +24,27 @@ public class StableDiffusionTests
 {
     private readonly IStableDiffusionService _stableDiffusion;
     private readonly ILogger<StableDiffusionTests> _logger;
+    private const string StableDiffusionModel = "StableDiffusion 1.5";
+    private const string LatentConsistencyModel = "LCM-Dreamshaper-V7";
 
     public StableDiffusionTests(ITestOutputHelper testOutputHelper)
     {
         var services = new ServiceCollection();
-        services.AddLogging(builder => builder.AddConsole());
-        services.AddLogging(builder => builder.AddXunit(testOutputHelper));
-        services.AddOnnxStack();
+        services.AddLogging(builder => builder.AddConsole());               //necessary for showing logs when running in docker
+        services.AddLogging(builder => builder.AddXunit(testOutputHelper)); //necessary for showing logs when running in IDE
         services.AddOnnxStackStableDiffusion();
         var provider = services.BuildServiceProvider();
         _stableDiffusion = provider.GetRequiredService<IStableDiffusionService>();
         _logger = provider.GetRequiredService<ILogger<StableDiffusionTests>>();
     }
     
-    [Fact]
-    public async Task GivenStableDiffusion15_WhenLoadModel_ThenModelIsLoaded()
+    [Theory]
+    [InlineData(StableDiffusionModel)]
+    [InlineData(LatentConsistencyModel)]
+    public async Task GivenAStableDiffusionModel_WhenLoadModel_ThenModelIsLoaded(string modelName)
     {
         //arrange
-        var model = _stableDiffusion.Models.Single(m => m.Name == "StableDiffusion 1.5");
+        var model = _stableDiffusion.Models.Single(m => m.Name == modelName);
         
         //act
         _logger.LogInformation("Attempting to load model {0}", model.Name);
@@ -50,15 +53,19 @@ public class StableDiffusionTests
         //assert
         isModelLoaded.Should().BeTrue();
     }
-    
-    [Fact]
-    public async Task GivenTextToImage_WhenInference_ThenImageGenerated()
+
+    [Theory]
+    [InlineData(StableDiffusionModel, SchedulerType.EulerAncestral, 10, 7.0f, "E518D0E4F67CBD5E93513574D30F3FD7")]
+    [InlineData(LatentConsistencyModel, SchedulerType.LCM, 4, 1.0f, "3554E5E1B714D936805F4C9D890B0711")]
+    public async Task GivenTextToImage_WhenInference_ThenImageGenerated(string modelName, SchedulerType schedulerType,
+        int inferenceSteps, float guidanceScale, string generatedImageMd5Hash)
+
     {
         //arrange
-        var model = _stableDiffusion.Models.Single(m => m.Name == "StableDiffusion 1.5");
-        _logger.LogInformation("Attempting to load model {0}", model.Name);
+        var model = _stableDiffusion.Models.Single(m => m.Name == modelName);
+        _logger.LogInformation("Attempting to load model: {0}", model.Name);
         await _stableDiffusion.LoadModel(model);
-        
+
         var prompt = new PromptOptions
         {
             Prompt = "an astronaut riding a horse in space",
@@ -71,14 +78,14 @@ public class StableDiffusionTests
         {
             Width = 512,
             Height = 512,
-            SchedulerType = SchedulerType.EulerAncestral,
-            InferenceSteps = 10,
-            GuidanceScale = 7.0f,
+            SchedulerType = schedulerType,
+            InferenceSteps = inferenceSteps,
+            GuidanceScale = guidanceScale,
             Seed = 1
         };
 
         var steps = 0;
-        
+
         //act
         var image = await _stableDiffusion.GenerateAsImageAsync(model, prompt, scheduler, (currentStep, totalSteps) =>
         {
@@ -97,26 +104,27 @@ public class StableDiffusionTests
             _logger.LogInformation($"Directory {imagesDirectory} already exists");
         }
 
-        var fileName = $"{imagesDirectory}/{nameof(GivenTextToImage_WhenInference_ThenImageGenerated)}-{DateTime.Now:yyyyMMddHHmmss}.png";
+        var fileName =
+            $"{imagesDirectory}/{nameof(GivenTextToImage_WhenInference_ThenImageGenerated)}-{DateTime.Now:yyyyMMddHHmmss}.png";
         _logger.LogInformation($"Saving generated image to {fileName}");
         await image.SaveAsPngAsync(fileName);
 
         //assert
         using (new AssertionScope())
         {
-            steps.Should().Be(10);
+            steps.Should().Be(inferenceSteps);
             image.Should().NotBeNull();
             image.Size.IsEmpty.Should().BeFalse();
             image.Width.Should().Be(512);
             image.Height.Should().Be(512);
-        
+
             File.Exists(fileName).Should().BeTrue();
             var md5 = MD5.Create();
             var hash = md5.ComputeHash(File.ReadAllBytes(fileName));
             var hashString = string.Join("", hash.Select(b => b.ToString("X2")));
             _logger.LogInformation($"MD5 Hash of generated image: {hashString}");
-            
-            hashString.Should().Be("E518D0E4F67CBD5E93513574D30F3FD7");
+
+            hashString.Should().Be(generatedImageMd5Hash);
         }
     }
 }
