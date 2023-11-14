@@ -344,3 +344,4 @@ test/TensorFlowNET.Examples/mnist
 site/
 
 /OnnxStack.WebUI/wwwroot/images/Results/*
+docker-test-output/*
