@@ -86,7 +86,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStep(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -95,7 +95,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = await PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Get Guidance Scale Embedding
                 var guidanceEmbeddings = GetGuidanceScaleEmbedding(schedulerOptions.GuidanceScale);
@@ -154,7 +154,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, denoised);
+                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, denoised);
             }
         }
 

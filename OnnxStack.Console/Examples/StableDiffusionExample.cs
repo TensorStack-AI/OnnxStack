@@ -50,7 +50,7 @@ namespace OnnxStack.Console.Runner
                 foreach (var model in _stableDiffusionService.Models)
                 {
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.LoadModel(model);
+                    await _stableDiffusionService.LoadModelAsync(model);
 
                     foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
                     {
@@ -60,7 +60,7 @@ namespace OnnxStack.Console.Runner
                     }
 
                     OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.UnloadModel(model);
+                    await _stableDiffusionService.UnloadModelAsync(model);
                 }
             }
         }

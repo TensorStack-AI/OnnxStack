@@ -54,7 +54,7 @@ namespace OnnxStack.Console.Runner
                 foreach (var model in _stableDiffusionService.Models)
                 {
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.LoadModel(model);
+                    await _stableDiffusionService.LoadModelAsync(model);
 
                     var batchIndex = 0;
                     var callback = (int batch, int batchCount, int step, int steps) =>
@@ -72,7 +72,7 @@ namespace OnnxStack.Console.Runner
                     }
 
                     OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.UnloadModel(model);
+                    await _stableDiffusionService.UnloadModelAsync(model);
                 }
             }
         }

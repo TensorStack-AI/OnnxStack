@@ -51,9 +51,9 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <returns></returns>
-        public async Task<bool> LoadModel(IModelOptions modelOptions)
+        public async Task<bool> LoadModelAsync(IModelOptions modelOptions)
         {
-            var model = await _onnxModelService.LoadModel(modelOptions);
+            var model = await _onnxModelService.LoadModelAsync(modelOptions);
             return model is not null;
         }
 
@@ -63,9 +63,9 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <returns></returns>
-        public async Task<bool> UnloadModel(IModelOptions modelOptions)
+        public async Task<bool> UnloadModelAsync(IModelOptions modelOptions)
         {
-            return await _onnxModelService.UnloadModel(modelOptions);
+            return await _onnxModelService.UnloadModelAsync(modelOptions);
         }
 
 
