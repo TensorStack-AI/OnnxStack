@@ -48,7 +48,7 @@ public class StableDiffusionTests
         
         //act
         _logger.LogInformation("Attempting to load model {0}", model.Name);
-        var isModelLoaded = await _stableDiffusion.LoadModel(model);
+        var isModelLoaded = await _stableDiffusion.LoadModelAsync(model);
 
         //assert
         isModelLoaded.Should().BeTrue();
@@ -64,7 +64,7 @@ public class StableDiffusionTests
         //arrange
         var model = _stableDiffusion.Models.Single(m => m.Name == modelName);
         _logger.LogInformation("Attempting to load model: {0}", model.Name);
-        await _stableDiffusion.LoadModel(model);
+        await _stableDiffusion.LoadModelAsync(model);
 
         var prompt = new PromptOptions
         {
