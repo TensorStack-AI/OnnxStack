@@ -78,11 +78,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                        .Add(scheduler.CreateRandomSample(outputBuffer.Dimensions, options.InitialNoiseLevel))
                        .MultiplyBy(model.ScaleFactor);
 
-                    var noisySample = scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
-                    if (prompt.BatchCount > 1)
-                        return noisySample.Repeat(prompt.BatchCount);
-
-                    return noisySample;
+                    return scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
                 }
             }
         }

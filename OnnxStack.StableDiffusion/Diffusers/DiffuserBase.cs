@@ -119,7 +119,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
 
             return schedulerResult;
         }
- 
+
 
         /// <summary>
         /// Runs the stable diffusion batch loop
@@ -210,35 +210,23 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
-            var images = prompt.BatchCount > 1
-                ? latents.Split(prompt.BatchCount)
-                : new[] { latents };
-            var imageTensors = new List<DenseTensor<float>>();
-            foreach (var image in images)
-            {
-                var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
-                var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
+            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
 
-                var outputDim = new[] { 1, 3, options.Height, options.Width };
-                var outputBuffer = new DenseTensor<float>(outputDim);
-                using (var inputTensorValue = image.ToOrtValue())
-                using (var outputTensorValue = outputBuffer.ToOrtValue())
+            var outputDim = new[] { 1, 3, options.Height, options.Width };
+            var outputBuffer = new DenseTensor<float>(outputDim);
+            using (var inputTensorValue = latents.ToOrtValue())
+            using (var outputTensorValue = outputBuffer.ToOrtValue())
+            {
+                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
+                var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
+                using (var imageResult = results.First())
                 {
-                    var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
-                    var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
-                    var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
-                    using (var imageResult = results.First())
-                    {
-                        imageTensors.Add(outputBuffer);
-                    }
+                    _logger?.LogEnd("End", timestamp);
+                    return outputBuffer;
                 }
             }
-
-            var result = prompt.BatchCount > 1
-                ? imageTensors.Join()
-                : imageTensors.FirstOrDefault();
-            _logger?.LogEnd("End", timestamp);
-            return result;
         }
 
 

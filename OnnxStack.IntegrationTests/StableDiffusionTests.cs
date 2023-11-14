@@ -70,7 +70,6 @@ public class StableDiffusionTests
         {
             Prompt = "an astronaut riding a horse in space",
             NegativePrompt = "blurry,ugly,cartoon",
-            BatchCount = 1,
             DiffuserType = DiffuserType.TextToImage
         };
 

@@ -48,7 +48,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <returns></returns>
         protected override Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(prompt.BatchCount), scheduler.InitNoiseSigma));
+            return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
         }
     }
 }
