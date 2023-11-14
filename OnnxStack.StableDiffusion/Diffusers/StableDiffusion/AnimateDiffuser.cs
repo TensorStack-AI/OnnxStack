@@ -49,7 +49,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected override Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
         }

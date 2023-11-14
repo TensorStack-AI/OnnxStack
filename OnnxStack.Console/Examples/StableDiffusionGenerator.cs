@@ -34,7 +34,7 @@ namespace OnnxStack.Console.Runner
             foreach (var model in _stableDiffusionService.Models)
             {
                 OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
-                await _stableDiffusionService.LoadModel(model);
+                await _stableDiffusionService.LoadModelAsync(model);
 
                 foreach (var generationPrompt in _generationPrompts)
                 {
@@ -56,7 +56,7 @@ namespace OnnxStack.Console.Runner
                 }
 
                 OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
-                await _stableDiffusionService.UnloadModel(model);
+                await _stableDiffusionService.UnloadModelAsync(model);
             }
             OutputHelpers.WriteConsole("Complete :)", ConsoleColor.DarkMagenta);
             OutputHelpers.ReadConsole(ConsoleColor.Gray);

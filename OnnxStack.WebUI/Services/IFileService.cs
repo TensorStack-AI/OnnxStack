@@ -9,7 +9,7 @@ namespace Services
         /// </summary>
         /// <param name="imageName">Name of the image.</param>
         /// <returns></returns>
-        Task<FileServiceResult> GetInputImageFile(string imageName);
+        Task<FileServiceResult> GetInputImageFileAsync(string imageName);
 
         /// <summary>
         /// Saves the blueprint file.
@@ -17,7 +17,7 @@ namespace Services
         /// <param name="bluepring">The blueprint.</param>
         /// <param name="bluprintFile">The bluprint file.</param>
         /// <returns></returns>
-        Task<FileServiceResult> SaveBlueprintFile(ImageBlueprint blueprint, string bluprintFile);
+        Task<FileServiceResult> SaveBlueprintFileAsync(ImageBlueprint blueprint, string bluprintFile);
 
         /// <summary>
         /// Saves the image file.
@@ -25,7 +25,7 @@ namespace Services
         /// <param name="imageBase64">The image base64.</param>
         /// <param name="fileName">Name of the file.</param>
         /// <returns></returns>
-        Task<FileServiceResult> SaveImageFile(string imageBase64, string fileName);
+        Task<FileServiceResult> SaveImageFileAsync(string imageBase64, string fileName);
 
         /// <summary>
         /// Creates a random name.

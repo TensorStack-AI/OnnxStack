@@ -49,7 +49,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStep(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             using (var scheduler = GetScheduler(schedulerOptions))
             {
@@ -57,7 +57,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latentsOriginal = await PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latentsOriginal = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Create masks sample
                 var maskImage = PrepareMask(modelOptions, promptOptions, schedulerOptions);
@@ -126,7 +126,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, latents);
+                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, latents);
             }
         }
 
@@ -153,7 +153,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override async Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeEncoder);

@@ -291,20 +291,20 @@ namespace OnnxStack.UI.Views
             {
                 var timestamp = Stopwatch.GetTimestamp();
                 var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
-                yield return await GenerateResult(result, promptOptions, schedulerOptions, timestamp);
+                yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
             }
             else
             {
                 await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
                 {
                     var timestamp = Stopwatch.GetTimestamp();
-                    yield return await GenerateResult(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
+                    yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
                 }
             }
         }
 
 
-        private async Task<ImageResult> GenerateResult(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        private async Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
         {
             var image = Utils.CreateBitmap(imageBytes);
 
@@ -322,7 +322,7 @@ namespace OnnxStack.UI.Views
             };
 
             if (UISettings.ImageAutoSave)
-                await imageResult.AutoSave(Path.Combine(UISettings.ImageAutoSaveDirectory, "TextToImage"), UISettings.ImageAutoSaveBlueprint);
+                await imageResult.AutoSaveAsync(Path.Combine(UISettings.ImageAutoSaveDirectory, "TextToImage"), UISettings.ImageAutoSaveBlueprint);
             return imageResult;
         }
 
