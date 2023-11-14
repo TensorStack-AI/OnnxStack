@@ -119,7 +119,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latents, timestep);
 
-                    var outputBuffer = new DenseTensor<float>(schedulerOptions.GetScaledDimension());
+                    var outputChannels = 1;
+                    var outputBuffer = new DenseTensor<float>(schedulerOptions.GetScaledDimension(outputChannels));
                     using (var outputTensorValue = outputBuffer.ToOrtValue())
                     using (var inputTensorValue = inputTensor.ToOrtValue())
                     using (var timestepOrtValue = CreateTimestepNamedOrtValue(inputMetaData, inputNames[1], timestep))
