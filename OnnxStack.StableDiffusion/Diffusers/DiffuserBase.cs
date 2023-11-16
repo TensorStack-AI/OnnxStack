@@ -212,11 +212,12 @@ namespace OnnxStack.StableDiffusion.Diffusers
 
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
             var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
+            var outputMetaData = _onnxModelService.GetOutputMetadata(model, OnnxModelType.VaeDecoder);
+            var outputTensorMetaData = outputMetaData[outputNames[0]];
 
             var outputDim = new[] { 1, 3, options.Height, options.Width };
-            var outputBuffer = new DenseTensor<float>(outputDim);
-            using (var inputTensorValue = latents.ToOrtValue())
-            using (var outputTensorValue = outputBuffer.ToOrtValue())
+            using (var inputTensorValue = latents.ToOrtValue(outputTensorMetaData))
+            using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDim))
             {
                 var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
                 var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
@@ -224,7 +225,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 using (var imageResult = results.First())
                 {
                     _logger?.LogEnd("End", timestamp);
-                    return outputBuffer;
+                    return imageResult.ToDenseTensor();
                 }
             }
         }
@@ -237,13 +238,16 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="timestepInputName">Name of the timestep input.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected static OrtValue CreateTimestepNamedOrtValue(IReadOnlyDictionary<string, NodeMetadata> nodeMetadata, string timestepInputName, int timestep)
+        protected static OrtValue CreateTimestepNamedOrtValue(NodeMetadata timestepMetaData, int timestep)
         {
-            // Some models support Long or Float, could be more but fornow just support these 2
-            var timestepMetaData = nodeMetadata[timestepInputName];
-            return timestepMetaData.ElementDataType == TensorElementType.Int64
-                ? OrtValue.CreateTensorValueFromMemory(new long[] { timestep }, new long[] { 1 })
-                : OrtValue.CreateTensorValueFromMemory(new float[] { timestep }, new long[] { 1 });
+            var dimension = new long[] { 1 };
+            return timestepMetaData.ElementDataType switch
+            {
+                TensorElementType.Int64 => OrtValue.CreateTensorValueFromMemory(new long[] { timestep }, dimension),
+                TensorElementType.Float16 => OrtValue.CreateTensorValueFromMemory(new Float16[] { (Float16)timestep }, dimension),
+                TensorElementType.BFloat16 => OrtValue.CreateTensorValueFromMemory(new BFloat16[] { (BFloat16)timestep }, dimension),
+                _ => OrtValue.CreateTensorValueFromMemory(new float[] { timestep }, dimension) // TODO: Deafult to Float32 for now
+            };
         }
 
 
