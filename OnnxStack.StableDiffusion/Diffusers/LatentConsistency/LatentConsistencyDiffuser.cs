@@ -153,7 +153,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
-                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
+                    _logger?.LogEnd($"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Decode Latents

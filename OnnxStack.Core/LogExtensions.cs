@@ -19,13 +19,13 @@ namespace OnnxStack.Core
         }
 
 
-        public static long LogBegin(this ILogger logger, string message, [CallerMemberName] string caller = default)
+        public static long LogBegin(this ILogger logger, string message = default, [CallerMemberName] string caller = default)
         {
             return LogBeginInternal(logger, LogLevel.Information, message, caller);
         }
 
 
-        public static long LogBegin(this ILogger logger, LogLevel logLevel, string message, [CallerMemberName] string caller = default)
+        public static long LogBegin(this ILogger logger, LogLevel logLevel, string message = default, [CallerMemberName] string caller = default)
         {
 
             return LogBeginInternal(logger, logLevel, message, caller);
@@ -46,7 +46,9 @@ namespace OnnxStack.Core
 
         private static long LogBeginInternal(ILogger logger, LogLevel logLevel, string message, string caller)
         {
-            LogInternal(logger, logLevel, message, caller);
+            if (!string.IsNullOrEmpty(message))
+                LogInternal(logger, logLevel, message, caller);
+
             return Stopwatch.GetTimestamp();
         }
 

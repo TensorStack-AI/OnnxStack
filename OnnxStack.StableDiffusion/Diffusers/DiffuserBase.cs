@@ -103,7 +103,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
-            var diffuseTime = _logger?.LogBegin("Begin...");
+            var diffuseTime = _logger?.LogBegin("Diffuse starting...");
             _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
             // Check guidance
@@ -115,7 +115,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Run Scheduler steps
             var schedulerResult = await SchedulerStepAsync(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
 
-            _logger?.LogEnd($"End", diffuseTime);
+            _logger?.LogEnd($"Diffuse complete", diffuseTime);
 
             return schedulerResult;
         }
@@ -137,8 +137,9 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
-            var diffuseBatchTime = _logger?.LogBegin("Begin...");
+            var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
             _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
+            _logger?.Log($"BatchType: {batchOptions.BatchType}, ValueFrom: {batchOptions.ValueFrom}, ValueTo: {batchOptions.ValueTo}, Increment: {batchOptions.Increment}");
 
             // Check guidance
             var performGuidance = ShouldPerformGuidance(schedulerOptions);
@@ -153,11 +154,13 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var schedulerCallback = (int step, int steps) => progressCallback?.Invoke(batchIndex, batchSchedulerOptions.Count, step, steps);
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
+                var diffuseTime = _logger?.LogBegin("Diffuse starting...");
                 yield return new BatchResult(batchSchedulerOption, await SchedulerStepAsync(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
+                _logger?.LogEnd($"Diffuse complete", diffuseTime);
                 batchIndex++;
             }
 
-            _logger?.LogEnd($"End", diffuseBatchTime);
+            _logger?.LogEnd($"Diffuse batch complete", diffuseBatchTime);
         }
 
 
@@ -205,7 +208,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <returns></returns>
         protected virtual async Task<DenseTensor<float>> DecodeLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
-            var timestamp = _logger?.LogBegin("Begin...");
+            var timestamp = _logger.LogBegin();
 
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
@@ -224,7 +227,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
                 using (var imageResult = results.First())
                 {
-                    _logger?.LogEnd("End", timestamp);
+                    _logger?.LogEnd("Latents decoded", timestamp);
                     return imageResult.ToDenseTensor();
                 }
             }
