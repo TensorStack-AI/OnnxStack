@@ -66,7 +66,7 @@ namespace OnnxStack.Web.Hubs
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Context.ConnectionAborted, cancellationToken);
 
             // TODO: Add support for multiple results
-            var result = await GenerateTextToImageResult(promptOptions, schedulerOptions, cancellationTokenSource.Token);
+            var result = await GenerateTextToImageResultAsync(promptOptions, schedulerOptions, cancellationTokenSource.Token);
             if (!result.IsError)
                 yield return result;
 
@@ -87,7 +87,7 @@ namespace OnnxStack.Web.Hubs
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Context.ConnectionAborted, cancellationToken);
 
             // TODO: Add support for multiple results
-            var result = await GenerateImageToImageResult(promptOptions, schedulerOptions, cancellationTokenSource.Token);
+            var result = await GenerateImageToImageResultAsync(promptOptions, schedulerOptions, cancellationTokenSource.Token);
             if (!result.IsError)
                 yield return result;
 
@@ -109,7 +109,7 @@ namespace OnnxStack.Web.Hubs
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Context.ConnectionAborted, cancellationToken);
 
             // TODO: Add support for multiple results
-            var result = await GenerateImageInpaintResult(promptOptions, schedulerOptions, cancellationTokenSource.Token);
+            var result = await GenerateImageInpaintResultAsync(promptOptions, schedulerOptions, cancellationTokenSource.Token);
             if (!result.IsError)
                 yield return result;
 
@@ -124,7 +124,7 @@ namespace OnnxStack.Web.Hubs
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<StableDiffusionResult> GenerateTextToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        private async Task<StableDiffusionResult> GenerateTextToImageResultAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
             promptOptions.DiffuserType = DiffuserType.TextToImage;
@@ -140,16 +140,16 @@ namespace OnnxStack.Web.Hubs
 
             //2. Generate blueprint
             var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink);
-            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
+            var bluprintFile = await _fileService.SaveBlueprintFileAsync(blueprint, outputBlueprint);
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
             //TODO: Model Selector
             var model = _stableDiffusionService.Models.First();
-            await _stableDiffusionService.LoadModel(model);
+            await _stableDiffusionService.LoadModelAsync(model);
 
             //3. Run stable diffusion
-            if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+            if (!await RunStableDiffusionAsync(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
                 return new StableDiffusionResult("Failed to run stable diffusion");
 
             //4. Return result
@@ -164,7 +164,7 @@ namespace OnnxStack.Web.Hubs
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<StableDiffusionResult> GenerateImageToImageResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        private async Task<StableDiffusionResult> GenerateImageToImageResultAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
             promptOptions.DiffuserType = DiffuserType.ImageToImage;
@@ -181,22 +181,22 @@ namespace OnnxStack.Web.Hubs
             var inputImageLink = await _fileService.CreateOutputUrl(inputImage, false);
 
             // 2. Save Input Image to disk
-            var inputImageFile = await _fileService.SaveImageFile(promptOptions.InputImage.ImageBase64, inputImage);
+            var inputImageFile = await _fileService.SaveImageFileAsync(promptOptions.InputImage.ImageBase64, inputImage);
             if (inputImageFile is null)
                 return new StableDiffusionResult("Failed to save input image");
 
             //3. Generate and save blueprint file
             var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink, inputImageLink);
-            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
+            var bluprintFile = await _fileService.SaveBlueprintFileAsync(blueprint, outputBlueprint);
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
             //TODO: Model Selector
             var model = _stableDiffusionService.Models.First();
-            await _stableDiffusionService.LoadModel(model);
+            await _stableDiffusionService.LoadModelAsync(model);
 
             //4. Run stable diffusion
-            if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+            if (!await RunStableDiffusionAsync(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
                 return new StableDiffusionResult("Failed to run stable diffusion");
 
             //5. Return result
@@ -211,7 +211,7 @@ namespace OnnxStack.Web.Hubs
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<StableDiffusionResult> GenerateImageInpaintResult(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
+        private async Task<StableDiffusionResult> GenerateImageInpaintResultAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
         {
             var timestamp = Stopwatch.GetTimestamp();
             promptOptions.DiffuserType = DiffuserType.ImageInpaint;
@@ -230,27 +230,27 @@ namespace OnnxStack.Web.Hubs
             var maskImageLink = await _fileService.CreateOutputUrl(maskImage, false);
 
             // 2. Save Input Image to disk
-            var inputImageFile = await _fileService.SaveImageFile(promptOptions.InputImage.ImageBase64, inputImage);
+            var inputImageFile = await _fileService.SaveImageFileAsync(promptOptions.InputImage.ImageBase64, inputImage);
             if (inputImageFile is null)
                 return new StableDiffusionResult("Failed to save input image");
 
             // 3. Save Mask Image to disk
-            var maskImageFile = await _fileService.SaveImageFile(promptOptions.InputImageMask.ImageBase64, maskImage);
+            var maskImageFile = await _fileService.SaveImageFileAsync(promptOptions.InputImageMask.ImageBase64, maskImage);
             if (maskImageFile is null)
                 return new StableDiffusionResult("Failed to save mask image");
 
             // 4. Generate and save blueprint file
             var blueprint = new ImageBlueprint(promptOptions, schedulerOptions, outputImageLink, inputImageLink, maskImageLink);
-            var bluprintFile = await _fileService.SaveBlueprintFile(blueprint, outputBlueprint);
+            var bluprintFile = await _fileService.SaveBlueprintFileAsync(blueprint, outputBlueprint);
             if (bluprintFile is null)
                 return new StableDiffusionResult("Failed to save blueprint");
 
             //TODO: Model Selector
             var model = _stableDiffusionService.Models.First();
-            await _stableDiffusionService.LoadModel(model);
+            await _stableDiffusionService.LoadModelAsync(model);
 
             // 5. Run stable diffusion
-            if (!await RunStableDiffusion(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
+            if (!await RunStableDiffusionAsync(model, promptOptions, schedulerOptions, outputImageFile, cancellationToken))
                 return new StableDiffusionResult("Failed to run stable diffusion");
 
             // 6. Return result
@@ -266,7 +266,7 @@ namespace OnnxStack.Web.Hubs
         /// <param name="fileInfo">The file information.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<bool> RunStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, string outputImage, CancellationToken cancellationToken)
+        private async Task<bool> RunStableDiffusionAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, string outputImage, CancellationToken cancellationToken)
         {
             try
             {

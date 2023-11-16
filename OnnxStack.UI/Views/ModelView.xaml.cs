@@ -215,7 +215,7 @@ namespace OnnxStack.UI.Views
                     SelectedModelSet.InterOpNumThreads = UISettings.DefaultInterOpNumThreads;
                     SelectedModelSet.IntraOpNumThreads = UISettings.DefaultIntraOpNumThreads;
                     SelectedModelSet.ModelTemplate = template;
-                    await SaveModel(SelectedModelSet);
+                    await SaveModelAsync(SelectedModelSet);
                 }
             }
         }
@@ -339,7 +339,7 @@ namespace OnnxStack.UI.Views
             modelSet.ExecutionProvider = UISettings.DefaultExecutionProvider;
             modelSet.InterOpNumThreads = UISettings.DefaultInterOpNumThreads;
             modelSet.IntraOpNumThreads = UISettings.DefaultIntraOpNumThreads;
-            await SaveModel(modelSet);
+            await SaveModelAsync(modelSet);
             return;
         }
 
@@ -379,7 +379,7 @@ namespace OnnxStack.UI.Views
 
 
                 _downloadCancellationTokenSource = new CancellationTokenSource();
-                if (await _modelDownloadService.DownloadHttp(template, outputDirectory, progress, _downloadCancellationTokenSource.Token))
+                if (await _modelDownloadService.DownloadHttpAsync(template, outputDirectory, progress, _downloadCancellationTokenSource.Token))
                 {
                     await OnDownloadComplete(modelSet, outputDirectory);
                 }
@@ -415,7 +415,7 @@ namespace OnnxStack.UI.Views
                 };
 
                 _downloadCancellationTokenSource = new CancellationTokenSource();
-                if (await _modelDownloadService.DownloadRepository(template, outputDirectory, progress, _downloadCancellationTokenSource.Token))
+                if (await _modelDownloadService.DownloadRepositoryAsync(template, outputDirectory, progress, _downloadCancellationTokenSource.Token))
                 {
                     await OnDownloadComplete(modelSet, outputDirectory);
                 }
@@ -485,8 +485,8 @@ namespace OnnxStack.UI.Views
         private async Task Save()
         {
             // Unload and Remove ModelSet
-            await UnloadAndRemoveModelSet(SelectedModelSet.Name);
-            await SaveModel(SelectedModelSet);
+            await UnloadAndRemoveModelSetAsync(SelectedModelSet.Name);
+            await SaveModelAsync(SelectedModelSet);
         }
 
 
@@ -507,7 +507,7 @@ namespace OnnxStack.UI.Views
         /// </summary>
         /// <param name="modelSet">The model set.</param>
         /// <returns></returns>
-        private async Task<bool> SaveModel(ModelSetViewModel modelSet)
+        private async Task<bool> SaveModelAsync(ModelSetViewModel modelSet)
         {
             _logger.LogInformation($"Saving configuration file...");
 
@@ -664,7 +664,7 @@ namespace OnnxStack.UI.Views
             if (textInputDialog.ShowDialog("Remove ModelSet", "Are you sure you want to remove this ModelSet?", MessageDialog.MessageDialogType.YesNo))
             {
                 // Unload and Remove ModelSet
-                await UnloadAndRemoveModelSet(SelectedModelSet.Name);
+                await UnloadAndRemoveModelSetAsync(SelectedModelSet.Name);
 
                 // Update Template if one was reomved
                 UpdateTemplateStatus(SelectedModelSet.Name, ModelTemplateStatus.Deleted);
@@ -703,10 +703,10 @@ namespace OnnxStack.UI.Views
             var textInputDialog = _dialogService.GetDialog<TextInputDialog>();
             if (textInputDialog.ShowDialog("Rename Model Set", "New Name", 1, 30, invalidNames))
             {
-                await UnloadAndRemoveModelSet(SelectedModelSet.Name);
+                await UnloadAndRemoveModelSetAsync(SelectedModelSet.Name);
                 SelectedModelSet.Name = textInputDialog.TextResult.Trim();
                 SelectedModelSet.ModelTemplate.Name = textInputDialog.TextResult.Trim();
-                await SaveModel(SelectedModelSet);
+                await SaveModelAsync(SelectedModelSet);
             }
         }
 
@@ -829,7 +829,7 @@ namespace OnnxStack.UI.Views
         /// </summary>
         /// <param name="name">The name.</param>
         /// <returns></returns>
-        private async Task<bool> UnloadAndRemoveModelSet(string name)
+        private async Task<bool> UnloadAndRemoveModelSetAsync(string name)
         {
             var onnxModelSet = _stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == name);
             if (onnxModelSet is not null)
@@ -837,7 +837,7 @@ namespace OnnxStack.UI.Views
                 // If model is loaded unload now
                 var isLoaded = _stableDiffusionService.IsModelLoaded(onnxModelSet);
                 if (isLoaded)
-                    await _stableDiffusionService.UnloadModel(onnxModelSet);
+                    await _stableDiffusionService.UnloadModelAsync(onnxModelSet);
 
                 // Remove ViewModel
                 var viewModel = ModelOptions.FirstOrDefault(x => x.Name == onnxModelSet.Name);

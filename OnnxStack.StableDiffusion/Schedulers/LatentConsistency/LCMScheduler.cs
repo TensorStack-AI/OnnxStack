@@ -137,7 +137,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             if (Options.PredictionType == PredictionType.Epsilon)
             {
                 predOriginalSample = sample
-                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt))
+                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaSqrt))
                     .DivideTensorByFloat(alphaSqrt);
             }
             else if (Options.PredictionType == PredictionType.Sample)
@@ -147,8 +147,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
                 predOriginalSample = sample
-                    .MultipleTensorByFloat(alphaSqrt)
-                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt));
+                    .MultiplyTensorByFloat(alphaSqrt)
+                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaSqrt));
             }
 
 
@@ -158,15 +158,15 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 
             //# 6. Denoise model output using boundary conditions
             var denoised = sample
-                .MultipleTensorByFloat(cSkip)
-                .AddTensors(predOriginalSample.MultipleTensorByFloat(cOut));
+                .MultiplyTensorByFloat(cSkip)
+                .AddTensors(predOriginalSample.MultiplyTensorByFloat(cOut));
 
 
             //# 7. Sample and inject noise z ~ N(0, I) for MultiStep Inference
             var prevSample = Timesteps.Count > 1
                 ? CreateRandomSample(modelOutput.Dimensions)
-                    .MultipleTensorByFloat(betaProdTPrevSqrt)
-                    .AddTensors(denoised.MultipleTensorByFloat(alphaProdTPrevSqrt))
+                    .MultiplyTensorByFloat(betaProdTPrevSqrt)
+                    .AddTensors(denoised.MultiplyTensorByFloat(alphaProdTPrevSqrt))
                 : denoised;
 
             return new SchedulerStepResult(prevSample, denoised);
@@ -189,8 +189,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             float sqrtOneMinusAlpha = MathF.Sqrt(1.0f - alphaProd);
 
             return noise
-                .MultipleTensorByFloat(sqrtOneMinusAlpha)
-                .AddTensors(originalSamples.MultipleTensorByFloat(sqrtAlpha));
+                .MultiplyTensorByFloat(sqrtOneMinusAlpha)
+                .AddTensors(originalSamples.MultiplyTensorByFloat(sqrtAlpha));
         }
 
 
