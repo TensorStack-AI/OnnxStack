@@ -89,22 +89,22 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         public async Task<float[]> EncodeTokensAsync(IModelOptions model, int[] tokenizedInput)
         {
-            // Create input tensor.
             var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.TextEncoder);
             var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.TextEncoder);
+            var outputMetaData = _onnxModelService.GetOutputMetadata(model, OnnxModelType.TextEncoder);
+            var outputTensorMetaData = outputMetaData.Values.First();
 
             var inputDim = new[] { 1L, tokenizedInput.Length };
             var outputDim = new[] { 1L, tokenizedInput.Length, model.EmbeddingsLength };
-            var outputBuffer = new float[outputDim.GetBufferLength()];
+            using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDim.ToInt()))
             using (var inputTensorValue = OrtValue.CreateTensorValueFromMemory(tokenizedInput, inputDim))
-            using (var outputTensorValue = OrtValue.CreateTensorValueFromMemory(outputBuffer, outputDim))
             {
                 var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
                 var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.TextEncoder, inputs, outputs);
                 using (var result = results.First())
                 {
-                    return outputBuffer;
+                    return outputTensorValue.ToArray();
                 }
             }
         }
