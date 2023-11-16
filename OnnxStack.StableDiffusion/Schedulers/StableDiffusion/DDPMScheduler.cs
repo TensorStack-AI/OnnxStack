@@ -132,8 +132,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             //# See formula (7) from https://arxiv.org/pdf/2006.11239.pdf
             //pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_sample_coeff * sample
             var predPrevSample = sample
-                .MultipleTensorByFloat(currentSampleCoeff)
-                .AddTensors(predOriginalSample.MultipleTensorByFloat(predOriginalSampleCoeff));
+                .MultiplyTensorByFloat(currentSampleCoeff)
+                .AddTensors(predOriginalSample.MultiplyTensorByFloat(predOriginalSampleCoeff));
 
 
             //# 6. Add noise
@@ -144,17 +144,17 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 if (Options.VarianceType == VarianceType.FixedSmallLog)
                 {
                     var v = GetVariance(currentTimestep, predictedVariance);
-                    variance = varianceNoise.MultipleTensorByFloat(v);
+                    variance = varianceNoise.MultiplyTensorByFloat(v);
                 }
                 else if (Options.VarianceType == VarianceType.LearnedRange)
                 {
                     var v = (float)Math.Exp(0.5 * GetVariance(currentTimestep, predictedVariance));
-                    variance = varianceNoise.MultipleTensorByFloat(v);
+                    variance = varianceNoise.MultiplyTensorByFloat(v);
                 }
                 else
                 {
                     var v = (float)Math.Sqrt(GetVariance(currentTimestep, predictedVariance));
-                    variance = varianceNoise.MultipleTensorByFloat(v);
+                    variance = varianceNoise.MultiplyTensorByFloat(v);
                 }
                 predPrevSample = predPrevSample.AddTensors(variance);
             }
@@ -169,7 +169,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             if (Options.PredictionType == PredictionType.Epsilon)
             {
                 //pred_original_sample = (sample - beta_prod_t ** (0.5) * model_output) / alpha_prod_t ** (0.5)
-                var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
+                var sampleBeta = sample.SubtractTensors(modelOutput.MultiplyTensorByFloat((float)Math.Sqrt(betaProdT)));
                 predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT));
             }
             else if (Options.PredictionType == PredictionType.Sample)
@@ -182,8 +182,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 var alphaSqrt = (float)Math.Sqrt(alphaProdT);
                 var betaSqrt = (float)Math.Sqrt(betaProdT);
                 predOriginalSample = sample
-                    .MultipleTensorByFloat(alphaSqrt)
-                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt));
+                    .MultiplyTensorByFloat(alphaSqrt)
+                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaSqrt));
             }
             return predOriginalSample;
         }
@@ -204,8 +204,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
 
             return noise
-                .MultipleTensorByFloat(sqrtOneMinusAlpha)
-                .AddTensors(originalSamples.MultipleTensorByFloat(sqrtAlpha));
+                .MultiplyTensorByFloat(sqrtOneMinusAlpha)
+                .AddTensors(originalSamples.MultiplyTensorByFloat(sqrtAlpha));
         }
 
         /// <summary>

@@ -9,13 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.7.0" Condition=" '$(Configuration)' == 'Release' "/>
+    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.7.0" Condition=" '$(Configuration)' == 'Release' " />
     <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.Unobtrusive.Ajax" Version="2.0.0" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.2" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 

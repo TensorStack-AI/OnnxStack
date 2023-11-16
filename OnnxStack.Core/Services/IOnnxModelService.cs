@@ -15,14 +15,14 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        Task<OnnxModelSet> LoadModel(IOnnxModel model);
+        Task<OnnxModelSet> LoadModelAsync(IOnnxModel model);
 
         /// <summary>
         /// Unloads the model.
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        Task<bool> UnloadModel(IOnnxModel model);
+        Task<bool> UnloadModelAsync(IOnnxModel model);
 
         /// <summary>
         /// Determines whether the specified model is loaded.

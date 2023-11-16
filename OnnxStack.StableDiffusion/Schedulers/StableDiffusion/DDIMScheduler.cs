@@ -114,7 +114,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             DenseTensor<float> predOriginalSample = null;
             if (Options.PredictionType == PredictionType.Epsilon)
             {
-                var sampleBeta = sample.SubtractTensors(modelOutput.MultipleTensorByFloat((float)Math.Sqrt(betaProdT)));
+                var sampleBeta = sample.SubtractTensors(modelOutput.MultiplyTensorByFloat((float)Math.Sqrt(betaProdT)));
                 predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT));
                 predEpsilon = modelOutput;
             }
@@ -122,7 +122,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             {
                 predOriginalSample = modelOutput;
                 predEpsilon = sample.SubtractTensors(predOriginalSample
-                    .MultipleTensorByFloat((float)Math.Sqrt(alphaProdT)))
+                    .MultiplyTensorByFloat((float)Math.Sqrt(alphaProdT)))
                     .DivideTensorByFloat((float)Math.Sqrt(betaProdT));
             }
             else if (Options.PredictionType == PredictionType.VariablePrediction)
@@ -130,11 +130,11 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 var alphaSqrt = (float)Math.Sqrt(alphaProdT);
                 var betaSqrt = (float)Math.Sqrt(betaProdT);
                 predOriginalSample = sample
-                    .MultipleTensorByFloat(alphaSqrt)
-                    .SubtractTensors(modelOutput.MultipleTensorByFloat(betaSqrt));
+                    .MultiplyTensorByFloat(alphaSqrt)
+                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaSqrt));
                 predEpsilon = modelOutput
-                    .MultipleTensorByFloat(alphaSqrt)
-                    .AddTensors(sample.MultipleTensorByFloat(betaSqrt));
+                    .MultiplyTensorByFloat(alphaSqrt)
+                    .AddTensors(sample.MultiplyTensorByFloat(betaSqrt));
             }
 
 
@@ -161,20 +161,20 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             {
                 //# the pred_epsilon is always re-derived from the clipped x_0 in Glide
                 predEpsilon = sample
-                    .SubtractTensors(predOriginalSample.MultipleTensorByFloat((float)Math.Sqrt(alphaProdT)))
+                    .SubtractTensors(predOriginalSample.MultiplyTensorByFloat((float)Math.Sqrt(alphaProdT)))
                     .DivideTensorByFloat((float)Math.Sqrt(betaProdT));
             }
 
 
             //# 5. compute "direction pointing to x_t" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-            var predSampleDirection = predEpsilon.MultipleTensorByFloat((float)Math.Sqrt(1f - alphaProdTPrev - Math.Pow(stdDevT, 2f)));
+            var predSampleDirection = predEpsilon.MultiplyTensorByFloat((float)Math.Sqrt(1f - alphaProdTPrev - Math.Pow(stdDevT, 2f)));
 
 
             //# 6. compute x_t without "random noise" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-            var prevSample = predSampleDirection.AddTensors(predOriginalSample.MultipleTensorByFloat((float)Math.Sqrt(alphaProdTPrev)));
+            var prevSample = predSampleDirection.AddTensors(predOriginalSample.MultiplyTensorByFloat((float)Math.Sqrt(alphaProdTPrev)));
 
             if (eta > 0)
-                prevSample = prevSample.AddTensors(CreateRandomSample(modelOutput.Dimensions).MultipleTensorByFloat(stdDevT));
+                prevSample = prevSample.AddTensors(CreateRandomSample(modelOutput.Dimensions).MultiplyTensorByFloat(stdDevT));
 
             return new SchedulerStepResult(prevSample);
         }
@@ -196,8 +196,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
 
             return noise
-                .MultipleTensorByFloat(sqrtOneMinusAlpha)
-                .AddTensors(originalSamples.MultipleTensorByFloat(sqrtAlpha));
+                .MultiplyTensorByFloat(sqrtOneMinusAlpha)
+                .AddTensors(originalSamples.MultiplyTensorByFloat(sqrtAlpha));
         }
 
 

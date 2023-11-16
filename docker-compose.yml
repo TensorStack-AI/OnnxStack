@@ -1,0 +1,7 @@
+version: '3.7'
+
+services:
+  app:
+    build: .
+    volumes:
+      - "./docker-test-output:/app/OnnxStack.IntegrationTests/bin/Debug/net7.0/images"

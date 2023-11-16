@@ -48,7 +48,7 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        public async Task<OnnxModelSet> LoadModel(IOnnxModel model)
+        public async Task<OnnxModelSet> LoadModelAsync(IOnnxModel model)
         {
             return await Task.Run(() => LoadModelSet(model)).ConfigureAwait(false);
         }
@@ -58,7 +58,7 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        public async Task<bool> UnloadModel(IOnnxModel model)
+        public async Task<bool> UnloadModelAsync(IOnnxModel model)
         {
             return await Task.Run(() => UnloadModelSet(model)).ConfigureAwait(false);
         }

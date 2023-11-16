@@ -26,7 +26,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <returns></returns>
-        Task<bool> LoadModel(IModelOptions modelOptions);
+        Task<bool> LoadModelAsync(IModelOptions modelOptions);
 
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <returns></returns>
-        Task<bool> UnloadModel(IModelOptions modelOptions);
+        Task<bool> UnloadModelAsync(IModelOptions modelOptions);
 
         /// <summary>
         /// Determines whether the specified model is loaded

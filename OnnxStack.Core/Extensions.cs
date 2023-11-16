@@ -2,10 +2,12 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace OnnxStack.Core
 {
@@ -205,26 +207,166 @@ namespace OnnxStack.Core
         }
 
 
+        /// <summary>
+        /// Converts to long.
+        /// </summary>
+        /// <param name="array">The array.</param>
+        /// <returns></returns>
         public static long[] ToLong(this ReadOnlySpan<int> array)
         {
             return Array.ConvertAll(array.ToArray(), Convert.ToInt64);
         }
-    
+
+
+        /// <summary>
+        /// Converts the string representation of a number to an integer.
+        /// </summary>
+        /// <param name="array">The array.</param>
+        /// <returns></returns>
         public static int[] ToInt(this long[] array)
         {
             return Array.ConvertAll(array, Convert.ToInt32);
         }
 
+
+        /// <summary>
+        /// Converts to long.
+        /// </summary>
+        /// <param name="array">The array.</param>
+        /// <returns></returns>
         public static long[] ToLong(this int[] array)
         {
             return Array.ConvertAll(array, Convert.ToInt64);
         }
 
 
-        public static OrtValue ToOrtValue<T>(this DenseTensor<T> tensor) where T : unmanaged
+        /// <summary>
+        /// Creates and OrtValue form the DenseTensor and NodeMetaData provided
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="nodeMetadata">The node metadata.</param>
+        /// <returns></returns>
+        public static OrtValue ToOrtValue(this DenseTensor<float> tensor, NodeMetadata nodeMetadata)
         {
-            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
+            var dimensions = tensor.Dimensions.ToLong();
+            return nodeMetadata.ElementDataType switch
+            {
+                TensorElementType.Float16 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer.ToFloat16(), dimensions),
+                TensorElementType.BFloat16 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer.ToBFloat16(), dimensions),
+                _ => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, dimensions)
+            };
         }
 
+
+        /// <summary>
+        /// Creates and allocates output tensors buffer.
+        /// </summary>
+        /// <param name="nodeMetadata">The node metadata.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns></returns>
+        public static OrtValue CreateOutputBuffer(this NodeMetadata nodeMetadata, ReadOnlySpan<int> dimensions)
+        {
+            return OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, nodeMetadata.ElementDataType, dimensions.ToLong());
+        }
+
+
+        /// <summary>
+        /// Converts to DenseTensor<float>.
+        /// </summary>
+        /// <param name="ortValue">The ort value.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> ToDenseTensor(this OrtValue ortValue)
+        {
+            var typeInfo = ortValue.GetTensorTypeAndShape();
+            var dimensions = typeInfo.Shape.ToInt();
+            return typeInfo.ElementDataType switch
+            {
+                TensorElementType.Float16 => new DenseTensor<float>(ortValue.GetTensorDataAsSpan<Float16>().ToFloat(), dimensions),
+                TensorElementType.BFloat16 => new DenseTensor<float>(ortValue.GetTensorDataAsSpan<BFloat16>().ToFloat(), dimensions),
+                _ => new DenseTensor<float>(ortValue.GetTensorDataAsSpan<float>().ToArray(), dimensions)
+            };
+        }
+
+
+        /// <summary>
+        /// Converts to array.
+        /// </summary>
+        /// <param name="ortValue">The ort value.</param>
+        /// <returns></returns>
+        public static float[] ToArray(this OrtValue ortValue)
+        {
+            var typeInfo = ortValue.GetTensorTypeAndShape();
+            var dimensions = typeInfo.Shape.ToInt();
+            return typeInfo.ElementDataType switch
+            {
+                TensorElementType.Float16 => ortValue.GetTensorDataAsSpan<Float16>().ToFloat().ToArray(),
+                TensorElementType.BFloat16 => ortValue.GetTensorDataAsSpan<BFloat16>().ToFloat().ToArray(),
+                _ => ortValue.GetTensorDataAsSpan<float>().ToArray()
+            };
+        }
+
+
+        /// <summary>
+        /// Converts to float16.
+        /// </summary>
+        /// <param name="inputMemory">The input memory.</param>
+        /// <returns></returns>
+        internal static Memory<Float16> ToFloat16(this Memory<float> inputMemory)
+        {
+            var elementCount = inputMemory.Length;
+            var floatArray = new Float16[inputMemory.Length];
+            for (int i = 0; i < elementCount; i++)
+                floatArray[i] = (Float16)inputMemory.Span[i];
+
+            return floatArray.AsMemory();
+        }
+
+
+        /// <summary>
+        /// Converts to BFloat16.
+        /// </summary>
+        /// <param name="inputMemory">The input memory.</param>
+        /// <returns></returns>
+        internal static Memory<BFloat16> ToBFloat16(this Memory<float> inputMemory)
+        {
+            var elementCount = inputMemory.Length;
+            var floatArray = new BFloat16[inputMemory.Length];
+            for (int i = 0; i < elementCount; i++)
+                floatArray[i] = (BFloat16)inputMemory.Span[i];
+
+            return floatArray.AsMemory();
+        }
+
+
+        /// <summary>
+        /// Converts to float.
+        /// </summary>
+        /// <param name="inputMemory">The input memory.</param>
+        /// <returns></returns>
+        internal static Memory<float> ToFloat(this ReadOnlySpan<Float16> inputMemory)
+        {
+            var elementCount = inputMemory.Length;
+            var floatArray = new float[elementCount];
+            for (int i = 0; i < elementCount; i++)
+                floatArray[i] = (float)inputMemory[i];
+
+            return floatArray.AsMemory();
+        }
+
+
+        /// <summary>
+        /// Converts to float.
+        /// </summary>
+        /// <param name="inputMemory">The input memory.</param>
+        /// <returns></returns>
+        internal static Memory<float> ToFloat(this ReadOnlySpan<BFloat16> inputMemory)
+        {
+            var elementCount = inputMemory.Length;
+            var floatArray = new float[elementCount];
+            for (int i = 0; i < elementCount; i++)
+                floatArray[i] = (float)inputMemory[i];
+
+            return floatArray.AsMemory();
+        }
     }
 }
