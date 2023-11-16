@@ -29,7 +29,7 @@ namespace OnnxStack.WebUI.Pages.StableDiffusion
 
         public async Task OnGet(string img = null, int width = 0, int height = 0)
         {
-            var fileResult = await _fileService.GetInputImageFile(img);
+            var fileResult = await _fileService.GetInputImageFileAsync(img);
             if (fileResult is not null)
             {
                 if (Constants.ValidSizes.Contains(width) && Constants.ValidSizes.Contains(height))

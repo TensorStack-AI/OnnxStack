@@ -145,7 +145,7 @@ namespace OnnxStack.UI
                     return;
                 }
 
-                var result = await imageResult.SaveImageFile(saveFileDialog.FileName);
+                var result = await imageResult.SaveImageFileAsync(saveFileDialog.FileName);
                 if (!result)
                     _logger.LogError("Error saving image");
 
@@ -179,7 +179,7 @@ namespace OnnxStack.UI
                     return;
                 }
 
-                var result = await imageResult.SaveBlueprintFile(saveFileDialog.FileName);
+                var result = await imageResult.SaveBlueprintFileAsync(saveFileDialog.FileName);
                 if (!result)
                     _logger.LogError("Error saving image blueprint");
 

@@ -31,7 +31,7 @@ namespace Services
         /// </summary>
         /// <param name="imageName">Name of the image.</param>
         /// <returns></returns>
-        public async Task<FileServiceResult> GetInputImageFile(string imageName)
+        public async Task<FileServiceResult> GetInputImageFileAsync(string imageName)
         {
             try
             {
@@ -60,7 +60,7 @@ namespace Services
         /// <param name="bluprint">The bluprint.</param>
         /// <param name="fileName">Name of the file.</param>
         /// <returns></returns>
-        public async Task<FileServiceResult> SaveBlueprintFile(ImageBlueprint bluprint, string fileName)
+        public async Task<FileServiceResult> SaveBlueprintFileAsync(ImageBlueprint bluprint, string fileName)
         {
             try
             {
@@ -86,7 +86,7 @@ namespace Services
         /// <param name="imageBase64">The image base64.</param>
         /// <param name="fileName">Name of the file.</param>
         /// <returns></returns>
-        public async Task<FileServiceResult> SaveImageFile(string imageBase64, string fileName)
+        public async Task<FileServiceResult> SaveImageFileAsync(string imageBase64, string fileName)
         {
             try
             {

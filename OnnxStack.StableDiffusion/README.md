@@ -86,44 +86,76 @@ internal class AppService : IHostedService
 
       while (true)
       {
-            System.Console.WriteLine("Please type a prompt and press ENTER");
-            var prompt = System.Console.ReadLine();
+         System.Console.WriteLine("Please type a prompt and press ENTER");
+         var prompt = System.Console.ReadLine();
 
-            System.Console.WriteLine("Please type a negative prompt and press ENTER (optional)");
-            var negativePrompt = System.Console.ReadLine();
+         System.Console.WriteLine("Please type a negative prompt and press ENTER (optional)");
+         var negativePrompt = System.Console.ReadLine();
 
-            System.Console.WriteLine("Please enter image filepath for Img2Img and press ENTER (optional)");
-            var inputImageFile = System.Console.ReadLine();
 
-            var promptOptions = new PromptOptions
+         // Example only, full config depends on model
+         // appsettings.json is recommended for ease of use
+         var modelOptions = new ModelOptions
+         {
+            Name = "Stable  Diffusion 1.5",
+            ExecutionProvider = ExecutionProvider.DirectML,
+            ModelConfigurations = new List<OnnxModelSessionConfig>
             {
-               Prompt = prompt,
-               NegativePrompt = negativePrompt,
-               SchedulerType = SchedulerType.LMSScheduler,
-               InputImage = new InputImage
-               {
-                  ImagePath = inputImageFile
-               }
-            };
-
-            var schedulerOptions = new SchedulerOptions
-            {
-               Seed = Random.Shared.Next(),
-               GuidanceScale = 7.5f,
-               InferenceSteps = 30,
-               Height = 512,
-               Width = 512,
-               Strength = 0.6f // Img2Img
-            };
-
-            System.Console.WriteLine("Generating Image...");
-            var outputFilename = Path.Combine(_outputDirectory, $"{schedulerOptions.Seed}_{promptOptions.SchedulerType}.png");
-            var result = await _stableDiffusionService.GenerateAsImageAsync(prompt, options);
-            if (result is not null)
-            { 
-               await result.SaveAsPngAsync(outputFilename);
-               System.Console.WriteLine($"Image Created, FilePath: {outputFilename}");
+                  new OnnxModelSessionConfig
+                  {
+                     Type = OnnxModelType.Unet,
+                     OnnxModelPath = "model path"
+                  }
             }
+         };
+
+         var promptOptions = new PromptOptions
+         {
+            Prompt = prompt,
+            NegativePrompt = negativePrompt,
+            DiffuserType = DiffuserType.TextToImage,
+
+            // Input for ImageToImage
+            // InputImage = new InputImage(File.ReadAllBytesAsync("image to image filename"))
+         };
+
+         var schedulerOptions = new SchedulerOptions
+         {
+            Seed = Random.Shared.Next(),
+            GuidanceScale = 7.5f,
+            InferenceSteps = 30,
+            Height = 512,
+            Width = 512,
+            SchedulerType = SchedulerType.LMS,
+         };
+
+
+         // Generate Image Example
+         var outputFilename = Path.Combine(_outputDirectory, $"{schedulerOptions.Seed}_{schedulerOptions.SchedulerType}.png");
+         var result = await _stableDiffusionService.GenerateAsImageAsync(modelOptions, promptOptions, schedulerOptions);
+         if (result is not null)
+         {
+            // Save image to disk
+            await result.SaveAsPngAsync(outputFilename);
+         }
+
+
+
+
+         // Generate Batch Example
+         var batchOptions = new BatchOptions
+         {
+            BatchType = BatchOptionType.Seed,
+            ValueTo = 20
+         };
+
+         await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsImageAsync(modelOptions, promptOptions, schedulerOptions, batchOptions))
+         {
+            // Save image to disk
+            await batchResult.SaveAsPngAsync(outputFilename);
+         }
+
+
       }
    }
 
@@ -151,48 +183,45 @@ Each model can be assigned to its own device, which is handy if you have only a 
 
    "OnnxStackConfig": {
       "Name": "StableDiffusion 1.5",
+      "IsEnabled": true,
       "PadTokenId": 49407,
       "BlankTokenId": 49407,
       "TokenizerLimit": 77,
       "EmbeddingsLength": 768,
       "ScaleFactor": 0.18215,
-      "ModelConfigurations": [{
-            "Type": "Unet",
-            "DeviceId": 0,
-            "ExecutionProvider": "DirectML",
-            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\unet\\model.onnx"
-         },
+      "PipelineType": "StableDiffusion",
+      "Diffusers": [
+         "TextToImage",
+         "ImageToImage",
+         "ImageInpaintLegacy"
+      ],
+      "DeviceId": 0,
+      "InterOpNumThreads": 0,
+      "IntraOpNumThreads": 0,
+      "ExecutionMode": "ORT_SEQUENTIAL",
+      "ExecutionProvider": "DirectML",
+      "ModelConfigurations": [
          {
             "Type": "Tokenizer",
-            "DeviceId": 0,
-            "ExecutionProvider": "Cpu",
             "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\cliptokenizer.onnx"
          },
          {
+            "Type": "Unet",
+            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\unet\\model.onnx"
+         },
+         {
             "Type": "TextEncoder",
-            "DeviceId": 0,
-            "ExecutionProvider": "Cpu",
             "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\text_encoder\\model.onnx"
          },
          {
             "Type": "VaeEncoder",
-            "DeviceId": 0,
-            "ExecutionProvider": "Cpu",
             "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_encoder\\model.onnx"
          },
          {
             "Type": "VaeDecoder",
-            "DeviceId": 0,
-            "ExecutionProvider": "Cpu",
             "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\vae_decoder\\model.onnx"
-         },
-         {
-            "Type": "SafetyChecker",
-            "IsDisabled": true,
-            "DeviceId": 0,
-            "ExecutionProvider": "Cpu",
-            "OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\safety_checker\\model.onnx"
-         }]
+         }
+      ]
    }
 }
 ```

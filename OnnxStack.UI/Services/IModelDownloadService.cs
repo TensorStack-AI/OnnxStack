@@ -16,7 +16,7 @@ namespace OnnxStack.UI.Services
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<bool> DownloadHttp(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<bool> DownloadHttpAsync(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -27,6 +27,6 @@ namespace OnnxStack.UI.Services
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<bool> DownloadRepository(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<bool> DownloadRepositoryAsync(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = null, CancellationToken cancellationToken = default);
     }
 }

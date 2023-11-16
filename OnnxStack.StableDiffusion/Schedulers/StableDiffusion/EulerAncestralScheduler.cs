@@ -127,9 +127,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .DivideTensorByFloat(sigma);
 
             var delta = sigmaDown - sigma;
-            var prevSample = sample.AddTensors(derivative.MultipleTensorByFloat(delta));
+            var prevSample = sample.AddTensors(derivative.MultiplyTensorByFloat(delta));
             var noise = CreateRandomSample(prevSample.Dimensions);
-            prevSample = prevSample.AddTensors(noise.MultipleTensorByFloat(sigmaUp));
+            prevSample = prevSample.AddTensors(noise.MultiplyTensorByFloat(sigmaUp));
             return new SchedulerStepResult(prevSample);
         }
 
@@ -152,7 +152,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .Max();
 
             return noise
-                .MultipleTensorByFloat(sigma)
+                .MultiplyTensorByFloat(sigma)
                 .AddTensors(originalSamples);
         }
 

@@ -142,13 +142,13 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             DenseTensor<float> predOriginalSample;
             if (Options.PredictionType == PredictionType.Epsilon)
             {
-                predOriginalSample = sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigmaInput));
+                predOriginalSample = sample.SubtractTensors(modelOutput.MultiplyTensorByFloat(sigmaInput));
             }
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
                 var sigmaSqrt = (float)Math.Sqrt(sigmaInput * sigmaInput + 1f);
                 predOriginalSample = sample.DivideTensorByFloat(sigmaSqrt)
-                    .AddTensors(modelOutput.MultipleTensorByFloat(-sigmaInput / sigmaSqrt));
+                    .AddTensors(modelOutput.MultiplyTensorByFloat(-sigmaInput / sigmaSqrt));
             }
             else
             {
@@ -177,7 +177,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             }
 
             _stepIndex += 1;
-            return new SchedulerStepResult(sample.AddTensors(derivative.MultipleTensorByFloat(dt)));
+            return new SchedulerStepResult(sample.AddTensors(derivative.MultiplyTensorByFloat(dt)));
         }
 
 
@@ -192,7 +192,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         {
             var sigma = _sigmas[_stepIndex];
             return noise
-                .MultipleTensorByFloat(sigma)
+                .MultiplyTensorByFloat(sigma)
                 .AddTensors(originalSamples);
         }
 

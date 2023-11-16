@@ -86,7 +86,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStep(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -95,7 +95,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = await PrepareLatents(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Get Guidance Scale Embedding
                 var guidanceEmbeddings = GetGuidanceScaleEmbedding(schedulerOptions.GuidanceScale);
@@ -107,6 +107,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.Unet);
                 var outputNames = _onnxModelService.GetOutputNames(modelOptions, OnnxModelType.Unet);
                 var inputMetaData = _onnxModelService.GetInputMetadata(modelOptions, OnnxModelType.Unet);
+                var outputMetaData = _onnxModelService.GetOutputMetadata(modelOptions, OnnxModelType.Unet);
+                var timestepMetaData = inputMetaData[inputNames[1]];
+                var outputTensorMetaData = outputMetaData[outputNames[0]];
 
                 // Loop though the timesteps
                 var step = 0;
@@ -119,17 +122,18 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latents, timestep);
 
-                    var outputBuffer = new DenseTensor<float>(schedulerOptions.GetScaledDimension());
-                    using (var outputTensorValue = outputBuffer.ToOrtValue())
-                    using (var inputTensorValue = inputTensor.ToOrtValue())
-                    using (var timestepOrtValue = CreateTimestepNamedOrtValue(inputMetaData, inputNames[1], timestep))
-                    using (var promptTensorValue = promptEmbeddings.ToOrtValue())
-                    using (var guidanceTensorValue = guidanceEmbeddings.ToOrtValue())
+                    var outputChannels = 1;
+                    var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
+                    using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDimension))
+                    using (var inputTensorValue = inputTensor.ToOrtValue(outputTensorMetaData))
+                    using (var promptTensorValue = promptEmbeddings.ToOrtValue(outputTensorMetaData))
+                    using (var guidanceTensorValue = guidanceEmbeddings.ToOrtValue(outputTensorMetaData))
+                    using (var timestepTensorValue = CreateTimestepNamedOrtValue(timestepMetaData, timestep))
                     {
                         var inputs = new Dictionary<string, OrtValue>
                         {
                             { inputNames[0], inputTensorValue },
-                            { inputNames[1], timestepOrtValue },
+                            { inputNames[1], timestepTensorValue },
                             { inputNames[2], promptTensorValue },
                             { inputNames[3], guidanceTensorValue }
                         };
@@ -138,7 +142,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputs, outputs);
                         using (var result = results.First())
                         {
-                            var noisePred = outputBuffer;
+                            var noisePred = outputTensorValue.ToDenseTensor();
 
                             // Scheduler Step
                             var schedulerResult = scheduler.Step(noisePred, timestep, latents);
@@ -153,7 +157,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 }
 
                 // Decode Latents
-                return await DecodeLatents(modelOptions, promptOptions, schedulerOptions, denoised);
+                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, denoised);
             }
         }
 

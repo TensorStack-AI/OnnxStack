@@ -73,7 +73,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected abstract Task<DenseTensor<float>> PrepareLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps);
+        protected abstract Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps);
 
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected abstract Task<DenseTensor<float>> SchedulerStep(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        protected abstract Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -113,13 +113,13 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
 
             // Run Scheduler steps
-            var schedulerResult = await SchedulerStep(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
+            var schedulerResult = await SchedulerStepAsync(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
 
             _logger?.LogEnd($"End", diffuseTime);
 
             return schedulerResult;
         }
- 
+
 
         /// <summary>
         /// Runs the stable diffusion batch loop
@@ -153,7 +153,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var schedulerCallback = (int step, int steps) => progressCallback?.Invoke(batchIndex, batchSchedulerOptions.Count, step, steps);
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
-                yield return new BatchResult(batchSchedulerOption, await SchedulerStep(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
+                yield return new BatchResult(batchSchedulerOption, await SchedulerStepAsync(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
                 batchIndex++;
             }
 
@@ -203,42 +203,31 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="options">The options.</param>
         /// <param name="latents">The latents.</param>
         /// <returns></returns>
-        protected virtual async Task<DenseTensor<float>> DecodeLatents(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
+        protected virtual async Task<DenseTensor<float>> DecodeLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
             var timestamp = _logger?.LogBegin("Begin...");
 
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
-            var images = prompt.BatchCount > 1
-                ? latents.Split(prompt.BatchCount)
-                : new[] { latents };
-            var imageTensors = new List<DenseTensor<float>>();
-            foreach (var image in images)
-            {
-                var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
-                var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
+            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
+            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
+            var outputMetaData = _onnxModelService.GetOutputMetadata(model, OnnxModelType.VaeDecoder);
+            var outputTensorMetaData = outputMetaData[outputNames[0]];
 
-                var outputDim = new[] { 1, 3, options.Height, options.Width };
-                var outputBuffer = new DenseTensor<float>(outputDim);
-                using (var inputTensorValue = image.ToOrtValue())
-                using (var outputTensorValue = outputBuffer.ToOrtValue())
+            var outputDim = new[] { 1, 3, options.Height, options.Width };
+            using (var inputTensorValue = latents.ToOrtValue(outputTensorMetaData))
+            using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDim))
+            {
+                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
+                var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
+                using (var imageResult = results.First())
                 {
-                    var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
-                    var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
-                    var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
-                    using (var imageResult = results.First())
-                    {
-                        imageTensors.Add(outputBuffer);
-                    }
+                    _logger?.LogEnd("End", timestamp);
+                    return imageResult.ToDenseTensor();
                 }
             }
-
-            var result = prompt.BatchCount > 1
-                ? imageTensors.Join()
-                : imageTensors.FirstOrDefault();
-            _logger?.LogEnd("End", timestamp);
-            return result;
         }
 
 
@@ -249,13 +238,16 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="timestepInputName">Name of the timestep input.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected static OrtValue CreateTimestepNamedOrtValue(IReadOnlyDictionary<string, NodeMetadata> nodeMetadata, string timestepInputName, int timestep)
+        protected static OrtValue CreateTimestepNamedOrtValue(NodeMetadata timestepMetaData, int timestep)
         {
-            // Some models support Long or Float, could be more but fornow just support these 2
-            var timestepMetaData = nodeMetadata[timestepInputName];
-            return timestepMetaData.ElementDataType == TensorElementType.Int64
-                ? OrtValue.CreateTensorValueFromMemory(new long[] { timestep }, new long[] { 1 })
-                : OrtValue.CreateTensorValueFromMemory(new float[] { timestep }, new long[] { 1 });
+            var dimension = new long[] { 1 };
+            return timestepMetaData.ElementDataType switch
+            {
+                TensorElementType.Int64 => OrtValue.CreateTensorValueFromMemory(new long[] { timestep }, dimension),
+                TensorElementType.Float16 => OrtValue.CreateTensorValueFromMemory(new Float16[] { (Float16)timestep }, dimension),
+                TensorElementType.BFloat16 => OrtValue.CreateTensorValueFromMemory(new BFloat16[] { (BFloat16)timestep }, dimension),
+                _ => OrtValue.CreateTensorValueFromMemory(new float[] { timestep }, dimension) // TODO: Deafult to Float32 for now
+            };
         }
 
 

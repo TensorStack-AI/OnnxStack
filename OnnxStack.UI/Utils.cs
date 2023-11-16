@@ -47,7 +47,7 @@ namespace OnnxStack.UI
         }
 
 
-        public static async Task<bool> SaveImageFile(this ImageResult imageResult, string filename)
+        public static async Task<bool> SaveImageFileAsync(this ImageResult imageResult, string filename)
         {
             await Task.Run(() =>
             {
@@ -62,7 +62,7 @@ namespace OnnxStack.UI
         }
 
 
-        public static async Task<bool> SaveBlueprintFile(this ImageResult imageResult, string filename)
+        public static async Task<bool> SaveBlueprintFileAsync(this ImageResult imageResult, string filename)
         {
             var serializerOptions = new JsonSerializerOptions
             {
@@ -77,7 +77,7 @@ namespace OnnxStack.UI
         }
 
 
-        public static async Task<bool> AutoSave(this ImageResult imageResult, string autosaveDirectory, bool includeBlueprint)
+        public static async Task<bool> AutoSaveAsync(this ImageResult imageResult, string autosaveDirectory, bool includeBlueprint)
         {
             if (!Directory.Exists(autosaveDirectory))
                 Directory.CreateDirectory(autosaveDirectory);
@@ -85,11 +85,11 @@ namespace OnnxStack.UI
             var random = RandomString();
             var imageFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
             var blueprintFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
-            if (!await imageResult.SaveImageFile(imageFile))
+            if (!await imageResult.SaveImageFileAsync(imageFile))
                 return false;
 
             if (includeBlueprint)
-                return await imageResult.SaveBlueprintFile(blueprintFile);
+                return await imageResult.SaveBlueprintFileAsync(blueprintFile);
 
             return true;
         }

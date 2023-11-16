@@ -109,12 +109,12 @@ namespace OnnxStack.UI.UserControls
                     foreach (var model in Models.Where(x => x.IsLoaded))
                     {
                         _logger.LogInformation($"'{model.Name}' Unloading...");
-                        await _stableDiffusionService.UnloadModel(model.ModelOptions);
+                        await _stableDiffusionService.UnloadModelAsync(model.ModelOptions);
                         model.IsLoaded = false;
                     }
                 }
 
-                SelectedModel.IsLoaded = await _stableDiffusionService.LoadModel(SelectedModel.ModelOptions);
+                SelectedModel.IsLoaded = await _stableDiffusionService.LoadModelAsync(SelectedModel.ModelOptions);
             }
             catch (Exception ex)
             {
@@ -136,7 +136,7 @@ namespace OnnxStack.UI.UserControls
 
             _logger.LogInformation($"'{SelectedModel.Name}' Unloading...");
             SelectedModel.IsLoading = true;
-            await _stableDiffusionService.UnloadModel(SelectedModel.ModelOptions);
+            await _stableDiffusionService.UnloadModelAsync(SelectedModel.ModelOptions);
             SelectedModel.IsLoading = false;
             SelectedModel.IsLoaded = false;
             _logger.LogInformation($"'{SelectedModel.Name}' Unloaded.");

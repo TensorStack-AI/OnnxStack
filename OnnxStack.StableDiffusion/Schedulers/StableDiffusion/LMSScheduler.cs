@@ -144,7 +144,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             {
                 // Multiply to coeff by each derivatives to create the new tensors
                 var (lmsCoeff, derivative) = lmsCoeffsAndDerivatives[i];
-                lmsDerProduct[i] = derivative.MultipleTensorByFloat((float)lmsCoeff);
+                lmsDerProduct[i] = derivative.MultiplyTensorByFloat((float)lmsCoeff);
             }
 
             // Add the sumed tensor to the sample
@@ -168,7 +168,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .Max();
 
             return noise
-                .MultipleTensorByFloat(sigma)
+                .MultiplyTensorByFloat(sigma)
                 .AddTensors(originalSamples);
         }
 

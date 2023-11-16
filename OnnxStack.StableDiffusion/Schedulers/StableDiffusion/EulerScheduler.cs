@@ -121,17 +121,17 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 
             float gamma = s_tmin <= sigma && sigma <= s_tmax ? (float)Math.Min(s_churn / (_sigmas.Length - 1f), Math.Sqrt(2.0f) - 1.0f) : 0f;
             var noise = CreateRandomSample(modelOutput.Dimensions);
-            var epsilon = noise.MultipleTensorByFloat(s_noise);
+            var epsilon = noise.MultiplyTensorByFloat(s_noise);
             float sigmaHat = sigma * (1.0f + gamma);
 
             if (gamma > 0)
-                sample = sample.AddTensors(epsilon.MultipleTensorByFloat((float)Math.Sqrt(Math.Pow(sigmaHat, 2f) - Math.Pow(sigma, 2f))));
+                sample = sample.AddTensors(epsilon.MultiplyTensorByFloat((float)Math.Sqrt(Math.Pow(sigmaHat, 2f) - Math.Pow(sigma, 2f))));
 
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
             var predOriginalSample = Options.PredictionType != PredictionType.Epsilon
                 ? GetPredictedSample(modelOutput, sample, sigma)
-                : sample.SubtractTensors(modelOutput.MultipleTensorByFloat(sigmaHat));
+                : sample.SubtractTensors(modelOutput.MultiplyTensorByFloat(sigmaHat));
 
 
             // 2. Convert to an ODE derivative
@@ -140,7 +140,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .DivideTensorByFloat(sigmaHat);
 
             var delta = _sigmas[stepIndex + 1] - sigmaHat;
-            return new SchedulerStepResult(sample.AddTensors(derivative.MultipleTensorByFloat(delta)));
+            return new SchedulerStepResult(sample.AddTensors(derivative.MultiplyTensorByFloat(delta)));
         }
 
 
@@ -160,7 +160,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .Max();
 
             return noise
-                .MultipleTensorByFloat(sigma)
+                .MultiplyTensorByFloat(sigma)
                 .AddTensors(originalSamples);
         }
 

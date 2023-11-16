@@ -21,7 +21,7 @@ namespace OnnxStack.UI.Services
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<bool> DownloadHttp(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
+        public async Task<bool> DownloadHttpAsync(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
         {
             return await DownloadFileAsync(modelConfigTemplate.ModelFiles, destinationPath, progressCallback, cancellationToken);
         }
@@ -35,7 +35,7 @@ namespace OnnxStack.UI.Services
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<bool> DownloadRepository(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
+        public async Task<bool> DownloadRepositoryAsync(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
         {
             return await DownloadRepositoryAsync(modelConfigTemplate.Repository, destinationPath, progressCallback, cancellationToken);
         }
@@ -73,7 +73,7 @@ namespace OnnxStack.UI.Services
         {
             using (var httpClient = new HttpClient())
             {
-                var totalDownloadSize = await GetTotalSizeFromHeaders(fileList, httpClient);
+                var totalDownloadSize = await GetTotalSizeFromHeadersAsync(fileList, httpClient);
                 if (totalDownloadSize == 0)
                     throw new Exception("Queried file headers returned 0 bytes");
 
@@ -144,7 +144,7 @@ namespace OnnxStack.UI.Services
         /// <param name="httpClient">The HTTP client.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Failed to query file headers, {ex.Message}</exception>
-        private static async Task<long> GetTotalSizeFromHeaders(List<string> fileList, HttpClient httpClient)
+        private static async Task<long> GetTotalSizeFromHeadersAsync(List<string> fileList, HttpClient httpClient)
         {
             try
             {
