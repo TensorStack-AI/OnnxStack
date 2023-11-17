@@ -71,10 +71,9 @@ namespace OnnxStack.StableDiffusion.Services
             var outputMetadata = metadata.Outputs[0];
 
             var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
-            using (var inputTensorValue = OrtValue.CreateFromStringTensor(inputTensor))
+            using (var inferenceParameters = new OnnxInferenceParameters())
             {
-                var inferenceParameters = new OnnxInferenceParameters();
-                inferenceParameters.AddInput(inputMetadata, inputTensorValue);
+                inferenceParameters.AddInput(inputMetadata, OrtValue.CreateFromStringTensor(inputTensor));
                 inferenceParameters.AddOutput(outputMetadata);
 
                 using (var results = _onnxModelService.RunInference(model, OnnxModelType.Tokenizer, inferenceParameters))
@@ -99,17 +98,15 @@ namespace OnnxStack.StableDiffusion.Services
 
             var inputDim = new[] { 1L, tokenizedInput.Length };
             var outputDim = new[] { 1L, tokenizedInput.Length, model.EmbeddingsLength };
-            using (var outputTensorValue = outputMetadata.CreateOutputBuffer(outputDim.ToInt()))
-            using (var inputTensorValue = OrtValue.CreateTensorValueFromMemory(tokenizedInput, inputDim))
+            using (var inferenceParameters = new OnnxInferenceParameters())
             {
-                var inferenceParameters = new OnnxInferenceParameters();
-                inferenceParameters.AddInput(inputMetadata, inputTensorValue);
-                inferenceParameters.AddOutput(outputMetadata, outputTensorValue);
+                inferenceParameters.AddInput(inputMetadata, OrtValue.CreateTensorValueFromMemory(tokenizedInput, inputDim));
+                inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDim.ToInt()));
 
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.TextEncoder, inferenceParameters);
                 using (var result = results.First())
                 {
-                    return outputTensorValue.ToArray();
+                    return result.ToArray();
                 }
             }
         }

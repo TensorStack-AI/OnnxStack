@@ -1,9 +1,10 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using System;
 using System.Collections.Generic;
 
 namespace OnnxStack.Core.Model
 {
-    public class OnnxValueCollection
+    public class OnnxValueCollection : IDisposable
     {
         private readonly List<OnnxNamedMetadata> _metaData;
         private readonly Dictionary<string, OrtValue> _values;
@@ -41,7 +42,6 @@ namespace OnnxStack.Core.Model
             _values.Add(metaData.Name, default);
         }
 
-
         /// <summary>
         /// Gets the names.
         /// </summary>
@@ -58,5 +58,15 @@ namespace OnnxStack.Core.Model
         /// Gets the name values.
         /// </summary>
         public IReadOnlyDictionary<string, OrtValue> NameValues => _values;
+
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            foreach (var ortValue in _values.Values)
+                ortValue?.Dispose();
+        }
     }
 }

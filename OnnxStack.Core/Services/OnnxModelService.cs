@@ -156,7 +156,7 @@ namespace OnnxStack.Core.Services
         {
             return GetModelSet(model)
                 .GetSession(modelType)
-                .Run(new RunOptions(), parameters.InputNameValues, parameters.OutputNames);
+                .Run(parameters.RunOptions, parameters.InputNameValues, parameters.OutputNames);
         }
 
 
@@ -171,7 +171,7 @@ namespace OnnxStack.Core.Services
         {
             return GetModelSet(model)
                 .GetSession(modelType)
-                .RunAsync(new RunOptions(), parameters.InputNames, parameters.InputValues, parameters.OutputNames, parameters.OutputValues);
+                .RunAsync(parameters.RunOptions, parameters.InputNames, parameters.InputValues, parameters.OutputNames, parameters.OutputValues);
         }
 
 

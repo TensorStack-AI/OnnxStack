@@ -219,12 +219,10 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var outputMetadata = metadata.Outputs[0];
 
             var outputDim = new[] { 1, 3, options.Height, options.Width };
-            using (var inputTensorValue = latents.ToOrtValue(outputMetadata))
-            using (var outputTensorValue = outputMetadata.CreateOutputBuffer(outputDim))
+            using (var inferenceParameters = new OnnxInferenceParameters())
             {
-                var inferenceParameters = new OnnxInferenceParameters();
-                inferenceParameters.AddInput(inputMetadata, inputTensorValue);
-                inferenceParameters.AddOutput(outputMetadata, outputTensorValue);
+                inferenceParameters.AddInput(inputMetadata, latents.ToOrtValue(outputMetadata));
+                inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDim));
 
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inferenceParameters);
                 using (var imageResult = results.First())

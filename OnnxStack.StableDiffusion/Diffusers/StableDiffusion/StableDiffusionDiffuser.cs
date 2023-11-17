@@ -80,16 +80,12 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
-                    using (var outputTensorValue = outputMetadata.CreateOutputBuffer(outputDimension))
-                    using (var inputTensorValue = inputTensor.ToOrtValue(outputMetadata))
-                    using (var promptTensorValue = promptEmbeddings.ToOrtValue(outputMetadata))
-                    using (var timestepTensorValue = CreateTimestepNamedOrtValue(timestepMetadata, timestep))
+                    using (var inferenceParameters = new OnnxInferenceParameters())
                     {
-                        var inferenceParameters = new OnnxInferenceParameters();
-                        inferenceParameters.AddInput(inputMetadata, inputTensorValue);
-                        inferenceParameters.AddInput(timestepMetadata, timestepTensorValue);
-                        inferenceParameters.AddInput(promptMetadata, promptTensorValue);
-                        inferenceParameters.AddOutput(outputMetadata, outputTensorValue);
+                        inferenceParameters.AddInput(inputMetadata, inputTensor.ToOrtValue(outputMetadata));
+                        inferenceParameters.AddInput(timestepMetadata, CreateTimestepNamedOrtValue(timestepMetadata, timestep));
+                        inferenceParameters.AddInput(promptMetadata, promptEmbeddings.ToOrtValue(outputMetadata));
+                        inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDimension));
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
                         using (var result = results.First())

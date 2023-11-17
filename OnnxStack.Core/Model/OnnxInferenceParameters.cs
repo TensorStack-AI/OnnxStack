@@ -1,10 +1,12 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using System;
 using System.Collections.Generic;
 
 namespace OnnxStack.Core.Model
 {
-    public class OnnxInferenceParameters
+    public class OnnxInferenceParameters : IDisposable
     {
+        private RunOptions _runOptions;
         private OnnxValueCollection _inputs;
         private OnnxValueCollection _outputs;
 
@@ -13,6 +15,7 @@ namespace OnnxStack.Core.Model
         /// </summary>
         public OnnxInferenceParameters()
         {
+            _runOptions = new RunOptions();
             _inputs = new OnnxValueCollection();
             _outputs = new OnnxValueCollection();
         }
@@ -51,6 +54,11 @@ namespace OnnxStack.Core.Model
 
 
         /// <summary>
+        /// Gets the run options.
+        /// </summary>
+        public RunOptions RunOptions => _runOptions;
+
+        /// <summary>
         /// Gets the input names.
         /// </summary>
         public IReadOnlyCollection<string> InputNames => _inputs.Names;
@@ -84,5 +92,16 @@ namespace OnnxStack.Core.Model
         /// Gets the output name values.
         /// </summary>
         public IReadOnlyDictionary<string, OrtValue> OutputNameValues => _outputs.NameValues;
+
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            _inputs?.Dispose();
+            _outputs?.Dispose();
+            _runOptions?.Dispose();
+        }
     }
 }

@@ -67,17 +67,15 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 
             //TODO: Model Config, Channels
             var outputDimension = options.GetScaledDimension();
-            using (var inputTensorValue = imageTensor.ToOrtValue(outputMetadata))
-            using (var outputTensorValue = outputMetadata.CreateOutputBuffer(outputDimension))
+            using (var inferenceParameters = new OnnxInferenceParameters())
             {
-                var inferenceParameters = new OnnxInferenceParameters();
-                inferenceParameters.AddInput(inputMetadata, inputTensorValue);
-                inferenceParameters.AddOutput(outputMetadata, outputTensorValue);
+                inferenceParameters.AddInput(inputMetadata, imageTensor.ToOrtValue(outputMetadata));
+                inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDimension));
 
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inferenceParameters);
                 using (var result = results.First())
                 {
-                    var outputResult = outputTensorValue.ToDenseTensor();
+                    var outputResult = result.ToDenseTensor();
                     var scaledSample = outputResult
                        .Add(scheduler.CreateRandomSample(outputDimension, options.InitialNoiseLevel))
                        .MultiplyBy(model.ScaleFactor);
