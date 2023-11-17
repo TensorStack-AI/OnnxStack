@@ -232,10 +232,8 @@ namespace OnnxStack.StableDiffusion.Diffusers
 
 
         /// <summary>
-        /// Creates the timestep OrtValue based on its NodeMetadata type.
+        /// Creates the timestep tensor.
         /// </summary>
-        /// <param name="nodeMetadata">The node metadata.</param>
-        /// <param name="timestepInputName">Name of the timestep input.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
         protected static DenseTensor<float> CreateTimestepTensor(int timestep)
