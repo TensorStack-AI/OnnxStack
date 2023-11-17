@@ -3,6 +3,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -68,14 +69,12 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 // Add noise to original latent
                 var latents = scheduler.AddNoise(latentsOriginal, noise, timesteps);
 
-
                 // Get Model metadata
-                var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.Unet);
-                var outputNames = _onnxModelService.GetOutputNames(modelOptions, OnnxModelType.Unet);
-                var inputMetaData = _onnxModelService.GetInputMetadata(modelOptions, OnnxModelType.Unet);
-                var outputMetaData = _onnxModelService.GetOutputMetadata(modelOptions, OnnxModelType.Unet);
-                var outputTensorMetaData = outputMetaData[outputNames[0]];
-                var timestepMetaData = inputMetaData[inputNames[1]];
+                var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
+                var outputMetadata = metadata.Outputs[0];
+                var inputMetadata = metadata.Inputs[0];
+                var timestepMetadata = metadata.Inputs[1];
+                var promptMetadata = metadata.Inputs[2];
 
                 // Loop though the timesteps
                 var step = 0;
@@ -91,20 +90,18 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
-                    using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDimension))
-                    using (var inputTensorValue = inputTensor.ToOrtValue(outputTensorMetaData))
-                    using (var promptTensorValue = promptEmbeddings.ToOrtValue(outputTensorMetaData))
-                    using (var timestepTensorValue = CreateTimestepNamedOrtValue(timestepMetaData, timestep))
+                    using (var outputTensorValue = outputMetadata.CreateOutputBuffer(outputDimension))
+                    using (var inputTensorValue = inputTensor.ToOrtValue(outputMetadata))
+                    using (var promptTensorValue = promptEmbeddings.ToOrtValue(outputMetadata))
+                    using (var timestepTensorValue = CreateTimestepNamedOrtValue(timestepMetadata, timestep))
                     {
-                        var inputs = new Dictionary<string, OrtValue>
-                        {
-                            { inputNames[0], inputTensorValue },
-                            { inputNames[1], timestepTensorValue },
-                            { inputNames[2], promptTensorValue }
-                        };
+                        var inferenceParameters = new OnnxInferenceParameters();
+                        inferenceParameters.AddInput(inputMetadata, inputTensorValue);
+                        inferenceParameters.AddInput(timestepMetadata, timestepTensorValue);
+                        inferenceParameters.AddInput(promptMetadata, promptTensorValue);
+                        inferenceParameters.AddOutput(outputMetadata, outputTensorValue);
 
-                        var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputs, outputs);
+                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
                         using (var result = results.First())
                         {
                             var noisePred = outputTensorValue.ToDenseTensor();
@@ -159,17 +156,21 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         protected override async Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
-            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeEncoder);
-            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeEncoder);
-            var outputMetaData = _onnxModelService.GetOutputMetadata(model, OnnxModelType.VaeEncoder);
-            var outputBufferMetaData = outputMetaData[outputNames[0]];
+
+            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeEncoder);
+            var inputMetadata = metadata.Inputs[0];
+            var outputMetadata = metadata.Outputs[0];
 
             //TODO: Model Config, Channels
             var outputDimensions = options.GetScaledDimension();
-            using (var inputTensorValue = imageTensor.ToOrtValue(outputBufferMetaData))
-            using (var outputTensorValue = outputBufferMetaData.CreateOutputBuffer(outputDimensions))
+            using (var inputTensorValue = imageTensor.ToOrtValue(outputMetadata))
+            using (var outputTensorValue = outputMetadata.CreateOutputBuffer(outputDimensions))
             {
-                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inputNames[0], inputTensorValue, outputNames[0], outputTensorValue);
+                var inferenceParameters = new OnnxInferenceParameters();
+                inferenceParameters.AddInput(inputMetadata, inputTensorValue);
+                inferenceParameters.AddOutput(outputMetadata, outputTensorValue);
+
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inferenceParameters);
                 using (var result = results.First())
                 {
                     var outputResult = outputTensorValue.ToDenseTensor();

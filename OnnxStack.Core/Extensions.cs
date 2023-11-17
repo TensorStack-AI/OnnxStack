@@ -1,12 +1,14 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace OnnxStack.Core
@@ -244,12 +246,12 @@ namespace OnnxStack.Core
         /// Creates and OrtValue form the DenseTensor and NodeMetaData provided
         /// </summary>
         /// <param name="tensor">The tensor.</param>
-        /// <param name="nodeMetadata">The node metadata.</param>
+        /// <param name="metadata">The metadata.</param>
         /// <returns></returns>
-        public static OrtValue ToOrtValue(this DenseTensor<float> tensor, NodeMetadata nodeMetadata)
+        public static OrtValue ToOrtValue(this DenseTensor<float> tensor, OnnxNamedMetadata metadata)
         {
             var dimensions = tensor.Dimensions.ToLong();
-            return nodeMetadata.ElementDataType switch
+            return metadata.Value.ElementDataType switch
             {
                 TensorElementType.Float16 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer.ToFloat16(), dimensions),
                 TensorElementType.BFloat16 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer.ToBFloat16(), dimensions),
@@ -259,14 +261,14 @@ namespace OnnxStack.Core
 
 
         /// <summary>
-        /// Creates and allocates output tensors buffer.
+        /// Creates and allocates the output tensors buffer.
         /// </summary>
-        /// <param name="nodeMetadata">The node metadata.</param>
+        /// <param name="metadata">The metadata.</param>
         /// <param name="dimensions">The dimensions.</param>
         /// <returns></returns>
-        public static OrtValue CreateOutputBuffer(this NodeMetadata nodeMetadata, ReadOnlySpan<int> dimensions)
+        public static OrtValue CreateOutputBuffer(this OnnxNamedMetadata metadata, ReadOnlySpan<int> dimensions)
         {
-            return OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, nodeMetadata.ElementDataType, dimensions.ToLong());
+            return OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, metadata.Value.ElementDataType, dimensions.ToLong());
         }
 
 

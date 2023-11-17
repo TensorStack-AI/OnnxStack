@@ -65,37 +65,10 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputName">Name of the input.</param>
-        /// <param name="inputValue">The input value.</param>
-        /// <param name="outputName">Name of the output.</param>
-        /// <param name="outputValue">The output value.</param>
-        /// <returns></returns>
-        IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, string inputName, OrtValue inputValue, string outputName);
-
-
-        /// <summary>
-        /// Runs the inference Use when output size is unknown
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <param name="modelType">Type of the model.</param>
         /// <param name="inputs">The inputs.</param>
         /// <param name="outputs">The outputs.</param>
         /// <returns></returns>
-        IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs);
-
-
-        /// <summary>
-        /// Runs the inference asynchronously, Use when output size is known
-        /// Output buffer size must be known and set before inference is run
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputName">Name of the input.</param>
-        /// <param name="inputValue">The input value.</param>
-        /// <param name="outputName">Name of the output.</param>
-        /// <param name="outputValue">The output value.</param>
-        /// <returns></returns>
-        Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, string inputName, OrtValue inputValue, string outputName, OrtValue outputValue);
+        IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters);
 
 
         /// <summary>
@@ -107,39 +80,15 @@ namespace OnnxStack.Core.Services
         /// <param name="inputs">The inputs.</param>
         /// <param name="outputs">The outputs.</param>
         /// <returns></returns>
-        Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, Dictionary<string, OrtValue> outputs);
+        Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters);
 
 
         /// <summary>
-        /// Gets the Sessions input metadata.
+        /// Gets the model metadata.
         /// </summary>
-        /// <param name="modelType">Type of model.</param>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
         /// <returns></returns>
-        IReadOnlyDictionary<string, NodeMetadata> GetInputMetadata(IOnnxModel model, OnnxModelType modelType);
-
-
-        /// <summary>
-        /// Gets the Sessions input names.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        IReadOnlyList<string> GetInputNames(IOnnxModel model, OnnxModelType modelType);
-
-
-        /// <summary>
-        /// Gets the Sessions output metadata.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        IReadOnlyDictionary<string, NodeMetadata> GetOutputMetadata(IOnnxModel model, OnnxModelType modelType);
-
-
-        /// <summary>
-        /// Gets the Sessions output metadata names.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        IReadOnlyList<string> GetOutputNames(IOnnxModel model, OnnxModelType modelType);
-
+        OnnxMetadata GetModelMetadata(IOnnxModel model, OnnxModelType modelType);
     }
 }
