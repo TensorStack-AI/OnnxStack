@@ -26,8 +26,9 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
             else if (batchOptions.BatchType == BatchOptionType.Step)
             {
-                return Enumerable.Range(Math.Max(0, (int)batchOptions.ValueFrom), Math.Max(1, (int)batchOptions.ValueTo))
-                  .Select(x => schedulerOptions with { InferenceSteps = x })
+                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
+                return Enumerable.Range(0, totalIncrements)
+                  .Select(x => schedulerOptions with { InferenceSteps = (int)(batchOptions.ValueFrom + (batchOptions.Increment * x)) })
                   .ToList();
             }
             else if (batchOptions.BatchType == BatchOptionType.Guidance)
