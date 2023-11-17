@@ -36,14 +36,23 @@ The `appsettings.json` is the easiest option for configuring model sets. Below i
 	"AllowedHosts": "*",
 
 	"OnnxStackConfig": {
-		"Name": "Clip Tokenizer",
-		"TokenizerLimit": 77,
-		"ModelConfigurations": [{
-			"Type": "Tokenizer",
-			"DeviceId": 0,
-			"ExecutionProvider": "Cpu",
-			"OnnxModelPath": "D:\\Repositories\\stable-diffusion-v1-5\\cliptokenizer.onnx"
-		}]
+		"OnnxModelSets": [
+			{
+				"Name": "ClipTokenizer",
+				"IsEnabled": true,
+				"DeviceId": 0,
+				"InterOpNumThreads": 0,
+				"IntraOpNumThreads": 0,
+				"ExecutionMode": "ORT_SEQUENTIAL",
+				"ExecutionProvider": "DirectML",
+				"ModelConfigurations": [
+					{
+						"Type": "Tokenizer",
+						"OnnxModelPath": "cliptokenizer.onnx"
+					},
+				]
+			}
+		]
 	}
 }
 ```
@@ -53,66 +62,36 @@ The `appsettings.json` is the easiest option for configuring model sets. Below i
 ### Basic C# Example
 ```csharp
 
+// Tokenizer model Example
+//----------------------//
+
 // From DI
+OnnxStackConfig _onnxStackConfig;
 IOnnxModelService _onnxModelService;
 
+// Get Model
+var model = _onnxStackConfig.OnnxModelSets.First();
 
-// Tokenizer model Example
+// Get Model Metadata
+var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.Tokenizer);
+
+// Create Input
 var text = "Text To Tokenize";
 var inputTensor = new DenseTensor<string>(new string[] { text }, new int[] { 1 });
-var inputString = new List<NamedOnnxValue>
+
+// Create  Inference Parameters container
+using (var inferenceParameters = new OnnxInferenceParameters(metadata))
 {
-	NamedOnnxValue.CreateFromTensor("string_input", inputTensor)
-};
+	// Set Inputs and Outputs
+	inferenceParameters.AddInputTensor(inputTensor);
+	inferenceParameters.AddOutputBuffer();
 
-// Create an InferenceSession from the Onnx clip tokenizer.
-// Run session and send the input data in to get inference output. 
-using (var tokens = _onnxModelService.RunInference(OnnxModelType.Tokenizer, inputString))
-{
-	var resultTensor = tokens.ToArray();
-}
-
-```
-
-
-
-### Basic C# Example (No DI)
-```csharp
-// Create Configuration
-var onnxStackConfig = new OnnxStackConfig
-{
-    Name = "OnnxStack",
-    TokenizerLimit = 77,
-    ModelConfigurations = new List<OnnxModelSessionConfig>
-    {
-        new OnnxModelSessionConfig
-        {
-            DeviceId = 0,
-            ExecutionProvider = ExecutionProvider.DirectML,
-
-            Type = OnnxModelType.Tokenizer,
-            OnnxModelPath = "clip_tokenizer.onnx",
-        }
-    }
-};
-
-// Create Service
-var onnxModelService = new OnnxModelService(onnxStackConfig);
-
-
-// Tokenizer model Example
-var text = "Text To Tokenize";
-var inputTensor = new DenseTensor<string>(new string[] { text }, new int[] { 1 });
-var inputString = new List<NamedOnnxValue>
-{
-    NamedOnnxValue.CreateFromTensor("string_input", inputTensor)
-};
-
-// Create an InferenceSession from the Onnx clip tokenizer.
-// Run session and send the input data in to get inference output. 
-using (var tokens = onnxModelService.RunInference(OnnxModelType.Tokenizer, inputString))
-{
-    var resultTensor = tokens.ToArray();
+	// Run Inference
+	using (var results = _onnxModelService.RunInference(model, OnnxModelType.Tokenizer, inferenceParameters))
+	{
+		// Extract Result
+		var resultData = results[0].ToDenseTensor();
+	}
 }
 
 ```
