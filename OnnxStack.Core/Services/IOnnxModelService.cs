@@ -61,21 +61,16 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
-        /// Runs inference on the specified model.
+        /// Runs the inference Use when output size is unknown
         /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
+        /// <param name="inputName">Name of the input.</param>
+        /// <param name="inputValue">The input value.</param>
+        /// <param name="outputName">Name of the output.</param>
+        /// <param name="outputValue">The output value.</param>
         /// <returns></returns>
-        IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInference(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
-
-
-        /// <summary>
-        /// Runs inference on the specified model.asynchronously.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
-        /// <returns></returns>
-        Task<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
+        IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, string inputName, OrtValue inputValue, string outputName);
 
 
         /// <summary>
@@ -86,7 +81,21 @@ namespace OnnxStack.Core.Services
         /// <param name="inputs">The inputs.</param>
         /// <param name="outputs">The outputs.</param>
         /// <returns></returns>
-        IReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs);
+        IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs);
+
+
+        /// <summary>
+        /// Runs the inference asynchronously, Use when output size is known
+        /// Output buffer size must be known and set before inference is run
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputName">Name of the input.</param>
+        /// <param name="inputValue">The input value.</param>
+        /// <param name="outputName">Name of the output.</param>
+        /// <param name="outputValue">The output value.</param>
+        /// <returns></returns>
+        Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, string inputName, OrtValue inputValue, string outputName, OrtValue outputValue);
 
 
         /// <summary>

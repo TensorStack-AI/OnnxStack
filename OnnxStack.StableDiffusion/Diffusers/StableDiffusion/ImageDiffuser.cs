@@ -71,9 +71,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
             using (var inputTensorValue = imageTensor.ToOrtValue(outputTensorMetaData))
             using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDimension))
             {
-                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
-                var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
-                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inputs, outputs);
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inputNames[0], inputTensorValue, outputNames[0], outputTensorValue);
                 using (var result = results.First())
                 {
                     var outputResult = outputTensorValue.ToDenseTensor();

@@ -4,7 +4,6 @@ using OnnxStack.Core.Model;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Services
@@ -104,26 +103,71 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
-        /// Runs inference on the specified model.
+        /// Runs the inference (Use when output size is unknown)
         /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
+        /// <param name="inputName">Name of the input.</param>
+        /// <param name="inputValue">The input value.</param>
+        /// <param name="outputName">Name of the output.</param>
         /// <returns></returns>
-        public IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInference(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
+        public IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, string inputName, OrtValue inputValue, string outputName)
         {
-            return RunInternal(model, modelType, inputs);
+            var inputs = new Dictionary<string, OrtValue> { { inputName, inputValue } };
+            var outputs = new List<string> { outputName };
+            return RunInference(model, modelType, inputs, outputs);
         }
 
 
         /// <summary>
-        /// Runs inference on the specified model asynchronously(ish).
+        /// Runs the inference (Use when output size is unknown)
         /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
         /// <param name="inputs">The inputs.</param>
+        /// <param name="outputs">The outputs.</param>
         /// <returns></returns>
-        public async Task<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
+        public IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs)
         {
-            return await Task.Run(() => RunInternal(model, modelType, inputs)).ConfigureAwait(false);
+            return GetModelSet(model)
+                .GetSession(modelType)
+                .Run(new RunOptions(), inputs, outputs);
+        }
+
+
+        /// <summary>
+        /// Runs the inference asynchronously, (Use when output size is known)
+        /// Output buffer size must be known and set before inference is run
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputName">Name of the input.</param>
+        /// <param name="inputValue">The input value.</param>
+        /// <param name="outputName">Name of the output.</param>
+        /// <param name="outputValue">The output value.</param>
+        /// <returns></returns>
+        public Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, string inputName, OrtValue inputValue, string outputName, OrtValue outputValue)
+        {
+            var inputs = new Dictionary<string, OrtValue> { { inputName, inputValue } };
+            var outputs = new Dictionary<string, OrtValue> { { outputName, outputValue } };
+            return RunInferenceAsync(model, modelType, inputs, outputs);
+        }
+
+
+        /// <summary>
+        /// Runs the inference asynchronously, (Use when output size is known)
+        /// Output buffer size must be known and set before inference is run
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputs">The inputs.</param>
+        /// <param name="outputs">The outputs.</param>
+        /// <returns></returns>
+        public Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, Dictionary<string, OrtValue> outputs)
+        {
+            return GetModelSet(model)
+                .GetSession(modelType)
+                .RunAsync(new RunOptions(), inputs.Keys, inputs.Values, outputs.Keys, outputs.Values);
         }
 
 
@@ -172,34 +216,6 @@ namespace OnnxStack.Core.Services
         public IReadOnlyList<string> GetOutputNames(IOnnxModel model, OnnxModelType modelType)
         {
             return OutputNamesInternal(model, modelType);
-        }
-
-
-        /// <summary>
-        /// Runs inference on the specified model.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
-        /// <returns></returns>
-        public IReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs)
-        {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .Run(new RunOptions(), inputs, outputs);
-        }
-
-
-        /// <summary>
-        /// Runs inference on the specified model.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
-        /// <returns></returns>
-        public Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, Dictionary<string, OrtValue> outputs)
-        {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .RunAsync(new RunOptions(), inputs.Keys, inputs.Values, outputs.Keys, outputs.Values);
         }
 
 
@@ -334,5 +350,7 @@ namespace OnnxStack.Core.Services
                 onnxModelSet?.Dispose();
             }
         }
+
+
     }
 }

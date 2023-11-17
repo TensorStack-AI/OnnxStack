@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -66,7 +67,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 var maskImage = PrepareMask(modelOptions, promptOptions, schedulerOptions);
 
                 // Create Masked Image Latents
-                var maskedImage = PrepareImageMask(modelOptions, promptOptions, schedulerOptions);
+                var maskedImage = await PrepareImageMask(modelOptions, promptOptions, schedulerOptions);
 
                 // Get Model metadata
                 var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.Unet);
@@ -179,7 +180,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        private DenseTensor<float> PrepareImageMask(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        private async Task<DenseTensor<float>> PrepareImageMask(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
             using (var image = promptOptions.InputImage.ToImage())
             using (var mask = promptOptions.InputImageMask.ToImage())
@@ -227,15 +228,24 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                 // Encode the image
                 var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.VaeEncoder);
-                var inputParameters = CreateInputParameters(NamedOnnxValue.CreateFromTensor(inputNames[0], imageMaskedTensor));
-                using (var inferResult = _onnxModelService.RunInference(modelOptions, OnnxModelType.VaeEncoder, inputParameters))
-                {
-                    var sample = inferResult.FirstElementAs<DenseTensor<float>>();
-                    var scaledSample = sample.MultiplyBy(modelOptions.ScaleFactor);
-                    if (schedulerOptions.GuidanceScale > 1f)
-                        scaledSample = scaledSample.Repeat(2);
+                var outputNames = _onnxModelService.GetOutputNames(modelOptions, OnnxModelType.VaeEncoder);
+                var outputMetaData = _onnxModelService.GetOutputMetadata(modelOptions, OnnxModelType.VaeEncoder);
+                var outputTensorMetaData = outputMetaData[outputNames[0]];
 
-                    return scaledSample;
+                var outputDimension = schedulerOptions.GetScaledDimension();
+                using (var inputTensorValue = imageTensor.ToOrtValue(outputTensorMetaData))
+                using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDimension))
+                {
+                    var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.VaeEncoder, inputNames[0], inputTensorValue, outputNames[0], outputTensorValue);
+                    using (var result = results.First())
+                    {
+                        var sample = outputTensorValue.ToDenseTensor();
+                        var scaledSample = sample.MultiplyBy(modelOptions.ScaleFactor);
+                        if (schedulerOptions.GuidanceScale > 1f)
+                            scaledSample = scaledSample.Repeat(2);
+
+                        return scaledSample;
+                    }
                 }
             }
         }
