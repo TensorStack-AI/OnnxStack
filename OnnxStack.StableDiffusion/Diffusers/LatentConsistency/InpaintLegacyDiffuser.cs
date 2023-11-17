@@ -207,11 +207,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         for (int y = 0; y < height; y++)
                         {
                             var pixelSpan = img.GetRowSpan(y);
-                            var value = pixelSpan[x].A / 255.0f;
-                            maskTensor[0, 0, y, x] = 1f - value;
-                            maskTensor[0, 1, y, x] = 0f; // Needed for shape only
-                            maskTensor[0, 2, y, x] = 0f; // Needed for shape only
-                            maskTensor[0, 3, y, x] = 0f; // Needed for shape only
+                            var value = 1f - (pixelSpan[x].A / 255.0f);
+                            maskTensor[0, 0, y, x] = value;
+                            maskTensor[0, 1, y, x] = value; // Needed for shape only
+                            maskTensor[0, 2, y, x] = value; // Needed for shape only
+                            maskTensor[0, 3, y, x] = value; // Needed for shape only
                         }
                     }
                 });
@@ -231,24 +231,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         private DenseTensor<float> ApplyMaskedLatents(DenseTensor<float> latents, DenseTensor<float> initLatentsProper, DenseTensor<float> mask)
         {
             var result = new DenseTensor<float>(latents.Dimensions);
-            for (int batch = 0; batch < latents.Dimensions[0]; batch++)
+            for (int i = 0; i < result.Length; i++)
             {
-                for (int channel = 0; channel < latents.Dimensions[1]; channel++)
-                {
-                    for (int height = 0; height < latents.Dimensions[2]; height++)
-                    {
-                        for (int width = 0; width < latents.Dimensions[3]; width++)
-                        {
-                            float maskValue = mask[batch, 0, height, width];
-                            float latentsValue = latents[batch, channel, height, width];
-                            float initLatentsProperValue = initLatentsProper[batch, channel, height, width];
-
-                            //Apply the logic to compute the result based on the mask
-                            float newValue = initLatentsProperValue * maskValue + latentsValue * (1f - maskValue);
-                            result[batch, channel, height, width] = newValue;
-                        }
-                    }
-                }
+                float maskValue = mask.GetValue(i);
+                result.SetValue(i, initLatentsProper.GetValue(i) * maskValue + latents.GetValue(i) * (1f - maskValue));
             }
             return result;
         }
