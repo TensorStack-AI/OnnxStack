@@ -3,6 +3,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -103,7 +104,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
-            var diffuseTime = _logger?.LogBegin("Begin...");
+            var diffuseTime = _logger?.LogBegin("Diffuse starting...");
             _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
             // Check guidance
@@ -115,7 +116,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Run Scheduler steps
             var schedulerResult = await SchedulerStepAsync(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
 
-            _logger?.LogEnd($"End", diffuseTime);
+            _logger?.LogEnd($"Diffuse complete", diffuseTime);
 
             return schedulerResult;
         }
@@ -137,8 +138,9 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
-            var diffuseBatchTime = _logger?.LogBegin("Begin...");
+            var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
             _logger?.Log($"Model: {modelOptions.Name}, Pipeline: {modelOptions.PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
+            _logger?.Log($"BatchType: {batchOptions.BatchType}, ValueFrom: {batchOptions.ValueFrom}, ValueTo: {batchOptions.ValueTo}, Increment: {batchOptions.Increment}");
 
             // Check guidance
             var performGuidance = ShouldPerformGuidance(schedulerOptions);
@@ -153,11 +155,13 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var schedulerCallback = (int step, int steps) => progressCallback?.Invoke(batchIndex, batchSchedulerOptions.Count, step, steps);
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
+                var diffuseTime = _logger?.LogBegin("Diffuse starting...");
                 yield return new BatchResult(batchSchedulerOption, await SchedulerStepAsync(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
+                _logger?.LogEnd($"Diffuse complete", diffuseTime);
                 batchIndex++;
             }
 
-            _logger?.LogEnd($"End", diffuseBatchTime);
+            _logger?.LogEnd($"Diffuse batch complete", diffuseBatchTime);
         }
 
 
@@ -205,26 +209,22 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <returns></returns>
         protected virtual async Task<DenseTensor<float>> DecodeLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
-            var timestamp = _logger?.LogBegin("Begin...");
+            var timestamp = _logger.LogBegin();
 
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
-            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeDecoder);
-            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeDecoder);
-            var outputMetaData = _onnxModelService.GetOutputMetadata(model, OnnxModelType.VaeDecoder);
-            var outputTensorMetaData = outputMetaData[outputNames[0]];
-
             var outputDim = new[] { 1, 3, options.Height, options.Width };
-            using (var inputTensorValue = latents.ToOrtValue(outputTensorMetaData))
-            using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDim))
+            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeDecoder);
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
-                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
-                var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
-                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inputs, outputs);
+                inferenceParameters.AddInputTensor(latents);
+                inferenceParameters.AddOutputBuffer(outputDim);
+
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inferenceParameters);
                 using (var imageResult = results.First())
                 {
-                    _logger?.LogEnd("End", timestamp);
+                    _logger?.LogEnd("Latents decoded", timestamp);
                     return imageResult.ToDenseTensor();
                 }
             }
@@ -232,22 +232,13 @@ namespace OnnxStack.StableDiffusion.Diffusers
 
 
         /// <summary>
-        /// Creates the timestep OrtValue based on its NodeMetadata type.
+        /// Creates the timestep tensor.
         /// </summary>
-        /// <param name="nodeMetadata">The node metadata.</param>
-        /// <param name="timestepInputName">Name of the timestep input.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected static OrtValue CreateTimestepNamedOrtValue(NodeMetadata timestepMetaData, int timestep)
+        protected static DenseTensor<float> CreateTimestepTensor(int timestep)
         {
-            var dimension = new long[] { 1 };
-            return timestepMetaData.ElementDataType switch
-            {
-                TensorElementType.Int64 => OrtValue.CreateTensorValueFromMemory(new long[] { timestep }, dimension),
-                TensorElementType.Float16 => OrtValue.CreateTensorValueFromMemory(new Float16[] { (Float16)timestep }, dimension),
-                TensorElementType.BFloat16 => OrtValue.CreateTensorValueFromMemory(new BFloat16[] { (BFloat16)timestep }, dimension),
-                _ => OrtValue.CreateTensorValueFromMemory(new float[] { timestep }, dimension) // TODO: Deafult to Float32 for now
-            };
+            return TensorHelper.CreateTensor(new float[] { timestep }, new int[] { 1 });
         }
 
 

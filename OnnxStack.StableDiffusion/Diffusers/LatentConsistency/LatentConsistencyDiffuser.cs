@@ -3,6 +3,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -104,13 +105,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 DenseTensor<float> denoised = null;
 
                 // Get Model metadata
-                var inputNames = _onnxModelService.GetInputNames(modelOptions, OnnxModelType.Unet);
-                var outputNames = _onnxModelService.GetOutputNames(modelOptions, OnnxModelType.Unet);
-                var inputMetaData = _onnxModelService.GetInputMetadata(modelOptions, OnnxModelType.Unet);
-                var outputMetaData = _onnxModelService.GetOutputMetadata(modelOptions, OnnxModelType.Unet);
-                var timestepMetaData = inputMetaData[inputNames[1]];
-                var outputTensorMetaData = outputMetaData[outputNames[0]];
-
+                var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
+      
                 // Loop though the timesteps
                 var step = 0;
                 foreach (var timestep in timesteps)
@@ -121,28 +117,22 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 
                     // Create input tensor.
                     var inputTensor = scheduler.ScaleInput(latents, timestep);
+                    var timestepTensor = CreateTimestepTensor(timestep);
 
                     var outputChannels = 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
-                    using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDimension))
-                    using (var inputTensorValue = inputTensor.ToOrtValue(outputTensorMetaData))
-                    using (var promptTensorValue = promptEmbeddings.ToOrtValue(outputTensorMetaData))
-                    using (var guidanceTensorValue = guidanceEmbeddings.ToOrtValue(outputTensorMetaData))
-                    using (var timestepTensorValue = CreateTimestepNamedOrtValue(timestepMetaData, timestep))
+                    using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                     {
-                        var inputs = new Dictionary<string, OrtValue>
-                        {
-                            { inputNames[0], inputTensorValue },
-                            { inputNames[1], timestepTensorValue },
-                            { inputNames[2], promptTensorValue },
-                            { inputNames[3], guidanceTensorValue }
-                        };
+                        inferenceParameters.AddInputTensor(inputTensor);
+                        inferenceParameters.AddInputTensor(timestepTensor);
+                        inferenceParameters.AddInputTensor(promptEmbeddings);
+                        inferenceParameters.AddInputTensor(guidanceEmbeddings);
+                        inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inputs, outputs);
+                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
                         using (var result = results.First())
                         {
-                            var noisePred = outputTensorValue.ToDenseTensor();
+                            var noisePred = result.ToDenseTensor();
 
                             // Scheduler Step
                             var schedulerResult = scheduler.Step(noisePred, timestep, latents);
@@ -153,7 +143,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                     }
 
                     progressCallback?.Invoke(step, timesteps.Count);
-                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
+                    _logger?.LogEnd($"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Decode Latents
