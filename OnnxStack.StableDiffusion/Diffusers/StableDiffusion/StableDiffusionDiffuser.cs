@@ -61,10 +61,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                 // Get Model metadata
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
-                var outputMetadata = metadata.Outputs[0];
-                var inputMetadata = metadata.Inputs[0];
-                var timestepMetadata = metadata.Inputs[1];
-                var promptMetadata = metadata.Inputs[2];
 
                 // Loop though the timesteps
                 var step = 0;
@@ -77,15 +73,16 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     // Create input tensor.
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
+                    var timestepTensor = CreateTimestepTensor(timestep);
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
-                    using (var inferenceParameters = new OnnxInferenceParameters())
+                    using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                     {
-                        inferenceParameters.AddInput(inputMetadata, inputTensor.ToOrtValue(outputMetadata));
-                        inferenceParameters.AddInput(timestepMetadata, CreateTimestepNamedOrtValue(timestepMetadata, timestep));
-                        inferenceParameters.AddInput(promptMetadata, promptEmbeddings.ToOrtValue(outputMetadata));
-                        inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDimension));
+                        inferenceParameters.AddInputTensor(inputTensor);
+                        inferenceParameters.AddInputTensor(timestepTensor);
+                        inferenceParameters.AddInputTensor(promptEmbeddings);
+                        inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
                         using (var result = results.First())

@@ -63,16 +63,13 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         {
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
 
-            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeEncoder);
-            var inputMetadata = metadata.Inputs[0];
-            var outputMetadata = metadata.Outputs[0];
-
             //TODO: Model Config, Channels
             var outputDimension = options.GetScaledDimension();
-            using (var inferenceParameters = new OnnxInferenceParameters())
+            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeEncoder);
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
-                inferenceParameters.AddInput(inputMetadata, imageTensor.ToOrtValue(outputMetadata));
-                inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDimension));
+                inferenceParameters.AddInputTensor(imageTensor);
+                inferenceParameters.AddOutputBuffer(outputDimension);
 
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inferenceParameters);
                 using (var result = results.First())

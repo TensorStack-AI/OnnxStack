@@ -214,15 +214,12 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Scale and decode the image latents with vae.
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
-            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeDecoder);
-            var inputMetadata = metadata.Inputs[0];
-            var outputMetadata = metadata.Outputs[0];
-
             var outputDim = new[] { 1, 3, options.Height, options.Width };
-            using (var inferenceParameters = new OnnxInferenceParameters())
+            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeDecoder);
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
-                inferenceParameters.AddInput(inputMetadata, latents.ToOrtValue(outputMetadata));
-                inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDim));
+                inferenceParameters.AddInputTensor(latents);
+                inferenceParameters.AddOutputBuffer(outputDim);
 
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inferenceParameters);
                 using (var imageResult = results.First())
@@ -241,16 +238,9 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="timestepInputName">Name of the timestep input.</param>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected static OrtValue CreateTimestepNamedOrtValue(OnnxNamedMetadata timestepMetaData, int timestep)
+        protected static DenseTensor<float> CreateTimestepTensor(int timestep)
         {
-            var dimension = new long[] { 1 };
-            return timestepMetaData.Value.ElementDataType switch
-            {
-                TensorElementType.Int64 => OrtValue.CreateTensorValueFromMemory(new long[] { timestep }, dimension),
-                TensorElementType.Float16 => OrtValue.CreateTensorValueFromMemory(new Float16[] { (Float16)timestep }, dimension),
-                TensorElementType.BFloat16 => OrtValue.CreateTensorValueFromMemory(new BFloat16[] { (BFloat16)timestep }, dimension),
-                _ => OrtValue.CreateTensorValueFromMemory(new float[] { timestep }, dimension) // TODO: Deafult to Float32 for now
-            };
+            return TensorHelper.CreateTensor(new float[] { timestep }, new int[] { 1 });
         }
 
 

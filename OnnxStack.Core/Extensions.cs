@@ -253,6 +253,7 @@ namespace OnnxStack.Core
             var dimensions = tensor.Dimensions.ToLong();
             return metadata.Value.ElementDataType switch
             {
+                TensorElementType.Int64 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer.ToLong(), dimensions),
                 TensorElementType.Float16 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer.ToFloat16(), dimensions),
                 TensorElementType.BFloat16 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer.ToBFloat16(), dimensions),
                 _ => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, dimensions)
@@ -369,6 +370,17 @@ namespace OnnxStack.Core
                 floatArray[i] = (float)inputMemory[i];
 
             return floatArray.AsMemory();
+        }
+
+
+        /// <summary>
+        /// Converts to long.
+        /// </summary>
+        /// <param name="inputMemory">The input memory.</param>
+        /// <returns></returns>
+        internal static Memory<long> ToLong(this Memory<float> inputMemory)
+        {
+            return Array.ConvertAll(inputMemory.ToArray(), Convert.ToInt64).AsMemory();
         }
     }
 }

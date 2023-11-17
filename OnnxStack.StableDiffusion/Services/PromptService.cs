@@ -67,14 +67,11 @@ namespace OnnxStack.StableDiffusion.Services
                 return Task.FromResult(Array.Empty<int>());
 
             var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.Tokenizer);
-            var inputMetadata = metadata.Inputs[0];
-            var outputMetadata = metadata.Outputs[0];
-
             var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
-            using (var inferenceParameters = new OnnxInferenceParameters())
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
-                inferenceParameters.AddInput(inputMetadata, OrtValue.CreateFromStringTensor(inputTensor));
-                inferenceParameters.AddOutput(outputMetadata);
+                inferenceParameters.AddInput(OrtValue.CreateFromStringTensor(inputTensor));
+                inferenceParameters.AddOutput();
 
                 using (var results = _onnxModelService.RunInference(model, OnnxModelType.Tokenizer, inferenceParameters))
                 {
@@ -92,16 +89,13 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         public async Task<float[]> EncodeTokensAsync(IModelOptions model, int[] tokenizedInput)
         {
-            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.TextEncoder);
-            var inputMetadata = metadata.Inputs[0];
-            var outputMetadata = metadata.Outputs[0];
-
             var inputDim = new[] { 1L, tokenizedInput.Length };
-            var outputDim = new[] { 1L, tokenizedInput.Length, model.EmbeddingsLength };
-            using (var inferenceParameters = new OnnxInferenceParameters())
+            var outputDim = new[] { 1, tokenizedInput.Length, model.EmbeddingsLength };
+            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.TextEncoder);
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
-                inferenceParameters.AddInput(inputMetadata, OrtValue.CreateTensorValueFromMemory(tokenizedInput, inputDim));
-                inferenceParameters.AddOutput(outputMetadata, outputMetadata.CreateOutputBuffer(outputDim.ToInt()));
+                inferenceParameters.AddInput(OrtValue.CreateTensorValueFromMemory(tokenizedInput, inputDim));
+                inferenceParameters.AddOutputBuffer(outputDim);
 
                 var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.TextEncoder, inferenceParameters);
                 using (var result = results.First())

@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using System;
 using System.Collections.Generic;
 
@@ -6,15 +7,17 @@ namespace OnnxStack.Core.Model
 {
     public class OnnxInferenceParameters : IDisposable
     {
-        private RunOptions _runOptions;
-        private OnnxValueCollection _inputs;
-        private OnnxValueCollection _outputs;
+        private readonly RunOptions _runOptions;
+        private readonly OnnxMetadata _metadata;
+        private readonly OnnxValueCollection _inputs;
+        private readonly OnnxValueCollection _outputs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxInferenceParameters"/> class.
         /// </summary>
-        public OnnxInferenceParameters()
+        public OnnxInferenceParameters(OnnxMetadata metadata)
         {
+            _metadata = metadata;
             _runOptions = new RunOptions();
             _inputs = new OnnxValueCollection();
             _outputs = new OnnxValueCollection();
@@ -26,9 +29,20 @@ namespace OnnxStack.Core.Model
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         /// <param name="value">The value.</param>
-        public void AddInput(OnnxNamedMetadata metaData, OrtValue value)
+        public void AddInput(OrtValue value)
         {
-            _inputs.Add(metaData, value);
+            _inputs.Add(GetNextInputMetadata(), value);
+        }
+
+
+        /// <summary>
+        /// Adds the input tensor.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void AddInputTensor(DenseTensor<float> value)
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, value.ToOrtValue(metaData));
         }
 
 
@@ -37,9 +51,20 @@ namespace OnnxStack.Core.Model
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         /// <param name="value">The value.</param>
-        public void AddOutput(OnnxNamedMetadata metaData, OrtValue value)
+        public void AddOutput(OrtValue value)
         {
-            _outputs.Add(metaData, value);
+            _outputs.Add(GetNextOutputMetadata(), value);
+        }
+
+
+        /// <summary>
+        /// Adds the output buffer.
+        /// </summary>
+        /// <param name="bufferDimension">The buffer dimension.</param>
+        public void AddOutputBuffer(ReadOnlySpan<int> bufferDimension)
+        {
+            var metadata = GetNextOutputMetadata();
+            _outputs.Add(metadata, metadata.CreateOutputBuffer(bufferDimension));
         }
 
 
@@ -47,9 +72,9 @@ namespace OnnxStack.Core.Model
         /// Adds an output parameter with unknown output size.
         /// </summary>
         /// <param name="metaData">The meta data.</param>
-        public void AddOutput(OnnxNamedMetadata metaData)
+        public void AddOutput()
         {
-            _outputs.AddName(metaData);
+            _outputs.AddName(GetNextOutputMetadata());
         }
 
 
@@ -102,6 +127,22 @@ namespace OnnxStack.Core.Model
             _inputs?.Dispose();
             _outputs?.Dispose();
             _runOptions?.Dispose();
+        }
+
+        private OnnxNamedMetadata GetNextInputMetadata()
+        {
+            if (_inputs.Names.Count >= _metadata.Inputs.Count)
+                throw new ArgumentOutOfRangeException($"Too Many Inputs - No Metadata found for input index {_inputs.Names.Count - 1}");
+   
+            return _metadata.Inputs[_inputs.Names.Count];
+        }
+
+        private OnnxNamedMetadata GetNextOutputMetadata()
+        {
+            if (_outputs.Names.Count >= _metadata.Outputs.Count)
+                throw new ArgumentOutOfRangeException($"Too Many Outputs - No Metadata found for output index {_outputs.Names.Count}");
+
+            return _metadata.Outputs[_outputs.Names.Count];
         }
     }
 }
