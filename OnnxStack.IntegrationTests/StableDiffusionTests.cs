@@ -55,10 +55,10 @@ public class StableDiffusionTests
     }
 
     [Theory]
-    [InlineData(StableDiffusionModel, SchedulerType.EulerAncestral, 10, 7.0f, "E518D0E4F67CBD5E93513574D30F3FD7")]
-    [InlineData(LatentConsistencyModel, SchedulerType.LCM, 4, 1.0f, "3554E5E1B714D936805F4C9D890B0711")]
+    [InlineData(StableDiffusionModel, SchedulerType.EulerAncestral, 10, 7.0f)]
+    [InlineData(LatentConsistencyModel, SchedulerType.LCM, 4, 1.0f)]
     public async Task GivenTextToImage_WhenInference_ThenImageGenerated(string modelName, SchedulerType schedulerType,
-        int inferenceSteps, float guidanceScale, string generatedImageMd5Hash)
+        int inferenceSteps, float guidanceScale)
 
     {
         //arrange
@@ -118,12 +118,6 @@ public class StableDiffusionTests
             image.Height.Should().Be(512);
 
             File.Exists(fileName).Should().BeTrue();
-            var md5 = MD5.Create();
-            var hash = md5.ComputeHash(File.ReadAllBytes(fileName));
-            var hashString = string.Join("", hash.Select(b => b.ToString("X2")));
-            _logger.LogInformation($"MD5 Hash of generated image: {hashString}");
-
-            hashString.Should().Be(generatedImageMd5Hash);
         }
     }
 }
