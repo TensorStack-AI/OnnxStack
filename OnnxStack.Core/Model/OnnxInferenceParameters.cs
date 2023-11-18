@@ -67,6 +67,16 @@ namespace OnnxStack.Core.Model
             _inputs.Add(metaData, value.ToOrtValue(metaData));
         }
 
+        /// <summary>
+        /// Adds the input tensor.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void AddInputTensor(DenseTensor<long> value)
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, value.ToOrtValue(metaData));
+        }
+
 
         /// <summary>
         /// Adds an output parameter with known output size.

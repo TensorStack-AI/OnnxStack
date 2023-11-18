@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
@@ -68,22 +67,23 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 // Get timesteps
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
-                // Create latent sample
-                var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
-                ImageHelpers.TensorToImageDebug(latents, $@"Examples\UpscaleDebug\Latent.png");
-
                 // Create Image Tensor
                 var image = promptOptions.InputImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width });
-                ImageHelpers.TensorToImageDebug(image, $@"Examples\UpscaleDebug\Image.png");
+                ImageHelpers.TensorToImageDebug(image, $@"Examples\UpscaleDebug\Input.png");
+
+                // Create latent sample
+                var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+
+                // Scale the initial noise by the standard deviation required by the scheduler
+                latents = latents.MultiplyTensorByFloat(scheduler.InitNoiseSigma);
+                ImageHelpers.TensorToImageDebug(latents, $@"Examples\UpscaleDebug\Latent.png");
 
                 // Add noise to image
+                var noiseLevelTensor = new DenseTensor<long>(new[] { (long)schedulerOptions.NoiseLevel }, new[] { 1 });
                 var noise = scheduler.CreateRandomSample(image.Dimensions);
-                ImageHelpers.TensorToImageDebug(latents, $@"Examples\UpscaleDebug\Noise.png");
-
                 image = lowResScheduler.AddNoise(image, noise, new[] { schedulerOptions.NoiseLevel });
                 ImageHelpers.TensorToImageDebug(image, $@"Examples\UpscaleDebug\NoiseImage.png");
 
-                var noiseLevelTensor = new DenseTensor<long>(new[] { (long)schedulerOptions.NoiseLevel }, new[] { 1 });
                 if (performGuidance)
                 {
                     image = image.Repeat(2);
@@ -109,17 +109,17 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                     // Create Input Parameters
                     var outputChannels = performGuidance ? 2 : 1;
-                    var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
+                   // var outputDimension = new int[] { outputChannels, 4, schedulerOptions.Height, schedulerOptions.Width };
                     using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                     {
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings);
-                        //inferenceParameters.AddInputTensor(noiseLevelTensor);
-                        inferenceParameters.AddOutputBuffer(outputDimension);
+                        inferenceParameters.AddInputTensor(noiseLevelTensor);
+                        inferenceParameters.AddOutputBuffer();
 
 
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
+                        var results = _onnxModelService.RunInference(modelOptions, OnnxModelType.Unet, inferenceParameters);
                         using (var result = results.First())
                         {
                             var noisePred = result.ToDenseTensor();
@@ -143,6 +143,29 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
             }
         }
 
+        protected override async Task<DenseTensor<float>> DecodeLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
+        {
+            var timestamp = _logger.LogBegin();
+
+            // Scale and decode the image latents with vae.
+            latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
+
+            var outputDim = new[] { 1, 3, latents.Dimensions[2] * 4, latents.Dimensions[3] * 4 };
+            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.Vae);
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+            {
+                inferenceParameters.AddInputTensor(latents);
+                inferenceParameters.AddOutputBuffer(outputDim);
+
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.Vae, inferenceParameters);
+                using (var imageResult = results.First())
+                {
+                    _logger?.LogEnd("Latents decoded", timestamp);
+                    return imageResult.ToDenseTensor();
+                }
+            }
+        }
+
 
         /// <summary>
         /// Prepares the latents.
@@ -155,7 +178,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         protected override Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            return Task.FromResult(scheduler.CreateRandomSample(new[] { 1, 4, options.Height, options.Width }, scheduler.InitNoiseSigma));
+            return Task.FromResult(scheduler.CreateRandomSample(new[] { 1, 4, options.Height, options.Width }));
         }
 
 
@@ -165,39 +188,45 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="input1">The input1.</param>
         /// <param name="input2">The input2.</param>
         /// <returns></returns>
-        private DenseTensor<float> ConcatenateLatents(DenseTensor<float> input1, DenseTensor<float> input2)
+        private DenseTensor<float> ConcatenateLatents(DenseTensor<float> tensor1, DenseTensor<float> tensor2)
         {
-            int batch = input1.Dimensions[0];
-            int height = input1.Dimensions[2];
-            int width = input1.Dimensions[3];
-            int channels = input1.Dimensions[1] + input2.Dimensions[1];
+            int batch = tensor1.Dimensions[0];
+            int channels1 = tensor1.Dimensions[1];
+            int height = tensor1.Dimensions[2];
+            int width = tensor1.Dimensions[3];
 
-            var concatenated = new DenseTensor<float>(new[] { batch, channels, height, width });
+            // Calculate the new number of channels after concatenation
+            int channels2 = tensor2.Dimensions[1];
+            int newChannels = channels1 + channels2;
 
-            for (int i = 0; i < batch; i++)
+            // Create a new tensor for the concatenated result
+            var concatenated = new DenseTensor<float>(new[] { batch, newChannels, height, width });
+
+            // Copy data from tensor1
+            for (int b = 0; b < batch; b++)
             {
-                for (int j = 0; j < channels; j++)
+                for (int c = 0; c < channels1; c++)
                 {
-                    if (j < input1.Dimensions[1])
+                    for (int h = 0; h < height; h++)
                     {
-                        // Copy from input1
-                        for (int k = 0; k < height; k++)
+                        for (int w = 0; w < width; w++)
                         {
-                            for (int l = 0; l < width; l++)
-                            {
-                                concatenated[i, j, k, l] = input1[i, j, k, l];
-                            }
+                            concatenated[b, c, h, w] = tensor1[b, c, h, w];
                         }
                     }
-                    else
+                }
+            }
+
+            // Copy data from tensor2
+            for (int b = 0; b < batch; b++)
+            {
+                for (int c = 0; c < channels2; c++)
+                {
+                    for (int h = 0; h < height; h++)
                     {
-                        // Copy from input2
-                        for (int k = 0; k < height; k++)
+                        for (int w = 0; w < width; w++)
                         {
-                            for (int l = 0; l < width; l++)
-                            {
-                                concatenated[i, j, k, l] = input2[i, j - input1.Dimensions[1], k, l];
-                            }
+                            concatenated[b, channels1 + c, h, w] = tensor2[b, c, h, w];
                         }
                     }
                 }
