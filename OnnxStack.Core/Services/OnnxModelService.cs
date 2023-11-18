@@ -104,166 +104,95 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
-        /// Runs inference on the specified model.
+        /// Runs the inference (Use when output size is unknown)
         /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="inputName">Name of the input.</param>
+        /// <param name="inputValue">The input value.</param>
+        /// <param name="outputName">Name of the output.</param>
+        /// <returns></returns>
+        public IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters)
+        {
+            return RunInferenceInternal(model, modelType, parameters);
+        }
+
+
+        /// <summary>
+        /// Runs the inference asynchronously, (Use when output size is known)
+        /// Output buffer size must be known and set before inference is run
+        /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
         /// <param name="inputs">The inputs.</param>
+        /// <param name="outputs">The outputs.</param>
         /// <returns></returns>
-        public IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInference(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
+        public Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters)
         {
-            return RunInternal(model, modelType, inputs);
+            return RunInferenceInternalAsync(model, modelType, parameters);
         }
 
 
         /// <summary>
-        /// Runs inference on the specified model asynchronously(ish).
+        /// Gets the model metadata.
         /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
         /// <returns></returns>
-        public async Task<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
+        public OnnxMetadata GetModelMetadata(IOnnxModel model, OnnxModelType modelType)
         {
-            return await Task.Run(() => RunInternal(model, modelType, inputs)).ConfigureAwait(false);
+            return GetNodeMetadataInternal(model, modelType);
         }
 
 
         /// <summary>
-        /// Gets the input metadata.
+        /// Runs the inference.
         /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
+        /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public IReadOnlyDictionary<string, NodeMetadata> GetInputMetadata(IOnnxModel model, OnnxModelType modelType)
-        {
-            return InputMetadataInternal(model, modelType);
-        }
-
-
-        /// <summary>
-        /// Gets the input names.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public IReadOnlyList<string> GetInputNames(IOnnxModel model, OnnxModelType modelType)
-        {
-            return InputNamesInternal(model, modelType);
-        }
-
-
-        /// <summary>
-        /// Gets the output metadata.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public IReadOnlyDictionary<string, NodeMetadata> GetOutputMetadata(IOnnxModel model, OnnxModelType modelType)
-        {
-            return OutputMetadataInternal(model, modelType);
-        }
-
-
-        /// <summary>
-        /// Gets the output names.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public IReadOnlyList<string> GetOutputNames(IOnnxModel model, OnnxModelType modelType)
-        {
-            return OutputNamesInternal(model, modelType);
-        }
-
-
-        /// <summary>
-        /// Runs inference on the specified model.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
-        /// <returns></returns>
-        public IReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs)
+        private IDisposableReadOnlyCollection<OrtValue> RunInferenceInternal(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters)
         {
             return GetModelSet(model)
                 .GetSession(modelType)
-                .Run(new RunOptions(), inputs, outputs);
+                .Run(parameters.RunOptions, parameters.InputNameValues, parameters.OutputNames);
         }
 
 
         /// <summary>
-        /// Runs inference on the specified model.
+        /// Runs the inference asynchronously.
         /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
+        /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        public Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, Dictionary<string, OrtValue> outputs)
+        private Task<IReadOnlyCollection<OrtValue>> RunInferenceInternalAsync(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters)
         {
             return GetModelSet(model)
                 .GetSession(modelType)
-                .RunAsync(new RunOptions(), inputs.Keys, inputs.Values, outputs.Keys, outputs.Values);
+                .RunAsync(parameters.RunOptions, parameters.InputNames, parameters.InputValues, parameters.OutputNames, parameters.OutputValues);
         }
 
 
         /// <summary>
-        /// Runs inference on the specified model.
+        /// Gets the node metadata.
         /// </summary>
+        /// <param name="model">The model.</param>
         /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
         /// <returns></returns>
-        private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInternal(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs)
+        private OnnxMetadata GetNodeMetadataInternal(IOnnxModel model, OnnxModelType modelType)
         {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .Run(inputs);
-        }
-
-
-
-        /// <summary>
-        /// Gets the Sessions input metadata.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        private IReadOnlyDictionary<string, NodeMetadata> InputMetadataInternal(IOnnxModel model, OnnxModelType modelType)
-        {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .InputMetadata;
-        }
-
-        /// <summary>
-        /// Gets the Sessions input names.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        private IReadOnlyList<string> InputNamesInternal(IOnnxModel model, OnnxModelType modelType)
-        {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .InputNames;
-        }
-
-        /// <summary>
-        /// Gets the Sessions output metadata.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        private IReadOnlyDictionary<string, NodeMetadata> OutputMetadataInternal(IOnnxModel model, OnnxModelType modelType)
-        {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .OutputMetadata;
-        }
-
-        /// <summary>
-        /// Gets the Sessions output metadata names.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        private IReadOnlyList<string> OutputNamesInternal(IOnnxModel model, OnnxModelType modelType)
-        {
-            return GetModelSet(model)
-                .GetSession(modelType)
-                .OutputNames;
+            var session = GetModelSet(model).GetSession(modelType);
+            return new OnnxMetadata
+            {
+                Inputs = session.InputMetadata
+                    .Select(OnnxNamedMetadata.Create)
+                    .ToList(),
+                Outputs = session.OutputMetadata
+                    .Select(OnnxNamedMetadata.Create)
+                    .ToList()
+            };
         }
 
 
@@ -334,5 +263,9 @@ namespace OnnxStack.Core.Services
                 onnxModelSet?.Dispose();
             }
         }
+
+
     }
+
+
 }

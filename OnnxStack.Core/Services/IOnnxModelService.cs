@@ -61,24 +61,6 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
-        /// Runs inference on the specified model.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
-        /// <returns></returns>
-        IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInference(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
-
-
-        /// <summary>
-        /// Runs inference on the specified model.asynchronously.
-        /// </summary>
-        /// <param name="modelType">Type of the model.</param>
-        /// <param name="inputs">The inputs.</param>
-        /// <returns></returns>
-        Task<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, IReadOnlyCollection<NamedOnnxValue> inputs);
-
-
-        /// <summary>
         /// Runs the inference Use when output size is unknown
         /// </summary>
         /// <param name="model">The model.</param>
@@ -86,7 +68,7 @@ namespace OnnxStack.Core.Services
         /// <param name="inputs">The inputs.</param>
         /// <param name="outputs">The outputs.</param>
         /// <returns></returns>
-        IReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, IReadOnlyCollection<string> outputs);
+        IDisposableReadOnlyCollection<OrtValue> RunInference(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters);
 
 
         /// <summary>
@@ -98,39 +80,15 @@ namespace OnnxStack.Core.Services
         /// <param name="inputs">The inputs.</param>
         /// <param name="outputs">The outputs.</param>
         /// <returns></returns>
-        Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, Dictionary<string, OrtValue> inputs, Dictionary<string, OrtValue> outputs);
+        Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(IOnnxModel model, OnnxModelType modelType, OnnxInferenceParameters parameters);
 
 
         /// <summary>
-        /// Gets the Sessions input metadata.
+        /// Gets the model metadata.
         /// </summary>
-        /// <param name="modelType">Type of model.</param>
+        /// <param name="model">The model.</param>
+        /// <param name="modelType">Type of the model.</param>
         /// <returns></returns>
-        IReadOnlyDictionary<string, NodeMetadata> GetInputMetadata(IOnnxModel model, OnnxModelType modelType);
-
-
-        /// <summary>
-        /// Gets the Sessions input names.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        IReadOnlyList<string> GetInputNames(IOnnxModel model, OnnxModelType modelType);
-
-
-        /// <summary>
-        /// Gets the Sessions output metadata.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        IReadOnlyDictionary<string, NodeMetadata> GetOutputMetadata(IOnnxModel model, OnnxModelType modelType);
-
-
-        /// <summary>
-        /// Gets the Sessions output metadata names.
-        /// </summary>
-        /// <param name="modelType">Type of model.</param>
-        /// <returns></returns>
-        IReadOnlyList<string> GetOutputNames(IOnnxModel model, OnnxModelType modelType);
-
+        OnnxMetadata GetModelMetadata(IOnnxModel model, OnnxModelType modelType);
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -59,22 +60,19 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         protected override async Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
-            var inputNames = _onnxModelService.GetInputNames(model, OnnxModelType.VaeEncoder);
-            var outputNames = _onnxModelService.GetOutputNames(model, OnnxModelType.VaeEncoder);
-            var outputMetaData = _onnxModelService.GetOutputMetadata(model, OnnxModelType.VaeEncoder);
-            var outputTensorMetaData = outputMetaData[outputNames[0]];
 
             //TODO: Model Config, Channels
             var outputDimension = options.GetScaledDimension();
-            using (var inputTensorValue = imageTensor.ToOrtValue(outputTensorMetaData))
-            using (var outputTensorValue = outputTensorMetaData.CreateOutputBuffer(outputDimension))
+            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeEncoder);
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
-                var inputs = new Dictionary<string, OrtValue> { { inputNames[0], inputTensorValue } };
-                var outputs = new Dictionary<string, OrtValue> { { outputNames[0], outputTensorValue } };
-                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inputs, outputs);
+                inferenceParameters.AddInputTensor(imageTensor);
+                inferenceParameters.AddOutputBuffer(outputDimension);
+
+                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inferenceParameters);
                 using (var result = results.First())
                 {
-                    var outputResult = outputTensorValue.ToDenseTensor();
+                    var outputResult = result.ToDenseTensor();
                     var scaledSample = outputResult
                        .Add(scheduler.CreateRandomSample(outputDimension, options.InitialNoiseLevel))
                        .MultiplyBy(model.ScaleFactor);

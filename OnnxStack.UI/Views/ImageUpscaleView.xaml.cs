@@ -311,7 +311,7 @@ namespace OnnxStack.UI.Views
                 };
 
                 if (UISettings.ImageAutoSave)
-                    await imageResult.AutoSave(Path.Combine(UISettings.ImageAutoSaveDirectory, "ImageUpscale"), UISettings.ImageAutoSaveBlueprint);
+                    await imageResult.AutoSaveAsync(Path.Combine(UISettings.ImageAutoSaveDirectory, "ImageUpscale"), UISettings.ImageAutoSaveBlueprint);
 
                 return imageResult;
             }
