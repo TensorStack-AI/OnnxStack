@@ -123,6 +123,7 @@ namespace OnnxStack.UI.UserControls
                 SchedulerOptions.OriginalInferenceSteps = 50;
                 SchedulerOptions.InferenceSteps = 6;
                 SchedulerOptions.GuidanceScale = 1f;
+                SchedulerOptions.BetaSchedule = BetaScheduleType.Linear;
             }
 
 
