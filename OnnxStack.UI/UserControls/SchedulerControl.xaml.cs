@@ -1,5 +1,6 @@
 ﻿using Models;
 using OnnxStack.Core;
+using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
@@ -157,7 +158,10 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private void ResetParameters()
         {
-            SchedulerOptions = new SchedulerOptionsModel();
+            SchedulerOptions = new SchedulerOptionsModel
+            {
+                SchedulerType = SelectedModel.ModelOptions.PipelineType.GetSchedulerTypes().First()
+            };
         }
 
         private void RandomSeed()
