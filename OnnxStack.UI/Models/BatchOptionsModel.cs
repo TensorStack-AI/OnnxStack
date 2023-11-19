@@ -15,6 +15,7 @@ namespace Models
         private int _stepsValue = 1;
         private int _batchValue;
         private int _batchsValue = 1;
+        private int _realtimeRefreshRate = 1000;
 
         public BatchOptionType BatchType
         {
@@ -68,6 +69,12 @@ namespace Models
         {
             get { return _batchsValue; }
             set { _batchsValue = value; NotifyPropertyChanged(); }
+        }
+   
+        public int RealtimeRefreshRate
+        {
+            get { return _realtimeRefreshRate; }
+            set { _realtimeRefreshRate = value; NotifyPropertyChanged(); }
         }
 
 

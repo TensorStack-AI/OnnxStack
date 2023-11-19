@@ -239,7 +239,7 @@
                         <TextBlock Text="Automation" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <StackPanel Margin="5">
+                <StackPanel Margin="5" IsEnabled="{Binding IsAutomationEnabled}">
 
                     <CheckBox Content="Enable Automation" IsChecked="{Binding BatchOptions.IsAutomationEnabled}" Margin="0,10,0,0"/>
 
@@ -342,6 +342,27 @@
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Strength" >
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+
+
+                        <!--Realtime-->
+                        <StackPanel Margin="0,10">
+                            <UniformGrid Columns="3">
+                                <TextBlock Text="Refresh Rate (ms)"/>
+                            </UniformGrid>
+                            <UniformGrid Columns="2">
+                                <TextBox Text="{Binding BatchOptions.RealtimeRefreshRate}" Margin="0,0,2,0"/>
+                            </UniformGrid>
+                            <StackPanel.Style>
+                                <Style TargetType="{x:Type StackPanel}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Realtime" >
                                             <Setter Property="Visibility" Value="Visible" />
                                         </DataTrigger>
                                     </Style.Triggers>

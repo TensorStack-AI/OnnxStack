@@ -35,6 +35,7 @@ namespace OnnxStack.UI.Views
         private int _progressValue;
         private bool _isGenerating;
         private int _selectedTabIndex;
+        private bool _isControlsEnabled;
         private ImageResult _resultImage;
         private ModelOptionsModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
@@ -62,6 +63,7 @@ namespace OnnxStack.UI.Views
             BatchOptions = new BatchOptionsModel();
             ImageResults = new ObservableCollection<ImageResult>();
             ProgressMax = SchedulerOptions.InferenceSteps;
+            IsControlsEnabled = true;
             InitializeComponent();
         }
 
@@ -141,6 +143,11 @@ namespace OnnxStack.UI.Views
         }
 
 
+        public bool IsControlsEnabled
+        {
+            get { return _isControlsEnabled; }
+            set { _isControlsEnabled = value; NotifyPropertyChanged(); }
+        }
 
 
         /// <summary>
@@ -175,6 +182,7 @@ namespace OnnxStack.UI.Views
         {
             HasResult = false;
             IsGenerating = true;
+            IsControlsEnabled = false;
             ResultImage = null;
             var promptOptions = new PromptOptions
             {
@@ -274,6 +282,7 @@ namespace OnnxStack.UI.Views
         private void Reset()
         {
             IsGenerating = false;
+            IsControlsEnabled = true;
             ProgressValue = 0;
         }
 
@@ -295,13 +304,62 @@ namespace OnnxStack.UI.Views
             }
             else
             {
-                var timestamp = Stopwatch.GetTimestamp();
-                await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
+                if (_batchOptions.BatchType != BatchOptionType.Realtime)
                 {
-                    yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
-                    timestamp = Stopwatch.GetTimestamp();
+                    var timestamp = Stopwatch.GetTimestamp();
+                    await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
+                    {
+                        yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
+                        timestamp = Stopwatch.GetTimestamp();
+                    }
+                    yield break;
+                }
+
+                // Realtime Diffusion
+                IsControlsEnabled = true;
+                while (!_cancelationTokenSource.IsCancellationRequested)
+                {
+                    var refreshTimestamp = Stopwatch.GetTimestamp();
+                    var realtimePromptOptions = GetPromptOptions(PromptOptions);
+                    var realtimeSchedulerOptions = SchedulerOptions.ToSchedulerOptions();
+                    if (IsLiveOptionsValid(realtimePromptOptions))
+                    {
+                        var timestamp = Stopwatch.GetTimestamp();
+                        var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                        yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                    }
+                    await RealtimeRefreshDelay(refreshTimestamp, _cancelationTokenSource.Token);
                 }
             }
+        }
+
+
+        private bool IsLiveOptionsValid(PromptOptions prompt)
+        {
+            if (string.IsNullOrEmpty(prompt.Prompt))
+                return false;
+
+            return true;
+        }
+
+
+        private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel)
+        {
+            return new PromptOptions
+            {
+                Prompt = promptOptionsModel.Prompt,
+                NegativePrompt = promptOptionsModel.NegativePrompt,
+                DiffuserType = DiffuserType.TextToImage
+            };
+        }
+
+
+        private async Task RealtimeRefreshDelay(long startTime, CancellationToken cancellationToken)
+        {
+            var endTime = Stopwatch.GetTimestamp();
+            var elapsedMilliseconds = (endTime - startTime) * 1000.0 / Stopwatch.Frequency;
+            int adjustedDelay = Math.Max(0, BatchOptions.RealtimeRefreshRate - (int)elapsedMilliseconds);
+            await Task.Delay(adjustedDelay, cancellationToken).ConfigureAwait(false);
         }
 
 

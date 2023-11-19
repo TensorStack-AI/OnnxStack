@@ -91,6 +91,14 @@ namespace OnnxStack.UI.UserControls
             DependencyProperty.Register("BatchOptions", typeof(BatchOptionsModel), typeof(SchedulerControl));
 
 
+        public bool IsAutomationEnabled
+        {
+            get { return (bool)GetValue(IsAutomationEnabledProperty); }
+            set { SetValue(IsAutomationEnabledProperty, value); }
+        }
+        public static readonly DependencyProperty IsAutomationEnabledProperty =
+            DependencyProperty.Register("IsAutomationEnabled", typeof(bool), typeof(SchedulerControl));
+
 
 
 
