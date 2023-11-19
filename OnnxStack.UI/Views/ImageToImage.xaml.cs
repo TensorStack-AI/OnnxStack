@@ -321,10 +321,11 @@ namespace OnnxStack.UI.Views
             }
             else
             {
+                var timestamp = Stopwatch.GetTimestamp();
                 await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
                 {
-                    var timestamp = Stopwatch.GetTimestamp();
                     yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
+                    timestamp = Stopwatch.GetTimestamp();
                 }
             }
         }
