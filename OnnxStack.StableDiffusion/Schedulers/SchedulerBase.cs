@@ -1,5 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using NumSharp;
+using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -119,15 +119,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
             }
             else if (Options.BetaSchedule == BetaScheduleType.Linear)
             {
-                betas = np.linspace(Options.BetaStart, Options.BetaEnd, Options.TrainTimesteps).ToArray<float>();
+                betas = ArrayHelpers.Linspace(Options.BetaStart, Options.BetaEnd, Options.TrainTimesteps);
             }
             else if (Options.BetaSchedule == BetaScheduleType.ScaledLinear)
             {
-                var start = (float)Math.Sqrt(Options.BetaStart);
-                var end = (float)Math.Sqrt(Options.BetaEnd);
-                betas = np.linspace(start, end, Options.TrainTimesteps)
-                    .ToArray<float>()
-                    .Select(x => x * x);
+                var start = MathF.Sqrt(Options.BetaStart);
+                var end = MathF.Sqrt(Options.BetaEnd);
+                betas = ArrayHelpers.Linspace(start, end, Options.TrainTimesteps).Select(x => x * x);
             }
             else if (Options.BetaSchedule == BetaScheduleType.SquaredCosCapV2)
             {
@@ -136,9 +134,9 @@ namespace OnnxStack.StableDiffusion.Schedulers
             else if (Options.BetaSchedule == BetaScheduleType.Sigmoid)
             {
                 var mul = Options.BetaEnd - Options.BetaStart;
-                var betaSig = np.linspace(-6f, 6f, Options.TrainTimesteps).ToArray<float>();
+                var betaSig = ArrayHelpers.Linspace(-6f, 6f, Options.TrainTimesteps);
                 var sigmoidBetas = betaSig
-                    .Select(beta => 1.0f / (1.0f + (float)Math.Exp(-beta)))
+                    .Select(beta => 1.0f / (1.0f + MathF.Exp(-beta)))
                     .ToArray();
                 betas = sigmoidBetas
                     .Select(x => (x * mul) + Options.BetaStart)
@@ -158,7 +156,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var maxSigma = sigmas.Max();
             return Options.TimestepSpacing == TimestepSpacingType.Linspace
                 || Options.TimestepSpacing == TimestepSpacingType.Trailing
-                ? maxSigma : (float)Math.Sqrt(maxSigma * maxSigma + 1);
+                ? maxSigma : MathF.Sqrt(maxSigma * maxSigma + 1);
         }
 
 
@@ -168,28 +166,27 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         protected virtual float[] GetTimesteps()
         {
-            NDArray timestepsArray = null;
             if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
             {
-                timestepsArray = np.linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps);
-                timestepsArray = np.around(timestepsArray)["::1"];
+                return ArrayHelpers.Linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps, true);
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
             {
                 var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
-                timestepsArray = np.arange(0, (float)Options.InferenceSteps) * stepRatio;
-                timestepsArray = np.around(timestepsArray)["::1"];
-                timestepsArray += Options.StepsOffset;
+                return Enumerable.Range(0, Options.InferenceSteps)
+                    .Select(x => MathF.Round((float)x * stepRatio) + Options.StepsOffset)
+                    .ToArray();
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
             {
                 var stepRatio = Options.TrainTimesteps / (Options.InferenceSteps - 1);
-                timestepsArray = np.arange((float)Options.TrainTimesteps, 0, -stepRatio)["::-1"];
-                timestepsArray = np.around(timestepsArray);
-                timestepsArray -= 1;
+                return Enumerable.Range(0, Options.TrainTimesteps)
+                    .Where((number, index) => index % stepRatio == 0)
+                    .Select(x => (float)x)
+                    .ToArray();
             }
 
-            return timestepsArray.ToArray<float>();
+            throw new NotImplementedException();
         }
 
 
@@ -209,7 +206,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             }
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
-                var sigmaSqrt = (float)Math.Sqrt(sigma * sigma + 1);
+                var sigmaSqrt = MathF.Sqrt(sigma * sigma + 1);
                 predOriginalSample = sample.DivideTensorByFloat(sigmaSqrt)
                     .AddTensors(modelOutput.MultiplyTensorByFloat(-sigma / sigmaSqrt));
             }
@@ -253,11 +250,11 @@ namespace OnnxStack.StableDiffusion.Schedulers
             Func<float, float> alphaBarFn = null;
             if (_options.AlphaTransformType == AlphaTransformType.Cosine)
             {
-                alphaBarFn = t => (float)Math.Pow(Math.Cos((t + 0.008f) / 1.008f * Math.PI / 2.0f), 2.0f);
+                alphaBarFn = t => MathF.Pow(MathF.Cos((t + 0.008f) / 1.008f * MathF.PI / 2.0f), 2.0f);
             }
             else if (_options.AlphaTransformType == AlphaTransformType.Exponential)
             {
-                alphaBarFn = t => (float)Math.Exp(t * -12.0f);
+                alphaBarFn = t => MathF.Exp(t * -12.0f);
             }
 
             return Enumerable
@@ -266,7 +263,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 {
                     var t1 = (float)i / _options.TrainTimesteps;
                     var t2 = (float)(i + 1) / _options.TrainTimesteps;
-                    return Math.Min(1f - alphaBarFn(t2) / alphaBarFn(t1), _options.MaximumBeta);
+                    return MathF.Min(1f - alphaBarFn(t2) / alphaBarFn(t1), _options.MaximumBeta);
                 }).ToArray();
         }
 
@@ -298,13 +295,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 // If timesteps[i] is less than the first element in range, use the first value in sigmas
                 else if (index == -1)
                 {
-                    result[i] = sigmas[sigmas.Length - 1];
+                    result[i] = sigmas[0];
                 }
 
                 // If timesteps[i] is greater than the last element in range, use the last value in sigmas
-                else if (index == -range.Length - 1)
+                else if (index > range.Length - 1)
                 {
-                    result[i] = sigmas[0];
+                    result[i] = sigmas[sigmas.Length - 1];
                 }
 
                 // Otherwise, interpolate linearly between two adjacent values in sigmas
@@ -340,14 +337,14 @@ namespace OnnxStack.StableDiffusion.Schedulers
                 .ToArray();
 
             // Calculate the inverse of sigmaMin and sigmaMax raised to the power of 1/rho
-            float minInvRho = (float)Math.Pow(sigmaMin, 1.0 / rho);
-            float maxInvRho = (float)Math.Pow(sigmaMax, 1.0 / rho);
+            float minInvRho = MathF.Pow(sigmaMin, 1.0f / rho);
+            float maxInvRho = MathF.Pow(sigmaMax, 1.0f / rho);
 
             // Calculate the Karras noise schedule using the formula from the paper
             float[] sigmas = new float[_options.InferenceSteps];
             for (int i = 0; i < _options.InferenceSteps; i++)
             {
-                sigmas[i] = (float)Math.Pow(maxInvRho + ramp[i] * (minInvRho - maxInvRho), rho);
+                sigmas[i] = MathF.Pow(maxInvRho + ramp[i] * (minInvRho - maxInvRho), rho);
             }
 
             // Return the resulting noise schedule
@@ -366,7 +363,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             var timesteps = new float[sigmas.Length];
             for (int i = 0; i < sigmas.Length; i++)
             {
-                float logSigma = (float)Math.Log(sigmas[i]);
+                float logSigma = MathF.Log(sigmas[i]);
                 float[] dists = new float[logSigmas.Length];
 
                 for (int j = 0; j < logSigmas.Length; j++)
