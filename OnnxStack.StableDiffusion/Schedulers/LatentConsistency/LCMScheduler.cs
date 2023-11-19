@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -6,6 +7,7 @@ using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 {
@@ -67,19 +69,16 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             var timeIncrement = Options.TrainTimesteps / Options.OriginalInferenceSteps;
 
             //# LCM Training Steps Schedule
-            var lcmOriginTimesteps = Enumerable.Range(0, Options.OriginalInferenceSteps)
-                .Select(x => x * (timeIncrement - 1))
+            var lcmOriginTimesteps = Enumerable.Range(1, Options.OriginalInferenceSteps)
+                .Select(x => x * timeIncrement - 1)
                 .ToArray();
 
-            var skippingStep = lcmOriginTimesteps.Length / Options.InferenceSteps;
-
-            // LCM Inference Steps Schedule
-            var steps = lcmOriginTimesteps
-                .Where((t, index) => index % skippingStep == 0)
-                .Take(Options.InferenceSteps)
-                .OrderByDescending(x => x)
-                .ToArray();
-            return steps;
+            var steps = ArrayHelpers.Linspace(0, lcmOriginTimesteps.Length - 1, Options.InferenceSteps)
+               .Select(x => (int)Math.Floor(x))
+               .Select(x => lcmOriginTimesteps[x])
+               .OrderByDescending(x => x)
+               .ToArray();
+             return steps;
         }
 
 
