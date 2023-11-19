@@ -140,7 +140,6 @@ namespace OnnxStack.UI.Views
             set { _selectedTabIndex = value; NotifyPropertyChanged(); }
         }
 
-
         public bool IsControlsEnabled
         {
             get { return _isControlsEnabled; }
@@ -182,13 +181,7 @@ namespace OnnxStack.UI.Views
             IsGenerating = true;
             IsControlsEnabled = false;
             ResultImage = null;
-            var promptOptions = new PromptOptions
-            {
-                Prompt = PromptOptions.Prompt,
-                NegativePrompt = PromptOptions.NegativePrompt,
-                DiffuserType = DiffuserType.TextToImage
-            };
-
+            var promptOptions = GetPromptOptions(PromptOptions);
             var batchOptions = BatchOptions.ToBatchOptions();
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
 
@@ -218,6 +211,7 @@ namespace OnnxStack.UI.Views
 
             Reset();
         }
+
 
         /// <summary>
         /// Determines whether this instance can execute Generate.
