@@ -25,7 +25,7 @@ namespace OnnxStack.UI.Views
     /// </summary>
     public partial class ImageInpaint : UserControl, INavigatable, INotifyPropertyChanged
     {
-        private readonly ILogger<TextToImageView> _logger;
+        private readonly ILogger<ImageInpaint> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
 
         private bool _hasResult;
@@ -52,7 +52,7 @@ namespace OnnxStack.UI.Views
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
-                _logger = App.GetService<ILogger<TextToImageView>>();
+                _logger = App.GetService<ILogger<ImageInpaint>>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
 
