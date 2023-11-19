@@ -16,6 +16,7 @@ namespace Models
         private int _batchValue;
         private int _batchsValue = 1;
         private int _realtimeRefreshRate = 1000;
+        private bool _disableHistory;
 
         public BatchOptionType BatchType
         {
@@ -76,6 +77,13 @@ namespace Models
             get { return _realtimeRefreshRate; }
             set { _realtimeRefreshRate = value; NotifyPropertyChanged(); }
         }
+
+        public bool DisableHistory
+        {
+            get { return _disableHistory; }
+            set { _disableHistory = value; NotifyPropertyChanged(); }
+        }
+
 
 
         #region INotifyPropertyChanged

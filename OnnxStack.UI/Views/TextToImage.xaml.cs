@@ -6,7 +6,6 @@ using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
-using OnnxStack.UI.UserControls;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -18,7 +17,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media.Imaging;
 
 namespace OnnxStack.UI.Views
 {
@@ -201,8 +199,11 @@ namespace OnnxStack.UI.Views
                     if (resultImage != null)
                     {
                         ResultImage = resultImage;
-                        ImageResults.Add(resultImage);
                         HasResult = true;
+                        if (BatchOptions.IsAutomationEnabled && BatchOptions.DisableHistory)
+                            continue;
+
+                        ImageResults.Add(resultImage);
                     }
                 }
             }
@@ -295,6 +296,9 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         private async IAsyncEnumerable<ImageResult> ExecuteStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions)
         {
+            if (!IsExecuteOptionsValid(PromptOptions))
+                yield break;
+
             _cancelationTokenSource = new CancellationTokenSource();
             if (!BatchOptions.IsAutomationEnabled)
             {
@@ -320,21 +324,23 @@ namespace OnnxStack.UI.Views
                 while (!_cancelationTokenSource.IsCancellationRequested)
                 {
                     var refreshTimestamp = Stopwatch.GetTimestamp();
-                    var realtimePromptOptions = GetPromptOptions(PromptOptions);
-                    var realtimeSchedulerOptions = SchedulerOptions.ToSchedulerOptions();
-                    if (IsLiveOptionsValid(realtimePromptOptions))
+                    if (SchedulerOptions.HasChanged || PromptOptions.HasChanged)
                     {
+                        PromptOptions.HasChanged = false;
+                        SchedulerOptions.HasChanged = false;
+                        var realtimePromptOptions = GetPromptOptions(PromptOptions);
+                        var realtimeSchedulerOptions = SchedulerOptions.ToSchedulerOptions();
+
                         var timestamp = Stopwatch.GetTimestamp();
-                        var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                        var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, RealtimeProgressCallback(), _cancelationTokenSource.Token);
                         yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                     }
-                    await RealtimeRefreshDelay(refreshTimestamp, _cancelationTokenSource.Token);
+                    await Utils.RefreshDelay(refreshTimestamp, BatchOptions.RealtimeRefreshRate, _cancelationTokenSource.Token);
                 }
             }
         }
 
-
-        private bool IsLiveOptionsValid(PromptOptions prompt)
+        private bool IsExecuteOptionsValid(PromptOptionsModel prompt)
         {
             if (string.IsNullOrEmpty(prompt.Prompt))
                 return false;
@@ -352,16 +358,6 @@ namespace OnnxStack.UI.Views
                 DiffuserType = DiffuserType.TextToImage
             };
         }
-
-
-        private async Task RealtimeRefreshDelay(long startTime, CancellationToken cancellationToken)
-        {
-            var endTime = Stopwatch.GetTimestamp();
-            var elapsedMilliseconds = (endTime - startTime) * 1000.0 / Stopwatch.Frequency;
-            int adjustedDelay = Math.Max(0, BatchOptions.RealtimeRefreshRate - (int)elapsedMilliseconds);
-            await Task.Delay(adjustedDelay, cancellationToken).ConfigureAwait(false);
-        }
-
 
         private async Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
         {
@@ -428,6 +424,22 @@ namespace OnnxStack.UI.Views
             };
         }
 
+        private Action<int, int> RealtimeProgressCallback()
+        {
+            return (value, maximum) =>
+            {
+                App.UIInvoke(() =>
+                {
+                    if (_cancelationTokenSource.IsCancellationRequested)
+                        return;
+
+                    if (BatchOptions.StepValue != value)
+                        BatchOptions.StepValue = value;
+                    if (BatchOptions.StepsValue != maximum)
+                        BatchOptions.StepsValue = maximum;
+                });
+            };
+        }
 
 
         #region INotifyPropertyChanged

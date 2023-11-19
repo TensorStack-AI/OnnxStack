@@ -357,6 +357,7 @@
                             </UniformGrid>
                             <UniformGrid Columns="2">
                                 <TextBox Text="{Binding BatchOptions.RealtimeRefreshRate}" Margin="0,0,2,0"/>
+                                <CheckBox Content="Disable History" IsChecked="{Binding BatchOptions.DisableHistory}" Margin="10,2,0,0"/>
                             </UniformGrid>
                             <StackPanel.Style>
                                 <Style TargetType="{x:Type StackPanel}">
@@ -380,13 +381,28 @@
                             </StackPanel>
                             <ProgressBar Value="{Binding BatchOptions.StepValue}" Maximum="{Binding BatchOptions.StepsValue}" Height="22"/>
 
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0 ">
-                                <TextBlock Text="Batch " />
-                                <TextBlock Text="{Binding BatchOptions.BatchValue}" DockPanel.Dock="Left" />
-                                <TextBlock Text=" / " />
-                                <TextBlock Text="{Binding BatchOptions.BatchsValue}" DockPanel.Dock="Right"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0 ">
+                                    <TextBlock Text="Batch " />
+                                    <TextBlock Text="{Binding BatchOptions.BatchValue}" DockPanel.Dock="Left" />
+                                    <TextBlock Text=" / " />
+                                    <TextBlock Text="{Binding BatchOptions.BatchsValue}" DockPanel.Dock="Right"/>
+                                </StackPanel>
+                                <ProgressBar Value="{Binding BatchOptions.BatchValue}" Maximum="{Binding BatchOptions.BatchsValue}" Height="22"/>
+                                <StackPanel.Style>
+                                    <Style TargetType="{x:Type StackPanel}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Realtime" >
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                             </StackPanel>
-                            <ProgressBar Value="{Binding BatchOptions.BatchValue}" Maximum="{Binding BatchOptions.BatchsValue}" Height="22"/>
+
+                           
+                          
                         </StackPanel>
 
                     </StackPanel>
