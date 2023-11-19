@@ -51,7 +51,7 @@
                         <TextBlock Text="Image To Image" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageToImage UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+                <views:ImageToImageView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Image Inpaint-->
@@ -66,7 +66,7 @@
                         <TextBlock Text="Image Inpaint" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageInpaint UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+                <views:ImageInpaintView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Log Window-->
@@ -78,7 +78,7 @@
                         </StackPanel>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Logger UISettings="{Binding UISettings}" LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
+                <views:LoggerView UISettings="{Binding UISettings}" LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Settings Window-->
@@ -90,7 +90,7 @@
                         </StackPanel>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Settings UISettings="{Binding UISettings, Mode=TwoWay}" Margin="0,6,0,0"/>
+                <views:SettingsView UISettings="{Binding UISettings, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
 

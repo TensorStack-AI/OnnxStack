@@ -16,7 +16,7 @@ namespace Models
         private int _batchValue;
         private int _batchsValue = 1;
         private int _realtimeRefreshRate = 1000;
-        private bool _disableHistory;
+        private bool _disableHistory = true;
 
         public BatchOptionType BatchType
         {
