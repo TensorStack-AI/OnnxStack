@@ -86,5 +86,16 @@ namespace OnnxStack.StableDiffusion.Config
         public float MaximumBeta { get; set; } = 0.999f;
 
         public int OriginalInferenceSteps { get; set; } = 50;
+
+        public bool IsKarrasScheduler
+        {
+            get
+            {
+                return SchedulerType == SchedulerType.LMS
+                    || SchedulerType == SchedulerType.KDPM2
+                    || SchedulerType == SchedulerType.Euler
+                    || SchedulerType == SchedulerType.EulerAncestral;
+            }
+        }
     }
 }
