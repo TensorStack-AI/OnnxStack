@@ -36,7 +36,7 @@ namespace OnnxStack.UI.Views
         private double _progressValue;
         private bool _isDownloading;
         private bool _hasChanged;
-
+        private bool _enablePaintToImage;
         public string Name
         {
             get { return _name; }
@@ -109,6 +109,12 @@ namespace OnnxStack.UI.Views
                 _enableImageInpaintLegacy = value;
                 NotifyPropertyChanged();
             }
+        }
+
+        public bool EnablePaintToImage
+        {
+            get { return _enablePaintToImage; }
+            set { _enablePaintToImage = value; NotifyPropertyChanged(); }
         }
 
         public int DeviceId
@@ -203,6 +209,8 @@ namespace OnnxStack.UI.Views
                 yield return DiffuserType.ImageInpaint;
             if (_enableImageInpaint && _enableImageInpaintLegacy)
                 yield return DiffuserType.ImageInpaintLegacy;
+            if (_enablePaintToImage)
+                yield return DiffuserType.PaintToImage;
         }
 
         #region INotifyPropertyChanged
