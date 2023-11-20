@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,13 +12,10 @@ using Xunit.Abstractions;
 namespace OnnxStack.IntegrationTests;
 
 /// <summary>
-/// These tests just run on CPU execution provider for now, but could switch it to CUDA and run on GPU
-/// if the necessary work is done to setup the docker container to allow GPU passthrough to the container.
-/// See https://blog.roboflow.com/use-the-gpu-in-docker/ for an example of how to do this.
-///
-/// Can then also setup a self-hosted runner in Github Actions to run the tests on your own GPU as part of the CI/CD pipeline.
+/// These tests could be run via a self-hosted runner in Github Actions to run the tests on your own GPU as part of the CI/CD pipeline.
 /// Maybe something like https://www.youtube.com/watch?v=rVq-SCNyxVc
 /// </summary>
+[Collection("IntegrationTests")]
 public class StableDiffusionTests
 {
     private readonly IStableDiffusionService _stableDiffusion;

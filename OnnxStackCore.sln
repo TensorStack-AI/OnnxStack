@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		.gitignore = .gitignore
 		docker-compose.yml = docker-compose.yml
 		README.md = README.md
-		run-docker-tests.sh = run-docker-tests.sh
+		run-integration-tests-cuda.sh = run-integration-tests-cuda.sh
 	EndProjectSection
 EndProject
 Global
