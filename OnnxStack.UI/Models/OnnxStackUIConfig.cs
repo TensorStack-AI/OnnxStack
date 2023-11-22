@@ -14,8 +14,7 @@ namespace OnnxStack.UI.Models
         public bool ImageAutoSave { get; set; }
         public bool ImageAutoSaveBlueprint { get; set; }
         public string ImageAutoSaveDirectory { get; set; }
-
-
+        public int RealtimeRefreshRate { get; set; } = 100;
         public int DefaultDeviceId { get; set; }
         public int DefaultInterOpNumThreads { get; set; }
         public int DefaultIntraOpNumThreads { get; set; }

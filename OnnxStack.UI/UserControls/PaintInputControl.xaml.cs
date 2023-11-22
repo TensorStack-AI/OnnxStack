@@ -54,37 +54,47 @@ namespace OnnxStack.UI.UserControls
         public AsyncRelayCommand CopyImageCommand { get; }
         public AsyncRelayCommand PasteImageCommand { get; }
 
+        public ImageInput InputImage
+        {
+            get { return (ImageInput)GetValue(InputImageProperty); }
+            set { SetValue(InputImageProperty, value); }
+        }
+        public static readonly DependencyProperty InputImageProperty =
+            DependencyProperty.Register("InputImage", typeof(ImageInput), typeof(PaintInputControl), new PropertyMetadata(async (s, e) =>
+            {
+                if (s is PaintInputControl control && e.NewValue is ImageInput image)
+                {
+                    control.BackgroundBrush = new ImageBrush(image.Image);
+                    await Task.Delay(500); // TODO: Fix race condition
+                    await control.SaveCanvas();
+                }
+            }));
 
         public ImageInput CanvasResult
         {
             get { return (ImageInput)GetValue(CanvasResultProperty); }
             set { SetValue(CanvasResultProperty, value); }
         }
-
         public static readonly DependencyProperty CanvasResultProperty =
             DependencyProperty.Register("CanvasResult", typeof(ImageInput), typeof(PaintInputControl));
+
 
         public SchedulerOptionsModel SchedulerOptions
         {
             get { return (SchedulerOptionsModel)GetValue(SchedulerOptionsProperty); }
             set { SetValue(SchedulerOptionsProperty, value); }
         }
-
         public static readonly DependencyProperty SchedulerOptionsProperty =
-            DependencyProperty.Register("SchedulerOptions", typeof(SchedulerOptionsModel), typeof(PaintInputControl), new PropertyMetadata((s, e) =>
-            {
-                if (e.NewValue is null && s is PaintInputControl control)
-                    control.SaveCanvas();
-            }));
+            DependencyProperty.Register("SchedulerOptions", typeof(SchedulerOptionsModel), typeof(PaintInputControl));
 
-        public bool HasResult
+
+        public bool HasCanvasChanged
         {
-            get { return (bool)GetValue(HasResultProperty); }
-            set { SetValue(HasResultProperty, value); }
+            get { return (bool)GetValue(HasCanvasChangedProperty); }
+            set { SetValue(HasCanvasChangedProperty, value); }
         }
-
-        public static readonly DependencyProperty HasResultProperty =
-            DependencyProperty.Register("HasResult", typeof(bool), typeof(PaintInputControl));
+        public static readonly DependencyProperty HasCanvasChangedProperty =
+            DependencyProperty.Register("HasCanvasChanged", typeof(bool), typeof(PaintInputControl));
 
 
         public InkCanvasEditingMode CanvasEditingMode
@@ -152,12 +162,6 @@ namespace OnnxStack.UI.UserControls
         /// <returns></returns>
         private Task ClearImage()
         {
-            CanvasResult = new ImageInput
-            {
-                Image = CreateEmptyCanvasImage(),
-                FileName = "OnnxStack Generated Image",
-            };
-            HasResult = true;
             ClearCanvas();
             return Task.CompletedTask;
         }
@@ -168,8 +172,14 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private void ClearCanvas()
         {
-            HasResult = true;
             PaintCanvas.Strokes.Clear();
+            CanvasResult = new ImageInput
+            {
+                Image = CreateEmptyCanvasImage(),
+                FileName = "Canvas Image",
+            };
+            BackgroundBrush = new SolidColorBrush(Colors.White);
+            HasCanvasChanged = true;
             IsEraserEnabled = false;
             CanvasEditingMode = InkCanvasEditingMode.Ink;
         }
@@ -184,9 +194,9 @@ namespace OnnxStack.UI.UserControls
             CanvasResult = new ImageInput
             {
                 Image = CreateCanvasImage(),
-                FileName = "OnnxStack Generated Image",
+                FileName = "Canvas Image",
             };
-            HasResult = true;
+            HasCanvasChanged = true;
             return Task.CompletedTask;
         }
 
@@ -221,8 +231,6 @@ namespace OnnxStack.UI.UserControls
                 Color = _selectedColor,
                 Height = _brushSize,
                 Width = _brushSize,
-                FitToCurve = true,
-                IgnorePressure = true,
             };
         }
 

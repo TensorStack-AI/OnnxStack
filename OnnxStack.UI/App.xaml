@@ -250,7 +250,7 @@
                         <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageInpaintCommand}" CommandParameter="{Binding}" >
                             <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light"  Size="13" ToolTip="Send To Image Inpaint"/>
                         </Button>
-                        <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageUpscaleCommand}" CommandParameter="{Binding}" Padding="2,2" BorderThickness="0,1,1,1">
+                        <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImagePaintToImageCommand}" CommandParameter="{Binding}" Padding="2,2" BorderThickness="0,1,1,1">
                             <userControls:FontAwesome Icon="&#xf065;" IconStyle="Light" Size="13" ToolTip="Send To Upscaler"/>
                         </Button>
                     </UniformGrid>

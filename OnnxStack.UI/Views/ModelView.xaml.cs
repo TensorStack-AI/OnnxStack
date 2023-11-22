@@ -940,7 +940,6 @@ namespace OnnxStack.UI.Views
                 EnableImageToImage = modelTemplate.Diffusers.Contains(DiffuserType.ImageToImage),
                 EnableImageInpaint = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaint) || modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
                 EnableImageInpaintLegacy = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
-                EnablePaintToImage = modelTemplate.Diffusers.Contains(DiffuserType.PaintToImage),
                 ModelFiles = new ObservableCollection<ModelFileViewModel>(Enum.GetValues<OnnxModelType>().Select(x => new ModelFileViewModel { Type = x })),
                 ModelTemplate = new ModelConfigTemplate
                 {
@@ -993,7 +992,6 @@ namespace OnnxStack.UI.Views
                 EnableImageToImage = modelOptions.Diffusers.Contains(DiffuserType.ImageToImage),
                 EnableImageInpaint = modelOptions.Diffusers.Contains(DiffuserType.ImageInpaint) || modelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
                 EnableImageInpaintLegacy = modelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
-                EnablePaintToImage = modelOptions.Diffusers.Contains(DiffuserType.PaintToImage),
                 ModelFiles = new ObservableCollection<ModelFileViewModel>(modelOptions.ModelConfigurations.Select(x => new ModelFileViewModel
                 {
                     Type = x.Type,

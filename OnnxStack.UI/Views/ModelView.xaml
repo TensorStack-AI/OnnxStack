@@ -194,7 +194,7 @@
                     </Border>
                 </UniformGrid>
 
-                <UniformGrid DockPanel.Dock="Top" Columns="6" Margin="0,10">
+                <UniformGrid DockPanel.Dock="Top" Columns="5" Margin="0,10">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="Pipeline:" Margin="0,0,5,0"/>
                         <TextBlock Text="{Binding SelectedModelSet.PipelineType}" />
@@ -214,10 +214,6 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="InpaintLegacy:" Margin="0,0,5,0"/>
                         <TextBlock Text="{Binding SelectedModelSet.EnableImageInpaintLegacy}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="LivePaint:" Margin="0,0,5,0"/>
-                        <TextBlock Text="{Binding SelectedModelSet.EnablePaintToImage}" />
                     </StackPanel>
                 </UniformGrid>
             </StackPanel>
@@ -297,7 +293,7 @@
                             <!--Model Config-->
                             <StackPanel DockPanel.Dock="Top" IsEnabled="{Binding SelectedModelSet.IsTemplate, Converter={StaticResource InverseBoolConverter}}">
 
-                                <UniformGrid Columns="6" >
+                                <UniformGrid Columns="5" >
                                     <StackPanel Margin="0,0,4,0">
                                         <TextBlock Text="Pipeline" />
                                         <ComboBox ItemsSource="{Binding Source={StaticResource DiffuserPipelineType}}" SelectedItem="{Binding SelectedModelSet.PipelineType}" />
@@ -306,7 +302,6 @@
                                     <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageToImage}"  Content="Image To Image" VerticalAlignment="Center" Margin="0,4,0,0"/>
                                     <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageInpaint}"  Content="Image Inpaint" VerticalAlignment="Center" Margin="0,4,0,0"/>
                                     <CheckBox IsChecked="{Binding SelectedModelSet.EnableImageInpaintLegacy}" IsEnabled="{Binding SelectedModelSet.EnableImageInpaint}" Content="Image Inpaint (legacy)" VerticalAlignment="Center" Margin="0,4,0,0"/>
-                                    <CheckBox IsChecked="{Binding SelectedModelSet.EnablePaintToImage}" Content="Live Paint" VerticalAlignment="Center" Margin="5,4,0,0"/>
                                 </UniformGrid>
 
                                 <UniformGrid Columns="5" Margin="0,5,0,0">

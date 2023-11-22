@@ -38,13 +38,11 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.ImageDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.InpaintDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.InpaintLegacyDiffuser>();
-            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.PaintDiffuser>();
 
             //LatentConsistency
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.TextDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.ImageDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.InpaintLegacyDiffuser>();
-            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.PaintDiffuser>();
         }
 
 

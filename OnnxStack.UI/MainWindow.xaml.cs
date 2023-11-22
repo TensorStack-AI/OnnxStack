@@ -37,7 +37,7 @@ namespace OnnxStack.UI
             NavigateTextToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateTextToImage);
             NavigateImageToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImageToImage);
             NavigateImageInpaintCommand = new AsyncRelayCommand<ImageResult>(NavigateImageInpaint);
-            NavigateImageUpscaleCommand = new AsyncRelayCommand<ImageResult>(NavigateImageUpscale);
+            NavigateImagePaintToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImagePaintToImage);
 
             WindowCloseCommand = new AsyncRelayCommand(WindowClose);
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
@@ -56,7 +56,7 @@ namespace OnnxStack.UI
         public AsyncRelayCommand<ImageResult> NavigateTextToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageInpaintCommand { get; }
-        public AsyncRelayCommand<ImageResult> NavigateImageUpscaleCommand { get; }
+        public AsyncRelayCommand<ImageResult> NavigateImagePaintToImageCommand { get; }
 
         public OnnxStackUIConfig UISettings
         {
@@ -86,29 +86,37 @@ namespace OnnxStack.UI
 
         private async Task NavigateTextToImage(ImageResult result)
         {
-            await NavigateToTab(DiffuserType.TextToImage, result);
+            await NavigateToTab(TabId.TextToImage, result);
         }
 
         private async Task NavigateImageToImage(ImageResult result)
         {
-            await NavigateToTab(DiffuserType.ImageToImage, result);
+            await NavigateToTab(TabId.ImageToImage, result);
         }
 
         private async Task NavigateImageInpaint(ImageResult result)
         {
-            await NavigateToTab(DiffuserType.ImageInpaint, result);
+            await NavigateToTab(TabId.ImageInpaint, result);
         }
 
-        private Task NavigateImageUpscale(ImageResult result)
+        private async Task NavigateImagePaintToImage(ImageResult result)
         {
-            return Task.CompletedTask;
+            await NavigateToTab(TabId.PaintToImage, result);
         }
 
 
-        private async Task NavigateToTab(DiffuserType diffuserType, ImageResult imageResult)
+        private async Task NavigateToTab(TabId tab, ImageResult imageResult)
         {
-            SelectedTabIndex = (int)diffuserType;
+            SelectedTabIndex = (int)tab;
             await SelectedTabItem.NavigateAsync(imageResult);
+        }
+
+        private enum TabId
+        {
+            TextToImage = 0,
+            ImageToImage = 1,
+            ImageInpaint = 2,
+            PaintToImage = 3
         }
 
         private ObservableCollection<ModelOptionsModel> CreateModelOptions(List<ModelOptions> onnxModelSets)

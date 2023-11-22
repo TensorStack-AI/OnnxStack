@@ -31,10 +31,7 @@
             </Canvas>
 
             <UniformGrid  Columns="1" Height="30" Visibility="{Binding HasResult, Converter={StaticResource BooleanToHiddenConverter}}">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,3">
-                    <TextBlock Text="Image File:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
-                    <TextBlock Text="{Binding Result.FileName}" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
+
             </UniformGrid>
             <DockPanel  Height="30">
                 <Button DockPanel.Dock="Right" Command="{Binding ClearImageCommand}" BorderThickness="0,1,1,1" Width="50" >
@@ -49,7 +46,7 @@
                         </StackPanel>
                     </Button>
 
-                    <xctk:ColorPicker 
+                    <xctk:ColorPicker
                         Width="80"
                         DisplayColorAndName="False" 
                         ShowRecentColors="True" 

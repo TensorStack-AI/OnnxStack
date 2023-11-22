@@ -6,7 +6,6 @@
         ImageToImage = 1,
         ImageInpaint = 2,
         ImageInpaintLegacy = 3,
-        ImageToAnimation = 4,
-        PaintToImage = 5
+        ImageToAnimation = 4
     }
 }

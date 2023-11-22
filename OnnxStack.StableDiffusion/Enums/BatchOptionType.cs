@@ -6,7 +6,6 @@
         Step = 1,
         Guidance = 2,
         Strength = 3,
-        Scheduler = 4,
-        Realtime = 5
+        Scheduler = 4
     }
 }

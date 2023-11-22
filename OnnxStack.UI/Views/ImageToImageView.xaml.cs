@@ -327,7 +327,7 @@ namespace OnnxStack.UI.Views
             }
             else
             {
-                if (_batchOptions.BatchType != BatchOptionType.Realtime)
+                if (!BatchOptions.IsRealtimeEnabled)
                 {
                     var timestamp = Stopwatch.GetTimestamp();
                     await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
@@ -354,7 +354,7 @@ namespace OnnxStack.UI.Views
                         var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, RealtimeProgressCallback(), _cancelationTokenSource.Token);
                         yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                     }
-                    await Utils.RefreshDelay(refreshTimestamp, BatchOptions.RealtimeRefreshRate, _cancelationTokenSource.Token);
+                    await Utils.RefreshDelay(refreshTimestamp, UISettings.RealtimeRefreshRate, _cancelationTokenSource.Token);
                 }
             }
         }

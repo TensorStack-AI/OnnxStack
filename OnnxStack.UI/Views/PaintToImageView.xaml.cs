@@ -35,8 +35,8 @@ namespace OnnxStack.UI.Views
         private int _selectedTabIndex;
         private bool _hasInputResult;
         private bool _isControlsEnabled;
-        private bool _hasInputMaskResult;
         private ImageInput _inputImage;
+        private ImageInput _canvasImage;
         private ImageResult _resultImage;
         private ModelOptionsModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
@@ -56,7 +56,7 @@ namespace OnnxStack.UI.Views
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
 
-            SupportedDiffusers = new() { DiffuserType.PaintToImage };
+            SupportedDiffusers = new() { DiffuserType.ImageToImage };
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             GenerateCommand = new AsyncRelayCommand(Generate, CanExecuteGenerate);
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
@@ -119,6 +119,15 @@ namespace OnnxStack.UI.Views
             set { _inputImage = value; NotifyPropertyChanged(); }
         }
 
+      
+
+        public ImageInput CanvasImage
+        {
+            get { return _canvasImage; }
+            set { _canvasImage = value; NotifyPropertyChanged(); }
+        }
+
+
         public int ProgressValue
         {
             get { return _progressValue; }
@@ -143,18 +152,11 @@ namespace OnnxStack.UI.Views
             set { _hasResult = value; NotifyPropertyChanged(); }
         }
 
-        public bool HasInputResult
+        public bool HasCanvasChanged
         {
             get { return _hasInputResult; }
             set { _hasInputResult = value; NotifyPropertyChanged(); }
         }
-
-        public bool HasInputMaskResult
-        {
-            get { return _hasInputMaskResult; }
-            set { _hasInputMaskResult = value; NotifyPropertyChanged(); }
-        }
-
 
         public int SelectedTabIndex
         {
@@ -179,16 +181,15 @@ namespace OnnxStack.UI.Views
             Reset();
             HasResult = false;
             ResultImage = null;
-            HasInputResult = true;
-            HasInputMaskResult = false;
-            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.PaintToImage))
+            HasCanvasChanged = true;
+            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageToImage))
             {
                 SelectedModel = imageResult.Model;
             }
             InputImage = new ImageInput
             {
                 Image = imageResult.Image,
-                FileName = "OnnxStack Generated Image"
+                FileName = "Generated Image"
             };
             PromptOptions = new PromptOptionsModel
             {
@@ -210,7 +211,7 @@ namespace OnnxStack.UI.Views
             IsGenerating = true;
             IsControlsEnabled = false;
             ResultImage = null;
-            var promptOptions = GetPromptOptions(PromptOptions, InputImage);
+            var promptOptions = GetPromptOptions(PromptOptions, CanvasImage);
             var batchOptions = BatchOptions.ToBatchOptions();
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
 
@@ -252,7 +253,7 @@ namespace OnnxStack.UI.Views
         {
             return !IsGenerating
                 && !string.IsNullOrEmpty(PromptOptions.Prompt)
-                && HasInputResult;
+                && HasCanvasChanged;
         }
 
 
@@ -327,43 +328,48 @@ namespace OnnxStack.UI.Views
                 yield break;
 
             _cancelationTokenSource = new CancellationTokenSource();
-            if (!BatchOptions.IsAutomationEnabled)
+
+            if (!BatchOptions.IsRealtimeEnabled)
             {
-                var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
-                yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                if (!BatchOptions.IsAutomationEnabled)
+                {
+                    var timestamp = Stopwatch.GetTimestamp();
+                    var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                    yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                }
+                else
+                {
+                    if (!BatchOptions.IsRealtimeEnabled)
+                    {
+                        var timestamp = Stopwatch.GetTimestamp();
+                        await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
+                        {
+                            yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
+                            timestamp = Stopwatch.GetTimestamp();
+                        }
+                    }
+                }
             }
             else
             {
-                if (_batchOptions.BatchType != BatchOptionType.Realtime)
-                {
-                    var timestamp = Stopwatch.GetTimestamp();
-                    await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
-                    {
-                        yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
-                        timestamp = Stopwatch.GetTimestamp();
-                    }
-                    yield break;
-                }
-
                 // Realtime Diffusion
                 IsControlsEnabled = true;
                 while (!_cancelationTokenSource.IsCancellationRequested)
                 {
                     var refreshTimestamp = Stopwatch.GetTimestamp();
-                    if (SchedulerOptions.HasChanged || PromptOptions.HasChanged || HasInputResult)
+                    if (SchedulerOptions.HasChanged || PromptOptions.HasChanged || HasCanvasChanged)
                     {
-                        HasInputResult = false;
+                        HasCanvasChanged = false;
                         PromptOptions.HasChanged = false;
                         SchedulerOptions.HasChanged = false;
-                        var realtimePromptOptions = GetPromptOptions(PromptOptions, InputImage);
+                        var realtimePromptOptions = GetPromptOptions(PromptOptions, CanvasImage);
                         var realtimeSchedulerOptions = SchedulerOptions.ToSchedulerOptions();
 
                         var timestamp = Stopwatch.GetTimestamp();
                         var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, RealtimeProgressCallback(), _cancelationTokenSource.Token);
                         yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                     }
-                    await Utils.RefreshDelay(refreshTimestamp, BatchOptions.RealtimeRefreshRate, _cancelationTokenSource.Token);
+                    await Utils.RefreshDelay(refreshTimestamp, UISettings.RealtimeRefreshRate, _cancelationTokenSource.Token);
                 }
             }
         }
@@ -383,7 +389,7 @@ namespace OnnxStack.UI.Views
             {
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
-                DiffuserType = DiffuserType.PaintToImage,
+                DiffuserType = DiffuserType.ImageToImage,
                 InputImage = new StableDiffusion.Models.InputImage
                 {
                     ImageBytes = imageInput.Image.GetImageBytes()
