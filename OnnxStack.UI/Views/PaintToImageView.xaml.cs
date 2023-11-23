@@ -120,7 +120,7 @@ namespace OnnxStack.UI.Views
             set { _inputImage = value; NotifyPropertyChanged(); }
         }
 
-      
+
 
         public ImageInput CanvasImage
         {
@@ -255,7 +255,7 @@ namespace OnnxStack.UI.Views
         private bool CanExecuteGenerate()
         {
             return !IsGenerating
-                && !string.IsNullOrEmpty(PromptOptions.Prompt)
+                // && !string.IsNullOrEmpty(PromptOptions.Prompt)
                 && HasCanvasChanged;
         }
 
@@ -328,9 +328,6 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         private async IAsyncEnumerable<ImageResult> ExecuteStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions)
         {
-            if (!IsExecuteOptionsValid(PromptOptions))
-                yield break;
-
             _cancelationTokenSource = new CancellationTokenSource();
 
             if (!BatchOptions.IsRealtimeEnabled)
@@ -379,14 +376,6 @@ namespace OnnxStack.UI.Views
             }
         }
 
-        private bool IsExecuteOptionsValid(PromptOptionsModel prompt)
-        {
-            if (string.IsNullOrEmpty(prompt.Prompt))
-                return false;
- 
-            return true;
-        }
-
 
         private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, ImageInput imageInput)
         {
@@ -397,7 +386,7 @@ namespace OnnxStack.UI.Views
                 DiffuserType = DiffuserType.ImageToImage,
                 InputImage = new StableDiffusion.Models.InputImage
                 {
-                    ImageBytes = imageInput.Image.GetImageBytes()
+                    ImageBytes = imageInput.Image?.GetImageBytes()
                 }
             };
         }

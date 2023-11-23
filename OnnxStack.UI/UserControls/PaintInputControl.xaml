@@ -68,7 +68,7 @@
                             </ItemsPanelTemplate>
                         </ListView.ItemsPanel>
                     </ListView>
-
+            
                     <xctk:ColorPicker x:Name="ColorPickerControl"
                         DisplayColorAndName="False" 
                         ShowRecentColors="False" 

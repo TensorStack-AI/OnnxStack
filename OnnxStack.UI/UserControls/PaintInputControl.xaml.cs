@@ -193,7 +193,7 @@ namespace OnnxStack.UI.UserControls
         /// Clears the image.
         /// </summary>
         /// <returns></returns>
-        private Task ClearCanvas()
+        private async Task ClearCanvas()
         {
             PaintCanvas.Strokes.Clear();
             BackgroundBrush = new SolidColorBrush(Colors.White);
@@ -202,8 +202,8 @@ namespace OnnxStack.UI.UserControls
                 Image = CreateCanvasImage(),
                 FileName = "Canvas Image",
             };
-            HasCanvasChanged = true;
-            return Task.CompletedTask;
+            await Task.Delay(100);
+            await SaveCanvas();
         }
 
 
@@ -211,11 +211,11 @@ namespace OnnxStack.UI.UserControls
         /// Fills the canvas with the SelectedColor.
         /// </summary>
         /// <returns></returns>
-        private Task FillCanvas()
+        private async Task FillCanvas()
         {
             BackgroundBrush = new SolidColorBrush(SelectedColor);
-            HasCanvasChanged = true;
-            return Task.CompletedTask;
+            await Task.Delay(100);
+            await SaveCanvas();
         }
 
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Models;
+using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -223,7 +224,7 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteGenerate()
         {
-            return !IsGenerating && !string.IsNullOrEmpty(PromptOptions.Prompt);
+            return !IsGenerating && (BatchOptions.IsRealtimeEnabled || !string.IsNullOrEmpty(PromptOptions.Prompt));
         }
 
 
@@ -292,13 +293,13 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         private async IAsyncEnumerable<ImageResult> ExecuteStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions)
         {
-            if (!IsExecuteOptionsValid(PromptOptions))
-                yield break;
-
             _cancelationTokenSource = new CancellationTokenSource();
 
             if (!BatchOptions.IsRealtimeEnabled)
             {
+                if (!IsExecuteOptionsValid(PromptOptions))
+                    yield break;
+
                 if (!BatchOptions.IsAutomationEnabled)
                 {
                     var timestamp = Stopwatch.GetTimestamp();
@@ -333,6 +334,7 @@ namespace OnnxStack.UI.Views
                         var realtimePromptOptions = GetPromptOptions(PromptOptions);
                         var realtimeSchedulerOptions = SchedulerOptions.ToSchedulerOptions();
 
+                        realtimePromptOptions.Prompt = string.IsNullOrEmpty(realtimePromptOptions.Prompt) ? " " : realtimePromptOptions.Prompt;
                         var timestamp = Stopwatch.GetTimestamp();
                         var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, RealtimeProgressCallback(), _cancelationTokenSource.Token);
                         yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);

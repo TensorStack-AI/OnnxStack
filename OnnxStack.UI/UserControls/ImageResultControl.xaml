@@ -65,10 +65,10 @@
                     <userControls:FontAwesome Icon="&#xf302;" IconStyle="Light"  Size="13" />
                 </Button>
                 <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageInpaintCommand}" CommandParameter="{Binding Result}" ToolTip="Send To Image Inpaint">
-                    <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light"  />
+                    <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"  />
                 </Button>
                 <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImagePaintToImageCommand}" CommandParameter="{Binding Result}" ToolTip="Send To Upscaler" BorderThickness="0,1,1,1">
-                    <userControls:FontAwesome Icon="&#xf065;" IconStyle="Light" />
+                    <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light" />
                 </Button>
             </UniformGrid>
         </StackPanel>
