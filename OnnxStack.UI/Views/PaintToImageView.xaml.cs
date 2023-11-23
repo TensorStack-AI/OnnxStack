@@ -66,6 +66,7 @@ namespace OnnxStack.UI.Views
             ImageResults = new ObservableCollection<ImageResult>();
             ProgressMax = SchedulerOptions.InferenceSteps;
             IsControlsEnabled = true;
+            HasCanvasChanged = true;
             InitializeComponent();
         }
 
@@ -264,6 +265,7 @@ namespace OnnxStack.UI.Views
         private Task Cancel()
         {
             _cancelationTokenSource?.Cancel();
+            HasCanvasChanged = true;
             return Task.CompletedTask;
         }
 

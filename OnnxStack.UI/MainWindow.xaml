@@ -18,7 +18,6 @@
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType" 
         TextOptions.TextHintingMode="Fixed"  
-        UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         Style="{StaticResource BaseWindow}">
     <Grid DataContext="{Binding ElementName=UI}">

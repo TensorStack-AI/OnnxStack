@@ -3,8 +3,8 @@ using OnnxStack.UI.Commands;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
-using OnnxStack.UI.Views;
 using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -16,6 +16,7 @@ using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Xceed.Wpf.Toolkit;
 
 namespace OnnxStack.UI.UserControls
 {
@@ -23,13 +24,14 @@ namespace OnnxStack.UI.UserControls
     {
         private readonly IDialogService _dialogService;
 
-        private int _brushSize;
-        private bool _isEraserEnabled;
+        private int _drawingToolSize;
         public DateTime _canvasLastUpdate;
-        private DrawingAttributes _brushAttributes;
+        private DrawingAttributes _drawingAttributes;
         private Color _selectedColor = Colors.Black;
         private Brush _backgroundBrush = new SolidColorBrush(Colors.White);
         private InkCanvasEditingMode _canvasEditingMode = InkCanvasEditingMode.Ink;
+        private DrawingTool _canvasDrawingTool;
+        private ObservableCollection<ColorItem> _recentColors = new ObservableCollection<ColorItem>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaintInputControl" /> class.
@@ -39,20 +41,25 @@ namespace OnnxStack.UI.UserControls
             if (!DesignerProperties.GetIsInDesignMode(this))
                 _dialogService = App.GetService<IDialogService>();
 
-            BrushDrawSize = 20;
+            DrawingToolSize = 10;
             LoadImageCommand = new AsyncRelayCommand(LoadImage);
-            ClearImageCommand = new AsyncRelayCommand(ClearImage);
-            CanvasModeCommand = new AsyncRelayCommand(CanvasMode);
+            ClearCanvasCommand = new AsyncRelayCommand(ClearCanvas);
+            FillCanvasCommand = new AsyncRelayCommand(FillCanvas);
             CopyImageCommand = new AsyncRelayCommand(CopyImage);
             PasteImageCommand = new AsyncRelayCommand(PasteImage);
+            SelectToolCommand = new AsyncRelayCommand<DrawingTool>(SelectDrawingTool);
             InitializeComponent();
+            SetRecentColors();
         }
 
+
+
         public AsyncRelayCommand LoadImageCommand { get; }
-        public AsyncRelayCommand ClearImageCommand { get; }
-        public AsyncRelayCommand CanvasModeCommand { get; }
+        public AsyncRelayCommand ClearCanvasCommand { get; }
+        public AsyncRelayCommand FillCanvasCommand { get; }
         public AsyncRelayCommand CopyImageCommand { get; }
         public AsyncRelayCommand PasteImageCommand { get; }
+        public AsyncRelayCommand<DrawingTool> SelectToolCommand { get; }
 
 
         public OnnxStackUIConfig UISettings
@@ -61,7 +68,14 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(PaintInputControl));
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(PaintInputControl), new PropertyMetadata(async (s, e) =>
+            {
+                if (s is PaintInputControl control && e.NewValue is OnnxStackUIConfig image)
+                {
+                    await Task.Delay(500); // TODO: Fix race condition
+                    await control.SaveCanvas();
+                }
+            }));
 
 
         public ImageInput InputImage
@@ -115,22 +129,17 @@ namespace OnnxStack.UI.UserControls
 
         public DrawingAttributes BrushAttributes
         {
-            get { return _brushAttributes; }
-            set { _brushAttributes = value; NotifyPropertyChanged(); }
+            get { return _drawingAttributes; }
+            set { _drawingAttributes = value; NotifyPropertyChanged(); }
         }
 
-        public bool IsEraserEnabled
-        {
-            get { return _isEraserEnabled; }
-            set { _isEraserEnabled = value; NotifyPropertyChanged(); }
-        }
 
-        public int BrushDrawSize
+        public int DrawingToolSize
         {
-            get { return _brushSize; }
+            get { return _drawingToolSize; }
             set
             {
-                _brushSize = value;
+                _drawingToolSize = value;
                 NotifyPropertyChanged();
                 UpdateBrushAttributes();
             }
@@ -153,6 +162,20 @@ namespace OnnxStack.UI.UserControls
             set { _backgroundBrush = value; NotifyPropertyChanged(); }
         }
 
+        public DrawingTool CanvasDrawingTool
+        {
+            get { return _canvasDrawingTool; }
+            set { _canvasDrawingTool = value; NotifyPropertyChanged(); }
+        }
+
+        public ObservableCollection<ColorItem> RecentColors
+        {
+            get { return _recentColors; }
+            set { _recentColors = value; NotifyPropertyChanged(); }
+        }
+
+
+
 
 
         /// <summary>
@@ -170,28 +193,29 @@ namespace OnnxStack.UI.UserControls
         /// Clears the image.
         /// </summary>
         /// <returns></returns>
-        private Task ClearImage()
+        private Task ClearCanvas()
         {
-            ClearCanvas();
+            PaintCanvas.Strokes.Clear();
+            BackgroundBrush = new SolidColorBrush(Colors.White);
+            CanvasResult = new ImageInput
+            {
+                Image = CreateCanvasImage(),
+                FileName = "Canvas Image",
+            };
+            HasCanvasChanged = true;
             return Task.CompletedTask;
         }
 
 
         /// <summary>
-        /// Clears the Canvas.
+        /// Fills the canvas with the SelectedColor.
         /// </summary>
-        private void ClearCanvas()
+        /// <returns></returns>
+        private Task FillCanvas()
         {
-            PaintCanvas.Strokes.Clear();
-            CanvasResult = new ImageInput
-            {
-                Image = CreateEmptyCanvasImage(),
-                FileName = "Canvas Image",
-            };
-            BackgroundBrush = new SolidColorBrush(Colors.White);
+            BackgroundBrush = new SolidColorBrush(SelectedColor);
             HasCanvasChanged = true;
-            IsEraserEnabled = false;
-            CanvasEditingMode = InkCanvasEditingMode.Ink;
+            return Task.CompletedTask;
         }
 
 
@@ -212,26 +236,6 @@ namespace OnnxStack.UI.UserControls
 
 
         /// <summary>
-        /// Change Canvas mode.
-        /// </summary>
-        /// <returns></returns>
-        private Task CanvasMode()
-        {
-            if (_isEraserEnabled)
-            {
-                IsEraserEnabled = false;
-                CanvasEditingMode = InkCanvasEditingMode.Ink;
-            }
-            else
-            {
-                IsEraserEnabled = true;
-                CanvasEditingMode = InkCanvasEditingMode.EraseByPoint;
-            }
-            return Task.CompletedTask;
-        }
-
-
-        /// <summary>
         /// Updates the brush attributes.
         /// </summary>
         private void UpdateBrushAttributes()
@@ -239,9 +243,27 @@ namespace OnnxStack.UI.UserControls
             BrushAttributes = new DrawingAttributes
             {
                 Color = _selectedColor,
-                Height = _brushSize,
-                Width = _brushSize,
+                Height = _drawingToolSize,
+                Width = _drawingToolSize,
+                IsHighlighter = CanvasDrawingTool == DrawingTool.Highlight
             };
+
+            CanvasEditingMode = CanvasDrawingTool != DrawingTool.Eraser
+                ? InkCanvasEditingMode.Ink
+                : InkCanvasEditingMode.EraseByPoint;
+        }
+
+
+        /// <summary>
+        /// Selects the drawing tool.
+        /// </summary>
+        /// <param name="selectedTool">The selected tool.</param>
+        /// <returns></returns>
+        private Task SelectDrawingTool(DrawingTool selectedTool)
+        {
+            CanvasDrawingTool = selectedTool;
+            UpdateBrushAttributes();
+            return Task.CompletedTask;
         }
 
 
@@ -269,7 +291,6 @@ namespace OnnxStack.UI.UserControls
         }
 
 
-
         /// <summary>
         /// Creates the empty canvas image.
         /// </summary>
@@ -291,7 +312,6 @@ namespace OnnxStack.UI.UserControls
             }
             return bmImage;
         }
-
 
 
         /// <summary>
@@ -356,6 +376,25 @@ namespace OnnxStack.UI.UserControls
                 ShowCropImageDialog(null, imageFile);
             }
             return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Sets the recent colors.
+        /// </summary>
+        private void SetRecentColors()
+        {
+            RecentColors.Add(new ColorItem(Colors.Red, "Red"));
+            RecentColors.Add(new ColorItem(Colors.Green, "Green"));
+            RecentColors.Add(new ColorItem(Colors.Blue, "Blue"));
+            RecentColors.Add(new ColorItem(Colors.Gray, "Gray"));
+            RecentColors.Add(new ColorItem(Colors.Yellow, "Yellow"));
+
+            RecentColors.Add(new ColorItem(Colors.Orange, "Orange"));
+            RecentColors.Add(new ColorItem(Colors.Brown, "Brown"));
+            RecentColors.Add(new ColorItem(Colors.Fuchsia, "Fuchsia"));
+            RecentColors.Add(new ColorItem(Colors.Black, "Black"));
+            RecentColors.Add(new ColorItem(Colors.White, "White"));
         }
 
 
@@ -450,5 +489,18 @@ namespace OnnxStack.UI.UserControls
         }
         #endregion
 
+        private void OnMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            DrawingToolSize = e.Delta > 0
+                ? DrawingToolSize = Math.Min(40, DrawingToolSize + 1)
+                : DrawingToolSize = Math.Max(1, DrawingToolSize - 1);
+        }
+    }
+
+    public enum DrawingTool
+    {
+        Brush = 0,
+        Highlight = 1,
+        Eraser = 2,
     }
 }
