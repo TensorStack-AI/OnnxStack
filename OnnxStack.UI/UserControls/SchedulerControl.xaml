@@ -78,7 +78,7 @@
 
                             <StackPanel Orientation="Horizontal" Margin="5,8,0,0">
                                 <Ellipse Fill="{StaticResource ControlDisabledBorderBrush}" Width="15" Height="15" />
-              
+
                                 <StackPanel.Style>
                                     <Style TargetType="{x:Type StackPanel}">
                                         <Setter Property="Visibility" Value="Visible" />
@@ -97,10 +97,29 @@
                                 </StackPanel.Style>
                             </StackPanel>
 
+                            <StackPanel>
+                                <CheckBox IsChecked="{Binding BatchOptions.IsRealtimeEnabled}" Content="Enable Live Update" Margin="4,12,0,0" />
+                                <StackPanel.Style>
+                                    <Style TargetType="{x:Type StackPanel}">
+                                        <Setter Property="IsEnabled" Value="True" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsGenerating}" Value="True" />
+                                                    <Condition Binding="{Binding BatchOptions.IsRealtimeEnabled}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <MultiDataTrigger.Setters>
+                                                    <Setter Property="IsEnabled" Value="False" />
+                                                </MultiDataTrigger.Setters>
+                                            </MultiDataTrigger>
+                                            <DataTrigger Binding="{Binding BatchOptions.IsAutomationEnabled}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                            </StackPanel>
 
-
-
-                            <CheckBox IsChecked="{Binding BatchOptions.IsRealtimeEnabled}" IsEnabled="{Binding BatchOptions.IsAutomationEnabled, Converter={StaticResource InverseBoolConverter}}" Content="Enable Live Update" Margin="4,12,0,0" />
                         </StackPanel>
 
 

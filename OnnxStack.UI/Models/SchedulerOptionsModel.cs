@@ -13,7 +13,7 @@ namespace OnnxStack.UI.Models
         private int _seed;
         private int _inferenceSteps = 30;
         private float _guidanceScale = 7.5f;
-        private float _strength = 0.7f;
+        private float _strength = 0.75f;
         private float _initialNoiseLevel = 0f;
         private int _trainTimesteps = 1000;
         private float _betaStart = 0.00085f;

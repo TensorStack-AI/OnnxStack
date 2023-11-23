@@ -100,7 +100,13 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(CanvasResultProperty, value); }
         }
         public static readonly DependencyProperty CanvasResultProperty =
-            DependencyProperty.Register("CanvasResult", typeof(ImageInput), typeof(PaintInputControl));
+            DependencyProperty.Register("CanvasResult", typeof(ImageInput), typeof(PaintInputControl), new PropertyMetadata(async (s, e) =>
+            {
+                if (s is PaintInputControl control && e.NewValue is null)
+                {
+                    await control.ClearCanvas();
+                }
+            }));
 
 
         public SchedulerOptionsModel SchedulerOptions

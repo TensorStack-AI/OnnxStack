@@ -181,8 +181,11 @@ namespace OnnxStack.UI.Views
         /// </summary>
         /// <param name="imageResult">The image result.</param>
         /// <returns></returns>
-        public Task NavigateAsync(ImageResult imageResult)
+        public async Task NavigateAsync(ImageResult imageResult)
         {
+            if (IsGenerating)
+                await Cancel();
+
             Reset();
             HasResult = false;
             ResultImage = null;
@@ -206,7 +209,6 @@ namespace OnnxStack.UI.Views
             };
             SchedulerOptions = imageResult.SchedulerOptions.ToSchedulerOptionsModel();
             SelectedTabIndex = 0;
-            return Task.CompletedTask;
         }
 
 
@@ -376,7 +378,7 @@ namespace OnnxStack.UI.Views
 
                         var timestamp = Stopwatch.GetTimestamp();
                         var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, RealtimeProgressCallback(), _cancelationTokenSource.Token);
-                        yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                        yield return await GenerateResultAsync(result, realtimePromptOptions, realtimeSchedulerOptions, timestamp);
                     }
                     await Utils.RefreshDelay(refreshTimestamp, UISettings.RealtimeRefreshRate, _cancelationTokenSource.Token);
                 }
