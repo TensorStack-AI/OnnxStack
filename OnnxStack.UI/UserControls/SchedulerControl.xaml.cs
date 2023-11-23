@@ -103,6 +103,15 @@ namespace OnnxStack.UI.UserControls
             DependencyProperty.Register("IsAutomationEnabled", typeof(bool), typeof(SchedulerControl));
 
 
+        public bool IsGenerating
+        {
+            get { return (bool)GetValue(IsGeneratingProperty); }
+            set { SetValue(IsGeneratingProperty, value); }
+        }
+        public static readonly DependencyProperty IsGeneratingProperty =
+            DependencyProperty.Register("IsGenerating", typeof(bool), typeof(SchedulerControl));
+
+
 
 
         /// <summary>

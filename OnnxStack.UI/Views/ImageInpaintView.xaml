@@ -36,6 +36,7 @@
                         BatchOptions="{Binding BatchOptions}"
                         SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
                         IsEnabled="{Binding IsControlsEnabled}"
+                        IsGenerating="{Binding IsGenerating}"
                         IsAutomationEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"/>
                 </UniformGrid>
             </DockPanel>

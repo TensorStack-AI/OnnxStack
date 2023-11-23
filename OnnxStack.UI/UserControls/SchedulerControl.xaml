@@ -63,6 +63,7 @@
                                         <Style.Triggers>
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsGenerating}" Value="True" />
                                                     <Condition Binding="{Binding BatchOptions.IsRealtimeEnabled}" Value="True" />
                                                 </MultiDataTrigger.Conditions>
                                                 <MultiDataTrigger.Setters>
@@ -84,6 +85,7 @@
                                         <Style.Triggers>
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsGenerating}" Value="True" />
                                                     <Condition Binding="{Binding BatchOptions.IsRealtimeEnabled}" Value="True" />
                                                 </MultiDataTrigger.Conditions>
                                                 <MultiDataTrigger.Setters>
