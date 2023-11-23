@@ -42,6 +42,15 @@
                                 IsEnabled="{Binding IsChecked, ElementName=CheckBoxImageAutoSave}" 
                                 IsRequired="{Binding IsChecked, ElementName=CheckBoxImageAutoSave}"/>
                         </StackPanel>
+
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="0,5,0,0">
+                                <TextBlock Text="Realtime Refresh Rate (ms)" />
+                                <TextBox Text="{Binding UISettings.RealtimeRefreshRate}"/>
+                            </StackPanel>
+                            <CheckBox Content="Enable Histrory" IsChecked="{Binding UISettings.RealtimeHistoryEnabled}" VerticalAlignment="Bottom" Margin="5,0,0,0" />
+                        </UniformGrid>
+                      
                     </StackPanel>
                 </GroupBox>
 

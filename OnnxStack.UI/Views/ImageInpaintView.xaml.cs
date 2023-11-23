@@ -234,6 +234,8 @@ namespace OnnxStack.UI.Views
                         HasResult = true;
                         if (BatchOptions.IsAutomationEnabled && BatchOptions.DisableHistory)
                             continue;
+                        if (BatchOptions.IsRealtimeEnabled && !UISettings.RealtimeHistoryEnabled)
+                            continue;
 
                         ImageResults.Add(resultImage);
                     }
