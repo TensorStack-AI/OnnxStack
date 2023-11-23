@@ -244,9 +244,11 @@ namespace OnnxStack.UI.UserControls
             {
                 Color = _selectedColor,
                 Height = _drawingToolSize,
-                Width = _drawingToolSize,
-                IsHighlighter = CanvasDrawingTool == DrawingTool.Highlight
+                Width = _drawingToolSize
             };
+
+            if (CanvasDrawingTool == DrawingTool.Highlight)
+                BrushAttributes.Color = Color.FromArgb(128, BrushAttributes.Color.R, BrushAttributes.Color.G, BrushAttributes.Color.B);
 
             CanvasEditingMode = CanvasDrawingTool != DrawingTool.Eraser
                 ? InkCanvasEditingMode.Ink
