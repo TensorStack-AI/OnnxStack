@@ -356,6 +356,7 @@ namespace OnnxStack.UI.Views
             {
                 // Realtime Diffusion
                 IsControlsEnabled = true;
+                SchedulerOptions.Seed = SchedulerOptions.Seed == 0 ? Random.Shared.Next() : SchedulerOptions.Seed;
                 while (!_cancelationTokenSource.IsCancellationRequested)
                 {
                     var refreshTimestamp = Stopwatch.GetTimestamp();

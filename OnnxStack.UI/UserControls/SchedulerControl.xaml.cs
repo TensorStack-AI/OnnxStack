@@ -28,12 +28,14 @@ namespace OnnxStack.UI.UserControls
         public SchedulerControl()
         {
             ValidSizes = new ObservableCollection<int>(Constants.ValidSizes);
+            NewSeedCommand = new RelayCommand(NewSeed);
             RandomSeedCommand = new RelayCommand(RandomSeed);
             ResetParametersCommand = new RelayCommand(ResetParameters);
             InitializeComponent();
         }
 
         public ICommand ResetParametersCommand { get; }
+        public ICommand NewSeedCommand { get; }
         public ICommand RandomSeedCommand { get; }
         public ObservableCollection<int> ValidSizes { get; }
 
@@ -164,9 +166,14 @@ namespace OnnxStack.UI.UserControls
             };
         }
 
-        private void RandomSeed()
+        private void NewSeed()
         {
             SchedulerOptions.Seed = Random.Shared.Next();
+        }
+
+        private void RandomSeed()
+        {
+            SchedulerOptions.Seed = 0;
         }
 
         #region INotifyPropertyChanged
