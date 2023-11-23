@@ -3,6 +3,7 @@ using OnnxStack.UI.Commands;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
+using OnnxStack.UI.Views;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -25,7 +26,6 @@ namespace OnnxStack.UI.UserControls
         private int _brushSize;
         private bool _isEraserEnabled;
         public DateTime _canvasLastUpdate;
-        private int _canvasUpdatedelay = 250;
         private DrawingAttributes _brushAttributes;
         private Color _selectedColor = Colors.Black;
         private Brush _backgroundBrush = new SolidColorBrush(Colors.White);
@@ -53,6 +53,16 @@ namespace OnnxStack.UI.UserControls
         public AsyncRelayCommand CanvasModeCommand { get; }
         public AsyncRelayCommand CopyImageCommand { get; }
         public AsyncRelayCommand PasteImageCommand { get; }
+
+
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(PaintInputControl));
+
 
         public ImageInput InputImage
         {
@@ -412,7 +422,7 @@ namespace OnnxStack.UI.UserControls
             {
                 if (DateTime.Now > _canvasLastUpdate)
                 {
-                    _canvasLastUpdate = DateTime.Now.AddMilliseconds(_canvasUpdatedelay);
+                    _canvasLastUpdate = DateTime.Now.AddMilliseconds(UISettings.RealtimeRefreshRate);
                     await SaveCanvas();
                 }
             }

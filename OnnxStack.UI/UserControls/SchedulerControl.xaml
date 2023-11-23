@@ -165,7 +165,7 @@
                     </UniformGrid>
 
                     <UniformGrid>
-                        <Button>
+                        <Button  Command="{Binding ResetParametersCommand}" Margin="0,5,0,0" HorizontalAlignment="Left">
                             <userControls:FontAwesome Icon="&#xf2ea;" IconStyle="Light" Size="14"  Margin="2"/>
                         </Button>
                         <CheckBox IsChecked="{Binding BatchOptions.IsRealtimeEnabled}" IsEnabled="{Binding BatchOptions.IsAutomationEnabled, Converter={StaticResource InverseBoolConverter}}" Content="Enable Live Update" HorizontalAlignment="Right" VerticalAlignment="Bottom"  />

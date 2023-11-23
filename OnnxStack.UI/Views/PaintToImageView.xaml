@@ -58,6 +58,7 @@
                     <UniformGrid Columns="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                         <Viewbox Margin="40,40,20,40" >
                             <userControls:PaintInputControl 
+                                UISettings="{Binding UISettings}"
                                 InputImage="{Binding InputImage}"
                                 HasCanvasChanged="{Binding HasCanvasChanged, Mode=TwoWay}" 
                                 CanvasResult="{Binding CanvasImage, Mode=TwoWay}"
