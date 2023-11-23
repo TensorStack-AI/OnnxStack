@@ -12,13 +12,13 @@ namespace OnnxStack.UI.Views
     /// <summary>
     /// Interaction logic for Logger.xaml
     /// </summary>
-    public partial class Logger : UserControl, INavigatable, INotifyPropertyChanged
+    public partial class LoggerView : UserControl, INavigatable, INotifyPropertyChanged
     {
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Logger"/> class.
+        /// Initializes a new instance of the <see cref="LoggerView"/> class.
         /// </summary>
-        public Logger()
+        public LoggerView()
         {
             ResetCommand = new AsyncRelayCommand(Reset, CanExecuteReset);
             InitializeComponent();
@@ -30,7 +30,7 @@ namespace OnnxStack.UI.Views
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(Logger));
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(LoggerView));
 
         public AsyncRelayCommand ResetCommand { get; }
 
@@ -44,7 +44,7 @@ namespace OnnxStack.UI.Views
             set { SetValue(LogOutputProperty, value); }
         }
         public static readonly DependencyProperty LogOutputProperty =
-            DependencyProperty.Register("LogOutput", typeof(string), typeof(Logger));
+            DependencyProperty.Register("LogOutput", typeof(string), typeof(LoggerView));
 
 
         public Task NavigateAsync(ImageResult imageResult)

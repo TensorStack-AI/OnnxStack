@@ -1,5 +1,6 @@
 ﻿using Models;
 using OnnxStack.Core;
+using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
@@ -27,12 +28,14 @@ namespace OnnxStack.UI.UserControls
         public SchedulerControl()
         {
             ValidSizes = new ObservableCollection<int>(Constants.ValidSizes);
+            NewSeedCommand = new RelayCommand(NewSeed);
             RandomSeedCommand = new RelayCommand(RandomSeed);
             ResetParametersCommand = new RelayCommand(ResetParameters);
             InitializeComponent();
         }
 
         public ICommand ResetParametersCommand { get; }
+        public ICommand NewSeedCommand { get; }
         public ICommand RandomSeedCommand { get; }
         public ObservableCollection<int> ValidSizes { get; }
 
@@ -90,6 +93,23 @@ namespace OnnxStack.UI.UserControls
         public static readonly DependencyProperty BatchOptionsProperty =
             DependencyProperty.Register("BatchOptions", typeof(BatchOptionsModel), typeof(SchedulerControl));
 
+
+        public bool IsAutomationEnabled
+        {
+            get { return (bool)GetValue(IsAutomationEnabledProperty); }
+            set { SetValue(IsAutomationEnabledProperty, value); }
+        }
+        public static readonly DependencyProperty IsAutomationEnabledProperty =
+            DependencyProperty.Register("IsAutomationEnabled", typeof(bool), typeof(SchedulerControl));
+
+
+        public bool IsGenerating
+        {
+            get { return (bool)GetValue(IsGeneratingProperty); }
+            set { SetValue(IsGeneratingProperty, value); }
+        }
+        public static readonly DependencyProperty IsGeneratingProperty =
+            DependencyProperty.Register("IsGenerating", typeof(bool), typeof(SchedulerControl));
 
 
 
@@ -149,12 +169,20 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private void ResetParameters()
         {
-            SchedulerOptions = new SchedulerOptionsModel();
+            SchedulerOptions = new SchedulerOptionsModel
+            {
+                SchedulerType = SelectedModel.ModelOptions.PipelineType.GetSchedulerTypes().First()
+            };
+        }
+
+        private void NewSeed()
+        {
+            SchedulerOptions.Seed = Random.Shared.Next();
         }
 
         private void RandomSeed()
         {
-            SchedulerOptions.Seed = Random.Shared.Next();
+            SchedulerOptions.Seed = 0;
         }
 
         #region INotifyPropertyChanged

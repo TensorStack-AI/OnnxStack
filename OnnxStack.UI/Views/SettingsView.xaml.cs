@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
@@ -13,19 +12,19 @@ using System.Windows.Controls;
 namespace OnnxStack.UI.Views
 {
     /// <summary>
-    /// Interaction logic for Settings.xaml
+    /// Interaction logic for SettingsView.xaml
     /// </summary>
-    public partial class Settings : UserControl, INavigatable, INotifyPropertyChanged
+    public partial class SettingsView : UserControl, INavigatable, INotifyPropertyChanged
     {
-        private readonly ILogger<Settings> _logger;
+        private readonly ILogger<SettingsView> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Settings"/> class.
+        /// Initializes a new instance of the <see cref="SettingsView"/> class.
         /// </summary>
-        public Settings()
+        public SettingsView()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
-                _logger = App.GetService<ILogger<Settings>>();
+                _logger = App.GetService<ILogger<SettingsView>>();
 
             SaveCommand = new AsyncRelayCommand(Save);
             InitializeComponent();
@@ -39,7 +38,7 @@ namespace OnnxStack.UI.Views
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(Settings));
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(SettingsView));
 
 
 

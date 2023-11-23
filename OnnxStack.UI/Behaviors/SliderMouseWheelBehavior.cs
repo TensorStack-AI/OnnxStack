@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xaml.Behaviors;
+using Newtonsoft.Json.Linq;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -16,11 +17,19 @@ namespace OnnxStack.UI.Behaviors
             var slider = (Slider)sender;
             if (e.Delta > 0)
             {
-                slider.Value += slider.TickFrequency;
+                var newValue = slider.Value + slider.TickFrequency;
+                if (newValue > slider.Maximum)
+                    return;
+
+                slider.Value = newValue;
             }
             else
             {
-                slider.Value -= slider.TickFrequency;
+                var newValue = slider.Value - slider.TickFrequency;
+                if (newValue < slider.Minimum)
+                    return;
+
+                slider.Value = newValue;
             }
         }
 

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="OnnxStack.UI.Views.Settings"
+﻿<UserControl x:Class="OnnxStack.UI.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -42,6 +42,15 @@
                                 IsEnabled="{Binding IsChecked, ElementName=CheckBoxImageAutoSave}" 
                                 IsRequired="{Binding IsChecked, ElementName=CheckBoxImageAutoSave}"/>
                         </StackPanel>
+
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="0,5,0,0">
+                                <TextBlock Text="Realtime Refresh Rate (ms)" />
+                                <TextBox Text="{Binding UISettings.RealtimeRefreshRate}"/>
+                            </StackPanel>
+                            <CheckBox Content="Enable Histrory" IsChecked="{Binding UISettings.RealtimeHistoryEnabled}" VerticalAlignment="Bottom" Margin="5,0,0,0" />
+                        </UniformGrid>
+                      
                     </StackPanel>
                 </GroupBox>
 
@@ -50,7 +59,7 @@
                     <StackPanel Margin="5">
                         <StackPanel Margin="0,10,0,0">
                             <TextBlock Text="Provider" />
-                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding UISettings.DefaultExecutionProvider}" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding UISettings.DefaultExecutionProvider}" ItemContainerStyle="{StaticResource ExecutionProviderTypes}" />
                         </StackPanel>
                         <StackPanel Margin="0,5,0,0">
                             <TextBlock Text="Mode" />

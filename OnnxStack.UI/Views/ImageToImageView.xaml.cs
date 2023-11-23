@@ -24,9 +24,9 @@ namespace OnnxStack.UI.Views
     /// <summary>
     /// Interaction logic for ImageToImage.xaml
     /// </summary>
-    public partial class ImageToImage : UserControl, INavigatable, INotifyPropertyChanged
+    public partial class ImageToImageView : UserControl, INavigatable, INotifyPropertyChanged
     {
-        private readonly ILogger<ImageToImage> _logger;
+        private readonly ILogger<ImageToImageView> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
 
         private bool _hasResult;
@@ -35,6 +35,7 @@ namespace OnnxStack.UI.Views
         private bool _isGenerating;
         private int _selectedTabIndex;
         private bool _hasInputResult;
+        private bool _isControlsEnabled;
         private ImageInput _inputImage;
         private ImageResult _resultImage;
         private ModelOptionsModel _selectedModel;
@@ -45,13 +46,13 @@ namespace OnnxStack.UI.Views
 
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageToImage"/> class.
+        /// Initializes a new instance of the <see cref="ImageToImageView"/> class.
         /// </summary>
-        public ImageToImage()
+        public ImageToImageView()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
-                _logger = App.GetService<ILogger<ImageToImage>>();
+                _logger = App.GetService<ILogger<ImageToImageView>>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
 
@@ -64,6 +65,7 @@ namespace OnnxStack.UI.Views
             BatchOptions = new BatchOptionsModel();
             ImageResults = new ObservableCollection<ImageResult>();
             ProgressMax = SchedulerOptions.InferenceSteps;
+            IsControlsEnabled = true;
             InitializeComponent();
         }
 
@@ -73,7 +75,7 @@ namespace OnnxStack.UI.Views
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ImageToImage));
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ImageToImageView));
 
         public List<DiffuserType> SupportedDiffusers { get; }
         public AsyncRelayCommand CancelCommand { get; }
@@ -153,6 +155,12 @@ namespace OnnxStack.UI.Views
             set { _selectedTabIndex = value; NotifyPropertyChanged(); }
         }
 
+        public bool IsControlsEnabled
+        {
+            get { return _isControlsEnabled; }
+            set { _isControlsEnabled = value; NotifyPropertyChanged(); }
+        }
+
 
         /// <summary>
         /// Called on Navigate
@@ -192,18 +200,9 @@ namespace OnnxStack.UI.Views
         {
             HasResult = false;
             IsGenerating = true;
+            IsControlsEnabled = false;
             ResultImage = null;
-            var promptOptions = new PromptOptions
-            {
-                Prompt = PromptOptions.Prompt,
-                NegativePrompt = PromptOptions.NegativePrompt,
-                DiffuserType = DiffuserType.ImageToImage,
-                InputImage = new StableDiffusion.Models.InputImage
-                {
-                    ImageBytes = InputImage.Image.GetImageBytes()
-                }
-            };
-
+            var promptOptions = GetPromptOptions(PromptOptions, InputImage);
             var batchOptions = BatchOptions.ToBatchOptions();
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
 
@@ -214,8 +213,13 @@ namespace OnnxStack.UI.Views
                     if (resultImage != null)
                     {
                         ResultImage = resultImage;
-                        ImageResults.Add(resultImage);
                         HasResult = true;
+                        if (BatchOptions.IsAutomationEnabled && BatchOptions.DisableHistory)
+                            continue;
+                        if (BatchOptions.IsRealtimeEnabled && !UISettings.RealtimeHistoryEnabled)
+                            continue;
+
+                        ImageResults.Add(resultImage);
                     }
                 }
             }
@@ -241,7 +245,7 @@ namespace OnnxStack.UI.Views
         private bool CanExecuteGenerate()
         {
             return !IsGenerating
-                && !string.IsNullOrEmpty(PromptOptions.Prompt) 
+               // && !string.IsNullOrEmpty(PromptOptions.Prompt)
                 && HasInputResult;
         }
 
@@ -298,6 +302,7 @@ namespace OnnxStack.UI.Views
         private void Reset()
         {
             IsGenerating = false;
+            IsControlsEnabled = true;
             ProgressValue = 0;
         }
 
@@ -313,21 +318,66 @@ namespace OnnxStack.UI.Views
         private async IAsyncEnumerable<ImageResult> ExecuteStableDiffusion(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions)
         {
             _cancelationTokenSource = new CancellationTokenSource();
-            if (!BatchOptions.IsAutomationEnabled)
+
+            if (!BatchOptions.IsRealtimeEnabled)
             {
-                var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
-                yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                if (!BatchOptions.IsAutomationEnabled)
+                {
+                    var timestamp = Stopwatch.GetTimestamp();
+                    var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                    yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                }
+                else
+                {
+                    if (!BatchOptions.IsRealtimeEnabled)
+                    {
+                        var timestamp = Stopwatch.GetTimestamp();
+                        await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
+                        {
+                            yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
+                            timestamp = Stopwatch.GetTimestamp();
+                        }
+
+                    }
+                }
             }
             else
             {
-                var timestamp = Stopwatch.GetTimestamp();
-                await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
+                // Realtime Diffusion
+                IsControlsEnabled = true;
+                SchedulerOptions.Seed = SchedulerOptions.Seed == 0 ? Random.Shared.Next() : SchedulerOptions.Seed;
+                while (!_cancelationTokenSource.IsCancellationRequested)
                 {
-                    yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
-                    timestamp = Stopwatch.GetTimestamp();
+                    var refreshTimestamp = Stopwatch.GetTimestamp();
+                    if (SchedulerOptions.HasChanged || PromptOptions.HasChanged)
+                    {
+                        PromptOptions.HasChanged = false;
+                        SchedulerOptions.HasChanged = false;
+                        var realtimePromptOptions = GetPromptOptions(PromptOptions, InputImage);
+                        var realtimeSchedulerOptions = SchedulerOptions.ToSchedulerOptions();
+
+                        var timestamp = Stopwatch.GetTimestamp();
+                        var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, RealtimeProgressCallback(), _cancelationTokenSource.Token);
+                        yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                    }
+                    await Utils.RefreshDelay(refreshTimestamp, UISettings.RealtimeRefreshRate, _cancelationTokenSource.Token);
                 }
             }
+        }
+
+
+        private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, ImageInput imageInput)
+        {
+            return new PromptOptions
+            {
+                Prompt = promptOptionsModel.Prompt,
+                NegativePrompt = promptOptionsModel.NegativePrompt,
+                DiffuserType = DiffuserType.ImageToImage,
+                InputImage = new StableDiffusion.Models.InputImage
+                {
+                    ImageBytes = imageInput.Image.GetImageBytes()
+                }
+            };
         }
 
 
@@ -403,6 +453,24 @@ namespace OnnxStack.UI.Views
                 });
             };
         }
+
+        private Action<int, int> RealtimeProgressCallback()
+        {
+            return (value, maximum) =>
+            {
+                App.UIInvoke(() =>
+                {
+                    if (_cancelationTokenSource.IsCancellationRequested)
+                        return;
+
+                    if (BatchOptions.StepValue != value)
+                        BatchOptions.StepValue = value;
+                    if (BatchOptions.StepsValue != maximum)
+                        BatchOptions.StepsValue = maximum;
+                });
+            };
+        }
+
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
