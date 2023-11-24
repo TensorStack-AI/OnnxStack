@@ -96,15 +96,19 @@ Realtime stable diffusion is a process where the results are constantly rendered
 
 Performance will depend on hardware and models selected, but for `Latent Consistency Models` you can get up to 4fps with a 3090 :)
 
-| Text To Image | Image To Image |
-| :--- | :--- |
-<video src="Assets/Samples/Realtime_TextToImage.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video> | <video src="Assets/Samples/Realtime_ImageToImage.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video>
+### Text To Image
+https://user-images.githubusercontent.com/4353684/285347887-99db7f37-cff4-48b6-805b-3ca55e8f0c3a.mp4
 
+### Image To Image
+https://user-images.githubusercontent.com/4353684/285348410-c19a2111-6745-4f01-8400-d137d40180fe.mp4
 
-| Image Inpaint | Paint To Image |
-| :--- | :--- |
-<video src="Assets/Samples/Realtime_Inpaint.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video> | <video src="Assets/Samples/Realtime_PaintToImage.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video>
+### Image Inpaint 
+https://user-images.githubusercontent.com/4353684/285347894-9d044d7d-7c22-4379-8187-9cf7b9cac89c.mp4
 
+### Paint To Image 
+https://user-images.githubusercontent.com/4353684/285347896-8da6709b-fea6-4cd4-ba65-ec692401f475.mp4
+
+https://user-images.githubusercontent.com/4353684/285348705-432cd0c7-5ff4-40a8-b7d0-62b58d22c443.mp4
 
 
 
