@@ -16,8 +16,11 @@
 
 
 ### Welcome to OnnxStack!
-OnnxStack is a library that provides higher-level services and integrations for .NET applications, enhancing the functionality and versatility of the `ONNX Runtime` and `Microsoft ML` projects, offering a comprehensive solution that empowers developers to build, deploy, and execute machine learning models seamlessly in .NET environments, unlocking a world of possibilities for intelligent applications.
+OnnxStack transforms machine learning in .NET, Seamlessly integrating with `ONNX Runtime` and `Microsoft ML`, this library empowers you to build, deploy, and execute machine learning models entirely within the .NET ecosystem. Bid farewell to Python dependencies and embrace a new era of intelligent applications tailored for .NET
+Welcome to Python-free AI integration with OnnxStack!
 
+
+### **[Discord](https://discord.gg/YxbQfbegdS)**  | **[Youtube](https://www.youtube.com/@OnnxStack)**
 
 # Projects
 
@@ -86,6 +89,26 @@ The black part of the mask will be used buy the process to generate new content,
 ```
    Prompt: Rider on horse
 ```
+
+
+## **Realtime Stable Diffusion**
+Realtime stable diffusion is a process where the results are constantly rendered as you are working with the image or changing the settings, This can be fantastic if you are creating new artworks or editing existing images.
+
+Performance will depend on hardware and models selected, but for `Latent Consistency Models` you can get up to 4fps with a 3090 :)
+
+### Text To Image
+https://user-images.githubusercontent.com/4353684/285347887-99db7f37-cff4-48b6-805b-3ca55e8f0c3a.mp4
+
+### Image To Image
+https://user-images.githubusercontent.com/4353684/285348410-c19a2111-6745-4f01-8400-d137d40180fe.mp4
+
+### Image Inpaint 
+https://user-images.githubusercontent.com/4353684/285347894-9d044d7d-7c22-4379-8187-9cf7b9cac89c.mp4
+
+### Paint To Image 
+https://user-images.githubusercontent.com/4353684/285347896-8da6709b-fea6-4cd4-ba65-ec692401f475.mp4
+
+https://user-images.githubusercontent.com/4353684/285348705-432cd0c7-5ff4-40a8-b7d0-62b58d22c443.mp4
 
 
 

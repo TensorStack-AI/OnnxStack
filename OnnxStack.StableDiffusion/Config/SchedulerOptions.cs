@@ -88,5 +88,17 @@ namespace OnnxStack.StableDiffusion.Config
         public int OriginalInferenceSteps { get; set; } = 50;
 
         public int NoiseLevel { get; set; } = 20;
+
+
+        public bool IsKarrasScheduler
+        {
+            get
+            {
+                return SchedulerType == SchedulerType.LMS
+                    || SchedulerType == SchedulerType.KDPM2
+                    || SchedulerType == SchedulerType.Euler
+                    || SchedulerType == SchedulerType.EulerAncestral;
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Schedulers.LatentConsistency;
 using System;
@@ -176,21 +177,16 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <returns></returns>
         protected DenseTensor<float> GetGuidanceScaleEmbedding(float guidance, int embeddingDim = 256)
         {
-            var scale = guidance - 1f;
+            var scale = (guidance - 1f) * 1000.0f;
             var halfDim = embeddingDim / 2;
             float log = MathF.Log(10000.0f) / (halfDim - 1);
             var emb = Enumerable.Range(0, halfDim)
-                .Select(x => MathF.Exp(x * -log))
+                .Select(x => scale * MathF.Exp(-log * x))
                 .ToArray();
-            var embSin = emb.Select(MathF.Sin).ToArray();
-            var embCos = emb.Select(MathF.Cos).ToArray();
-            var result = new DenseTensor<float>(new[] { 1, 2 * halfDim });
-            for (int i = 0; i < halfDim; i++)
-            {
-                result[0, i] = embSin[i];
-                result[0, i + halfDim] = embCos[i];
-            }
-            return result;
+            var embSin = emb.Select(MathF.Sin);
+            var embCos = emb.Select(MathF.Cos);
+            var guidanceEmbedding = embSin.Concat(embCos).ToArray();
+            return new DenseTensor<float>(guidanceEmbedding, new[] { 1, embeddingDim }); 
         }
     }
 }

@@ -1,8 +1,12 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using NumSharp;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+
 using System;
 using System.Linq;
+using System.Numerics;
+using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion
 {
@@ -114,5 +118,6 @@ namespace OnnxStack.StableDiffusion
                 _ => default
             };
         }
+
     }
 }

@@ -18,7 +18,6 @@
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType" 
         TextOptions.TextHintingMode="Fixed"  
-        UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         Style="{StaticResource BaseWindow}">
     <Grid DataContext="{Binding ElementName=UI}">
@@ -51,10 +50,25 @@
                         <TextBlock Text="Image To Image" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageToImage UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+                <views:ImageToImageView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Image Inpaint-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf15b;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
+                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Image Inpaint" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:ImageInpaintView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+            </TabItem>
+
+            <!--Paint To Image-->
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
@@ -63,10 +77,10 @@
                             <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
                             <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
                         </StackPanel>
-                        <TextBlock Text="Image Inpaint" Margin="5,0,0,0"/>
+                        <TextBlock Text="Paint To Image" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ImageInpaint UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+                <views:PaintToImageView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Image Upscale-->
@@ -94,7 +108,7 @@
                         </StackPanel>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Logger UISettings="{Binding UISettings}" LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
+                <views:LoggerView UISettings="{Binding UISettings}" LogOutput="{Binding OutputLog, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
             <!--Settings Window-->
@@ -106,7 +120,7 @@
                         </StackPanel>
                     </StackPanel>
                 </TabItem.Header>
-                <views:Settings UISettings="{Binding UISettings, Mode=TwoWay}" Margin="0,6,0,0"/>
+                <views:SettingsView UISettings="{Binding UISettings, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
 

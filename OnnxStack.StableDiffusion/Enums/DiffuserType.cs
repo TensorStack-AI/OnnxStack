@@ -6,7 +6,7 @@
         ImageToImage = 1,
         ImageInpaint = 2,
         ImageInpaintLegacy = 3,
-        ImageToAnimation = 4,
+        ImageToAnimation = 4
         ImageUpscale = 5,
     }
 }

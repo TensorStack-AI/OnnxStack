@@ -28,7 +28,9 @@
                         </ContextMenu>
                     </Image.ContextMenu>
                 </Image>
-                <InkCanvas x:Name="MaskCanvas"  Background="Transparent" ForceCursor="True" Cursor="Pen" MinHeight="512" MinWidth="512" PreviewMouseLeftButtonDown="MaskCanvas_MouseLeftButtonDown"
+                <InkCanvas x:Name="MaskCanvas"  Background="Transparent" ForceCursor="True" Cursor="Pen" MinHeight="512" MinWidth="512" 
+                    PreviewMouseLeftButtonUp="MaskCanvas_MouseLeftButtonUp"
+                    PreviewMouseLeftButtonDown="MaskCanvas_MouseLeftButtonDown"
                     IsEnabled="{Binding HasResult}"
                     EditingMode="{Binding MaskEditingMode}" 
                     Width="{Binding SchedulerOptions.Width}" 
@@ -56,18 +58,6 @@
 
                 <DockPanel >
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" IsEnabled="{Binding HasResult}" Visibility="{Binding IsMaskEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Button DockPanel.Dock="Right" Command="{Binding SaveMaskCommand}"  Width="50" BorderThickness="1,1,0,1">
-                            <userControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light"  />
-                            <Button.Style>
-                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Path=HasMaskChanged}" Value="True">
-                                            <Setter Property="Background" Value="{StaticResource RedHighlight}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
                         <Button DockPanel.Dock="Right" Command="{Binding MaskModeCommand}"  Width="50" Visibility="{Binding IsMaskEraserEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <userControls:FontAwesome Icon="&#xf304;" IconStyle="Light"  />
                         </Button>

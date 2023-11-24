@@ -15,6 +15,8 @@ namespace Models
         private int _stepsValue = 1;
         private int _batchValue;
         private int _batchsValue = 1;
+        private bool _disableHistory = true;
+        private bool _isRealtimeEnabled;
 
         public BatchOptionType BatchType
         {
@@ -38,12 +40,6 @@ namespace Models
         {
             get { return _increment; }
             set { _increment = value; NotifyPropertyChanged(); }
-        }
-
-        public bool IsAutomationEnabled
-        {
-            get { return _isAutomationEnabled; }
-            set { _isAutomationEnabled = value; NotifyPropertyChanged(); }
         }
 
         public int StepValue
@@ -70,6 +66,35 @@ namespace Models
             set { _batchsValue = value; NotifyPropertyChanged(); }
         }
 
+        public bool DisableHistory
+        {
+            get { return _disableHistory; }
+            set { _disableHistory = value; NotifyPropertyChanged(); }
+        }
+
+        public bool IsAutomationEnabled
+        {
+            get { return _isAutomationEnabled; }
+            set
+            {
+                _isAutomationEnabled = value;
+                if (_isAutomationEnabled)
+                    IsRealtimeEnabled = false;
+                NotifyPropertyChanged();
+            }
+        }
+
+        public bool IsRealtimeEnabled
+        {
+            get { return _isRealtimeEnabled; }
+            set
+            {
+                _isRealtimeEnabled = value;
+                if (_isRealtimeEnabled)
+                    IsAutomationEnabled = false;
+                NotifyPropertyChanged();
+            }
+        }
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

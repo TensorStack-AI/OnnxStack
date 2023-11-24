@@ -12,6 +12,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -217,6 +218,10 @@ namespace OnnxStack.StableDiffusion.Services
             if (diffuser is null)
                 throw new Exception("Diffuser not found or is unsupported");
 
+            var schedulerSupported = pipeline.PipelineType.GetSchedulerTypes().Contains(schedulerOptions.SchedulerType);
+            if (!schedulerSupported)
+                throw new Exception($"Scheduler '{schedulerOptions.SchedulerType}' is not compatible  with the `{pipeline.PipelineType}` pipeline.");
+
             return await diffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken);
         }
 
@@ -229,6 +234,10 @@ namespace OnnxStack.StableDiffusion.Services
             var diffuser = pipeline.GetDiffuser(promptOptions.DiffuserType);
             if (diffuser is null)
                 throw new Exception("Diffuser not found or is unsupported");
+
+            var schedulerSupported = pipeline.PipelineType.GetSchedulerTypes().Contains(schedulerOptions.SchedulerType);
+            if (!schedulerSupported)
+                throw new Exception($"Scheduler '{schedulerOptions.SchedulerType}' is not compatible  with the `{pipeline.PipelineType}` pipeline.");
 
             return diffuser.DiffuseBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progress, cancellationToken);
         }

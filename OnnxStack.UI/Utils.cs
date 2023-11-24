@@ -3,9 +3,12 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Models;
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -195,7 +198,13 @@ namespace OnnxStack.UI
             };
         }
 
-
+        internal static async Task RefreshDelay(long startTime, int refreshRate, CancellationToken cancellationToken)
+        {
+            var endTime = Stopwatch.GetTimestamp();
+            var elapsedMilliseconds = (endTime - startTime) * 1000.0 / Stopwatch.Frequency;
+            int adjustedDelay = Math.Max(0, refreshRate - (int)elapsedMilliseconds);
+            await Task.Delay(adjustedDelay, cancellationToken).ConfigureAwait(false);
+        }
 
         public static void LogToWindow(string message)
         {

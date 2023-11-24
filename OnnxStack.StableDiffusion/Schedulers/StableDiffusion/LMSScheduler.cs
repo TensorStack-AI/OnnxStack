@@ -3,7 +3,6 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
@@ -43,7 +42,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             var cumulativeProduct = alphas.Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b));
 
             _sigmas = cumulativeProduct
-                .Select(alpha_prod => (float)Math.Sqrt((1 - alpha_prod) / alpha_prod))
+                .Select(alpha_prod => MathF.Sqrt((1 - alpha_prod) / alpha_prod))
                 .ToArray();
 
             var initNoiseSigma = GetInitNoiseSigma(_sigmas);
@@ -57,12 +56,13 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            var sigmas = _sigmas.ToArray();
             var timesteps = GetTimesteps();
-            var log_sigmas = np.log(sigmas).ToArray<float>();
-            var range = np.arange(0, (float)_sigmas.Length).ToArray<float>();
-            sigmas = Interpolate(timesteps, range, _sigmas);
+            var log_sigmas = _sigmas.Select(x => MathF.Log(x)).ToArray();
+            var range = Enumerable.Range(0, _sigmas.Length)
+                .Select(x => (float)x)
+                .ToArray();
 
+            var sigmas = Interpolate(timesteps, range, _sigmas);
             if (Options.UseKarrasSigmas)
             {
                 sigmas = ConvertToKarras(sigmas);
@@ -72,7 +72,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             _sigmas = sigmas
                 .Append(0.000f)
                 .ToArray();
-
             return timesteps.Select(x => (int)x)
                  .OrderByDescending(x => x)
                  .ToArray();
@@ -92,7 +91,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 
             // Get sigma at stepIndex
             var sigma = _sigmas[stepIndex];
-            sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
+            sigma = MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f);
 
             // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
             return sample.DivideTensorByFloat(sigma);
@@ -144,7 +143,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             {
                 // Multiply to coeff by each derivatives to create the new tensors
                 var (lmsCoeff, derivative) = lmsCoeffsAndDerivatives[i];
-                lmsDerProduct[i] = derivative.MultiplyTensorByFloat((float)lmsCoeff);
+                lmsDerProduct[i] = derivative.MultiplyTensorByFloat(lmsCoeff);
             }
 
             // Add the sumed tensor to the sample
@@ -180,7 +179,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <param name="t">The t.</param>
         /// <param name="currentOrder">The current order.</param>
         /// <returns></returns>
-        private double GetLmsCoefficient(int order, int t, int currentOrder)
+        private float GetLmsCoefficient(int order, int t, int currentOrder)
         {
             // python line 135 of scheduling_lms_discrete.py
             // Compute a linear multistep coefficient.
@@ -197,7 +196,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 }
                 return prod;
             }
-            return Integrate.OnClosedInterval(LmsDerivative, _sigmas[t], _sigmas[t + 1], 1e-4);
+            return (float)Integrate.OnClosedInterval(LmsDerivative, _sigmas[t], _sigmas[t + 1], 1e-4);
         }
 
         protected override void Dispose(bool disposing)
