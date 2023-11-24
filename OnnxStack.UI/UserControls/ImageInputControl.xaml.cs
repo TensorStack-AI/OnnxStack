@@ -5,6 +5,7 @@ using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
 using System;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -39,7 +40,6 @@ namespace OnnxStack.UI.UserControls
             LoadImageCommand = new AsyncRelayCommand(LoadImage);
             ClearImageCommand = new AsyncRelayCommand(ClearImage);
             MaskModeCommand = new AsyncRelayCommand(MaskMode);
-            SaveMaskCommand = new AsyncRelayCommand(SaveMask);
             CopyImageCommand = new AsyncRelayCommand(CopyImage);
             PasteImageCommand = new AsyncRelayCommand(PasteImage);
             InitializeComponent();
@@ -48,7 +48,6 @@ namespace OnnxStack.UI.UserControls
         public AsyncRelayCommand LoadImageCommand { get; }
         public AsyncRelayCommand ClearImageCommand { get; }
         public AsyncRelayCommand MaskModeCommand { get; }
-        public AsyncRelayCommand SaveMaskCommand { get; }
         public AsyncRelayCommand CopyImageCommand { get; }
         public AsyncRelayCommand PasteImageCommand { get; }
         public ImageInput Result
@@ -58,7 +57,11 @@ namespace OnnxStack.UI.UserControls
         }
 
         public static readonly DependencyProperty ResultProperty =
-            DependencyProperty.Register("Result", typeof(ImageInput), typeof(ImageInputControl));
+            DependencyProperty.Register("Result", typeof(ImageInput), typeof(ImageInputControl), new PropertyMetadata((s, e) =>
+            {
+                if (s is ImageInputControl control)
+                    control.SaveMask();
+            }));
 
         public ImageInput MaskResult
         {
@@ -242,6 +245,9 @@ namespace OnnxStack.UI.UserControls
         /// <returns></returns>
         public BitmapSource CreateMaskImage()
         {
+            if (MaskCanvas.ActualWidth == 0)
+                return CreateEmptyMaskImage();
+
             // Create a RenderTargetBitmap to render the Canvas content.
             var renderBitmap = new RenderTargetBitmap((int)MaskCanvas.ActualWidth, (int)MaskCanvas.ActualHeight, 96, 96, PixelFormats.Pbgra32);
 
@@ -256,7 +262,27 @@ namespace OnnxStack.UI.UserControls
             return renderBitmap;
         }
 
-        private void ShowCropImageDialog(BitmapSource source = null, string sourceFile = null)
+
+        public BitmapSource CreateEmptyMaskImage()
+        {
+            var wbm = new WriteableBitmap(SchedulerOptions.Width, SchedulerOptions.Height, 96, 96, PixelFormats.Bgra32, null);
+            BitmapImage bmImage = new BitmapImage();
+            using (MemoryStream stream = new MemoryStream())
+            {
+                PngBitmapEncoder encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(wbm));
+                encoder.Save(stream);
+                bmImage.BeginInit();
+                bmImage.CacheOption = BitmapCacheOption.OnLoad;
+                bmImage.StreamSource = stream;
+                bmImage.EndInit();
+                bmImage.Freeze();
+            }
+            return bmImage;
+        }
+
+
+        private async void ShowCropImageDialog(BitmapSource source = null, string sourceFile = null)
         {
             try
             {
@@ -269,13 +295,14 @@ namespace OnnxStack.UI.UserControls
             loadImageDialog.Initialize(SchedulerOptions.Width, SchedulerOptions.Height, source);
             if (loadImageDialog.ShowDialog() == true)
             {
-                ClearImage();
+                await ClearImage();
                 Result = new ImageInput
                 {
                     Image = loadImageDialog.GetImageResult(),
                     FileName = loadImageDialog.ImageFile,
                 };
                 HasResult = true;
+                await SaveMask();
             }
         }
 
@@ -332,6 +359,16 @@ namespace OnnxStack.UI.UserControls
             HasMaskChanged = true;
         }
 
+
+        /// <summary>
+        /// Handles the MouseLeftButtonUp event of the MaskCanvas control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        private async void MaskCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            await SaveMask();
+        }
 
         /// <summary>
         /// Called on key down.

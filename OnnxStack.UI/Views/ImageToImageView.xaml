@@ -1,0 +1,114 @@
+﻿<UserControl x:Class="OnnxStack.UI.Views.ImageToImageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+             xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
+             Name="UI" mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800" >
+    <Grid DataContext="{Binding ElementName=UI}" >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="4" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--Control Panel-->
+        <DockPanel Grid.Column="0" DataContext="{Binding ElementName=UI}" Margin="3,3,3,0">
+            <UniformGrid DockPanel.Dock="Bottom" Columns="2" Height="30">
+                <Button Command="{Binding CancelCommand}" Margin="0,0,1,0" Style="{StaticResource ButtonGenerateCancelStyle}"/>
+                <Button Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" Style="{StaticResource ButtonGenerateStyle}" IsDefault="True" Margin="1,0,0,0"/>
+            </UniformGrid>
+            <DockPanel>
+                <userControls:ModelPickerControl DockPanel.Dock="Top"
+                      UISettings="{Binding UISettings}"
+                      SupportedDiffusers="{Binding SupportedDiffusers}"
+                      IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
+                      SelectedModel="{Binding SelectedModel, Mode=TwoWay}" Models="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=Models}"/>
+                <UniformGrid Rows="2" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
+                    <userControls:PromptControl 
+                        SelectedModel="{Binding SelectedModel}"
+                        PromptOptions="{Binding PromptOptions}" 
+                        IsEnabled="{Binding IsControlsEnabled}"/>
+                    <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
+                        SelectedModel="{Binding SelectedModel}"
+                        DiffuserType="ImageToImage" 
+                        BatchOptions="{Binding BatchOptions}"
+                        SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
+                        IsEnabled="{Binding IsControlsEnabled}"
+                        IsGenerating="{Binding IsGenerating}"
+                        IsAutomationEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"/>
+                </UniformGrid>
+            </DockPanel>
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="4"/>
+
+        <!--Content Panel-->
+        <DockPanel Grid.Column="2" Margin="3,0,0,0">
+
+            <!--Generate Tab-->
+            <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal" Margin="15,5">
+                            <userControls:FontAwesome Icon="&#xf0d0;" IconStyle="Light"/>
+                            <TextBlock Text="Generate" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </TabItem.Header>
+                    <UniformGrid Columns="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Viewbox Margin="40,40,20,40" >
+                            <userControls:ImageInputControl 
+                                Result="{Binding InputImage, Mode=TwoWay}" 
+                                HasResult="{Binding HasInputResult, Mode=TwoWay}" 
+                                SchedulerOptions="{Binding SchedulerOptions}"
+                                IsMaskEnabled="False"/>
+                        </Viewbox>
+                        <Viewbox Margin="20,40,40,40" >
+                            <userControls:ImageResultControl 
+                                Result="{Binding ResultImage}" 
+                                HasResult="{Binding HasResult}" 
+                                ProgressMax="{Binding ProgressMax}" 
+                                ProgressValue="{Binding ProgressValue}" 
+                                SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" />
+                        </Viewbox>
+                    </UniformGrid>
+                </TabItem>
+
+                <!--History Tab-->
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal" Margin="15,5">
+                            <userControls:FontAwesome Icon="&#xf03a;" IconStyle="Light"/>
+                            <TextBlock Text="History" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </TabItem.Header>
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Bottom" HorizontalAlignment="Right">
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <Button Command="{Binding ClearHistoryCommand}"  Padding="10,3"  Height="30">
+                                    <userControls:FontAwesome Icon="&#xf2ed;" IconStyle="Light"/>
+                                </Button>
+                            </StackPanel>
+                        </DockPanel>
+                        <ListBox ItemsSource="{Binding}" ItemContainerStyle="{StaticResource ImageResultListBoxItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" >
+                            <ListBox.DataContext>
+                                <CollectionViewSource Source="{Binding ImageResults, ElementName=UI}">
+                                    <CollectionViewSource.SortDescriptions>
+                                        <scm:SortDescription PropertyName="Timestamp" Direction="Descending" />
+                                    </CollectionViewSource.SortDescriptions>
+                                </CollectionViewSource>
+                            </ListBox.DataContext>
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel  />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+                    </DockPanel>
+                </TabItem>
+
+            </TabControl>
+        </DockPanel>
+    </Grid>
+</UserControl>

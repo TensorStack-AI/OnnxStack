@@ -106,8 +106,7 @@
 
 
 
-
-
+      
 
 
 
@@ -248,10 +247,10 @@
                             <userControls:FontAwesome Icon="&#xf302;" IconStyle="Light"  Size="13" ToolTip="Send To Image To Image"/>
                         </Button>
                         <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageInpaintCommand}" CommandParameter="{Binding}" >
-                            <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light"  Size="13" ToolTip="Send To Image Inpaint"/>
+                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"  Size="13" ToolTip="Send To Image Inpaint"/>
                         </Button>
-                        <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageUpscaleCommand}" CommandParameter="{Binding}" Padding="2,2" BorderThickness="0,1,1,1">
-                            <userControls:FontAwesome Icon="&#xf065;" IconStyle="Light" Size="13" ToolTip="Send To Upscaler"/>
+                        <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImagePaintToImageCommand}" CommandParameter="{Binding}" Padding="2,2" BorderThickness="0,1,1,1">
+                            <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light" Size="13" ToolTip="Send To Upscaler"/>
                         </Button>
                     </UniformGrid>
                 </StackPanel>
@@ -1978,7 +1977,35 @@
 
 
 
+        <Style x:Key="ExecutionProviderTypes" TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding}" Value="Cpu">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding}" Value="DirectML">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
 
+        <Style x:Key="ButtonGenerateStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Content" Value="Generate" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding BatchOptions.IsRealtimeEnabled, ElementName=UI}" Value="True">
+                    <Setter Property="Content" Value="Start" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ButtonGenerateCancelStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Content" Value="Cancel" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding BatchOptions.IsRealtimeEnabled, ElementName=UI}" Value="True">
+                    <Setter Property="Content" Value="Stop" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
 
 
     </Application.Resources>

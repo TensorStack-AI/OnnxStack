@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -6,6 +7,7 @@ using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 {
@@ -68,18 +70,15 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 
             //# LCM Training Steps Schedule
             var lcmOriginTimesteps = Enumerable.Range(1, Options.OriginalInferenceSteps)
-                .Select(x => x * timeIncrement - 1f)
+                .Select(x => x * timeIncrement - 1)
                 .ToArray();
 
-            var skippingStep = lcmOriginTimesteps.Length / Options.InferenceSteps;
-
-            // LCM Inference Steps Schedule
-            return lcmOriginTimesteps
-                .Where((t, index) => index % skippingStep == 0)
-                .Take(Options.InferenceSteps)
-                .Select(x => (int)x)
-                .OrderByDescending(x => x)
-                .ToArray();
+            var steps = ArrayHelpers.Linspace(0, lcmOriginTimesteps.Length - 1, Options.InferenceSteps)
+               .Select(x => (int)Math.Floor(x))
+               .Select(x => lcmOriginTimesteps[x])
+               .OrderByDescending(x => x)
+               .ToArray();
+             return steps;
         }
 
 
@@ -111,19 +110,20 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 
             // 1. get previous step value
             int prevIndex = Timesteps.IndexOf(currentTimestep) + 1;
-            int previousTimestep = prevIndex < Timesteps.Count 
-                ? Timesteps[prevIndex] 
+            int previousTimestep = prevIndex < Timesteps.Count
+                ? Timesteps[prevIndex]
                 : currentTimestep;
 
             //# 2. compute alphas, betas
             float alphaProdT = _alphasCumProd[currentTimestep];
-            float alphaProdTPrev = previousTimestep >= 0 
-                ? _alphasCumProd[previousTimestep] 
+            float alphaProdTPrev = previousTimestep >= 0
+                ? _alphasCumProd[previousTimestep]
                 : _finalAlphaCumprod;
             float betaProdT = 1f - alphaProdT;
             float betaProdTPrev = 1f - alphaProdTPrev;
-            float alphaSqrt = MathF.Sqrt(alphaProdT);
-            float betaSqrt = MathF.Sqrt(betaProdT);
+
+            float alphaProdTSqrt = MathF.Sqrt(alphaProdT);
+            float betaProdTSqrt = MathF.Sqrt(betaProdT);
             float betaProdTPrevSqrt = MathF.Sqrt(betaProdTPrev);
             float alphaProdTPrevSqrt = MathF.Sqrt(alphaProdTPrev);
 
@@ -137,8 +137,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             if (Options.PredictionType == PredictionType.Epsilon)
             {
                 predOriginalSample = sample
-                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaSqrt))
-                    .DivideTensorByFloat(alphaSqrt);
+                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaProdTSqrt))
+                    .DivideTensorByFloat(alphaProdTSqrt);
             }
             else if (Options.PredictionType == PredictionType.Sample)
             {
@@ -147,8 +147,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
                 predOriginalSample = sample
-                    .MultiplyTensorByFloat(alphaSqrt)
-                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaSqrt));
+                    .MultiplyTensorByFloat(alphaProdTSqrt)
+                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaProdTSqrt));
             }
 
 
@@ -163,13 +163,22 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 
 
             //# 7. Sample and inject noise z ~ N(0, I) for MultiStep Inference
-            var prevSample = Timesteps.Count > 1
-                ? CreateRandomSample(modelOutput.Dimensions)
+            //# Noise is not used on the final timestep of the timestep schedule.
+            //# This also means that noise is not used for one-step sampling.
+            if (Timesteps.IndexOf(currentTimestep) != Options.InferenceSteps - 1)
+            {
+                var noise = CreateRandomSample(modelOutput.Dimensions);
+                predOriginalSample = noise
                     .MultiplyTensorByFloat(betaProdTPrevSqrt)
-                    .AddTensors(denoised.MultiplyTensorByFloat(alphaProdTPrevSqrt))
-                : denoised;
+                    .AddTensors(denoised.MultiplyTensorByFloat(alphaProdTPrevSqrt));
+            }
+            else
+            {
+                predOriginalSample = denoised;
+            }
 
-            return new SchedulerStepResult(prevSample, denoised);
+
+            return new SchedulerStepResult(predOriginalSample, denoised);
         }
 
 
@@ -203,10 +212,12 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         {
             //self.sigma_data = 0.5  # Default: 0.5
             var sigmaData = 0.5f;
+            var timestepScaling = 10f;
+            var scaledTimestep = timestepScaling * timestep;
 
-            float c = MathF.Pow(timestep / 0.1f, 2f) + MathF.Pow(sigmaData, 2f);
+            float c = MathF.Pow(scaledTimestep, 2f) + MathF.Pow(sigmaData, 2f);
             float cSkip = MathF.Pow(sigmaData, 2f) / c;
-            float cOut = timestep / 0.1f / MathF.Pow(c, 0.5f);
+            float cOut = scaledTimestep / MathF.Pow(c, 0.5f);
             return (cSkip, cOut);
         }
 

@@ -13,7 +13,7 @@ namespace OnnxStack.UI.Models
         private int _seed;
         private int _inferenceSteps = 30;
         private float _guidanceScale = 7.5f;
-        private float _strength = 0.7f;
+        private float _strength = 0.75f;
         private float _initialNoiseLevel = 0f;
         private int _trainTimesteps = 1000;
         private float _betaStart = 0.00085f;
@@ -33,6 +33,7 @@ namespace OnnxStack.UI.Models
         private float _maximumBeta = 0.999f;
         private int _originalInferenceSteps = 100;
         private SchedulerType _schedulerType;
+        private bool _hasChanged;
 
         /// <summary>
         /// Gets or sets the height.
@@ -210,11 +211,21 @@ namespace OnnxStack.UI.Models
             set { _schedulerType = value; NotifyPropertyChanged(); }
         }
 
+        public bool HasChanged
+        {
+            get { return _hasChanged; }
+            set { _hasChanged = value; NotifyPropertyChanged(); }
+        }
+
+
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         public void NotifyPropertyChanged([CallerMemberName] string property = "")
         {
+            if (!property.Equals(nameof(HasChanged)) && !HasChanged)
+                HasChanged = true;
+
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
         #endregion

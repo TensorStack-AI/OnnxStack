@@ -26,31 +26,138 @@
                     </StackPanel>
                 </TabItem.Header>
                 <StackPanel Margin="2">
-                    <StackPanel>
-                        <Label>Scheduler</Label>
-                        <ComboBox ItemsSource="{Binding SchedulerTypes}" SelectedItem="{Binding SchedulerOptions.SchedulerType}"/>
-                    </StackPanel>
-                    <UniformGrid Columns="4" Margin="0,2,0,0">
-                        <StackPanel>
-                            <Label>Seed</Label>
-                            <TextBox Text="{Binding SchedulerOptions.Seed}"/>
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,5,0">
+                            <Label>Scheduler</Label>
+                            <ComboBox ItemsSource="{Binding SchedulerTypes}" SelectedItem="{Binding SchedulerOptions.SchedulerType}"/>
                         </StackPanel>
-                        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left">
-                            <Button Command="{Binding RandomSeedCommand}" Height="22" Width="22" BorderThickness="0,1,1,1">
-                                <userControls:FontAwesome Icon="&#xf074;" IconStyle="Light"/>
-                            </Button>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="5,8,0,0">
+                                <Ellipse Fill="Red" Width="15" Height="15" >
+                                    <Ellipse.Triggers>
+                                        <EventTrigger RoutedEvent="Ellipse.Loaded">
+                                            <EventTrigger.Actions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Ellipse.Opacity)"
+                                                                Duration="0:0:6"
+                                                                FillBehavior="Stop"
+                                                                RepeatBehavior="Forever"
+                                                                AutoReverse="False">
+                                                            <DoubleAnimationUsingKeyFrames.KeyFrames>
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:0" Value=".5"/>
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:3" Value=".8"/>
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:6" Value=".5"/>
+                                                            </DoubleAnimationUsingKeyFrames.KeyFrames>
+                                                        </DoubleAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger.Actions>
+                                        </EventTrigger>
+                                    </Ellipse.Triggers>
+                                </Ellipse>
+                                <StackPanel.Style>
+                                    <Style TargetType="{x:Type StackPanel}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsGenerating}" Value="True" />
+                                                    <Condition Binding="{Binding BatchOptions.IsRealtimeEnabled}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <MultiDataTrigger.Setters>
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </MultiDataTrigger.Setters>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="5,8,0,0">
+                                <Ellipse Fill="{StaticResource ControlDisabledBorderBrush}" Width="15" Height="15" />
+
+                                <StackPanel.Style>
+                                    <Style TargetType="{x:Type StackPanel}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsGenerating}" Value="True" />
+                                                    <Condition Binding="{Binding BatchOptions.IsRealtimeEnabled}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <MultiDataTrigger.Setters>
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </MultiDataTrigger.Setters>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                            </StackPanel>
+
+                            <StackPanel>
+                                <CheckBox IsChecked="{Binding BatchOptions.IsRealtimeEnabled}" Content="Enable Live Update" Margin="4,12,0,0" />
+                                <StackPanel.Style>
+                                    <Style TargetType="{x:Type StackPanel}">
+                                        <Setter Property="IsEnabled" Value="True" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsGenerating}" Value="True" />
+                                                    <Condition Binding="{Binding BatchOptions.IsRealtimeEnabled}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <MultiDataTrigger.Setters>
+                                                    <Setter Property="IsEnabled" Value="False" />
+                                                </MultiDataTrigger.Setters>
+                                            </MultiDataTrigger>
+                                            <DataTrigger Binding="{Binding BatchOptions.IsAutomationEnabled}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                            </StackPanel>
+
                         </StackPanel>
-                        <StackPanel Margin="1,0,1,0">
-                            <Label>Width</Label>
-                            <ComboBox ItemsSource="{Binding ValidSizes}" SelectedItem="{Binding SchedulerOptions.Width}" />
-                        </StackPanel>
-                        <StackPanel>
-                            <Label>Height</Label>
-                            <ComboBox ItemsSource="{Binding ValidSizes}" SelectedItem="{Binding SchedulerOptions.Height}" />
-                        </StackPanel>
+
+
                     </UniformGrid>
 
-                    <UniformGrid Columns="2" Margin="0,10,0,0">
+
+                    <UniformGrid Columns="2" >
+                        <DockPanel Margin="0,0,5,0">
+                            <UniformGrid DockPanel.Dock="Right" Columns="2" VerticalAlignment="Bottom" >
+                                <Button Command="{Binding NewSeedCommand}" BorderThickness="0,1,1,1" ToolTip="New Seed" Width="25">
+                                    <userControls:FontAwesome Icon="&#xf051;" IconStyle="Light" Size="15"/>
+                                </Button>
+                                <Button Command="{Binding RandomSeedCommand}"  BorderThickness="0,1,1,1" ToolTip="Random Seeds">
+                                    <userControls:FontAwesome Icon="&#xf074;" IconStyle="Light"/>
+                                </Button>
+                            </UniformGrid>
+
+                            <StackPanel>
+                                <Label>Seed</Label>
+                                <TextBox Text="{Binding SchedulerOptions.Seed}"/>
+                            </StackPanel>
+
+                        </DockPanel>
+
+                        <UniformGrid Columns="2" Margin="5,0,0,0">
+                            <StackPanel Margin="1,0,1,0">
+                                <Label>Width</Label>
+                                <ComboBox ItemsSource="{Binding ValidSizes}" SelectedItem="{Binding SchedulerOptions.Width}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <Label>Height</Label>
+                                <ComboBox ItemsSource="{Binding ValidSizes}" SelectedItem="{Binding SchedulerOptions.Height}" />
+                            </StackPanel>
+                        </UniformGrid>
+
+                    </UniformGrid>
+
+                    <UniformGrid Columns="2" Margin="0,5,0,0">
                         <StackPanel Margin="0,0,5,0">
                             <DockPanel >
                                 <Label>Inference Steps</Label>
@@ -75,7 +182,7 @@
                         </StackPanel>
                     </UniformGrid>
 
-                    <UniformGrid Columns="2" Margin="0,10,0,10">
+                    <UniformGrid Columns="2" Margin="0,5,0,0">
 
 
                         <StackPanel Margin="0,0,5,0">
@@ -124,11 +231,49 @@
                         </StackPanel>
                     </UniformGrid>
 
-                    <StackPanel HorizontalAlignment="Right">
-                        <Button  Command="{Binding ResetParametersCommand}" Margin="0,5,0,0">
-                            <userControls:FontAwesome Icon="&#xf2ea;" IconStyle="Light" Size="14"  Margin="2"/>
-                        </Button>
-                    </StackPanel>
+                    <UniformGrid Columns="2" Rows="1" Margin="0,1,0,10">
+
+                        <StackPanel Margin="0,0,5,0">
+                            <Label>Beta Schedule</Label>
+                            <ComboBox ItemsSource="{Binding Source={StaticResource BetaScheduleType}}" SelectedItem="{Binding SchedulerOptions.BetaSchedule}">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding}" Value="SquaredCosCapV2">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel VerticalAlignment="Bottom"  >
+                            <CheckBox Content="Use Karras Sigmas" IsChecked="{Binding SchedulerOptions.UseKarrasSigmas}" Margin="5,0,0,5" />
+                            <StackPanel.Style>
+                                <Style TargetType="{x:Type StackPanel}">
+                                    <Setter Property="IsEnabled" Value="True" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SchedulerOptions.SchedulerType, ElementName=UI}" Value="LCM" >
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SchedulerOptions.SchedulerType, ElementName=UI}" Value="DDIM" >
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SchedulerOptions.SchedulerType, ElementName=UI}" Value="DDPM" >
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+
+                    </UniformGrid>
+
+                    <UniformGrid>
+
+                    </UniformGrid>
                 </StackPanel>
             </TabItem>
 
@@ -143,12 +288,8 @@
                 <StackPanel Margin="2">
 
                     <UniformGrid Columns="2" Margin="0,10, 0, 0">
-                        <StackPanel HorizontalAlignment="Center">
-                            <CheckBox Content="Use Karras Sigmas" IsChecked="{Binding SchedulerOptions.UseKarrasSigmas}"  Margin="0,0,0,5"/>
-                        </StackPanel>
-                        <StackPanel HorizontalAlignment="Center">
-                            <CheckBox Content="Thresholding" IsChecked="{Binding SchedulerOptions.Thresholding}"  Margin="0,0,0,5"/>
-                        </StackPanel>
+
+
                     </UniformGrid>
 
                     <UniformGrid Columns="3">
@@ -182,25 +323,23 @@
                     </UniformGrid>
 
                     <UniformGrid Columns="3">
+
                         <StackPanel>
-                            <Label>BetaSchedule</Label>
-                            <ComboBox ItemsSource="{Binding Source={StaticResource BetaScheduleType}}" SelectedItem="{Binding SchedulerOptions.BetaSchedule}" />
-                        </StackPanel>
-                        <StackPanel Margin="1,0,1,0">
                             <Label>BetaStart</Label>
                             <TextBox Text="{Binding SchedulerOptions.BetaStart}"/>
                         </StackPanel>
-                        <StackPanel>
+                        <StackPanel Margin="1,0,1,0">
                             <Label>BetaEnd</Label>
                             <TextBox Text="{Binding SchedulerOptions.BetaEnd}"/>
                         </StackPanel>
-                    </UniformGrid>
-
-                    <UniformGrid Columns="3">
                         <StackPanel>
                             <Label>MaximumBeta</Label>
                             <TextBox Text="{Binding SchedulerOptions.MaximumBeta}"/>
                         </StackPanel>
+                    </UniformGrid>
+
+                    <UniformGrid Columns="3">
+
                         <StackPanel Margin="1,0,1,0">
                             <Label>ClipSampleRange</Label>
                             <TextBox Text="{Binding SchedulerOptions.ClipSampleRange}"/>
@@ -208,11 +347,14 @@
                         <StackPanel VerticalAlignment="Bottom">
                             <CheckBox Content="ClipSample" IsChecked="{Binding SchedulerOptions.ClipSample}"  Margin="5,0,0,5"/>
                         </StackPanel>
+                        <StackPanel VerticalAlignment="Bottom">
+                            <CheckBox Content="Thresholding" IsChecked="{Binding SchedulerOptions.Thresholding}"   Margin="5,0,0,5"/>
+                        </StackPanel>
                     </UniformGrid>
 
                     <UniformGrid Columns="3">
                         <StackPanel Visibility="{Binding SelectedModel.ModelOptions.PipelineType, Converter={StaticResource PipelineVisibilityConverter}, ConverterParameter=LatentConsistency}">
-                            <Label>LCM Original Steps</Label>
+                            <Label>Original Timesteps</Label>
                             <TextBox Text="{Binding SchedulerOptions.OriginalInferenceSteps}"/>
                         </StackPanel>
                         <StackPanel Margin="1,0,1,0">
@@ -232,14 +374,14 @@
             </TabItem>
 
             <!--Automation-->
-            <TabItem>
+            <TabItem IsEnabled="{Binding BatchOptions.IsRealtimeEnabled, Converter={StaticResource InverseBoolConverter}}">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <userControls:FontAwesome Icon="&#xf544;" IconStyle="Light"/>
                         <TextBlock Text="Automation" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <StackPanel Margin="5">
+                <StackPanel Margin="5" IsEnabled="{Binding IsAutomationEnabled}">
 
                     <CheckBox Content="Enable Automation" IsChecked="{Binding BatchOptions.IsAutomationEnabled}" Margin="0,10,0,0"/>
 
@@ -359,17 +501,29 @@
                             </StackPanel>
                             <ProgressBar Value="{Binding BatchOptions.StepValue}" Maximum="{Binding BatchOptions.StepsValue}" Height="22"/>
 
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0 ">
-                                <TextBlock Text="Batch " />
-                                <TextBlock Text="{Binding BatchOptions.BatchValue}" DockPanel.Dock="Left" />
-                                <TextBlock Text=" / " />
-                                <TextBlock Text="{Binding BatchOptions.BatchsValue}" DockPanel.Dock="Right"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0 ">
+                                    <TextBlock Text="Batch " />
+                                    <TextBlock Text="{Binding BatchOptions.BatchValue}" DockPanel.Dock="Left" />
+                                    <TextBlock Text=" / " />
+                                    <TextBlock Text="{Binding BatchOptions.BatchsValue}" DockPanel.Dock="Right"/>
+                                </StackPanel>
+                                <ProgressBar Value="{Binding BatchOptions.BatchValue}" Maximum="{Binding BatchOptions.BatchsValue}" Height="22"/>
+                                <StackPanel.Style>
+                                    <Style TargetType="{x:Type StackPanel}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding BatchOptions.BatchType, ElementName=UI}" Value="Realtime" >
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                             </StackPanel>
-                            <ProgressBar Value="{Binding BatchOptions.BatchValue}" Maximum="{Binding BatchOptions.BatchsValue}" Height="22"/>
+
+
                         </StackPanel>
-
                     </StackPanel>
-
                 </StackPanel>
             </TabItem>
 
