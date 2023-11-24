@@ -16,8 +16,11 @@
 
 
 ### Welcome to OnnxStack!
-OnnxStack is a library that provides higher-level services and integrations for .NET applications, enhancing the functionality and versatility of the `ONNX Runtime` and `Microsoft ML` projects, offering a comprehensive solution that empowers developers to build, deploy, and execute machine learning models seamlessly in .NET environments, unlocking a world of possibilities for intelligent applications.
+OnnxStack transforms machine learning in .NET, Seamlessly integrating with `ONNX Runtime` and `Microsoft ML`, this library empowers you to build, deploy, and execute machine learning models entirely within the .NET ecosystem. Bid farewell to Python dependencies and embrace a new era of intelligent applications tailored for .NET
+Welcome to Python-free AI integration with OnnxStack!
 
+
+### **[Discord](https://discord.gg/YxbQfbegdS)**  | **[Youtube](https://www.youtube.com/@OnnxStack)**
 
 # Projects
 
@@ -86,6 +89,22 @@ The black part of the mask will be used buy the process to generate new content,
 ```
    Prompt: Rider on horse
 ```
+
+
+## **Realtime Stable Diffusion**
+Realtime stable diffusion is a process where the results are constantly rendered as you are working with the image or changing the settings, This can be fantastic if you are creating new artworks or editing existing images.
+
+Performance will depend on hardware and models selected, but for `Latent Consistency Models` you can get up to 4fps with a 3090 :)
+
+| Text To Image | Image To Image |
+| :--- | :--- |
+<video src="Assets/Samples/Realtime_TextToImage.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video> | <video src="Assets/Samples/Realtime_ImageToImage.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video>
+
+
+| Image Inpaint | Paint To Image |
+| :--- | :--- |
+<video src="Assets/Samples/Realtime_Inpaint.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video> | <video src="Assets/Samples/Realtime_PaintToImage.mp4" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" width="512" ></video>
+
 
 
 
