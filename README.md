@@ -20,6 +20,8 @@ OnnxStack transforms machine learning in .NET, Seamlessly integrating with `ONNX
 Welcome to Python-free AI integration with OnnxStack!
 
 
+## **Latest Release Download: [OnnxStack UI v0.9.0](https://github.com/saddam213/OnnxStack/releases/download/v0.9.0/WindowsUI.v0.9.0.zip)**
+
 ### **[Discord](https://discord.gg/YxbQfbegdS)**  | **[Youtube](https://www.youtube.com/@OnnxStack)**
 
 # Projects
