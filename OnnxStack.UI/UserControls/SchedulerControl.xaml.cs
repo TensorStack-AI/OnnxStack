@@ -145,6 +145,11 @@ namespace OnnxStack.UI.UserControls
                 SchedulerOptions.InferenceSteps = 6;
                 SchedulerOptions.GuidanceScale = 1f;
             }
+            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.InstaFlow)
+            {
+                SchedulerOptions.InferenceSteps = 1;
+                SchedulerOptions.GuidanceScale = 0f;
+            }
 
 
             SchedulerTypes.Clear();
