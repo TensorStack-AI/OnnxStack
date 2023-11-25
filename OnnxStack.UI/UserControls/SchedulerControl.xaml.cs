@@ -1,4 +1,5 @@
-﻿using Models;
+﻿using LibGit2Sharp;
+using Models;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Config;
@@ -144,21 +145,19 @@ namespace OnnxStack.UI.UserControls
                 SchedulerOptions.InferenceSteps = 6;
                 SchedulerOptions.GuidanceScale = 1f;
             }
+            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.InstaFlow)
+            {
+                SchedulerOptions.InferenceSteps = 1;
+                SchedulerOptions.GuidanceScale = 0f;
+            }
 
 
             SchedulerTypes.Clear();
             if (model is null)
                 return;
 
-            if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusion)
-            {
-                foreach (SchedulerType type in Enum.GetValues<SchedulerType>().Where(x => x != SchedulerType.LCM))
-                    SchedulerTypes.Add(type);
-            }
-            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistency)
-            {
-                SchedulerTypes.Add(SchedulerType.LCM);
-            }
+            foreach (SchedulerType type in model.ModelOptions.PipelineType.GetSchedulerTypes())
+                SchedulerTypes.Add(type);
 
             SchedulerOptions.SchedulerType = SchedulerTypes.FirstOrDefault();
         }

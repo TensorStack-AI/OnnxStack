@@ -32,6 +32,7 @@ namespace OnnxStack.Core
             //Pipelines
             serviceCollection.AddSingleton<IPipeline, StableDiffusionPipeline>();
             serviceCollection.AddSingleton<IPipeline, LatentConsistencyPipeline>();
+            serviceCollection.AddSingleton<IPipeline, InstaFlowPipeline>();
 
             //StableDiffusion
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.TextDiffuser>();
@@ -43,6 +44,9 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.TextDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.ImageDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.InpaintLegacyDiffuser>();
+
+            //InstaFlow
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.InstaFlow.TextDiffuser>();
         }
 
 
