@@ -99,6 +99,10 @@ namespace OnnxStack.StableDiffusion
         {
             return pipelineType switch
             {
+                DiffuserPipelineType.InstaFlow => new[]
+                {
+                    SchedulerType.InstaFlow
+                },
                 DiffuserPipelineType.LatentConsistency => new[]
                 {
                     SchedulerType.LCM
