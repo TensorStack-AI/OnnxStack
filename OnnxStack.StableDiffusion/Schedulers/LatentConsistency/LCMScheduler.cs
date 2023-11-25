@@ -1,5 +1,4 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -7,7 +6,6 @@ using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 
 namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 {
@@ -28,12 +26,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         /// <param name="stableDiffusionOptions">The stable diffusion options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         public LCMScheduler(SchedulerOptions options) : base(options) { }
-
-
-        /// <summary>
-        /// Gets the compatible pipeline.
-        /// </summary>
-        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.LatentConsistency;
 
 
         /// <summary>

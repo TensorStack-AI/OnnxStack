@@ -1,12 +1,9 @@
 ﻿using Microsoft.ML.OnnxRuntime;
-using NumSharp;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 
 using System;
 using System.Linq;
-using System.Numerics;
-using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion
 {
@@ -102,7 +99,11 @@ namespace OnnxStack.StableDiffusion
         {
             return pipelineType switch
             {
-                DiffuserPipelineType.StableDiffusion => new[]
+                DiffuserPipelineType.LatentConsistency => new[]
+                {
+                    SchedulerType.LCM
+                },
+                _ => new[]
                 {
                     SchedulerType.LMS,
                     SchedulerType.Euler,
@@ -110,12 +111,7 @@ namespace OnnxStack.StableDiffusion
                     SchedulerType.DDPM,
                     SchedulerType.DDIM,
                     SchedulerType.KDPM2
-                },
-                DiffuserPipelineType.LatentConsistency => new[]
-                {
-                    SchedulerType.LCM
-                },
-                _ => default
+                }
             };
         }
 

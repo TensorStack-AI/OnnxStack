@@ -1,5 +1,4 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Schedulers;
 using System;
 using System.Collections.Generic;
@@ -8,11 +7,6 @@ namespace OnnxStack.StableDiffusion.Common
 {
     public interface IScheduler : IDisposable
     {
-        /// <summary>
-        /// Gets the compatible pipeline
-        /// </summary>
-        DiffuserPipelineType PipelineType { get; }
-
         /// <summary>
         /// Gets the initial noise sigma.
         /// </summary>

@@ -51,11 +51,6 @@ namespace OnnxStack.StableDiffusion.Schedulers
         public IReadOnlyList<int> Timesteps => _timesteps;
 
         /// <summary>
-        /// Gets the compatible pipeline.
-        /// </summary>
-        public virtual DiffuserPipelineType PipelineType => DiffuserPipelineType.StableDiffusion;
-
-        /// <summary>
         /// Scales the input.
         /// </summary>
         /// <param name="sample">The sample.</param>
