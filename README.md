@@ -20,6 +20,8 @@ OnnxStack transforms machine learning in .NET, Seamlessly integrating with `ONNX
 Welcome to Python-free AI integration with OnnxStack!
 
 
+## **Latest Release Download: [OnnxStack UI v0.9.0](https://github.com/saddam213/OnnxStack/releases/download/v0.9.0/WindowsUI.v0.9.0.zip)**
+
 ### **[Discord](https://discord.gg/YxbQfbegdS)**  | **[Youtube](https://www.youtube.com/@OnnxStack)**
 
 # Projects
@@ -108,7 +110,7 @@ https://user-images.githubusercontent.com/4353684/285347894-9d044d7d-7c22-4379-8
 ### Paint To Image 
 https://user-images.githubusercontent.com/4353684/285347896-8da6709b-fea6-4cd4-ba65-ec692401f475.mp4
 
-https://user-images.githubusercontent.com/4353684/285348705-432cd0c7-5ff4-40a8-b7d0-62b58d22c443.mp4
+https://user-images.githubusercontent.com/4353684/285547207-3a7ea067-fcbf-47f0-9372-fafa94d301f7.mp4
 
 
 
@@ -179,8 +181,6 @@ Other `Microsoft.ML.OnnxRuntime.*` executors like `Cuda` may work but are untest
 `Cpu` > 12GB RAM
 
 `DirectML` > 10GB VRAM
-
-
 
 ## Contribution
 
