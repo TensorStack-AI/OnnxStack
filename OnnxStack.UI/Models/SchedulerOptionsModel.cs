@@ -80,7 +80,7 @@ namespace OnnxStack.UI.Models
         /// <value>
         /// The number of steps to run inference for. The more steps the longer it will take to run the inference loop but the image quality should improve.
         /// </value>
-        [Range(5, 200)]
+        [Range(1, 200)]
         public int InferenceSteps
         {
             get { return _inferenceSteps; }
