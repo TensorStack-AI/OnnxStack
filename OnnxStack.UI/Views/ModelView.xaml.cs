@@ -444,18 +444,13 @@ namespace OnnxStack.UI.Views
             var textEncoderPath = Path.Combine(modelDirectory, "text_encoder", "model.onnx");
             var vaeDecoder = Path.Combine(modelDirectory, "vae_decoder", "model.onnx");
             var vaeEncoder = Path.Combine(modelDirectory, "vae_encoder", "model.onnx");
+            var tokenizer2Path = Path.Combine(modelDirectory, "tokenizer_2", "model.onnx");
+            var textEncoder2Path = Path.Combine(modelDirectory, "text_encoder_2", "model.onnx");
+
             if (!File.Exists(tokenizerPath))
                 tokenizerPath = _defaultTokenizerPath;
-
-            // Validate Files
-            foreach (var modelFile in new[] { unetPath, tokenizerPath, textEncoderPath, vaeDecoder, vaeEncoder })
-            {
-                if (!File.Exists(modelFile))
-                {
-                    _logger.LogError($"Model file not found, ModelFile: {modelFile}");
-                    return false;
-                }
-            }
+            if (!File.Exists(tokenizer2Path))
+                tokenizer2Path = _defaultTokenizerPath;
 
             // Set Model Paths
             foreach (var modelConfig in modelSet.ModelFiles)
@@ -467,6 +462,8 @@ namespace OnnxStack.UI.Views
                     OnnxModelType.TextEncoder => textEncoderPath,
                     OnnxModelType.VaeDecoder => vaeDecoder,
                     OnnxModelType.VaeEncoder => vaeEncoder,
+                    OnnxModelType.Tokenizer2 => tokenizer2Path,
+                    OnnxModelType.TextEncoder2 => textEncoder2Path,
                     _ => default
                 };
             }
@@ -565,10 +562,10 @@ namespace OnnxStack.UI.Views
         private Task Add()
         {
             var invalidNames = ModelSets.Select(x => x.Name).ToList();
-            var textInputDialog = _dialogService.GetDialog<TextInputDialog>();
-            if (textInputDialog.ShowDialog("Add Model Set", "Name", 1, 30, invalidNames))
+            var textInputDialog = _dialogService.GetDialog<AddModelDialog>();
+            if (textInputDialog.ShowDialog("Add Model Set", invalidNames))
             {
-                var models = Enum.GetValues<OnnxModelType>().Select(x => new ModelFileViewModel { Type = x });
+                var pipeline = textInputDialog.PipelineType;
                 var newModelTemplate = new ModelConfigTemplate
                 {
                     Name = textInputDialog.TextResult,
@@ -580,11 +577,13 @@ namespace OnnxStack.UI.Views
                     Images = Enumerable.Range(0, 6).Select(x => string.Empty).ToList(),
 
                     // TODO: Select pipleine in dialog, then setting any required bits
-                    PipelineType = DiffuserPipelineType.StableDiffusion,
-                    ScaleFactor = 0.18215f,
+                    PipelineType = pipeline,
+                    ScaleFactor = pipeline == DiffuserPipelineType.StableDiffusionXL ? 0.13025f : 0.18215f,
                     TokenizerLimit = 77,
-                    PadTokenId = 49407,
+                    PadTokenId = pipeline == DiffuserPipelineType.StableDiffusionXL ? 1 : 49407,
                     EmbeddingsLength = 768,
+                    DualEmbeddingsLength = 1280,
+                    IsDualTokenizer = pipeline == DiffuserPipelineType.StableDiffusionXL,
                     BlankTokenId = 49407,
                     Diffusers = Enum.GetValues<DiffuserType>().ToList(),
                 };
@@ -935,6 +934,9 @@ namespace OnnxStack.UI.Views
                 PadTokenId = modelTemplate.PadTokenId,
                 ScaleFactor = modelTemplate.ScaleFactor,
                 TokenizerLimit = modelTemplate.TokenizerLimit,
+                IsDualTokenizer = modelTemplate.IsDualTokenizer,
+                SampleSize = modelTemplate.SampleSize,
+                DualEmbeddingsLength = modelTemplate.DualEmbeddingsLength,
                 PipelineType = modelTemplate.PipelineType,
                 EnableTextToImage = modelTemplate.Diffusers.Contains(DiffuserType.TextToImage),
                 EnableImageToImage = modelTemplate.Diffusers.Contains(DiffuserType.ImageToImage),
@@ -957,6 +959,9 @@ namespace OnnxStack.UI.Views
                     Images = modelTemplate.Images,
                     ModelFiles = modelTemplate.ModelFiles.ToList(),
                     Repository = modelTemplate.Repository,
+                    IsDualTokenizer = modelTemplate.IsDualTokenizer,
+                    SampleSize = modelTemplate.SampleSize,
+                    DualEmbeddingsLength = modelTemplate.DualEmbeddingsLength,
                     Status = ModelTemplateStatus.Installed
                 }
             };
@@ -986,6 +991,9 @@ namespace OnnxStack.UI.Views
                 InterOpNumThreads = modelOptions.InterOpNumThreads,
                 PadTokenId = modelOptions.PadTokenId,
                 ScaleFactor = modelOptions.ScaleFactor,
+                IsDualTokenizer = modelOptions.IsDualTokenizer,
+                SampleSize = modelOptions.SampleSize,
+                DualEmbeddingsLength = modelOptions.DualEmbeddingsLength,
                 TokenizerLimit = modelOptions.TokenizerLimit,
                 PipelineType = modelOptions.PipelineType,
                 EnableTextToImage = modelOptions.Diffusers.Contains(DiffuserType.TextToImage),
@@ -1017,6 +1025,9 @@ namespace OnnxStack.UI.Views
                     ScaleFactor = modelOptions.ScaleFactor,
                     TokenizerLimit = modelOptions.TokenizerLimit,
                     PipelineType = modelOptions.PipelineType,
+                    IsDualTokenizer = modelOptions.IsDualTokenizer,
+                    SampleSize = modelOptions.SampleSize,
+                    DualEmbeddingsLength = modelOptions.DualEmbeddingsLength,
                     Description = "",
                     Diffusers = modelOptions.Diffusers,
                     EmbeddingsLength = modelOptions.EmbeddingsLength,
@@ -1053,6 +1064,9 @@ namespace OnnxStack.UI.Views
                 TokenizerLimit = editModel.TokenizerLimit,
                 PipelineType = editModel.PipelineType,
                 Diffusers = new List<DiffuserType>(editModel.GetDiffusers()),
+                DualEmbeddingsLength = editModel.DualEmbeddingsLength,
+                SampleSize = editModel.SampleSize,
+                IsDualTokenizer = editModel.IsDualTokenizer,
                 ModelConfigurations = new List<OnnxModelSessionConfig>(editModel.ModelFiles.Select(x => new OnnxModelSessionConfig
                 {
                     Type = x.Type,
