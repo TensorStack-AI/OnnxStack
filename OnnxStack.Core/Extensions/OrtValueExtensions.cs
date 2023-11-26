@@ -50,6 +50,17 @@ namespace OnnxStack.Core
 
 
         /// <summary>
+        /// Converts DenseTensor<int> to OrtValue.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <returns></returns>
+        public static OrtValue ToOrtValue(this DenseTensor<long> tensor, OnnxNamedMetadata metadata)
+        {
+            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
+        }
+
+
+        /// <summary>
         /// Creates and allocates the output tensors buffer.
         /// </summary>
         /// <param name="metadata">The metadata.</param>
