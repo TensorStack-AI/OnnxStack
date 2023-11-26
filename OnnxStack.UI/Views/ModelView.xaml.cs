@@ -885,7 +885,11 @@ namespace OnnxStack.UI.Views
             if (!model.ModelConfigurations.Any())
                 return false;
 
-            if (model.ModelConfigurations.Any(x => !File.Exists(x.OnnxModelPath)))
+            var filesToValidate = model.PipelineType == DiffuserPipelineType.StableDiffusionXL
+                ? model.ModelConfigurations
+                : model.ModelConfigurations.Where(x => x.Type != OnnxModelType.Tokenizer2 && x.Type != OnnxModelType.TextEncoder2);
+
+            if (filesToValidate.Any(x => !File.Exists(x.OnnxModelPath)))
                 return false;
 
             if (!model.Diffusers.Any())
