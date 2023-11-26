@@ -631,7 +631,7 @@ namespace OnnxStack.UI.Views
                 newModelSet.ModelTemplate.Name = textInputDialog.TextResult;
                 foreach (var item in newModelSet.ModelFiles)
                 {
-                    item.OnnxModelPath = item.Type == OnnxModelType.Tokenizer ? _defaultTokenizerPath : null;
+                    item.OnnxModelPath = (item.Type == OnnxModelType.Tokenizer || item.Type == OnnxModelType.Tokenizer2) ? _defaultTokenizerPath : null;
                     item.IsOverrideEnabled = false;
                 }
 
@@ -926,6 +926,9 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         private ModelSetViewModel CreateViewModel(ModelConfigTemplate modelTemplate)
         {
+            var modelTypes = modelTemplate.PipelineType == DiffuserPipelineType.StableDiffusionXL
+                ? Enum.GetValues<OnnxModelType>()
+                : Enum.GetValues<OnnxModelType>().Where(x => x != OnnxModelType.Tokenizer2 && x != OnnxModelType.TextEncoder2);
             return new ModelSetViewModel
             {
                 IsTemplate = true,
@@ -946,7 +949,7 @@ namespace OnnxStack.UI.Views
                 EnableImageToImage = modelTemplate.Diffusers.Contains(DiffuserType.ImageToImage),
                 EnableImageInpaint = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaint) || modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
                 EnableImageInpaintLegacy = modelTemplate.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
-                ModelFiles = new ObservableCollection<ModelFileViewModel>(Enum.GetValues<OnnxModelType>().Select(x => new ModelFileViewModel { Type = x })),
+                ModelFiles = new ObservableCollection<ModelFileViewModel>(modelTypes.Select(x => new ModelFileViewModel { Type = x })),
                 ModelTemplate = new ModelConfigTemplate
                 {
                     Name = modelTemplate.Name,
