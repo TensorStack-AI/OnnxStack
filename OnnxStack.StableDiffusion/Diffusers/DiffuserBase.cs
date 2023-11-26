@@ -88,7 +88,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected abstract Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, DenseTensor<float> promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        protected abstract Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
