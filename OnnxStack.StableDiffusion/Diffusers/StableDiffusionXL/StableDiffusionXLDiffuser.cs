@@ -113,7 +113,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// </summary>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        private DenseTensor<float> GetAddTimeIds(SchedulerOptions schedulerOptions, bool performGuidance)
+        protected DenseTensor<float> GetAddTimeIds(SchedulerOptions schedulerOptions, bool performGuidance)
         {
             var addTimeIds = new float[]
             {
