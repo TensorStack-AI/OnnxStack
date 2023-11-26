@@ -67,6 +67,16 @@ namespace OnnxStack.Core.Model
             _inputs.Add(metaData, value.ToOrtValue(metaData));
         }
 
+        /// <summary>
+        /// Adds the input tensor.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void AddInputTensor(DenseTensor<long> value)
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, value.ToOrtValue(metaData));
+        }
+
 
         /// <summary>
         /// Adds an output parameter with known output size.
@@ -88,6 +98,19 @@ namespace OnnxStack.Core.Model
             var metadata = GetNextOutputMetadata();
             _outputs.Add(metadata, metadata.CreateOutputBuffer(bufferDimension));
         }
+
+
+        /// <summary>
+        /// Adds the output buffer.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <param name="bufferDimension">The buffer dimension.</param>
+        public void AddOutputBuffer(int index, ReadOnlySpan<int> bufferDimension)
+        {
+            var metadata = _metadata.Outputs[index];
+            _outputs.Add(metadata, metadata.CreateOutputBuffer(bufferDimension));
+        }
+
 
 
         /// <summary>

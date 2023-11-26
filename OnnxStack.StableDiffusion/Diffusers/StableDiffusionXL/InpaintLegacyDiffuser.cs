@@ -17,16 +17,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
 {
-    public sealed class InpaintLegacyDiffuser : LatentConsistencyDiffuser
+    public sealed class InpaintLegacyDiffuser : StableDiffusionXLDiffuser
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="InpaintLegacyDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public InpaintLegacyDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<LatentConsistencyDiffuser> logger)
+        public InpaintLegacyDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionXLDiffuser> logger)
             : base(onnxModelService, promptService, logger)
         {
         }
@@ -36,22 +36,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// Gets the type of the diffuser.
         /// </summary>
         public override DiffuserType DiffuserType => DiffuserType.ImageInpaintLegacy;
-
-
-        /// <summary>
-        /// Gets the timesteps.
-        /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="scheduler">The scheduler.</param>
-        /// <returns></returns>
-        protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
-        {
-            // Image2Image we narrow step the range by the Strength
-            var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
-            var start = Math.Max(options.InferenceSteps - inittimestep, 0);
-            return scheduler.Timesteps.Skip(start).ToList();
-        }
 
 
         /// <summary>
@@ -87,12 +71,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 // Get Model metadata
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
 
-                // Get Guidance Scale Embedding
-                var guidanceEmbeddings = GetGuidanceScaleEmbedding(schedulerOptions.GuidanceScale);
-
-                // Denoised result
-                DenseTensor<float> denoised = null;
-
                 // Loop though the timesteps
                 var step = 0;
                 foreach (var timestep in timesteps)
@@ -102,17 +80,20 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputTensor = scheduler.ScaleInput(latents, timestep);
+                    var inputLatent = performGuidance ? latents.Repeat(2) : latents;
+                    var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
+                    var addTimeIds = GetAddTimeIds(schedulerOptions, performGuidance);
 
-                    var outputChannels = 1;
+                    var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
                     using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                     {
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                        inferenceParameters.AddInputTensor(guidanceEmbeddings);
+                        inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
+                        inferenceParameters.AddInputTensor(addTimeIds);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
@@ -120,21 +101,18 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         {
                             var noisePred = result.ToDenseTensor();
 
-                            // Scheduler Step
-                            var schedulerResult = scheduler.Step(noisePred, timestep, latents);
+                            // Perform guidance
+                            if (performGuidance)
+                                noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
 
-                            latents = schedulerResult.Result;
-                            denoised = schedulerResult.SampleData;
+                            // Scheduler Step
+                            var steplatents = scheduler.Step(noisePred, timestep, latents).Result;
 
                             // Add noise to original latent
-                            if (step < timesteps.Count - 1)
-                            {
-                                var noiseTimestep = timesteps[step + 1];
-                                var initLatentsProper = scheduler.AddNoise(latentsOriginal, noise, new[] { noiseTimestep });
+                            var initLatentsProper = scheduler.AddNoise(latentsOriginal, noise, new[] { timestep });
 
-                                // Apply mask and combine 
-                                latents = ApplyMaskedLatents(schedulerResult.Result, initLatentsProper, maskImage);
-                            }
+                            // Apply mask and combine 
+                            latents = ApplyMaskedLatents(steplatents, initLatentsProper, maskImage);
                         }
                     }
 
@@ -143,23 +121,35 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 }
 
                 // Decode Latents
-                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, denoised);
+                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, latents);
             }
         }
 
 
         /// <summary>
-        /// Prepares the input latents for inference.
+        /// Gets the timesteps.
         /// </summary>
-        /// <param name="model">The model.</param>
         /// <param name="prompt">The prompt.</param>
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
-        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
+        protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
+        {
+            var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
+            var start = Math.Max(options.InferenceSteps - inittimestep, 0);
+            return scheduler.Timesteps.Skip(start).ToList();
+        }
+
+
+        /// <summary>
+        /// Prepares the latents for inference.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
         protected override async Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            // Image input, decode, add noise, return as latent 0
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
 
             //TODO: Model Config, Channels
@@ -215,7 +205,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         }
                     }
                 });
-
                 return maskTensor;
             }
         }

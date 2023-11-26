@@ -134,32 +134,41 @@ namespace OnnxStack.UI.UserControls
             if (model is null)
                 return;
 
+            SchedulerTypes.Clear();
+            foreach (SchedulerType type in model.ModelOptions.PipelineType.GetSchedulerTypes())
+                SchedulerTypes.Add(type);
+
+            SchedulerOptions.Width = 512;
+            SchedulerOptions.Height = 512;
             if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusion)
             {
                 SchedulerOptions.OriginalInferenceSteps = 100;
                 SchedulerOptions.InferenceSteps = 30;
+                SchedulerOptions.SchedulerType = SchedulerType.DDIM;
             }
             else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistency)
             {
                 SchedulerOptions.OriginalInferenceSteps = 50;
                 SchedulerOptions.InferenceSteps = 6;
                 SchedulerOptions.GuidanceScale = 1f;
+                SchedulerOptions.SchedulerType = SchedulerType.LCM;
             }
             else if (model.ModelOptions.PipelineType == DiffuserPipelineType.InstaFlow)
             {
                 SchedulerOptions.InferenceSteps = 1;
                 SchedulerOptions.GuidanceScale = 0f;
+                SchedulerOptions.SchedulerType = SchedulerType.InstaFlow;
             }
-
-
-            SchedulerTypes.Clear();
-            if (model is null)
-                return;
-
-            foreach (SchedulerType type in model.ModelOptions.PipelineType.GetSchedulerTypes())
-                SchedulerTypes.Add(type);
-
-            SchedulerOptions.SchedulerType = SchedulerTypes.FirstOrDefault();
+            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusionXL)
+            {
+                SchedulerOptions.OriginalInferenceSteps = 100;
+                SchedulerOptions.InferenceSteps = 30;
+                SchedulerOptions.GuidanceScale = 5f;
+                SchedulerOptions.Width = 1024;
+                SchedulerOptions.Height = 1024;
+                SchedulerOptions.SchedulerType = SchedulerType.EulerAncestral;
+            }
+           
         }
 
 

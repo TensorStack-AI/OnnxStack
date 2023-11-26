@@ -10,9 +10,12 @@ namespace OnnxStack.StableDiffusion.Common
         bool IsEnabled { get; set; }
         int PadTokenId { get; set; }
         int BlankTokenId { get; set; }
+        int SampleSize { get; set; }
         float ScaleFactor { get; set; }
         int TokenizerLimit { get; set; }
         int EmbeddingsLength { get; set; }
+        int DualEmbeddingsLength { get; set; }
+        bool IsDualTokenizer { get; set; }
         DiffuserPipelineType PipelineType { get; set; }
         List<DiffuserType> Diffusers { get; set; }
         ImmutableArray<int> BlankTokenValueArray { get; set; }

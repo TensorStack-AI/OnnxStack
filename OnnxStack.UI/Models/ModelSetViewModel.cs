@@ -36,6 +36,9 @@ namespace OnnxStack.UI.Views
         private double _progressValue;
         private bool _isDownloading;
         private bool _hasChanged;
+        private int _dualEmbeddingsLength;
+        private bool _isDualTokenizer;
+        private int _sampleSize;
 
         public string Name
         {
@@ -59,15 +62,35 @@ namespace OnnxStack.UI.Views
             get { return _blankTokenId; }
             set { _blankTokenId = value; NotifyPropertyChanged(); }
         }
+
+        public int SampleSize
+        {
+            get { return _sampleSize; }
+            set { _sampleSize = value; NotifyPropertyChanged(); }
+        }
+
         public float ScaleFactor
         {
             get { return _scaleFactor; }
             set { _scaleFactor = value; NotifyPropertyChanged(); }
         }
+
         public int TokenizerLimit
         {
             get { return _tokenizerLimit; }
             set { _tokenizerLimit = value; NotifyPropertyChanged(); }
+        }
+
+        public bool IsDualTokenizer
+        {
+            get { return _isDualTokenizer; }
+            set { _isDualTokenizer = value; NotifyPropertyChanged(); }
+        }
+
+        public int DualEmbeddingsLength
+        {
+            get { return _dualEmbeddingsLength; }
+            set { _dualEmbeddingsLength = value; NotifyPropertyChanged(); }
         }
 
         public int EmbeddingsLength

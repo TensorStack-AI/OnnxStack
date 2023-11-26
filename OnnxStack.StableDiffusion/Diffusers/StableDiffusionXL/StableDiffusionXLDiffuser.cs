@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
@@ -11,30 +10,28 @@ using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
 {
-    public abstract class StableDiffusionDiffuser : DiffuserBase, IDiffuser
+    public abstract class StableDiffusionXLDiffuser : DiffuserBase
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="StableDiffusionDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="StableDiffusionXLDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public StableDiffusionDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionDiffuser> logger)
+        public StableDiffusionXLDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionXLDiffuser> logger)
             : base(onnxModelService, promptService, logger) { }
 
 
         /// <summary>
         /// Gets the type of the pipeline.
         /// </summary>
-        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.StableDiffusion;
+        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.StableDiffusionXL;
 
 
         /// <summary>
@@ -74,6 +71,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
+                    var addTimeIds = GetAddTimeIds(schedulerOptions, performGuidance);
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
@@ -82,6 +80,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
+                        inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
+                        inferenceParameters.AddInputTensor(addTimeIds);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
@@ -105,6 +105,27 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 // Decode Latents
                 return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, latents);
             }
+        }
+
+
+        /// <summary>
+        /// Gets the add AddTimeIds.
+        /// </summary>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <returns></returns>
+        protected DenseTensor<float> GetAddTimeIds(SchedulerOptions schedulerOptions, bool performGuidance)
+        {
+            var addTimeIds = new float[]
+            {
+                schedulerOptions.Height, schedulerOptions.Width, //original_size
+                0, 0, //crops_coords_top_left
+                schedulerOptions.Height, schedulerOptions.Width //negative_target_size
+            };
+            var result = TensorHelper.CreateTensor(addTimeIds, new[] { 1, addTimeIds.Length });
+            if (performGuidance)
+                return result.Repeat(2);
+
+            return result;
         }
 
 
