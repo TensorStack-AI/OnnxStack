@@ -68,7 +68,7 @@ namespace OnnxStack.StableDiffusion.Services
                 if (isGuidanceEnabled)
                     return new PromptEmbeddingsResult(dualNegativePrompt.Concatenate(dualPrompt), pooledNegativePromptEmbeds.Concatenate(pooledPromptEmbeds));
 
-                return new PromptEmbeddingsResult(dualPrompt);
+                return new PromptEmbeddingsResult(dualPrompt, pooledPromptEmbeds);
             }
 
             if (isGuidanceEnabled)
