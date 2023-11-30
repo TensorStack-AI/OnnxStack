@@ -389,7 +389,11 @@
 
                         <StackPanel>
                             <Label>Automation Type</Label>
-                            <ComboBox ItemsSource="{Binding Source={StaticResource BatchOptionType}}" SelectedItem="{Binding BatchOptions.BatchType}"/>
+                            <UniformGrid Columns="2">
+                                <ComboBox ItemsSource="{Binding Source={StaticResource BatchOptionType}}" SelectedItem="{Binding BatchOptions.BatchType}"/>
+                                <CheckBox Content="Disable History" IsChecked="{Binding BatchOptions.DisableHistory}" IsEnabled="{Binding BatchOptions.IsAutomationEnabled}" HorizontalAlignment="Right" />
+                            </UniformGrid>
+                           
                         </StackPanel>
 
 
