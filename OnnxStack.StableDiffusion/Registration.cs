@@ -21,9 +21,27 @@ namespace OnnxStack.Core
         /// <param name="serviceCollection">The service collection.</param>
         public static void AddOnnxStackStableDiffusion(this IServiceCollection serviceCollection)
         {
-            ConfigureLibraries();
             serviceCollection.AddOnnxStack();
+            serviceCollection.RegisterServices();
             serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<StableDiffusionConfig>(nameof(OnnxStackConfig)));
+        }
+
+
+        /// <summary>
+        /// Register OnnxStack StableDiffusion services, AddOnnxStack() must be called before
+        /// </summary>
+        /// <param name="serviceCollection">The service collection.</param>
+        /// <param name="configuration">The configuration.</param>
+        public static void AddOnnxStackStableDiffusion(this IServiceCollection serviceCollection, StableDiffusionConfig configuration)
+        {
+            serviceCollection.RegisterServices();
+            serviceCollection.AddSingleton(configuration);
+        }
+
+
+        private static void RegisterServices(this IServiceCollection serviceCollection)
+        {
+            ConfigureLibraries();
 
             // Services
             serviceCollection.AddSingleton<IPromptService, PromptService>();

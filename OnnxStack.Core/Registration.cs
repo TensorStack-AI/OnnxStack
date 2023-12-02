@@ -22,6 +22,18 @@ namespace OnnxStack.Core
 
 
         /// <summary>
+        /// Register OnnxStack services
+        /// </summary>
+        /// <param name="serviceCollection">The service collection.</param>
+        /// <param name="configuration">The configuration.</param>
+        public static void AddOnnxStack(this IServiceCollection serviceCollection, OnnxStackConfig configuration)
+        {
+            serviceCollection.AddSingleton(configuration);
+            serviceCollection.AddSingleton<IOnnxModelService, OnnxModelService>();
+        }
+
+
+        /// <summary>
         /// Register a custom IConfigSection section that is in the appsettings.json
         /// </summary>
         /// <typeparam name="T">The custom IConfigSection class type, NOTE: json section name MUST match class name</typeparam>
