@@ -2,6 +2,7 @@
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -19,6 +20,7 @@ namespace OnnxStack.Console.Runner
         {
             _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionGif));
+            Directory.CreateDirectory(_outputDirectory);
         }
 
         public string Name => "Stable Diffusion Gif";
@@ -30,9 +32,7 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
-            Directory.CreateDirectory(_outputDirectory);
-
-            var prompt = "elon musk wearing a red hat and sunglasses";
+            var prompt = "Elon Musk";
             var negativePrompt = "";
 
             var promptOptions = new PromptOptions
@@ -47,9 +47,8 @@ namespace OnnxStack.Console.Runner
                 SchedulerType = SchedulerType.LCM,
                 Seed = 624461087,
                 GuidanceScale = 1f,
-                InferenceSteps = 20,
-                Strength = 0.3f,
-                 
+                InferenceSteps = 12,
+                Strength = 0.5f,
             };
 
             // Choose Model
@@ -67,22 +66,30 @@ namespace OnnxStack.Console.Runner
                 var gifMetaData = gifDestination.Metadata.GetGifMetadata();
                 gifMetaData.RepeatCount = 0; // Loop
 
-                using (var gifSource = await Image.LoadAsync(Path.Combine(_outputDirectory, "source.gif")))
+                using (var gifSource = await Image.LoadAsync(Path.Combine(_outputDirectory, "Source.gif")))
                 {
                     for (int i = 0; i < gifSource.Frames.Count; i++)
                     {
-                        promptOptions.InputImage = new InputImage(gifSource.Frames.CloneFrame(i).CloneAs<Rgba32>());
+                        // Get Frame as Image
+                        var frame = gifSource.Frames.CloneFrame(i).CloneAs<Rgba32>();
+
+                        // Save Debug Output
+                        await frame.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Debug-Frame.png"));
+
+                        // Set prompt Image, Run Diffusion
+                        promptOptions.InputImage = new InputImage(frame);
                         var result = await _stableDiffusionService.GenerateAsImageAsync(model, promptOptions, schedulerOptions);
 
+                        // Save Debug Output
+                        await result.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Debug-Output.png"));
 
-
-                        gifDestination.Frames.AddFrame(result.Frames.RootFrame);
-
+                        // Add Result to Gif
+                        gifDestination.Frames.InsertFrame(i, result.Frames.RootFrame);
                         OutputHelpers.WriteConsole($"Frame: {i + 1}/{gifSource.Frames.Count}", ConsoleColor.Cyan);
                     }
 
-                    var outputFilename = Path.Combine(_outputDirectory, $"result.gif");
-                    await gifDestination.SaveAsGifAsync(outputFilename);
+                    // Save Result
+                    await gifDestination.SaveAsGifAsync(Path.Combine(_outputDirectory, $"Result.gif"));
                 }
             }
         }
