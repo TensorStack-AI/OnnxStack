@@ -106,7 +106,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             if (imageData.ImageTensor != null)
                 return imageData.ImageTensor.ToDenseTensor(); // Note: Tensor Copy // TODO: Reshape to dimensions
 
-            return null;
+            return TensorFromImage(imageData.Image, dimensions);
         }
 
 
@@ -177,6 +177,22 @@ namespace OnnxStack.StableDiffusion.Helpers
                     }
                 }
                 result.SaveAsPng(filename);
+            }
+        }
+
+
+        /// <summary>
+        /// Tensors from image.
+        /// </summary>
+        /// <param name="image">The image.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> TensorFromImage(Image<Rgba32> image, ReadOnlySpan<int> dimensions)
+        {
+            using (image)
+            {
+                Resize(image, dimensions);
+                return ProcessPixels(image, dimensions);
             }
         }
 
