@@ -73,10 +73,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 using (var result = results.First())
                 {
                     var outputResult = result.ToDenseTensor();
-                    var scaledSample = outputResult
-                       .Add(scheduler.CreateRandomSample(outputDimension, options.InitialNoiseLevel))
-                       .MultiplyBy(model.ScaleFactor);
-
+                    var scaledSample = outputResult.MultiplyBy(model.ScaleFactor);
                     return scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
                 }
             }

@@ -14,7 +14,6 @@ namespace OnnxStack.UI.Models
         private int _inferenceSteps = 30;
         private float _guidanceScale = 7.5f;
         private float _strength = 0.75f;
-        private float _initialNoiseLevel = 0f;
         private int _trainTimesteps = 1000;
         private float _betaStart = 0.00085f;
         private float _betaEnd = 0.012f;
@@ -105,15 +104,6 @@ namespace OnnxStack.UI.Models
         {
             get { return _strength; }
             set { _strength = value; NotifyPropertyChanged(); }
-        }
-        /// <summary>
-        /// Gets or sets the initial noise level for Image 2 Image
-        /// </summary>
-        [Range(-1f, 1f)]
-        public float InitialNoiseLevel
-        {
-            get { return _initialNoiseLevel; }
-            set { _initialNoiseLevel = value; NotifyPropertyChanged(); }
         }
 
         [Range(0, int.MaxValue)]

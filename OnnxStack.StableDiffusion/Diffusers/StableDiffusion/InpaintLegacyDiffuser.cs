@@ -162,10 +162,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 using (var result = results.First())
                 {
                     var outputResult = result.ToDenseTensor();
-                    var scaledSample = outputResult
-                       .Add(scheduler.CreateRandomSample(outputDimensions, options.InitialNoiseLevel))
-                       .MultiplyBy(model.ScaleFactor);
-
+                    var scaledSample = outputResult.MultiplyBy(model.ScaleFactor);
                     return scaledSample;
                 }
             }

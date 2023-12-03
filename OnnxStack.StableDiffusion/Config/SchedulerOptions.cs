@@ -61,12 +61,6 @@ namespace OnnxStack.StableDiffusion.Config
         [Range(0f, 1f)]
         public float Strength { get; set; } = 0.6f;
 
-        /// <summary>
-        /// Gets or sets the initial noise level for Image 2 Image
-        /// </summary>
-        [Range(-1f, 1f)]
-        public float InitialNoiseLevel { get; set; } = 0f;
-
         [Range(0, int.MaxValue)]
         public int TrainTimesteps { get; set; } = 1000;
         public float BetaStart { get; set; } = 0.00085f;
