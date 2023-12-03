@@ -21,6 +21,7 @@ namespace OnnxStack.StableDiffusion.Config
         public TokenizerType TokenizerType { get; set; }
         public int SampleSize { get; set; } = 512;
         public float ScaleFactor { get; set; }
+        public ModelType ModelType { get; set; }
         public DiffuserPipelineType PipelineType { get; set; }
         public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();
 

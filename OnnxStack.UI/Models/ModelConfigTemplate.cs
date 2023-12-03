@@ -23,6 +23,7 @@ namespace OnnxStack.UI.Views
         public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();
         public List<string> ModelFiles { get; set; } = new List<string>();
         public List<string> Images { get; set; } = new List<string>();
+        public ModelType ModelType { get; set; }
     }
 
 }

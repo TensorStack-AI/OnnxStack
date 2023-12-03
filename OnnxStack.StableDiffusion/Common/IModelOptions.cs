@@ -15,6 +15,7 @@ namespace OnnxStack.StableDiffusion.Common
         int TokenizerLimit { get; set; }
         int TokenizerLength { get; set; }
         int Tokenizer2Length { get; set; }
+        ModelType ModelType { get; set; }
         TokenizerType TokenizerType { get; set; }
         DiffuserPipelineType PipelineType { get; set; }
         List<DiffuserType> Diffusers { get; set; }

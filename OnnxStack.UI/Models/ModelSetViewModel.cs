@@ -39,6 +39,7 @@ namespace OnnxStack.UI.Views
         private int _dualEmbeddingsLength;
         private TokenizerType _tokenizerType;
         private int _sampleSize;
+        private ModelType _modelType;
 
         public string Name
         {
@@ -215,6 +216,11 @@ namespace OnnxStack.UI.Views
             set { _hasChanged = value; NotifyPropertyChanged(); }
         }
 
+        public ModelType ModelType
+        {
+            get { return _modelType; }
+            set { _modelType = value; NotifyPropertyChanged(); }
+        }
 
         public IEnumerable<DiffuserType> GetDiffusers()
         {

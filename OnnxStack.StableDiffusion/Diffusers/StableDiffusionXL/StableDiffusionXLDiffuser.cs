@@ -59,6 +59,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                 // Get Model metadata
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
 
+                // Get Time ids
+                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions, performGuidance);
+
                 // Loop though the timesteps
                 var step = 0;
                 foreach (var timestep in timesteps)
@@ -71,7 +74,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
-                    var addTimeIds = GetAddTimeIds(schedulerOptions, performGuidance);
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
@@ -113,19 +115,27 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// </summary>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        protected DenseTensor<float> GetAddTimeIds(SchedulerOptions schedulerOptions, bool performGuidance)
+        protected DenseTensor<float> GetAddTimeIds(IModelOptions model, SchedulerOptions schedulerOptions, bool performGuidance)
         {
-            var addTimeIds = new float[]
+            float[] result;
+            if (model.ModelType == ModelType.Refiner)
             {
-                schedulerOptions.Height, schedulerOptions.Width, //original_size
-                0, 0, //crops_coords_top_left
-                schedulerOptions.Height, schedulerOptions.Width //negative_target_size
-            };
-            var result = TensorHelper.CreateTensor(addTimeIds, new[] { 1, addTimeIds.Length });
-            if (performGuidance)
-                return result.Repeat(2);
+                //original_size + crops_coords_top_left + aesthetic_score
+                //original_size + crops_coords_top_left + negative_aesthetic_score
+                result = !performGuidance
+                    ? new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticScore }
+                    : new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticNegativeScore, schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticScore };
+            }
+            else
+            {
+                //original_size + crops_coords_top_left + target_size
+                //original_size + crops_coords_top_left + negative_target_size
+                result = !performGuidance
+                      ? new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width }
+                      : new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width, schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width };
+            }
 
-            return result;
+            return TensorHelper.CreateTensor(result, new[] { 1, result.Length });
         }
 
 

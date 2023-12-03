@@ -87,6 +87,9 @@ namespace OnnxStack.StableDiffusion.Config
 
         public int OriginalInferenceSteps { get; set; } = 50;
 
+        public float AestheticScore { get; set; } = 6f;
+        public float AestheticNegativeScore { get; set; } = 2.5f;
+
         public bool IsKarrasScheduler
         {
             get

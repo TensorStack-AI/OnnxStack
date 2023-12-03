@@ -944,6 +944,7 @@ namespace OnnxStack.UI.Views
                 ScaleFactor = modelTemplate.ScaleFactor,
                 TokenizerLimit = modelTemplate.TokenizerLimit,
                 SampleSize = modelTemplate.SampleSize,
+                ModelType = modelTemplate.ModelType,
                 PipelineType = modelTemplate.PipelineType,
                 EnableTextToImage = modelTemplate.Diffusers.Contains(DiffuserType.TextToImage),
                 EnableImageToImage = modelTemplate.Diffusers.Contains(DiffuserType.ImageToImage),
@@ -969,6 +970,7 @@ namespace OnnxStack.UI.Views
                     ModelFiles = modelTemplate.ModelFiles.ToList(),
                     Repository = modelTemplate.Repository,
                     SampleSize = modelTemplate.SampleSize,
+                    ModelType = modelTemplate.ModelType,
                     Status = ModelTemplateStatus.Installed
                 }
             };
@@ -1001,6 +1003,7 @@ namespace OnnxStack.UI.Views
                 PadTokenId = modelOptions.PadTokenId,
                 ScaleFactor = modelOptions.ScaleFactor,
                 SampleSize = modelOptions.SampleSize,
+                ModelType = modelOptions.ModelType,
                 TokenizerLimit = modelOptions.TokenizerLimit,
                 PipelineType = modelOptions.PipelineType,
                 EnableTextToImage = modelOptions.Diffusers.Contains(DiffuserType.TextToImage),
@@ -1036,6 +1039,7 @@ namespace OnnxStack.UI.Views
                     TokenizerLength = modelOptions.TokenizerLength,
                     Tokenizer2Length = modelOptions.Tokenizer2Length,
                     SampleSize = modelOptions.SampleSize,
+                    ModelType = modelOptions.ModelType,
                     Description = "",
                     Diffusers = modelOptions.Diffusers,
                     ImageIcon = "",
@@ -1074,6 +1078,7 @@ namespace OnnxStack.UI.Views
                 PipelineType = editModel.PipelineType,
                 Diffusers = new List<DiffuserType>(editModel.GetDiffusers()),
                 SampleSize = editModel.SampleSize,
+                ModelType = editModel.ModelType,
                 ModelConfigurations = new List<OnnxModelSessionConfig>(editModel.ModelFiles.Select(x => new OnnxModelSessionConfig
                 {
                     Type = x.Type,
