@@ -16,9 +16,9 @@ namespace OnnxStack.StableDiffusion.Config
         public int PadTokenId { get; set; }
         public int BlankTokenId { get; set; }
         public int TokenizerLimit { get; set; }
-        public int EmbeddingsLength { get; set; }
-        public int DualEmbeddingsLength { get; set; }
-        public bool IsDualTokenizer { get; set; }
+        public int TokenizerLength { get; set; }
+        public int Tokenizer2Length { get; set; }
+        public TokenizerType TokenizerType { get; set; }
         public int SampleSize { get; set; } = 512;
         public float ScaleFactor { get; set; }
         public DiffuserPipelineType PipelineType { get; set; }

@@ -15,9 +15,9 @@ namespace OnnxStack.UI.Views
         public int PadTokenId { get; set; }
         public int BlankTokenId { get; set; }
         public int TokenizerLimit { get; set; }
-        public bool IsDualTokenizer { get; set; }
-        public int EmbeddingsLength { get; set; }
-        public int DualEmbeddingsLength { get; set; }
+        public TokenizerType TokenizerType { get; set; }
+        public int TokenizerLength { get; set; }
+        public int Tokenizer2Length { get; set; }
         public float ScaleFactor { get; set; }
         public DiffuserPipelineType PipelineType { get; set; }
         public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();

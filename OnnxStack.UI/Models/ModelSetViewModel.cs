@@ -37,7 +37,7 @@ namespace OnnxStack.UI.Views
         private bool _isDownloading;
         private bool _hasChanged;
         private int _dualEmbeddingsLength;
-        private bool _isDualTokenizer;
+        private TokenizerType _tokenizerType;
         private int _sampleSize;
 
         public string Name
@@ -81,19 +81,19 @@ namespace OnnxStack.UI.Views
             set { _tokenizerLimit = value; NotifyPropertyChanged(); }
         }
 
-        public bool IsDualTokenizer
+        public TokenizerType TokenizerType
         {
-            get { return _isDualTokenizer; }
-            set { _isDualTokenizer = value; NotifyPropertyChanged(); }
+            get { return _tokenizerType; }
+            set { _tokenizerType = value; NotifyPropertyChanged(); }
         }
 
-        public int DualEmbeddingsLength
+        public int Tokenizer2Length
         {
             get { return _dualEmbeddingsLength; }
             set { _dualEmbeddingsLength = value; NotifyPropertyChanged(); }
         }
 
-        public int EmbeddingsLength
+        public int TokenizerLength
         {
             get { return _embeddingsLength; }
             set { _embeddingsLength = value; NotifyPropertyChanged(); }

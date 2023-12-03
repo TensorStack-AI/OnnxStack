@@ -43,7 +43,6 @@ namespace OnnxStack.Console.Runner
                 {
                     SchedulerType = SchedulerType.LMS,
                     Seed = 624461087,
-                    //Seed = Random.Shared.Next(),
                     GuidanceScale = 8,
                     InferenceSteps = 22,
                     Strength = 0.6f
@@ -53,6 +52,9 @@ namespace OnnxStack.Console.Runner
                 {
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModelAsync(model);
+
+                    schedulerOptions.Width = model.SampleSize;
+                    schedulerOptions.Height = model.SampleSize;
 
                     foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
                     {

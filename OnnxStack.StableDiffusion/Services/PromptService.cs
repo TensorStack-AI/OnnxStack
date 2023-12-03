@@ -1,11 +1,11 @@
-﻿using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
+﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
@@ -41,6 +41,25 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns>Tensor containing all text embeds generated from the prompt and negative prompt</returns>
         public async Task<PromptEmbeddingsResult> CreatePromptAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
         {
+            return model.TokenizerType switch
+            {
+                TokenizerType.One => await CreateEmbedsOneAsync(model, promptOptions, isGuidanceEnabled),
+                TokenizerType.Two => await CreateEmbedsTwoAsync(model, promptOptions, isGuidanceEnabled),
+                TokenizerType.Both => await CreateEmbedsBothAsync(model, promptOptions, isGuidanceEnabled),
+                _ => throw new ArgumentException("TokenizerType is not set")
+            };
+        }
+
+
+        /// <summary>
+        /// Creates the embeds using Tokenizer and TextEncoder
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="isGuidanceEnabled">if set to <c>true</c> is guidance enabled.</param>
+        /// <returns></returns>
+        private async Task<PromptEmbeddingsResult> CreateEmbedsOneAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
+        {
             // Tokenize Prompt and NegativePrompt
             var promptTokens = await DecodeTextAsIntAsync(model, promptOptions.Prompt);
             var negativePromptTokens = await DecodeTextAsIntAsync(model, promptOptions.NegativePrompt);
@@ -50,31 +69,74 @@ namespace OnnxStack.StableDiffusion.Services
             var promptEmbeddings = await GenerateEmbedsAsync(model, promptTokens, maxPromptTokenCount);
             var negativePromptEmbeddings = await GenerateEmbedsAsync(model, negativePromptTokens, maxPromptTokenCount);
 
-            if (model.IsDualTokenizer)
-            {
-                /// Tokenize Prompt and NegativePrompt with Tokenizer2
-                var dualPromptTokens = await DecodeTextAsLongAsync(model, promptOptions.Prompt);
-                var dualNegativePromptTokens = await DecodeTextAsLongAsync(model, promptOptions.NegativePrompt);
-
-                // Generate embeds for tokens
-                var dualPromptEmbeddings = await GenerateEmbedsAsync(model, dualPromptTokens, maxPromptTokenCount);
-                var dualNegativePromptEmbeddings = await GenerateEmbedsAsync(model, dualNegativePromptTokens, maxPromptTokenCount);
-
-                var dualPrompt = promptEmbeddings.Concatenate(dualPromptEmbeddings.PromptEmbeds, 2);
-                var dualNegativePrompt = negativePromptEmbeddings.Concatenate(dualNegativePromptEmbeddings.PromptEmbeds, 2);
-                var pooledPromptEmbeds = dualPromptEmbeddings.PooledPromptEmbeds;
-                var pooledNegativePromptEmbeds = dualNegativePromptEmbeddings.PooledPromptEmbeds;
-
-                if (isGuidanceEnabled)
-                    return new PromptEmbeddingsResult(dualNegativePrompt.Concatenate(dualPrompt), pooledNegativePromptEmbeds.Concatenate(pooledPromptEmbeds));
-
-                return new PromptEmbeddingsResult(dualPrompt, pooledPromptEmbeds);
-            }
-
             if (isGuidanceEnabled)
                 return new PromptEmbeddingsResult(negativePromptEmbeddings.Concatenate(promptEmbeddings));
 
             return new PromptEmbeddingsResult(promptEmbeddings);
+        }
+
+        /// <summary>
+        /// Creates the embeds using Tokenizer2 and TextEncoder2
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="isGuidanceEnabled">if set to <c>true</c> is guidance enabled.</param>
+        /// <returns></returns>
+        private async Task<PromptEmbeddingsResult> CreateEmbedsTwoAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
+        {
+            /// Tokenize Prompt and NegativePrompt with Tokenizer2
+            var promptTokens = await DecodeTextAsLongAsync(model, promptOptions.Prompt);
+            var negativePromptTokens = await DecodeTextAsLongAsync(model, promptOptions.NegativePrompt);
+            var maxPromptTokenCount = Math.Max(promptTokens.Length, negativePromptTokens.Length);
+
+            // Generate embeds for tokens
+            var promptEmbeddings = await GenerateEmbedsAsync(model, promptTokens, maxPromptTokenCount);
+            var negativePromptEmbeddings = await GenerateEmbedsAsync(model, negativePromptTokens, maxPromptTokenCount);
+
+            if (isGuidanceEnabled)
+                return new PromptEmbeddingsResult(
+                    negativePromptEmbeddings.PromptEmbeds.Concatenate(promptEmbeddings.PromptEmbeds),
+                    negativePromptEmbeddings.PooledPromptEmbeds.Concatenate(promptEmbeddings.PooledPromptEmbeds));
+
+            return new PromptEmbeddingsResult(promptEmbeddings.PromptEmbeds, promptEmbeddings.PooledPromptEmbeds);
+        }
+
+
+        /// <summary>
+        /// Creates the embeds using Tokenizer, Tokenizer2, TextEncoder and TextEncoder2
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="isGuidanceEnabled">if set to <c>true</c> is guidance enabled.</param>
+        /// <returns></returns>
+        private async Task<PromptEmbeddingsResult> CreateEmbedsBothAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
+        {
+            // Tokenize Prompt and NegativePrompt
+            var promptTokens = await DecodeTextAsIntAsync(model, promptOptions.Prompt);
+            var negativePromptTokens = await DecodeTextAsIntAsync(model, promptOptions.NegativePrompt);
+            var maxPromptTokenCount = Math.Max(promptTokens.Length, negativePromptTokens.Length);
+
+            // Generate embeds for tokens
+            var promptEmbeddings = await GenerateEmbedsAsync(model, promptTokens, maxPromptTokenCount);
+            var negativePromptEmbeddings = await GenerateEmbedsAsync(model, negativePromptTokens, maxPromptTokenCount);
+
+            /// Tokenize Prompt and NegativePrompt with Tokenizer2
+            var dualPromptTokens = await DecodeTextAsLongAsync(model, promptOptions.Prompt);
+            var dualNegativePromptTokens = await DecodeTextAsLongAsync(model, promptOptions.NegativePrompt);
+
+            // Generate embeds for tokens
+            var dualPromptEmbeddings = await GenerateEmbedsAsync(model, dualPromptTokens, maxPromptTokenCount);
+            var dualNegativePromptEmbeddings = await GenerateEmbedsAsync(model, dualNegativePromptTokens, maxPromptTokenCount);
+
+            var dualPrompt = promptEmbeddings.Concatenate(dualPromptEmbeddings.PromptEmbeds, 2);
+            var dualNegativePrompt = negativePromptEmbeddings.Concatenate(dualNegativePromptEmbeddings.PromptEmbeds, 2);
+            var pooledPromptEmbeds = dualPromptEmbeddings.PooledPromptEmbeds;
+            var pooledNegativePromptEmbeds = dualNegativePromptEmbeddings.PooledPromptEmbeds;
+
+            if (isGuidanceEnabled)
+                return new PromptEmbeddingsResult(dualNegativePrompt.Concatenate(dualPrompt), pooledNegativePromptEmbeds.Concatenate(pooledPromptEmbeds));
+
+            return new PromptEmbeddingsResult(dualPrompt, pooledPromptEmbeds);
         }
 
 
@@ -138,7 +200,7 @@ namespace OnnxStack.StableDiffusion.Services
         private async Task<float[]> EncodeTokensAsync(IModelOptions model, int[] tokenizedInput)
         {
             var inputDim = new[] { 1, tokenizedInput.Length };
-            var outputDim = new[] { 1, tokenizedInput.Length, model.EmbeddingsLength };
+            var outputDim = new[] { 1, tokenizedInput.Length, model.TokenizerLength };
             var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.TextEncoder);
             var inputTensor = new DenseTensor<int>(tokenizedInput, inputDim);
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
@@ -164,8 +226,8 @@ namespace OnnxStack.StableDiffusion.Services
         private async Task<EncoderResult> EncodeTokensAsync(IModelOptions model, long[] tokenizedInput)
         {
             var inputDim = new[] { 1, tokenizedInput.Length };
-            var promptOutputDim = new[] { 1, tokenizedInput.Length, model.DualEmbeddingsLength };
-            var pooledOutputDim = new[] { 1, model.DualEmbeddingsLength };
+            var promptOutputDim = new[] { 1, tokenizedInput.Length, model.Tokenizer2Length };
+            var pooledOutputDim = new[] { 1, model.Tokenizer2Length };
             var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.TextEncoder2);
             var inputTensor = new DenseTensor<long>(tokenizedInput, inputDim);
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
@@ -206,12 +268,12 @@ namespace OnnxStack.StableDiffusion.Services
                 pooledEmbeds.AddRange(result.PooledPromptEmbeds);
             }
 
-            var embeddingsDim = new[] { 1, embeddings.Count / model.DualEmbeddingsLength, model.DualEmbeddingsLength };
+            var embeddingsDim = new[] { 1, embeddings.Count / model.Tokenizer2Length, model.Tokenizer2Length };
             var promptTensor = TensorHelper.CreateTensor(embeddings.ToArray(), embeddingsDim);
 
             //TODO: Pooled embeds do not support more than 77 tokens, just grab first set
-            var pooledDim = new[] { 1, model.DualEmbeddingsLength };
-            var pooledTensor = TensorHelper.CreateTensor(pooledEmbeds.Take(model.DualEmbeddingsLength).ToArray(), pooledDim);
+            var pooledDim = new[] { 1, model.Tokenizer2Length };
+            var pooledTensor = TensorHelper.CreateTensor(pooledEmbeds.Take(model.Tokenizer2Length).ToArray(), pooledDim);
             return new EmbedsResult(promptTensor, pooledTensor);
         }
 
@@ -236,7 +298,7 @@ namespace OnnxStack.StableDiffusion.Services
                 embeddings.AddRange(await EncodeTokensAsync(model, tokens.ToArray()));
             }
 
-            var dim = new[] { 1, embeddings.Count / model.EmbeddingsLength, model.EmbeddingsLength };
+            var dim = new[] { 1, embeddings.Count / model.TokenizerLength, model.TokenizerLength };
             return TensorHelper.CreateTensor(embeddings.ToArray(), dim);
         }
 
