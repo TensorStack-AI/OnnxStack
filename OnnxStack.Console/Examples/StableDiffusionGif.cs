@@ -33,7 +33,7 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
-            var prompt = "Elon Musk";
+            var prompt = "Iron Man";
             var negativePrompt = "";
 
             var promptOptions = new PromptOptions
@@ -46,10 +46,10 @@ namespace OnnxStack.Console.Runner
             var schedulerOptions = new SchedulerOptions
             {
                 SchedulerType = SchedulerType.LCM,
-                Seed = 624461087,
+                //  Seed = 624461087,
                 GuidanceScale = 1f,
-                InferenceSteps = 12,
-                Strength = 0.5f,
+                InferenceSteps = 20,
+                Strength = 0.35f,
             };
 
             // Choose Model
@@ -63,6 +63,7 @@ namespace OnnxStack.Console.Runner
 
             var repeatCount = 0;
             var frameDelay = 0;
+            var imageMerge = 0.88f;
 
             using Image<Rgba32> gifDestination = new(schedulerOptions.Width, schedulerOptions.Height);
             {
@@ -72,16 +73,37 @@ namespace OnnxStack.Console.Runner
                 using (var gifSource = await Image.LoadAsync(Path.Combine(_outputDirectory, "Source.gif")))
                 using (var frame = gifSource.Frames.CloneFrame(0))
                 {
+                    frame.Mutate(x => x.Resize(gifDestination.Size));
                     for (int i = 0; i < gifSource.Frames.Count; i++)
                     {
+                        var newFrame = gifSource.Frames.CloneFrame(i);
+                        newFrame.Mutate(x => x.Resize(gifDestination.Size));
+
                         // Draw each frame on top of the last to fix issues with compressed gifs
-                        frame.Mutate(x => x.DrawImage(gifSource.Frames.CloneFrame(i), 1f));
+                        frame.Mutate(x => x.DrawImage(newFrame, 1f));
+
+                        var mergedFrame = frame.CloneAs<Rgba32>();
+                        if (i > 1 && imageMerge < 1)
+                        {
+                            // Get Previous SD Frame
+                            var previousFrame = gifDestination.Frames.CloneFrame(i - 1);
+
+                            // Set to Grayscale
+                            previousFrame.Mutate(x => x.Grayscale());
+
+                            // Set BG Frame Opacity
+                            mergedFrame.Mutate(x => x.Opacity(imageMerge));
+
+                            // Draw Previous SD Frame
+                            mergedFrame.Mutate(x => x.DrawImage(previousFrame, 1f - imageMerge));
+                        }
+
 
                         // Save Debug Output
-                        await frame.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Debug-Frame.png"));
+                        await mergedFrame.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Debug-Frame.png"));
 
                         // Set prompt Image, Run Diffusion
-                        promptOptions.InputImage = new InputImage(frame.CloneAs<Rgba32>());
+                        promptOptions.InputImage = new InputImage(mergedFrame.CloneAs<Rgba32>());
                         var result = await _stableDiffusionService.GenerateAsImageAsync(model, promptOptions, schedulerOptions);
 
                         // Save Debug Output
