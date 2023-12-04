@@ -7,6 +7,7 @@ using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
@@ -60,37 +61,45 @@ namespace OnnxStack.Console.Runner
             schedulerOptions.Width = model.SampleSize;
             schedulerOptions.Height = model.SampleSize;
 
+            var repeatCount = 0;
+            var frameDelay = 0;
 
             using Image<Rgba32> gifDestination = new(schedulerOptions.Width, schedulerOptions.Height);
             {
                 var gifMetaData = gifDestination.Metadata.GetGifMetadata();
-                gifMetaData.RepeatCount = 0; // Loop
+                gifMetaData.RepeatCount = (ushort)repeatCount; // Loop
 
                 using (var gifSource = await Image.LoadAsync(Path.Combine(_outputDirectory, "Source.gif")))
+                using (var frame = gifSource.Frames.CloneFrame(0))
                 {
                     for (int i = 0; i < gifSource.Frames.Count; i++)
                     {
-                        // Get Frame as Image
-                        var frame = gifSource.Frames.CloneFrame(i).CloneAs<Rgba32>();
+                        // Draw each frame on top of the last to fix issues with compressed gifs
+                        frame.Mutate(x => x.DrawImage(gifSource.Frames.CloneFrame(i), 1f));
 
                         // Save Debug Output
                         await frame.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Debug-Frame.png"));
 
                         // Set prompt Image, Run Diffusion
-                        promptOptions.InputImage = new InputImage(frame);
+                        promptOptions.InputImage = new InputImage(frame.CloneAs<Rgba32>());
                         var result = await _stableDiffusionService.GenerateAsImageAsync(model, promptOptions, schedulerOptions);
 
                         // Save Debug Output
                         await result.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Debug-Output.png"));
 
+                        // Set Fraem metadata
+                        var metadata = result.Frames.RootFrame.Metadata.GetGifMetadata();
+                        metadata.FrameDelay = frameDelay;
+
                         // Add Result to Gif
                         gifDestination.Frames.InsertFrame(i, result.Frames.RootFrame);
                         OutputHelpers.WriteConsole($"Frame: {i + 1}/{gifSource.Frames.Count}", ConsoleColor.Cyan);
                     }
-
-                    // Save Result
-                    await gifDestination.SaveAsGifAsync(Path.Combine(_outputDirectory, $"Result.gif"));
                 }
+
+                // Save Result
+                await gifDestination.SaveAsGifAsync(Path.Combine(_outputDirectory, $"Result.gif"));
+
             }
         }
 
