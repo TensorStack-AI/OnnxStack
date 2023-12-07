@@ -198,8 +198,7 @@ __________________________
 - [ONNX Runtime C# API Doc](https://onnxruntime.ai/docs/api/csharp/api)
 - [Get Started with C# in ONNX Runtime](https://onnxruntime.ai/docs/get-started/with-csharp.html)
 - [Hugging Face Stable Diffusion Blog](https://huggingface.co/blog/stable_diffusion)
-- [Original C# Stable Diffusion blog](https://devblogs.microsoft.com/dotnet/generate-ai-images-stable-diffusion-csharp-onnx-runtime/)
-- [Original ONNX Runtime tutorial for Stable Diffusion in C#](https://onnxruntime.ai/docs/tutorials/csharp/stable-diffusion-csharp.html)
+- [ONNX Runtime tutorial for Stable Diffusion in C#](https://onnxruntime.ai/docs/tutorials/csharp/stable-diffusion-csharp.html)
 
 ## Reference
 
