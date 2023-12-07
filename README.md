@@ -198,3 +198,7 @@ __________________________
 - [ONNX Runtime C# API Doc](https://onnxruntime.ai/docs/api/csharp/api)
 - [Get Started with C# in ONNX Runtime](https://onnxruntime.ai/docs/get-started/with-csharp.html)
 - [Hugging Face Stable Diffusion Blog](https://huggingface.co/blog/stable_diffusion)
+
+## Reference
+
+This work is based on the original C# implementation of Stable Diffusion by Cassie Breviu: [Stable Diffusion with C# and ONNX Runtime](https://github.com/cassiebreviu/stablediffusion).
