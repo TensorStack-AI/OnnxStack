@@ -107,7 +107,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 
                 // Get Model metadata
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
-      
+
+                // Some LCM variants require no guidance embeds 
+                var guidanceEmbeddingsRequired = metadata.Inputs.Count == 4;
+
                 // Loop though the timesteps
                 var step = 0;
                 foreach (var timestep in timesteps)
@@ -127,7 +130,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                        inferenceParameters.AddInputTensor(guidanceEmbeddings);
+                        if(guidanceEmbeddingsRequired)
+                            inferenceParameters.AddInputTensor(guidanceEmbeddings);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
