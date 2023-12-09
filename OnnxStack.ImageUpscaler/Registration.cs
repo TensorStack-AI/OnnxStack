@@ -16,7 +16,7 @@ namespace OnnxStack.ImageUpscaler
         {
             serviceCollection.AddOnnxStack();
             serviceCollection.RegisterServices();
-            serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<ImageUpscalerConfig>());
+            serviceCollection.AddSingleton(TryLoadAppSettings());
         }
 
 
@@ -32,10 +32,31 @@ namespace OnnxStack.ImageUpscaler
         }
 
 
+        /// <summary>
+        /// Registers the services.
+        /// </summary>
+        /// <param name="serviceCollection">The service collection.</param>
         private static void RegisterServices(this IServiceCollection serviceCollection)
         {
             serviceCollection.AddSingleton<IImageService, ImageService>();
             serviceCollection.AddSingleton<IUpscaleService, UpscaleService>();
+        }
+
+
+        /// <summary>
+        /// Try load ImageUpscalerConfig from application settings.
+        /// </summary>
+        /// <returns></returns>
+        private static ImageUpscalerConfig TryLoadAppSettings()
+        {
+            try
+            {
+                return ConfigManager.LoadConfiguration<ImageUpscalerConfig>();
+            }
+            catch
+            {
+                return new ImageUpscalerConfig();
+            }
         }
     }
 }

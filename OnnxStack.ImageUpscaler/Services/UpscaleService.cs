@@ -2,11 +2,14 @@
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
+using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.ImageUpscaler.Extensions;
 using OnnxStack.ImageUpscaler.Models;
+using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -16,11 +19,55 @@ namespace OnnxStack.ImageUpscaler.Services
     {
         private readonly IImageService _imageService;
         private readonly IOnnxModelService _modelService;
+        private readonly ImageUpscalerConfig _configuration;
 
-        public UpscaleService(IOnnxModelService modelService, IImageService imageService)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UpscaleService"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="modelService">The model service.</param>
+        /// <param name="imageService">The image service.</param>
+        public UpscaleService(ImageUpscalerConfig configuration, IOnnxModelService modelService, IImageService imageService)
         {
+            _configuration = configuration;
             _modelService = modelService;
             _imageService = imageService;
+            _modelService.AddModelSet(_configuration.ModelSets);
+        }
+
+
+        /// <summary>
+        /// Gets the configuration.
+        /// </summary>
+        public ImageUpscalerConfig Configuration => _configuration;
+
+
+        /// <summary>
+        /// Gets the model sets.
+        /// </summary>
+        public IReadOnlyList<UpscaleModelSet> ModelSets => _configuration.ModelSets;
+
+
+        /// <summary>
+        /// Loads the model.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        public async Task<bool> LoadModelAsync(UpscaleModelSet model)
+        {
+            var modelSet = await _modelService.LoadModelAsync(model);
+            return modelSet is not null;
+        }
+
+
+        /// <summary>
+        /// Unloads the model.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        public async Task<bool> UnloadModelAsync(UpscaleModelSet model)
+        {
+            return await _modelService.UnloadModelAsync(model);
         }
 
 
@@ -30,21 +77,17 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        public async Task<Image<Rgba32>> GenerateAsync(IOnnxModel modelOptions, Image<Rgba32> inputImage)
+        public async Task<Image<Rgba32>> GenerateAsync(UpscaleModelSet modelSet, Image<Rgba32> inputImage)
         {
-            var channels = 3;
-            var maxSize = 512;
-            var scaleFactor = 4;
-            var upscaleInput = CreateInputParams(inputImage, maxSize, scaleFactor);
-
-            await _modelService.LoadModelAsync(modelOptions);
-            var metadata = _modelService.GetModelMetadata(modelOptions, OnnxModelType.Upscaler);
+            
+            var upscaleInput = CreateInputParams(inputImage, modelSet.SampleSize, modelSet.ScaleFactor);
+            var metadata = _modelService.GetModelMetadata(modelSet, OnnxModelType.Unet);
 
             var outputResult = new Image<Rgba32>(upscaleInput.OutputWidth, upscaleInput.OutputHeight);
             foreach (var tile in upscaleInput.ImageTiles)
             {
-                var inputDimension = new[] { 1, channels, tile.Image.Height, tile.Image.Width };
-                var outputDimension = new[] { 1, channels, tile.Destination.Height, tile.Destination.Width };
+                var inputDimension = new[] { 1, modelSet.Channels, tile.Image.Height, tile.Image.Width };
+                var outputDimension = new[] { 1, modelSet.Channels, tile.Destination.Height, tile.Destination.Width };
                 var inputTensor = tile.Image.ToDenseTensor(inputDimension);
 
                 using (var inferenceParameters = new OnnxInferenceParameters(metadata))
@@ -52,7 +95,7 @@ namespace OnnxStack.ImageUpscaler.Services
                     inferenceParameters.AddInputTensor(inputTensor);
                     inferenceParameters.AddOutputBuffer(outputDimension);
 
-                    var results = await _modelService.RunInferenceAsync(modelOptions, OnnxModelType.Upscaler, inferenceParameters);
+                    var results = await _modelService.RunInferenceAsync(modelSet, OnnxModelType.Unet, inferenceParameters);
                     using (var result = results.First())
                     {
                         outputResult.Mutate(x => x.DrawImage(result.ToImage(), tile.Destination.Location, 1f));
@@ -79,6 +122,3 @@ namespace OnnxStack.ImageUpscaler.Services
         }
     }
 }
-
-
-

@@ -32,13 +32,60 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
-        /// Updates the model set.
+        /// Gets the active loaded ModelSets.
+        /// </summary>
+        public IEnumerable<OnnxModelSet> ModelSets => _onnxModelSets.Values;
+
+
+        /// <summary>
+        /// Gets the ModelSet configs.
+        /// </summary>
+        public IEnumerable<IOnnxModelSetConfig> ModelSetConfigs => _onnxModelSetConfigs.Values;
+
+
+        /// <summary>
+        /// Adds a model set.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        public Task<bool> AddModelSet(IOnnxModelSetConfig modelSet)
+        {
+            return Task.FromResult(_onnxModelSetConfigs.TryAdd(modelSet.Name, modelSet));
+        }
+
+        /// <summary>
+        /// Adds a modelsets.
+        /// </summary>
+        /// <param name="modelSets">The model sets.</param>
+        public Task AddModelSet(IEnumerable<IOnnxModelSetConfig> modelSets)
+        {
+            foreach (var modelSet in modelSets)
+            {
+                AddModelSet(modelSet);
+            }
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Removes the model set.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        public Task<bool> RemoveModelSet(IOnnxModelSetConfig modelSet)
+        {
+            return Task.FromResult(_onnxModelSetConfigs.TryRemove(modelSet.Name, out _));
+        }
+
+
+        /// <summary>
+        /// Updates an existing model set.
         /// </summary>
         /// <param name="modelSet">The model set.</param>
         /// <returns></returns>
         public bool UpdateModelSet(IOnnxModelSetConfig modelSet)
         {
-            _onnxModelSetConfigs.TryRemove(modelSet.Name, out var existing);
+            _onnxModelSetConfigs.TryRemove(modelSet.Name, out _);
             return _onnxModelSetConfigs.TryAdd(modelSet.Name, modelSet);
         }
 

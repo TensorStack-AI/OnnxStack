@@ -12,14 +12,14 @@ namespace OnnxStack.ImageUpscaler.Services
         /// Generates the image tiles.
         /// </summary>
         /// <param name="imageSource">The image source.</param>
-        /// <param name="maxTileSize">Maximum size of the tile.</param>
+        /// <param name="sampleSize">Maximum size of the tile.</param>
         /// <param name="scaleFactor">The scale factor.</param>
         /// <returns></returns>
-        public List<ImageTile> GenerateTiles(Image<Rgba32> imageSource, int maxTileSize, int scaleFactor)
+        public List<ImageTile> GenerateTiles(Image<Rgba32> imageSource, int sampleSize, int scaleFactor)
         {
             var tiles = new List<ImageTile>();
-            var tileSizeX = Math.Min(maxTileSize, imageSource.Width);
-            var tileSizeY = Math.Min(maxTileSize, imageSource.Height);
+            var tileSizeX = Math.Min(sampleSize, imageSource.Width);
+            var tileSizeY = Math.Min(sampleSize, imageSource.Height);
             var columns = (int)Math.Ceiling((double)imageSource.Width / tileSizeX);
             var rows = (int)Math.Ceiling((double)imageSource.Height / tileSizeY);
             var tileWidth = imageSource.Width / columns;

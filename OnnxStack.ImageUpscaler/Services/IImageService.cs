@@ -7,6 +7,13 @@ namespace OnnxStack.ImageUpscaler.Services
 {
     public interface IImageService
     {
-        List<ImageTile> GenerateTiles(Image<Rgba32> imageSource, int maxTileSize, int scaleFactor);
+        /// <summary>
+        /// Generates the image tiles.
+        /// </summary>
+        /// <param name="imageSource">The image source.</param>
+        /// <param name="sampleSize">Maximum size of the tile.</param>
+        /// <param name="scaleFactor">The scale factor.</param>
+        /// <returns></returns>
+        List<ImageTile> GenerateTiles(Image<Rgba32> imageSource, int sampleSize, int scaleFactor);
     }
 }

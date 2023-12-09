@@ -19,7 +19,7 @@ namespace OnnxStack.Console
             // Add OnnxStack
             builder.Services.AddOnnxStack();
             builder.Services.AddOnnxStackStableDiffusion();
-            builder.Services.AddOnnxStackImageUpscaler(new ImageUpscalerConfig());
+            builder.Services.AddOnnxStackImageUpscaler();
 
             // Add AppService
             builder.Services.AddHostedService<AppService>();
