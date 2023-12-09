@@ -32,6 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" />
   </ItemGroup>
 

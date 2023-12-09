@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" />
     <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
   </ItemGroup>
 

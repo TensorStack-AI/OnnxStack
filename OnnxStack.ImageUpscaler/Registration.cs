@@ -2,6 +2,7 @@
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.ImageUpscaler.Config;
+using OnnxStack.ImageUpscaler.Services;
 
 namespace OnnxStack.ImageUpscaler
 {
@@ -33,6 +34,8 @@ namespace OnnxStack.ImageUpscaler
 
         private static void RegisterServices(this IServiceCollection serviceCollection)
         {
+            serviceCollection.AddSingleton<IImageService, ImageService>();
+            serviceCollection.AddSingleton<IUpscaleService, UpscaleService>();
         }
     }
 }
