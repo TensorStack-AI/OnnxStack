@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -50,10 +51,10 @@ namespace OnnxStack.StableDiffusion.Helpers
                 return Image.Load<Rgba32>(inputImage.ImageBytes);
             if (inputImage.ImageStream != null)
                 return Image.Load<Rgba32>(inputImage.ImageStream);
-            if (inputImage.ToDenseTensor != null)
+            if (inputImage.ImageTensor != null)
                 return inputImage.ImageTensor.ToImage();
 
-            return null;
+            return inputImage.Image;
         }
 
 

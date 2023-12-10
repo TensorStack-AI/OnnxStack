@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Models;
+using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -394,11 +395,11 @@ namespace OnnxStack.UI.Views
                 DiffuserType = SelectedModel.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint)
                     ? DiffuserType.ImageInpaint
                     : DiffuserType.ImageInpaintLegacy,
-                InputImage = new StableDiffusion.Models.InputImage
+                InputImage = new InputImage
                 {
                     ImageBytes = imageInput.Image.GetImageBytes()
                 },
-                InputImageMask = new StableDiffusion.Models.InputImage
+                InputImageMask = new InputImage
                 {
                     ImageBytes = imageInputMask.Image.GetImageBytes()
                 }

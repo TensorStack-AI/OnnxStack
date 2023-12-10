@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using System.IO;
 using System.Text.Json.Serialization;
 
-namespace OnnxStack.StableDiffusion.Models
+namespace OnnxStack.Core.Image
 {
     public class InputImage
     {

@@ -9,6 +9,37 @@ namespace OnnxStack.Core.Services
 {
     public interface IOnnxModelService : IDisposable
     {
+        /// <summary>
+        /// Gets the active loaded ModelSets.
+        /// </summary>
+        IEnumerable<OnnxModelSet> ModelSets { get; }
+
+        /// <summary>
+        /// Gets the ModelSet configs.
+        /// </summary>
+        IEnumerable<IOnnxModelSetConfig> ModelSetConfigs { get; }
+
+        /// <summary>
+        /// Adds a ModelSet
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        Task<bool> AddModelSet(IOnnxModelSetConfig modelSet);
+
+
+        /// <summary>
+        /// Adds a collection of ModelSet
+        /// </summary>
+        /// <param name="modelSets">The model sets.</param>
+        Task AddModelSet(IEnumerable<IOnnxModelSetConfig> modelSets);
+
+
+        /// <summary>
+        /// Removes a model set.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        Task<bool> RemoveModelSet(IOnnxModelSetConfig modelSet);
 
         /// <summary>
         /// Loads the model.

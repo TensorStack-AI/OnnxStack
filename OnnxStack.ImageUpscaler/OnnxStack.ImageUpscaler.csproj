@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <Title>OnnxStack.ImageUpscaler</Title>
+    <Company>Backyard Industries</Company>
+    <Description>
+      OnnxRuntime Image Upscale Library for .NET Core
+    </Description>
+    <Copyright>Backyard Industries - 2023</Copyright>
+    <RepositoryUrl>https://github.com/saddam213/OnnxStack</RepositoryUrl>
+    <PackageTags>onnx;onnx-runtime;upscale</PackageTags>
+    <Authors>sa_ddam213</Authors>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageId>OnnxStack.ImageUpscaler</PackageId>
+    <Product>$(AssemblyName)</Product>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <PackageIcon>OnnxStack - 128x128.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OnnxStack - 128x128.png" Link="OnnxStack - 128x128.png">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+</Project>

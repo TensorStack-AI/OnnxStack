@@ -1,4 +1,5 @@
-﻿using OnnxStack.StableDiffusion;
+﻿using OnnxStack.Core.Image;
+using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
