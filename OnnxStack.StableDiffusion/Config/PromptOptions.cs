@@ -1,5 +1,5 @@
-﻿using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Models;
+﻿using OnnxStack.Core.Image;
+using OnnxStack.StableDiffusion.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace OnnxStack.StableDiffusion.Config

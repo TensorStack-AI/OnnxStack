@@ -1,4 +1,5 @@
-﻿using OnnxStack.ImageUpscaler.Services;
+﻿using OnnxStack.Core.Image;
+using OnnxStack.ImageUpscaler.Services;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -42,7 +43,7 @@ namespace OnnxStack.Console.Runner
             var inputImage = await Image.LoadAsync<Rgba32>(imageFile);
 
             OutputHelpers.WriteConsole("Upscaling Image...", ConsoleColor.Cyan);
-            var result = await _imageUpscaleService.GenerateAsync(modelSet, inputImage);
+            var result = await _imageUpscaleService.GenerateAsImageAsync(modelSet, new InputImage(inputImage));
             await result.SaveAsPngAsync(Path.Combine(_outputDirectory, "Result.png"));
             OutputHelpers.WriteConsole("Upscaling Complete.", ConsoleColor.Cyan);
         }

@@ -38,7 +38,6 @@ namespace OnnxStack.ImageUpscaler
         /// <param name="serviceCollection">The service collection.</param>
         private static void RegisterServices(this IServiceCollection serviceCollection)
         {
-            serviceCollection.AddSingleton<IImageService, ImageService>();
             serviceCollection.AddSingleton<IUpscaleService, UpscaleService>();
         }
 

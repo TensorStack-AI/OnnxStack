@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Models;
+using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -387,7 +388,7 @@ namespace OnnxStack.UI.Views
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
                 DiffuserType = DiffuserType.ImageToImage,
-                InputImage = new StableDiffusion.Models.InputImage
+                InputImage = new InputImage
                 {
                     ImageBytes = imageInput.Image?.GetImageBytes()
                 }

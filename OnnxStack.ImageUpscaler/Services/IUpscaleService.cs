@@ -1,8 +1,11 @@
-﻿using OnnxStack.ImageUpscaler.Config;
+﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Image;
+using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace OnnxStack.ImageUpscaler.Services
@@ -44,6 +47,32 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        Task<Image<Rgba32>> GenerateAsync(UpscaleModelSet modelOptions, Image<Rgba32> inputImage);
+        Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, InputImage inputImage);
+
+        /// <summary>
+        /// Generates the upscaled image.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="inputImage">The input image.</param>
+        /// <returns></returns>
+        Task<Image<Rgba32>> GenerateAsImageAsync(UpscaleModelSet modelOptions, InputImage inputImage);
+
+
+        /// <summary>
+        /// Generates the upscaled image.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="inputImage">The input image.</param>
+        /// <returns></returns>
+        Task<byte[]> GenerateAsByteAsync(UpscaleModelSet modelOptions, InputImage inputImage);
+
+
+        /// <summary>
+        /// Generates the upscaled image.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="inputImage">The input image.</param>
+        /// <returns></returns>
+        Task<Stream> GenerateAsStreamAsync(UpscaleModelSet modelOptions, InputImage inputImage);
     }
 }
