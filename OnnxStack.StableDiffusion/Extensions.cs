@@ -97,26 +97,33 @@ namespace OnnxStack.StableDiffusion
         /// <returns></returns>
         public static SchedulerType[] GetSchedulerTypes(this DiffuserPipelineType pipelineType)
         {
-            return pipelineType switch
+            switch (pipelineType)
             {
-                DiffuserPipelineType.InstaFlow => new[]
-                {
-                    SchedulerType.InstaFlow
-                },
-                DiffuserPipelineType.LatentConsistency => new[]
-                {
-                    SchedulerType.LCM
-                },
-                _ => new[]
-                {
-                    SchedulerType.LMS,
-                    SchedulerType.Euler,
-                    SchedulerType.EulerAncestral,
-                    SchedulerType.DDPM,
-                    SchedulerType.DDIM,
-                    SchedulerType.KDPM2
-                }
-            };
+                case DiffuserPipelineType.StableDiffusion:
+                case DiffuserPipelineType.StableDiffusionXL:
+                    return new[]
+                    {
+                        SchedulerType.LMS,
+                        SchedulerType.Euler,
+                        SchedulerType.EulerAncestral,
+                        SchedulerType.DDPM,
+                        SchedulerType.DDIM,
+                        SchedulerType.KDPM2
+                    };
+                case DiffuserPipelineType.LatentConsistency:
+                case DiffuserPipelineType.LatentConsistencyXL:
+                    return new[] 
+                    { 
+                        SchedulerType.LCM 
+                    };
+                case DiffuserPipelineType.InstaFlow:
+                    return new[] 
+                    {
+                        SchedulerType.InstaFlow
+                    };
+                default:
+                    return default;
+            }
         }
 
     }

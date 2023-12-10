@@ -60,6 +60,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             // Currently, only linear spacing is supported.
             var timeIncrement = Options.TrainTimesteps / Options.OriginalInferenceSteps;
 
+            if (Options.InferenceSteps <= 1)
+                return new[] { Options.TrainTimesteps / 2 - 1 };
+
             //# LCM Training Steps Schedule
             var lcmOriginTimesteps = Enumerable.Range(1, Options.OriginalInferenceSteps)
                 .Select(x => x * timeIncrement - 1)

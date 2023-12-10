@@ -576,12 +576,12 @@ namespace OnnxStack.UI.Views
 
                     // TODO: Select pipleine in dialog, then setting any required bits
                     PipelineType = pipeline,
-                    ScaleFactor = pipeline == DiffuserPipelineType.StableDiffusionXL ? 0.13025f : 0.18215f,
+                    ScaleFactor = IsXLPipeline(pipeline) ? 0.13025f : 0.18215f,
                     TokenizerLimit = 77,
-                    PadTokenId = pipeline == DiffuserPipelineType.StableDiffusionXL ? 1 : 49407,
+                    PadTokenId = IsXLPipeline(pipeline) ? 1 : 49407,
                     TokenizerLength = 768,
                     Tokenizer2Length = 1280,
-                    TokenizerType = pipeline == DiffuserPipelineType.StableDiffusionXL ? TokenizerType.Both : TokenizerType.One,
+                    TokenizerType = IsXLPipeline(pipeline) ? TokenizerType.Both : TokenizerType.One,
                     BlankTokenId = 49407,
                     Diffusers = Enum.GetValues<DiffuserType>().ToList(),
                 };
@@ -883,7 +883,7 @@ namespace OnnxStack.UI.Views
             if (!model.ModelConfigurations.Any())
                 return false;
 
-            var filesToValidate = model.PipelineType == DiffuserPipelineType.StableDiffusionXL
+            var filesToValidate = IsXLPipeline(model.PipelineType)
                 ? model.ModelConfigurations
                 : model.ModelConfigurations.Where(x => x.Type != OnnxModelType.Tokenizer2 && x.Type != OnnxModelType.TextEncoder2);
 
@@ -916,6 +916,10 @@ namespace OnnxStack.UI.Views
             }
         }
 
+        private bool IsXLPipeline(DiffuserPipelineType pipelineType)
+        {
+            return pipelineType == DiffuserPipelineType.StableDiffusionXL || pipelineType == DiffuserPipelineType.LatentConsistencyXL;
+        }
 
         /// <summary>
         /// Creates the view model.
@@ -924,7 +928,7 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         private ModelSetViewModel CreateViewModel(ModelConfigTemplate modelTemplate)
         {
-            var modelTypes = modelTemplate.PipelineType == DiffuserPipelineType.StableDiffusionXL
+            var modelTypes = IsXLPipeline(modelTemplate.PipelineType)
                 ? Enum.GetValues<OnnxModelType>()
                 : Enum.GetValues<OnnxModelType>().Where(x => x != OnnxModelType.Tokenizer2 && x != OnnxModelType.TextEncoder2);
             return new ModelSetViewModel
