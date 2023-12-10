@@ -1,8 +1,6 @@
-﻿using LibGit2Sharp;
-using Models;
+﻿using Models;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion;
-using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
@@ -144,6 +142,7 @@ namespace OnnxStack.UI.UserControls
             {
                 SchedulerOptions.OriginalInferenceSteps = 100;
                 SchedulerOptions.InferenceSteps = 30;
+                SchedulerOptions.GuidanceScale = 7.5f;
                 SchedulerOptions.SchedulerType = SchedulerType.DDIM;
             }
             else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistency)
@@ -151,6 +150,15 @@ namespace OnnxStack.UI.UserControls
                 SchedulerOptions.OriginalInferenceSteps = 50;
                 SchedulerOptions.InferenceSteps = 6;
                 SchedulerOptions.GuidanceScale = 1f;
+                SchedulerOptions.SchedulerType = SchedulerType.LCM;
+            }
+            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistencyXL)
+            {
+                SchedulerOptions.OriginalInferenceSteps = 50;
+                SchedulerOptions.InferenceSteps = 6;
+                SchedulerOptions.GuidanceScale = 1f;
+                SchedulerOptions.Width = 1024;
+                SchedulerOptions.Height = 1024;
                 SchedulerOptions.SchedulerType = SchedulerType.LCM;
             }
             else if (model.ModelOptions.PipelineType == DiffuserPipelineType.InstaFlow)
@@ -168,7 +176,6 @@ namespace OnnxStack.UI.UserControls
                 SchedulerOptions.Height = 1024;
                 SchedulerOptions.SchedulerType = SchedulerType.EulerAncestral;
             }
-           
         }
 
 
