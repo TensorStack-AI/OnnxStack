@@ -13,16 +13,10 @@ namespace OnnxStack.StableDiffusion.Common
 {
     public interface IStableDiffusionService
     {
-
-        /// <summary>
-        /// Gets the configuration.
-        /// </summary>
-        StableDiffusionConfig Configuration { get; }
-
-        /// <summary>
+         /// <summary>
         /// Gets the models.
         /// </summary>
-        IReadOnlyList<StableDiffusionModelSet> ModelSets { get; }
+        IReadOnlyCollection<StableDiffusionModelSet> ModelSets { get; }
 
         /// <summary>
         /// Adds the model.

@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
+using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -27,6 +28,7 @@ namespace OnnxStack.StableDiffusion.Services
     {
         private readonly IOnnxModelService _modelService;
         private readonly StableDiffusionConfig _configuration;
+        private readonly HashSet<StableDiffusionModelSet> _modelSetConfigs;
         private readonly ConcurrentDictionary<DiffuserPipelineType, IPipeline> _pipelines;
 
         /// <summary>
@@ -37,21 +39,16 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _configuration = configuration;
             _modelService = onnxModelService;
-            _modelService.AddModelSet(configuration.ModelSets);
+            _modelSetConfigs = new HashSet<StableDiffusionModelSet>(_configuration.ModelSets, new OnnxModelEqualityComparer());
+            _modelService.AddModelSet(_modelSetConfigs);
             _pipelines = pipelines.ToConcurrentDictionary(k => k.PipelineType, k => k);
         }
 
 
         /// <summary>
-        /// Gets the configuration.
-        /// </summary>
-        public StableDiffusionConfig Configuration => _configuration;
-
-
-        /// <summary>
         /// Gets the model sets.
         /// </summary>
-        public IReadOnlyList<StableDiffusionModelSet> ModelSets => _configuration.ModelSets;
+        public IReadOnlyCollection<StableDiffusionModelSet> ModelSets => _modelSetConfigs;
 
 
         /// <summary>
@@ -59,9 +56,14 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        public Task<bool> AddModelAsync(StableDiffusionModelSet model)
+        public async Task<bool> AddModelAsync(StableDiffusionModelSet model)
         {
-            return _modelService.AddModelSet(model);
+            if (await _modelService.AddModelSet(model))
+            {
+                _modelSetConfigs.Add(model);
+                return true;
+            }
+            return false;
         }
 
 
@@ -70,9 +72,14 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        public Task<bool> RemoveModelAsync(StableDiffusionModelSet model)
+        public async Task<bool> RemoveModelAsync(StableDiffusionModelSet model)
         {
-            return _modelService.RemoveModelSet(model);
+            if (await _modelService.RemoveModelSet(model))
+            {
+                _modelSetConfigs.Remove(model);
+                return true;
+            }
+            return false;
         }
 
 
@@ -81,9 +88,15 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        public Task<bool> UpdateModelAsync(StableDiffusionModelSet model)
+        public async Task<bool> UpdateModelAsync(StableDiffusionModelSet model)
         {
-            return _modelService.UpdateModelSet(model);
+            if (await _modelService.UpdateModelSet(model))
+            {
+                _modelSetConfigs.Remove(model);
+                _modelSetConfigs.Add(model);
+                return true;
+            }
+            return false;
         }
 
 
@@ -92,10 +105,13 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="model">The model options.</param>
         /// <returns></returns>
-        public async Task<bool> LoadModelAsync(StableDiffusionModelSet modelSet)
+        public async Task<bool> LoadModelAsync(StableDiffusionModelSet model)
         {
-            var model = await _modelService.LoadModelAsync(modelSet);
-            return model is not null;
+            if (!_modelSetConfigs.TryGetValue(model, out _))
+                throw new Exception("ModelSet not found");
+
+            var modelSet = await _modelService.LoadModelAsync(model);
+            return modelSet is not null;
         }
 
 

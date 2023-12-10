@@ -14,14 +14,9 @@ namespace OnnxStack.ImageUpscaler.Services
     {
 
         /// <summary>
-        /// Gets the configuration.
-        /// </summary>
-        ImageUpscalerConfig Configuration { get; }
-
-        /// <summary>
         /// Gets the model sets.
         /// </summary>
-        IReadOnlyList<UpscaleModelSet> ModelSets { get; }
+        IReadOnlyCollection<UpscaleModelSet> ModelSets { get; }
 
         /// <summary>
         /// Adds the model.
