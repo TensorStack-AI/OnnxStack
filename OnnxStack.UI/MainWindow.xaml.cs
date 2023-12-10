@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Models;
+using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Views;
@@ -27,36 +27,43 @@ namespace OnnxStack.UI
         private INavigatable _selectedTabItem;
         private readonly ILogger<MainWindow> _logger;
         private ObservableCollection<ModelOptionsModel> _models;
+        private ObservableCollection<UpscaleModelSetModel> _upscaleModels;
 
-        public MainWindow(StableDiffusionConfig configuration, OnnxStackUIConfig uiSettings, ILogger<MainWindow> logger)
+        public MainWindow(OnnxStackUIConfig uiSettings, StableDiffusionConfig configuration, ImageUpscalerConfig upscaleConfiguration, ILogger<MainWindow> logger)
         {
             _logger = logger;
             UISettings = uiSettings;
-            SaveImageCommand = new AsyncRelayCommand<ImageResult>(SaveImageFile);
+            SaveImageCommand = new AsyncRelayCommand<UpscaleResult>(SaveUpscaleImageFile);
+            SaveImageResultCommand = new AsyncRelayCommand<ImageResult>(SaveImageResultFile);
             SaveBlueprintCommand = new AsyncRelayCommand<ImageResult>(SaveBlueprintFile);
             NavigateTextToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateTextToImage);
             NavigateImageToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImageToImage);
             NavigateImageInpaintCommand = new AsyncRelayCommand<ImageResult>(NavigateImageInpaint);
             NavigateImagePaintToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImagePaintToImage);
-
+            NavigateUpscalerCommand = new AsyncRelayCommand<ImageResult>(NavigateUpscaler);
             WindowCloseCommand = new AsyncRelayCommand(WindowClose);
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
             WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
             WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             Models = CreateModelOptions(configuration.ModelSets);
+            UpscaleModels = CreateUpscaleModelOptions(upscaleConfiguration.ModelSets);
             InitializeComponent();
         }
+
+
 
         public AsyncRelayCommand WindowMinimizeCommand { get; }
         public AsyncRelayCommand WindowRestoreCommand { get; }
         public AsyncRelayCommand WindowMaximizeCommand { get; }
         public AsyncRelayCommand WindowCloseCommand { get; }
-        public AsyncRelayCommand<ImageResult> SaveImageCommand { get; }
+        public AsyncRelayCommand<UpscaleResult> SaveImageCommand { get; }
+        public AsyncRelayCommand<ImageResult> SaveImageResultCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveBlueprintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateTextToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageInpaintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImagePaintToImageCommand { get; }
+        public AsyncRelayCommand<ImageResult> NavigateUpscalerCommand { get; }
 
         public OnnxStackUIConfig UISettings
         {
@@ -71,6 +78,13 @@ namespace OnnxStack.UI
             get { return _models; }
             set { _models = value; NotifyPropertyChanged(); }
         }
+
+        public ObservableCollection<UpscaleModelSetModel> UpscaleModels
+        {
+            get { return _upscaleModels; }
+            set { _upscaleModels = value; NotifyPropertyChanged(); }
+        }
+
 
         public int SelectedTabIndex
         {
@@ -104,6 +118,10 @@ namespace OnnxStack.UI
             await NavigateToTab(TabId.PaintToImage, result);
         }
 
+        private async Task NavigateUpscaler(ImageResult result)
+        {
+            await NavigateToTab(TabId.Upscaler, result);
+        }
 
         private async Task NavigateToTab(TabId tab, ImageResult imageResult)
         {
@@ -116,7 +134,8 @@ namespace OnnxStack.UI
             TextToImage = 0,
             ImageToImage = 1,
             ImageInpaint = 2,
-            PaintToImage = 3
+            PaintToImage = 3,
+            Upscaler = 4
         }
 
         private ObservableCollection<ModelOptionsModel> CreateModelOptions(List<StableDiffusionModelSet> onnxModelSets)
@@ -131,29 +150,47 @@ namespace OnnxStack.UI
             return new ObservableCollection<ModelOptionsModel>(models);
         }
 
-        private async Task SaveImageFile(ImageResult imageResult)
+
+        private ObservableCollection<UpscaleModelSetModel> CreateUpscaleModelOptions(List<UpscaleModelSet> modelSets)
+        {
+            var models = modelSets.Select(model => new UpscaleModelSetModel
+            {
+                Name = model.Name,
+                ModelOptions = model,
+                IsEnabled = model.IsEnabled
+            });
+            return new ObservableCollection<UpscaleModelSetModel>(models);
+        }
+
+        private async Task SaveImageResultFile(ImageResult imageResult)
         {
             try
             {
-                var saveFileDialog = new SaveFileDialog
-                {
-                    Title = Title,
-                    Filter = "png files (*.png)|*.png",
-                    DefaultExt = "png",
-                    AddExtension = true,
-                    RestoreDirectory = true,
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                    FileName = $"image-{imageResult.SchedulerOptions.Seed}.png"
-                };
-
-                var dialogResult = saveFileDialog.ShowDialog();
-                if (dialogResult == false)
-                {
-                    _logger.LogInformation("Saving image canceled");
+                var filename = GetSaveFilename($"image-{imageResult.SchedulerOptions.Seed}");
+                if (string.IsNullOrEmpty(filename))
                     return;
-                }
 
-                var result = await imageResult.SaveImageFileAsync(saveFileDialog.FileName);
+                var result = await imageResult.Image.SaveImageFileAsync(filename);
+                if (!result)
+                    _logger.LogError("Error saving image");
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving image");
+            }
+        }
+
+
+        private async Task SaveUpscaleImageFile(UpscaleResult imageResult)
+        {
+            try
+            {
+                var filename = GetSaveFilename($"image-{imageResult.Info.OutputWidth}x{imageResult.Info.OutputHeight}");
+                if (string.IsNullOrEmpty(filename))
+                    return;
+
+                var result = await imageResult.Image.SaveImageFileAsync(filename);
                 if (!result)
                     _logger.LogError("Error saving image");
 
@@ -187,6 +224,8 @@ namespace OnnxStack.UI
                     return;
                 }
 
+              
+
                 var result = await imageResult.SaveBlueprintFileAsync(saveFileDialog.FileName);
                 if (!result)
                     _logger.LogError("Error saving image blueprint");
@@ -196,6 +235,30 @@ namespace OnnxStack.UI
             {
                 _logger.LogError(ex, "Error saving image blueprint");
             }
+        }
+
+
+        private string GetSaveFilename(string initialFilename)
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Title = Title,
+                Filter = "png files (*.png)|*.png",
+                DefaultExt = "png",
+                AddExtension = true,
+                RestoreDirectory = true,
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                FileName = $"{initialFilename}.png"
+            };
+
+            var dialogResult = saveFileDialog.ShowDialog();
+            if (dialogResult == false)
+            {
+                _logger.LogInformation("Saving image canceled");
+                return null;
+            }
+
+            return saveFileDialog.FileName;
         }
 
 

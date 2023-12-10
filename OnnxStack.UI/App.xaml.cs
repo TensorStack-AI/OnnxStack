@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
+using OnnxStack.ImageUpscaler;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
@@ -26,6 +27,7 @@ namespace OnnxStack.UI
 
             // Add OnnxStackStableDiffusion
             builder.Services.AddOnnxStackStableDiffusion();
+            builder.Services.AddOnnxStackImageUpscaler();
             builder.Services.AddOnnxStackConfig<OnnxStackUIConfig>();
 
             // Add Windows

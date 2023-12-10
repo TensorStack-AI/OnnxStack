@@ -83,6 +83,19 @@
                 <views:PaintToImageView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
+            <!--Upscale-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf424;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Upscale Image" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:UpscaleView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+            </TabItem>
+
             <!--Log Window-->
             <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TabItem.Header>

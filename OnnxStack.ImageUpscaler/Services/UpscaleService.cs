@@ -125,6 +125,20 @@ namespace OnnxStack.ImageUpscaler.Services
 
 
         /// <summary>
+        /// Determines whether [is model loaded] [the specified model options].
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns>
+        ///   <c>true</c> if [is model loaded] [the specified model options]; otherwise, <c>false</c>.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public bool IsModelLoaded(UpscaleModelSet modelOptions)
+        {
+            return _modelService.IsModelLoaded(modelOptions);
+        }
+
+
+        /// <summary>
         /// Generates the upscaled image.
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
@@ -231,5 +245,6 @@ namespace OnnxStack.ImageUpscaler.Services
             var height = imageSource.Height * scaleFactor;
             return new UpscaleInput(tiles, width, height);
         }
+
     }
 }

@@ -49,13 +49,12 @@ namespace OnnxStack.UI
             }
         }
 
-
-        public static async Task<bool> SaveImageFileAsync(this ImageResult imageResult, string filename)
+        public static async Task<bool> SaveImageFileAsync(this BitmapSource image, string filename)
         {
             await Task.Run(() =>
             {
                 var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(imageResult.Image));
+                encoder.Frames.Add(BitmapFrame.Create(image));
                 using (var fileStream = new FileStream(filename, FileMode.Create))
                 {
                     encoder.Save(fileStream);
@@ -88,7 +87,7 @@ namespace OnnxStack.UI
             var random = RandomString();
             var imageFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
             var blueprintFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
-            if (!await imageResult.SaveImageFileAsync(imageFile))
+            if (!await imageResult.Image.SaveImageFileAsync(imageFile))
                 return false;
 
             if (includeBlueprint)

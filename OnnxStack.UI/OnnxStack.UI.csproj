@@ -40,19 +40,19 @@
   </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.1" />
-        <PackageReference Include="OnnxStack.StableDiffusion" Version="0.10.0" Condition=" '$(Configuration)' == 'Release' " />
+        <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" />
         <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" Condition=" '$(Configuration)' == 'Debug' " />
     </ItemGroup>
 
-
     <ItemGroup>
+        <PackageReference Include="OnnxStack.StableDiffusion" Version="0.10.0" Condition=" '$(Configuration)' == 'Release' " />
         <PackageReference Include="LibGit2Sharp" Version="0.28.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
         <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.2" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
+        <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.1" />
      </ItemGroup>
 
 </Project>
