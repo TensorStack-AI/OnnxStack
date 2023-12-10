@@ -35,7 +35,6 @@ namespace OnnxStack.UI.Views
         private readonly ILogger<ModelView> _logger;
         private readonly string _defaultTokenizerPath;
         private readonly IDialogService _dialogService;
-        private readonly IOnnxModelService _onnxModelService;
         private readonly IModelDownloadService _modelDownloadService;
         private readonly StableDiffusionConfig _stableDiffusionConfig;
         private readonly IStableDiffusionService _stableDiffusionService;
@@ -55,7 +54,6 @@ namespace OnnxStack.UI.Views
             {
                 _logger = App.GetService<ILogger<ModelView>>();
                 _dialogService = App.GetService<IDialogService>();
-                _onnxModelService = App.GetService<IOnnxModelService>();
                 _stableDiffusionConfig = App.GetService<StableDiffusionConfig>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
                 _modelDownloadService = App.GetService<IModelDownloadService>();
@@ -141,7 +139,7 @@ namespace OnnxStack.UI.Views
         private void Initialize()
         {
             ModelSets = new ObservableCollection<ModelSetViewModel>();
-            foreach (var installedModel in _stableDiffusionConfig.OnnxModelSets.Select(CreateViewModel))
+            foreach (var installedModel in _stableDiffusionConfig.ModelSets.Select(CreateViewModel))
             {
                 _logger.LogDebug($"Initialize ModelSet: {installedModel.Name}");
 
@@ -521,7 +519,7 @@ namespace OnnxStack.UI.Views
             }
 
             // Add to Config file
-            _stableDiffusionConfig.OnnxModelSets.Add(newModelOption);
+            _stableDiffusionConfig.ModelSets.Add(newModelOption);
 
             // Update Templater if one was used
             UpdateTemplateStatus(newModelOption.Name, ModelTemplateStatus.Installed);
@@ -533,7 +531,7 @@ namespace OnnxStack.UI.Views
 
             // Update OnnxStack Service
             newModelOption.ApplyConfigurationOverrides();
-            _onnxModelService.UpdateModelSet(newModelOption);
+            await _stableDiffusionService.UpdateModelAsync(newModelOption);
 
             // Add new ViewModel
             ModelOptions.Add(new ModelOptionsModel
@@ -622,7 +620,7 @@ namespace OnnxStack.UI.Views
             {
                 var newModelSet = SelectedModelSet.IsTemplate
                      ? CreateViewModel(UISettings.ModelTemplates.FirstOrDefault(x => x.Name == SelectedModelSet.Name))
-                     : CreateViewModel(_stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name));
+                     : CreateViewModel(_stableDiffusionConfig.ModelSets.FirstOrDefault(x => x.Name == SelectedModelSet.Name));
 
                 newModelSet.IsEnabled = false;
                 newModelSet.IsTemplate = false;
@@ -830,7 +828,7 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         private async Task<bool> UnloadAndRemoveModelSetAsync(string name)
         {
-            var onnxModelSet = _stableDiffusionConfig.OnnxModelSets.FirstOrDefault(x => x.Name == name);
+            var onnxModelSet = _stableDiffusionConfig.ModelSets.FirstOrDefault(x => x.Name == name);
             if (onnxModelSet is not null)
             {
                 // If model is loaded unload now
@@ -844,7 +842,7 @@ namespace OnnxStack.UI.Views
                     ModelOptions.Remove(viewModel);
 
                 // Remove ModelSet
-                _stableDiffusionConfig.OnnxModelSets.Remove(onnxModelSet);
+                _stableDiffusionConfig.ModelSets.Remove(onnxModelSet);
                 return true;
             }
             return false;
@@ -877,7 +875,7 @@ namespace OnnxStack.UI.Views
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        private bool ValidateModelSet(ModelOptions model)
+        private bool ValidateModelSet(StableDiffusionModelSet model)
         {
             if (model == null)
                 return false;
@@ -908,7 +906,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 ConfigManager.SaveConfiguration(UISettings);
-                ConfigManager.SaveConfiguration(nameof(OnnxStackConfig), _stableDiffusionConfig);
+                ConfigManager.SaveConfiguration(_stableDiffusionConfig);
                 return Task.FromResult(true);
             }
             catch (Exception ex)
@@ -982,7 +980,7 @@ namespace OnnxStack.UI.Views
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <returns></returns>
-        private ModelSetViewModel CreateViewModel(ModelOptions modelOptions)
+        private ModelSetViewModel CreateViewModel(StableDiffusionModelSet modelOptions)
         {
             var isValid = ValidateModelSet(modelOptions);
             return new ModelSetViewModel
@@ -1057,9 +1055,9 @@ namespace OnnxStack.UI.Views
         /// </summary>
         /// <param name="editModel">The edit model.</param>
         /// <returns></returns>
-        private ModelOptions CreateModelOptions(ModelSetViewModel editModel)
+        private StableDiffusionModelSet CreateModelOptions(ModelSetViewModel editModel)
         {
-            return new ModelOptions
+            return new StableDiffusionModelSet
             {
                 IsEnabled = editModel.IsEnabled,
                 Name = editModel.Name,
@@ -1079,7 +1077,7 @@ namespace OnnxStack.UI.Views
                 Diffusers = new List<DiffuserType>(editModel.GetDiffusers()),
                 SampleSize = editModel.SampleSize,
                 ModelType = editModel.ModelType,
-                ModelConfigurations = new List<OnnxModelSessionConfig>(editModel.ModelFiles.Select(x => new OnnxModelSessionConfig
+                ModelConfigurations = new List<OnnxModelConfig>(editModel.ModelFiles.Select(x => new OnnxModelConfig
                 {
                     Type = x.Type,
                     OnnxModelPath = x.OnnxModelPath,

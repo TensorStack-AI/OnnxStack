@@ -9,7 +9,7 @@ namespace OnnxStack.Core.Model
     {
         private readonly SessionOptions _options;
         private readonly InferenceSession _session;
-        private readonly OnnxModelSessionConfig _configuration;
+        private readonly OnnxModelConfig _configuration;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxModelSession"/> class.
@@ -17,7 +17,7 @@ namespace OnnxStack.Core.Model
         /// <param name="configuration">The configuration.</param>
         /// <param name="container">The container.</param>
         /// <exception cref="System.IO.FileNotFoundException">Onnx model file not found</exception>
-        public OnnxModelSession(OnnxModelSessionConfig configuration, PrePackedWeightsContainer container)
+        public OnnxModelSession(OnnxModelConfig configuration, PrePackedWeightsContainer container)
         {
             if (!File.Exists(configuration.OnnxModelPath))
                 throw new FileNotFoundException("Onnx model file not found", configuration.OnnxModelPath);
@@ -44,7 +44,7 @@ namespace OnnxStack.Core.Model
         /// <summary>
         /// Gets the configuration.
         /// </summary>
-        public OnnxModelSessionConfig Configuration => _configuration;
+        public OnnxModelConfig Configuration => _configuration;
 
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace OnnxStack.Core
 {
     public static class Extensions
     {
-        public static SessionOptions GetSessionOptions(this OnnxModelSessionConfig configuration)
+        public static SessionOptions GetSessionOptions(this OnnxModelConfig configuration)
         {
             var sessionOptions = new SessionOptions
             {

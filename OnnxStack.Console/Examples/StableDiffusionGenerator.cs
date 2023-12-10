@@ -31,7 +31,7 @@ namespace OnnxStack.Console.Runner
             Directory.CreateDirectory(_outputDirectory);
 
             var seed = Random.Shared.Next();
-            foreach (var model in _stableDiffusionService.Models)
+            foreach (var model in _stableDiffusionService.ModelSets)
             {
                 OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                 await _stableDiffusionService.LoadModelAsync(model);
@@ -62,7 +62,7 @@ namespace OnnxStack.Console.Runner
             OutputHelpers.ReadConsole(ConsoleColor.Gray);
         }
 
-        private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options, string key)
+        private async Task<bool> GenerateImage(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, string key)
         {
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}_{key}.png");
             var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
