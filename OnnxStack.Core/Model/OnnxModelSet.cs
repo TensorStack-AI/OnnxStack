@@ -78,7 +78,7 @@ namespace OnnxStack.Core.Model
         /// </summary>
         /// <param name="modelType">Type of the model.</param>
         /// <returns></returns>
-        public OnnxModelSessionConfig GetConfiguration(OnnxModelType modelType)
+        public OnnxModelConfig GetConfiguration(OnnxModelType modelType)
         {
             return _configuration.ModelConfigurations.FirstOrDefault(x => x.Type == modelType);
         }

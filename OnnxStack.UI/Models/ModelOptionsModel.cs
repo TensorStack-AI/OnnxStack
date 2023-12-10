@@ -1,4 +1,5 @@
 ﻿using OnnxStack.StableDiffusion.Common;
+using OnnxStack.StableDiffusion.Config;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -35,7 +36,7 @@ namespace Models
             set { _isEnabled = value; NotifyPropertyChanged(); }
         }
 
-        public IModelOptions ModelOptions { get; set; }
+        public StableDiffusionModelSet ModelOptions { get; set; }
 
 
         #region INotifyPropertyChanged

@@ -50,6 +50,42 @@ namespace OnnxStack.ImageUpscaler.Services
 
 
         /// <summary>
+        /// Adds the model.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public Task<bool> AddModelAsync(UpscaleModelSet model)
+        {
+            return _modelService.AddModelSet(model);
+        }
+
+
+        /// <summary>
+        /// Removes the model.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public Task<bool> RemoveModelAsync(UpscaleModelSet model)
+        {
+            return _modelService.RemoveModelSet(model);
+        }
+
+
+        /// <summary>
+        /// Updates the model.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public Task<bool> UpdateModelAsync(UpscaleModelSet model)
+        {
+            return _modelService.UpdateModelSet(model);
+        }
+
+
+        /// <summary>
         /// Loads the model.
         /// </summary>
         /// <param name="model">The model.</param>

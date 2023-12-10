@@ -43,7 +43,7 @@ namespace OnnxStack.UI
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
             WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
             WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
-            Models = CreateModelOptions(configuration.OnnxModelSets);
+            Models = CreateModelOptions(configuration.ModelSets);
             InitializeComponent();
         }
 
@@ -119,7 +119,7 @@ namespace OnnxStack.UI
             PaintToImage = 3
         }
 
-        private ObservableCollection<ModelOptionsModel> CreateModelOptions(List<ModelOptions> onnxModelSets)
+        private ObservableCollection<ModelOptionsModel> CreateModelOptions(List<StableDiffusionModelSet> onnxModelSets)
         {
             var models = onnxModelSets
             .Select(model => new ModelOptionsModel

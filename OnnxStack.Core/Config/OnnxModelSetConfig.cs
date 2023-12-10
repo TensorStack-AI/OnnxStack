@@ -13,6 +13,6 @@ namespace OnnxStack.Core.Config
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
-        public List<OnnxModelSessionConfig> ModelConfigurations { get; set; }
+        public List<OnnxModelConfig> ModelConfigurations { get; set; }
     }
 }

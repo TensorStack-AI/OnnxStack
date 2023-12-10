@@ -27,7 +27,7 @@ namespace OnnxStack.Core.Services
         {
             _configuration = configuration;
             _onnxModelSets = new ConcurrentDictionary<string, OnnxModelSet>();
-            _onnxModelSetConfigs = _configuration.OnnxModelSets.ToConcurrentDictionary(x => x.Name, x => x as IOnnxModelSetConfig);
+            _onnxModelSetConfigs = new ConcurrentDictionary<string, IOnnxModelSetConfig>();
         }
 
 
@@ -83,10 +83,10 @@ namespace OnnxStack.Core.Services
         /// </summary>
         /// <param name="modelSet">The model set.</param>
         /// <returns></returns>
-        public bool UpdateModelSet(IOnnxModelSetConfig modelSet)
+        public Task<bool> UpdateModelSet(IOnnxModelSetConfig modelSet)
         {
             _onnxModelSetConfigs.TryRemove(modelSet.Name, out _);
-            return _onnxModelSetConfigs.TryAdd(modelSet.Name, modelSet);
+            return Task.FromResult(_onnxModelSetConfigs.TryAdd(modelSet.Name, modelSet));
         }
 
 
@@ -310,9 +310,5 @@ namespace OnnxStack.Core.Services
                 onnxModelSet?.Dispose();
             }
         }
-
-
     }
-
-
 }

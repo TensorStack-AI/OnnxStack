@@ -26,13 +26,11 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         Task<bool> AddModelSet(IOnnxModelSetConfig modelSet);
 
-
         /// <summary>
         /// Adds a collection of ModelSet
         /// </summary>
         /// <param name="modelSets">The model sets.</param>
         Task AddModelSet(IEnumerable<IOnnxModelSetConfig> modelSets);
-
 
         /// <summary>
         /// Removes a model set.
@@ -40,6 +38,13 @@ namespace OnnxStack.Core.Services
         /// <param name="modelSet">The model set.</param>
         /// <returns></returns>
         Task<bool> RemoveModelSet(IOnnxModelSetConfig modelSet);
+
+        /// <summary>
+        /// Updates the model set.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
+        Task<bool> UpdateModelSet(IOnnxModelSetConfig modelSet);
 
         /// <summary>
         /// Loads the model.
@@ -64,13 +69,6 @@ namespace OnnxStack.Core.Services
         /// </returns>
         bool IsModelLoaded(IOnnxModel model);
 
-
-        /// <summary>
-        /// Updates the model set.
-        /// </summary>
-        /// <param name="modelSet">The model set.</param>
-        /// <returns></returns>
-        bool UpdateModelSet(IOnnxModelSetConfig modelSet);
 
         /// <summary>
         /// Determines whether the specified model type is enabled.

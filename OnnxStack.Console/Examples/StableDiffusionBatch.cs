@@ -51,7 +51,7 @@ namespace OnnxStack.Console.Runner
                     BatchType = BatchOptionType.Scheduler
                 };
 
-                foreach (var model in _stableDiffusionService.Models)
+                foreach (var model in _stableDiffusionService.ModelSets)
                 {
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModelAsync(model);

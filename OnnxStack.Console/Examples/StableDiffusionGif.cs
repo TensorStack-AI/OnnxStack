@@ -54,7 +54,7 @@ namespace OnnxStack.Console.Runner
             };
 
             // Choose Model
-            var model = _stableDiffusionService.Models.FirstOrDefault(x => x.Name == "LCM-Dreamshaper-V7");
+            var model = _stableDiffusionService.ModelSets.FirstOrDefault(x => x.Name == "LCM-Dreamshaper-V7");
             OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
             await _stableDiffusionService.LoadModelAsync(model);
 

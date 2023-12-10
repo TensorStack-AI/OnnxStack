@@ -23,7 +23,7 @@ namespace OnnxStack.Core
         {
             serviceCollection.AddOnnxStack();
             serviceCollection.RegisterServices();
-            serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<StableDiffusionConfig>(nameof(OnnxStackConfig)));
+            serviceCollection.AddSingleton(TryLoadAppSettings());
         }
 
 
@@ -85,6 +85,23 @@ namespace OnnxStack.Core
             {
                 MaximumPoolSizeMegabytes = 100,
             });
+        }
+
+
+        /// <summary>
+        /// Try load StableDiffusionConfig from application settings.
+        /// </summary>
+        /// <returns></returns>
+        private static StableDiffusionConfig TryLoadAppSettings()
+        {
+            try
+            {
+                return ConfigManager.LoadConfiguration<StableDiffusionConfig>();
+            }
+            catch
+            {
+                return new StableDiffusionConfig();
+            }
         }
     }
 }
