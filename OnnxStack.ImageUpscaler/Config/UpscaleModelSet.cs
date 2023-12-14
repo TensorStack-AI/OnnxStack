@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public class UpscaleModelSet : IOnnxModelSetConfig
+    public record UpscaleModelSet : IOnnxModelSetConfig
     {
         public string Name { get; set; }
         public int Channels { get; set; }

@@ -133,6 +133,19 @@
                 </TabItem.Header>
                 <views:ModelView UISettings="{Binding UISettings}" ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,6,0,0"/>
             </TabItem>
+
+            <!--Models-->
+            <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf5fd;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Models" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:ModelSettingsView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

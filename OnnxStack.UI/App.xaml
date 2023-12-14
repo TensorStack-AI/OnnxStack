@@ -2,8 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:system="clr-namespace:System;assembly=mscorlib"
+              xmlns:componentModel="clr-namespace:System.ComponentModel;assembly=System.ComponentModel.TypeConverter"
              xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
-             xmlns:local="clr-namespace:OnnxStack.UI"
+               xmlns:local="clr-namespace:OnnxStack.UI"
              xmlns:SD_Enums="clr-namespace:OnnxStack.StableDiffusion.Enums;assembly=OnnxStack.StableDiffusion"
              xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
              xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
@@ -35,10 +36,23 @@
         <converters:InverseNullVisibilityConverter x:Key="InverseNullVisibilityConverter" />
         <converters:DiffuserVisibilityConverter x:Key="DiffuserVisibilityConverter" />
         <converters:PipelineVisibilityConverter x:Key="PipelineVisibilityConverter" />
+        <converters:ComboBoxAllItemConverter x:Key="ComboBoxAllItemConverter" />
+
+        <ObjectDataProvider x:Key="ListSortDirection" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="componentModel:ListSortDirection"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
 
         <ObjectDataProvider x:Key="SchedulerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
             <ObjectDataProvider.MethodParameters>
                 <x:Type TypeName="SD_Enums:SchedulerType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="ModelType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:ModelType"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 

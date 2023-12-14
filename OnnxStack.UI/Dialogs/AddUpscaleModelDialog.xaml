@@ -1,4 +1,4 @@
-﻿<Window x:Class="OnnxStack.UI.Dialogs.AddModelDialog"
+﻿<Window x:Class="OnnxStack.UI.Dialogs.AddUpscaleModelDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,8 +8,8 @@
         mc:Ignorable="d"
         Name="UI"
         Icon="/Images/Icon.png"
-        MinWidth="500"
-        SizeToContent="WidthAndHeight"
+        Width="500"
+        SizeToContent="Manual"
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
@@ -19,37 +19,9 @@
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top">
 
-            <UniformGrid Columns="2">
-                <StackPanel>
-                    <TextBlock Text="Model Pipeline"/>
-                    <ComboBox ItemsSource="{Binding Source={StaticResource DiffuserPipelineType}}" SelectedItem="{Binding PipelineType}" />
-                </StackPanel>
-                <StackPanel>
-                    <TextBlock Text="Model Type"/>
-                    <ComboBox ItemsSource="{Binding Source={StaticResource ModelType}}" SelectedItem="{Binding ModelType}" />
-                    <StackPanel.Style>
-                        <Style TargetType="{x:Type StackPanel}">
-                            <Setter Property="IsEnabled" Value="False" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding PipelineType, ElementName=UI}" Value="StableDiffusionXL">
-                                    <Setter Property="IsEnabled" Value="True" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding PipelineType, ElementName=UI}" Value="LatentConsistencyXL">
-                                    <Setter Property="IsEnabled" Value="True" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                </StackPanel>
-            </UniformGrid>
-
-          
-
-         
-
             <StackPanel Margin="0,10,0,0">
-                <TextBlock Text="Model Folder"/>
-                <userControls:FilePickerTextBox FileName="{Binding ModelFolder, Mode=TwoWay}" IsFolderPicker="True" />
+                <TextBlock Text="Model File"/>
+                <userControls:FilePickerTextBox FileName="{Binding ModelFile, Mode=TwoWay}" Filter="Onnx files (*.onnx)|*.onnx" DefaultExt="onnx" />
             </StackPanel>
 
             <StackPanel Margin="0,10,0,0">
@@ -57,11 +29,30 @@
                 <TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
 
+            <UniformGrid Columns="3" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock Text="Sample Size" />
+                    <TextBox Text="512" />
+                </StackPanel>
+
+                <StackPanel Margin="5,0">
+                    <TextBlock Text="Scale Factor" />
+                    <TextBox Text="2" />
+                </StackPanel>
+
+                <StackPanel>
+                    <TextBlock Text="Channels" />
+                    <TextBox Text="3" />
+                </StackPanel>
+            </UniformGrid>
+
             <StackPanel Margin="5">
                 <StackPanel Orientation="Horizontal" Visibility="{Binding IsNameInvalid, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <userControls:FontAwesome Icon="&#xf00d;" Color="Red" />
                     <TextBlock Text="Name" Margin="5,0,0,3" />
                 </StackPanel>
+
+               
 
                 <ItemsControl ItemsSource="{Binding ValidationResults}">
                     <ItemsControl.ItemTemplate>

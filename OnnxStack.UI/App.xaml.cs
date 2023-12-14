@@ -36,6 +36,10 @@ namespace OnnxStack.UI
             builder.Services.AddTransient<TextInputDialog>();
             builder.Services.AddTransient<CropImageDialog>();
             builder.Services.AddTransient<AddModelDialog>();
+            builder.Services.AddTransient<UpdateModelDialog>();
+            builder.Services.AddTransient<AddUpscaleModelDialog>();
+            builder.Services.AddTransient<UpdateUpscaleModelDialog>();
+            builder.Services.AddSingleton<IModelFactory, ModelFactory>();
             builder.Services.AddSingleton<IDialogService, DialogService>();
             builder.Services.AddSingleton<IModelDownloadService, ModelDownloadService>();
 

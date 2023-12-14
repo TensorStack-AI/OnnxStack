@@ -36,6 +36,7 @@
                                 <scm:SortDescription PropertyName="IsEnabled" Direction="Descending"  />
                                 <scm:SortDescription PropertyName="IsInstalled" Direction="Descending" />
                                 <scm:SortDescription PropertyName="Name" Direction="Ascending" />
+                        
                             </CollectionViewSource.SortDescriptions>
                         </CollectionViewSource>
                     </ListBox.DataContext>

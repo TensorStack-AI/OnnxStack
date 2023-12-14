@@ -19,11 +19,11 @@ namespace OnnxStack.UI.Views
         public int TokenizerLength { get; set; }
         public int Tokenizer2Length { get; set; }
         public float ScaleFactor { get; set; }
+        public ModelType ModelType { get; set; }
         public DiffuserPipelineType PipelineType { get; set; }
         public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();
         public List<string> ModelFiles { get; set; } = new List<string>();
         public List<string> Images { get; set; } = new List<string>();
-        public ModelType ModelType { get; set; }
     }
 
 }

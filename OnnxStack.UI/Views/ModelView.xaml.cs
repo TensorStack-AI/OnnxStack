@@ -561,12 +561,13 @@ namespace OnnxStack.UI.Views
         {
             var invalidNames = ModelSets.Select(x => x.Name).ToList();
             var textInputDialog = _dialogService.GetDialog<AddModelDialog>();
-            if (textInputDialog.ShowDialog("Add Model Set", invalidNames))
+            if (textInputDialog.ShowDialog(invalidNames))
             {
                 var pipeline = textInputDialog.PipelineType;
+                var modelType = IsXLPipeline(pipeline) ? textInputDialog.ModelType : ModelType.Base;
                 var newModelTemplate = new ModelConfigTemplate
                 {
-                    Name = textInputDialog.TextResult,
+                    Name = textInputDialog.ModelName,
                     Author = string.Empty,
                     Repository = string.Empty,
                     Description = string.Empty,
@@ -575,6 +576,7 @@ namespace OnnxStack.UI.Views
                     Images = Enumerable.Range(0, 6).Select(x => string.Empty).ToList(),
 
                     // TODO: Select pipleine in dialog, then setting any required bits
+                    ModelType = modelType,
                     PipelineType = pipeline,
                     ScaleFactor = IsXLPipeline(pipeline) ? 0.13025f : 0.18215f,
                     TokenizerLimit = 77,
@@ -883,9 +885,7 @@ namespace OnnxStack.UI.Views
             if (!model.ModelConfigurations.Any())
                 return false;
 
-            var filesToValidate = IsXLPipeline(model.PipelineType)
-                ? model.ModelConfigurations
-                : model.ModelConfigurations.Where(x => x.Type != OnnxModelType.Tokenizer2 && x.Type != OnnxModelType.TextEncoder2);
+            var filesToValidate = model.ModelConfigurations;
 
             if (filesToValidate.Any(x => !File.Exists(x.OnnxModelPath)))
                 return false;
@@ -928,9 +928,7 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         private ModelSetViewModel CreateViewModel(ModelConfigTemplate modelTemplate)
         {
-            var modelTypes = IsXLPipeline(modelTemplate.PipelineType)
-                ? Enum.GetValues<OnnxModelType>()
-                : Enum.GetValues<OnnxModelType>().Where(x => x != OnnxModelType.Tokenizer2 && x != OnnxModelType.TextEncoder2);
+            var modelTypes = GetRequiredModelTypes(modelTemplate.PipelineType, modelTemplate.ModelType);
             return new ModelSetViewModel
             {
                 IsTemplate = true,
@@ -1092,6 +1090,45 @@ namespace OnnxStack.UI.Views
                     InterOpNumThreads = x.IsOverrideEnabled ? x.InterOpNumThreads : default
                 }))
             };
+        }
+
+
+        private OnnxModelType[] GetRequiredModelTypes(DiffuserPipelineType pipelineType, ModelType modelType)
+        {
+            switch (pipelineType)
+            {
+                case DiffuserPipelineType.StableDiffusionXL:
+                case DiffuserPipelineType.LatentConsistencyXL:
+                    return modelType == ModelType.Refiner
+                    ? new[]
+                    {
+                        OnnxModelType.Tokenizer2,
+                        OnnxModelType.TextEncoder2,
+                        OnnxModelType.Unet,
+                        OnnxModelType.VaeDecoder,
+                        OnnxModelType.VaeEncoder
+                    }
+                    :
+                    new[]
+                    {
+                        OnnxModelType.Tokenizer,
+                        OnnxModelType.Tokenizer2,
+                        OnnxModelType.TextEncoder,
+                        OnnxModelType.TextEncoder2,
+                        OnnxModelType.Unet,
+                        OnnxModelType.VaeDecoder,
+                        OnnxModelType.VaeEncoder
+                    };
+                default:
+                    return new[]
+                    {
+                        OnnxModelType.Tokenizer,
+                        OnnxModelType.TextEncoder,
+                        OnnxModelType.Unet,
+                        OnnxModelType.VaeDecoder,
+                        OnnxModelType.TextEncoder
+                    };
+            }
         }
 
         #endregion

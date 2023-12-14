@@ -5,7 +5,6 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
-using OnnxStack.UI.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,23 +18,21 @@ using System.Windows;
 namespace OnnxStack.UI.Dialogs
 {
     /// <summary>
-    /// Interaction logic for AddModelDialog.xaml
+    /// Interaction logic for AddUpscaleModelDialog.xaml
     /// </summary>
-    public partial class AddModelDialog : Window, INotifyPropertyChanged
+    public partial class AddUpscaleModelDialog : Window, INotifyPropertyChanged
     {
-        private readonly ILogger<AddModelDialog> _logger;
+        private readonly ILogger<AddUpscaleModelDialog> _logger;
 
         private List<string> _invalidOptions;
-        private DiffuserPipelineType _pipelineType;
-        private ModelType _modelType;
-        private string _modelFolder;
+        private string _modelFile;
         private string _modelName;
-        private IModelFactory _modelFactory;
+        private OnnxStackUIConfig _uiSettings;
 
-        public AddModelDialog(IModelFactory modelFactory, ILogger<AddModelDialog> logger)
+        public AddUpscaleModelDialog(OnnxStackUIConfig uiSettings, ILogger<AddUpscaleModelDialog> logger)
         {
             _logger = logger;
-            _modelFactory = modelFactory;
+            _uiSettings = uiSettings;
             WindowCloseCommand = new AsyncRelayCommand(WindowClose);
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
             WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
@@ -53,28 +50,6 @@ namespace OnnxStack.UI.Dialogs
 
         public ObservableCollection<ValidationResult> ValidationResults { get; set; } = new ObservableCollection<ValidationResult>();
 
-        public DiffuserPipelineType PipelineType
-        {
-            get { return _pipelineType; }
-            set
-            {
-                _pipelineType = value;
-                NotifyPropertyChanged();
-                if (_pipelineType != DiffuserPipelineType.StableDiffusionXL && _pipelineType != DiffuserPipelineType.LatentConsistencyXL)
-                {
-                    _modelType = ModelType.Base;
-                    NotifyPropertyChanged(nameof(ModelType));
-                }
-                CreateModelSet();
-            }
-        }
-
-
-        public ModelType ModelType
-        {
-            get { return _modelType; }
-            set { _modelType = value; NotifyPropertyChanged(); CreateModelSet(); }
-        }
 
         public string ModelName
         {
@@ -83,15 +58,15 @@ namespace OnnxStack.UI.Dialogs
         }
 
 
-        public string ModelFolder
+        public string ModelFile
         {
-            get { return _modelFolder; }
+            get { return _modelFile; }
             set
             {
-                _modelFolder = value;
-                _modelName = string.IsNullOrEmpty(_modelFolder)
+                _modelFile = value;
+                _modelName = string.IsNullOrEmpty(_modelFile)
                     ? string.Empty
-                    : Path.GetFileName(_modelFolder);
+                    : Path.GetFileNameWithoutExtension(_modelFile);
 
                 NotifyPropertyChanged();
                 NotifyPropertyChanged(nameof(ModelName));
@@ -108,9 +83,9 @@ namespace OnnxStack.UI.Dialogs
         }
 
 
-        private StableDiffusionModelSet _modelSet;
+        private UpscaleModelSet _modelSet;
 
-        public StableDiffusionModelSet ModelSet
+        public UpscaleModelSet ModelSet
         {
             get { return _modelSet; }
             set { _modelSet = value; NotifyPropertyChanged(); }
@@ -123,10 +98,27 @@ namespace OnnxStack.UI.Dialogs
             ModelSet = null;
             IsNameInvalid = false;
             ValidationResults.Clear();
-            if (string.IsNullOrEmpty(_modelFolder))
+            if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            ModelSet = _modelFactory.CreateModelSet(ModelName.Trim(), ModelFolder, PipelineType, ModelType);
+            ModelSet = new UpscaleModelSet
+            {
+                Name = ModelName.Trim(),
+                Channels = 3,
+                ScaleFactor = 4,
+                SampleSize = 512,
+
+                DeviceId = _uiSettings.DefaultDeviceId,
+                ExecutionMode = _uiSettings.DefaultExecutionMode,
+                ExecutionProvider = _uiSettings.DefaultExecutionProvider,
+                InterOpNumThreads = _uiSettings.DefaultInterOpNumThreads,
+                IntraOpNumThreads = _uiSettings.DefaultIntraOpNumThreads,
+                IsEnabled = true,
+                ModelConfigurations = new List<OnnxModelConfig>
+                {
+                    new OnnxModelConfig { Type = OnnxModelType.Unet, OnnxModelPath = _modelFile }
+                }
+            };
 
             // Validate
             IsNameInvalid = !InvalidOptions.IsNullOrEmpty() && InvalidOptions.Contains(_modelName);
@@ -159,7 +151,7 @@ namespace OnnxStack.UI.Dialogs
 
         private bool CanExecuteSave()
         {
-            if (string.IsNullOrEmpty(_modelFolder))
+            if (string.IsNullOrEmpty(_modelFile))
                 return false;
             if (string.IsNullOrEmpty(_modelName) || IsNameInvalid)
                 return false;
@@ -230,5 +222,4 @@ namespace OnnxStack.UI.Dialogs
         #endregion
     }
 
-    public record ValidationResult(OnnxModelType ModelType, bool IsValid);
 }
