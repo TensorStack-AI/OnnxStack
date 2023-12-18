@@ -49,14 +49,17 @@
                     <TextBlock Text="Unload"/>
                 </Button>
             </StackPanel>
-            <ComboBox 
-                DisplayMemberPath="Name" 
-                ItemsSource="{Binding UISettings.UpscaleModelSets}" 
-                SelectedItem="{Binding SelectedModel}" 
-                IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" >
-             
-             
-            </ComboBox>
+
+            <Grid>
+                <ComboBox 
+                    DisplayMemberPath="Name" 
+                    ItemsSource="{Binding UISettings.UpscaleModelSets}" 
+                    SelectedItem="{Binding SelectedModel}" 
+                    IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" >
+                </ComboBox>
+                <TextBlock Text="-- Select Model --" Visibility="{Binding SelectedModel, Converter={StaticResource InverseNullVisibilityConverter}}" IsHitTestVisible="False" Margin="3,2" FontStyle="Italic" Opacity=".7" />
+            </Grid>
+
         </DockPanel>
     </DockPanel>
 

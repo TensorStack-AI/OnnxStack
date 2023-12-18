@@ -42,7 +42,7 @@ namespace OnnxStack.UI.Views
         private List<string> _modelTemplateFilterAuthors;
         private ModelTemplateStatusFilter _modelTemplateFilterStatus;
 
-        private LayoutViewType _modelTemplateLayoutView;
+        private LayoutViewType _modelTemplateLayoutView = LayoutViewType.TileSmall;
         private string _modelTemplateSortProperty;
         private ListSortDirection _modelTemplateSortDirection;
 
@@ -507,7 +507,6 @@ namespace OnnxStack.UI.Views
 
             UISettings.StableDiffusionModelSets.Add(new StableDiffusionModelSetViewModel
             {
-                IsEnabled = true,
                 Name = modelSetResult.Name,
                 ModelSet = modelSetResult
             });
@@ -538,7 +537,6 @@ namespace OnnxStack.UI.Views
                 var modelSet = updateModelDialog.ModelSetResult;
                 stableDiffusionModel.ModelSet = modelSet;
                 stableDiffusionModel.Name = modelSet.Name;
-                stableDiffusionModel.IsEnabled = modelSet.IsEnabled;
                 SelectedModelTemplate.Name = modelSet.Name;
                 await SaveConfigurationFile();
             }
@@ -557,7 +555,6 @@ namespace OnnxStack.UI.Views
                 var modelSet = updateModelDialog.ModelSetResult;
                 stableDiffusionModel.ModelSet = modelSet;
                 stableDiffusionModel.Name = modelSet.Name;
-                stableDiffusionModel.IsEnabled = modelSet.IsEnabled;
                 SelectedModelTemplate.Name = modelSet.Name;
                 await SaveConfigurationFile();
             }
@@ -577,7 +574,6 @@ namespace OnnxStack.UI.Views
 
             UISettings.StableDiffusionModelSets.Add(new StableDiffusionModelSetViewModel
             {
-                IsEnabled = true,
                 Name = modelSet.Name,
                 ModelSet = modelSet
             });
@@ -616,7 +612,6 @@ namespace OnnxStack.UI.Views
                 var modelSet = updateModelDialog.ModelSetResult;
                 upscaleModel.ModelSet = modelSet;
                 upscaleModel.Name = modelSet.Name;
-                upscaleModel.IsEnabled = modelSet.IsEnabled;
                 SelectedModelTemplate.Name = modelSet.Name;
                 await SaveConfigurationFile();
             }
@@ -634,7 +629,6 @@ namespace OnnxStack.UI.Views
                 var modelSet = updateModelDialog.ModelSetResult;
                 upscaleModel.ModelSet = modelSet;
                 upscaleModel.Name = modelSet.Name;
-                upscaleModel.IsEnabled = modelSet.IsEnabled;
                 SelectedModelTemplate.Name = modelSet.Name;
                 await SaveConfigurationFile();
             }
@@ -688,7 +682,6 @@ namespace OnnxStack.UI.Views
 
             UISettings.UpscaleModelSets.Add(new UpscaleModelSetViewModel
             {
-                IsEnabled = true,
                 Name = modelSetResult.Name,
                 ModelSet = modelSetResult
             });
@@ -722,7 +715,6 @@ namespace OnnxStack.UI.Views
 
             UISettings.UpscaleModelSets.Add(new UpscaleModelSetViewModel
             {
-                IsEnabled = true,
                 Name = modelSet.Name,
                 ModelSet = modelSet
             });

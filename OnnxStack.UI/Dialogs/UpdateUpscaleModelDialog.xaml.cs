@@ -103,7 +103,7 @@ namespace OnnxStack.UI.Dialogs
 
         private Task Save()
         {
-            
+
             if (!Validate())
                 return Task.CompletedTask;
 
@@ -178,7 +178,6 @@ namespace OnnxStack.UI.Dialogs
     public class UpdateUpscaleModelSetViewModel : INotifyPropertyChanged
     {
         private string _name;
-        private bool _isEnabled;
         private int _deviceId;
         private int _interOpNumThreads;
         private int _intraOpNumThreads;
@@ -193,12 +192,6 @@ namespace OnnxStack.UI.Dialogs
         {
             get { return _name; }
             set { _name = value; NotifyPropertyChanged(); }
-        }
-
-        public bool IsEnabled
-        {
-            get { return _isEnabled; }
-            set { _isEnabled = value; NotifyPropertyChanged(); }
         }
 
         public int Channels
@@ -263,7 +256,6 @@ namespace OnnxStack.UI.Dialogs
                 SampleSize = modelset.SampleSize,
                 ScaleFactor = modelset.ScaleFactor,
                 Channels = modelset.Channels,
-                IsEnabled = modelset.IsEnabled,
 
                 DeviceId = modelset.DeviceId,
                 ExecutionMode = modelset.ExecutionMode,
@@ -293,8 +285,8 @@ namespace OnnxStack.UI.Dialogs
         {
             return new UpscaleModelSet
             {
+                IsEnabled = true,
                 Name = modelset.Name,
-                IsEnabled = modelset.IsEnabled,
                 SampleSize = modelset.SampleSize,
                 ScaleFactor = modelset.ScaleFactor,
                 Channels = modelset.Channels,

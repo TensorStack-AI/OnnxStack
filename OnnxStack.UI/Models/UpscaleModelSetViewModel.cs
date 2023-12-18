@@ -10,7 +10,6 @@ namespace OnnxStack.UI.Models
         private string _name;
         private bool _isLoaded;
         private bool _isLoading;
-        private bool _isEnabled;
 
         public string Name
         {
@@ -31,13 +30,7 @@ namespace OnnxStack.UI.Models
             get { return _isLoading; }
             set { _isLoading = value; NotifyPropertyChanged(); }
         }
-
-        public bool IsEnabled
-        {
-            get { return _isEnabled; }
-            set { _isEnabled = value; NotifyPropertyChanged(); }
-        }
-
+  
         public UpscaleModelSet ModelSet { get; set; }
 
         #region INotifyPropertyChanged

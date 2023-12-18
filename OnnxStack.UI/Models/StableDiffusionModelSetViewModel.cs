@@ -10,7 +10,6 @@ namespace OnnxStack.UI.Models
         private string _name;
         private bool _isLoaded;
         private bool _isLoading;
-        private bool _isEnabled;
 
         public string Name
         {
@@ -32,11 +31,6 @@ namespace OnnxStack.UI.Models
             set { _isLoading = value; NotifyPropertyChanged(); }
         }
 
-        public bool IsEnabled
-        {
-            get { return _isEnabled; }
-            set { _isEnabled = value; NotifyPropertyChanged(); }
-        }
         public StableDiffusionModelSet ModelSet { get; set; }
 
         #region INotifyPropertyChanged

@@ -49,30 +49,17 @@
                     <TextBlock Text="Unload"/>
                 </Button>
             </StackPanel>
-            <ComboBox 
-                DisplayMemberPath="Name" 
-                ItemsSource="{Binding UISettings.StableDiffusionModelSets}" 
-                SelectedItem="{Binding SelectedModel}" 
-                IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" >
-             
-                <ComboBox.ItemContainerStyle>
-                    <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
-                                <Setter Property="Visibility">
-                                    <Setter.Value>
-                                        <MultiBinding Converter="{StaticResource DiffuserVisibilityConverter}">
-                                            <Binding Path="ModelSet.Diffusers"/>
-                                            <Binding Path="SupportedDiffusers" ElementName="UI" />
-                                        </MultiBinding>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ComboBox.ItemContainerStyle>
-            </ComboBox>
+            <Grid>
+                <ComboBox 
+                     DisplayMemberPath="Name" 
+                     ItemsSource="{Binding UISettings.StableDiffusionModelSets}" 
+                     SelectedItem="{Binding SelectedModel}" 
+                     IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" > 
+                </ComboBox>
+                <TextBlock Text="-- Select Model --" Visibility="{Binding SelectedModel, Converter={StaticResource InverseNullVisibilityConverter}}" IsHitTestVisible="False" Margin="3,2" FontStyle="Italic" Opacity=".7" />
+            </Grid>
+
+       
         </DockPanel>
     </DockPanel>
 

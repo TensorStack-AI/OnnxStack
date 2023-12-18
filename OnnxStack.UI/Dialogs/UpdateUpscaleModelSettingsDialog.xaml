@@ -36,7 +36,6 @@
                     </Border.Style>
                 </Border>
             </StackPanel>
-            <CheckBox DockPanel.Dock="Right" Content="IsEnabled" IsChecked="{Binding UpdateModelSet.IsEnabled}" Margin="5,18,0,0"/>
             <StackPanel Margin="0,0,4,0" >
                 <TextBlock Text="Name" />
                 <TextBox Text="{Binding UpdateModelSet.Name}"  />

@@ -55,7 +55,7 @@ namespace OnnxStack.UI.Dialogs
             get { return _updateModelSet; }
             set { _updateModelSet = value; NotifyPropertyChanged(); }
         }
-       
+
         public string ValidationError
         {
             get { return _validationError; }
@@ -166,7 +166,6 @@ namespace OnnxStack.UI.Dialogs
     public class UpdateModelSetViewModel : INotifyPropertyChanged
     {
         private string _name;
-        private bool _isEnabled;
         private int _deviceId;
         private int _interOpNumThreads;
         private int _intraOpNumThreads;
@@ -192,12 +191,6 @@ namespace OnnxStack.UI.Dialogs
         {
             get { return _name; }
             set { _name = value; NotifyPropertyChanged(); }
-        }
-
-        public bool IsEnabled
-        {
-            get { return _isEnabled; }
-            set { _isEnabled = value; NotifyPropertyChanged(); }
         }
 
         public int PadTokenId
@@ -360,8 +353,6 @@ namespace OnnxStack.UI.Dialogs
                 TokenizerLength = modelset.TokenizerLength,
                 TokenizerLimit = modelset.TokenizerLimit,
                 TokenizerType = modelset.TokenizerType,
-                IsEnabled = modelset.IsEnabled,
-
                 ModelFiles = new ObservableCollection<ModelFileViewModel>(modelset.ModelConfigurations.Select(c => new ModelFileViewModel
                 {
                     Type = c.Type,
@@ -386,9 +377,8 @@ namespace OnnxStack.UI.Dialogs
         {
             return new StableDiffusionModelSet
             {
-
+                IsEnabled = true,
                 Name = modelset.Name,
-                IsEnabled = modelset.IsEnabled,
                 PipelineType = modelset.PipelineType,
                 ModelType = modelset.ModelType,
                 SampleSize = modelset.SampleSize,
@@ -407,9 +397,6 @@ namespace OnnxStack.UI.Dialogs
                 TokenizerLimit = modelset.TokenizerLimit,
                 TokenizerLength = modelset.TokenizerLength,
                 Tokenizer2Length = modelset.Tokenizer2Length,
-
-
-
                 ModelConfigurations = new List<OnnxModelConfig>(modelset.ModelFiles.Select(x => new OnnxModelConfig
                 {
                     Type = x.Type,
