@@ -22,10 +22,8 @@
             <DockPanel >
                 <userControls:UpscalePickerControl DockPanel.Dock="Top"
                    UISettings="{Binding UISettings}"
-                   SupportedDiffusers="{Binding SupportedDiffusers}"
                    IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
-                   SelectedModel="{Binding SelectedModel, Mode=TwoWay}"
-                   Models="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=UpscaleModels}"/>
+                   SelectedModel="{Binding SelectedModel, Mode=TwoWay}"/>
                 <DockPanel IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
 
                     <UniformGrid DockPanel.Dock="Top" Columns="1" Margin="5" >

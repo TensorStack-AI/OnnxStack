@@ -1,26 +1,25 @@
 ﻿using Microsoft.Extensions.Logging;
+using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Dynamic;
-using System.Globalization;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+
 
 namespace OnnxStack.UI.Views
 {
@@ -32,6 +31,21 @@ namespace OnnxStack.UI.Views
         private readonly IModelFactory _modelFactory;
         private readonly IDialogService _dialogService;
         private readonly ILogger<ModelSettingsView> _logger;
+        private readonly IModelDownloadService _modelDownloadService;
+
+        private ModelTemplateViewModel _selectedModelTemplate;
+        private ICollectionView _modelTemplateCollectionView;
+
+        private string _modelTemplateFilterText;
+        private string _modelTemplateFilterAuthor;
+        private string _modelTemplateFilterTemplateType;
+        private List<string> _modelTemplateFilterAuthors;
+        private ModelTemplateStatusFilter _modelTemplateFilterStatus;
+
+        private LayoutViewType _modelTemplateLayoutView;
+        private string _modelTemplateSortProperty;
+        private ListSortDirection _modelTemplateSortDirection;
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelSettingsView"/> class.
@@ -40,36 +54,121 @@ namespace OnnxStack.UI.Views
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
+                _logger = App.GetService<ILogger<ModelSettingsView>>();
                 _modelFactory = App.GetService<IModelFactory>();
                 _dialogService = App.GetService<IDialogService>();
-                _logger = App.GetService<ILogger<ModelSettingsView>>();
+                _modelDownloadService = App.GetService<IModelDownloadService>();
             }
 
-            AddUpscaleModelCommand = new AsyncRelayCommand(AddUpscaleModel);
-            RemoveUpscaleModelCommand = new AsyncRelayCommand(RemoveUpscaleModel, () => SelectedUpscaleModel is not null);
-            UpdateUpscaleModelCommand = new AsyncRelayCommand(UpdateUpscaleModel, () => SelectedUpscaleModel is not null);
-            AddStableDiffusionModelCommand = new AsyncRelayCommand(AddStableDiffusionModel);
-            RemoveStableDiffusionModelCommand = new AsyncRelayCommand(RemoveStableDiffusionModel, () => SelectedStableDiffusionModel is not null);
-            UpdateStableDiffusionModelCommand = new AsyncRelayCommand(UpdateStableDiffusionModel, () => SelectedStableDiffusionModel is not null);
 
-            RenameStableDiffusionModelCommand = new AsyncRelayCommand(RenameStableDiffusionModel);
-            UninstallStableDiffusionModelCommand = new AsyncRelayCommand(UninstallStableDiffusionModel);
-            InstallLocalStableDiffusionModelCommand = new AsyncRelayCommand(InstallLocalStableDiffusionModel);
+            UpdateModelCommand = new AsyncRelayCommand(UpdateModel);
+            UpdateModelAdvancedCommand = new AsyncRelayCommand(UpdateModelAdvanced);
+
+            RemoveModelCommand = new AsyncRelayCommand(RemoveModel);
+            InstallModelCommand = new AsyncRelayCommand(InstallModel);
+            UninstallModelCommand = new AsyncRelayCommand(UninstallModel);
+            DownloadModelCommand = new AsyncRelayCommand<bool>(DownloadModel);
+            DownloadModelCancelCommand = new AsyncRelayCommand(DownloadModelCancel);
+            ModelTemplateFilterResetCommand = new AsyncRelayCommand(ModelTemplateFilterReset);
+            UpdateModelMetadataCommand = new AsyncRelayCommand(UpdateModelMetadata);
+            ViewModelMetadataCommand = new AsyncRelayCommand(ViewModelMetadata);
+
+            HyperLinkNavigateCommand = new AsyncRelayCommand<string>(HyperLinkNavigate);
+            ModelTemplateLayoutCommand = new AsyncRelayCommand<LayoutViewType>(ModelTemplateLayout);
+
+            AddUpscaleModelCommand = new AsyncRelayCommand(AddUpscaleModel);
+            AddStableDiffusionModelCommand = new AsyncRelayCommand(AddStableDiffusionModel);
             InitializeComponent();
         }
 
 
 
-        public AsyncRelayCommand AddUpscaleModelCommand { get; }
-        public AsyncRelayCommand RemoveUpscaleModelCommand { get; }
-        public AsyncRelayCommand UpdateUpscaleModelCommand { get; }
-        public AsyncRelayCommand AddStableDiffusionModelCommand { get; }
-        public AsyncRelayCommand RemoveStableDiffusionModelCommand { get; }
-        public AsyncRelayCommand UpdateStableDiffusionModelCommand { get; }
+        private Task HyperLinkNavigate(string link)
+        {
+            Process.Start(new ProcessStartInfo(link) { UseShellExecute = true });
+            return Task.CompletedTask;
+        }
 
-        public AsyncRelayCommand RenameStableDiffusionModelCommand { get; }
-        public AsyncRelayCommand UninstallStableDiffusionModelCommand { get; }
-        public AsyncRelayCommand InstallLocalStableDiffusionModelCommand { get; }
+
+        public AsyncRelayCommand UpdateModelCommand { get; }
+        public AsyncRelayCommand UpdateModelAdvancedCommand { get; }
+        public AsyncRelayCommand RemoveModelCommand { get; }
+        public AsyncRelayCommand InstallModelCommand { get; }
+        public AsyncRelayCommand UninstallModelCommand { get; }
+        public AsyncRelayCommand<bool> DownloadModelCommand { get; }
+        public AsyncRelayCommand DownloadModelCancelCommand { get; }
+        public AsyncRelayCommand ModelTemplateFilterResetCommand { get; }
+        public AsyncRelayCommand<string> HyperLinkNavigateCommand { get; }
+        public AsyncRelayCommand AddUpscaleModelCommand { get; }
+        public AsyncRelayCommand AddStableDiffusionModelCommand { get; }
+        public AsyncRelayCommand<LayoutViewType> ModelTemplateLayoutCommand { get; }
+        public AsyncRelayCommand UpdateModelMetadataCommand { get; }
+        public AsyncRelayCommand ViewModelMetadataCommand { get; }
+
+        public ModelTemplateViewModel SelectedModelTemplate
+        {
+            get { return _selectedModelTemplate; }
+            set { _selectedModelTemplate = value; NotifyPropertyChanged(); }
+        }
+
+        public ICollectionView ModelTemplateCollectionView
+        {
+            get { return _modelTemplateCollectionView; }
+            set { _modelTemplateCollectionView = value; NotifyPropertyChanged(); }
+        }
+
+        public string ModelTemplateFilterText
+        {
+            get { return _modelTemplateFilterText; }
+            set { _modelTemplateFilterText = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
+        }
+
+        public string ModelTemplateFilterTemplateType
+        {
+            get { return _modelTemplateFilterTemplateType; }
+            set { _modelTemplateFilterTemplateType = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
+        }
+
+        public string ModelTemplateFilterAuthor
+        {
+            get { return _modelTemplateFilterAuthor; }
+            set { _modelTemplateFilterAuthor = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
+        }
+
+        public List<string> ModelTemplateFilterAuthors
+        {
+            get { return _modelTemplateFilterAuthors; }
+            set { _modelTemplateFilterAuthors = value; NotifyPropertyChanged(); }
+        }
+
+
+
+        public ModelTemplateStatusFilter ModelTemplateFilterStatus
+        {
+            get { return _modelTemplateFilterStatus; }
+            set { _modelTemplateFilterStatus = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
+        }
+
+
+
+
+        public LayoutViewType ModelTemplateLayoutView
+        {
+            get { return _modelTemplateLayoutView; }
+            set { _modelTemplateLayoutView = value; NotifyPropertyChanged(); }
+        }
+
+        public string ModelTemplateSortProperty
+        {
+            get { return _modelTemplateSortProperty; }
+            set { _modelTemplateSortProperty = value; NotifyPropertyChanged(); ModelTemplateSort(); }
+        }
+
+        public ListSortDirection ModelTemplateSortDirection
+        {
+            get { return _modelTemplateSortDirection; }
+            set { _modelTemplateSortDirection = value; NotifyPropertyChanged(); ModelTemplateSort(); }
+        }
 
         public OnnxStackUIConfig UISettings
         {
@@ -77,16 +176,11 @@ namespace OnnxStack.UI.Views
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelSettingsView), new PropertyMetadata(OnUISettingsChanged));
-
-        private static void OnUISettingsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is ModelSettingsView control && e.NewValue is OnnxStackUIConfig settings)
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelSettingsView), new PropertyMetadata((d, e) =>
             {
-                control.InitializeTemplates();
-            }
-        }
-
+                if (d is ModelSettingsView control && e.NewValue is OnnxStackUIConfig)
+                    control.InitializeTemplates();
+            }));
 
 
         public Task NavigateAsync(ImageResult imageResult)
@@ -94,104 +188,161 @@ namespace OnnxStack.UI.Views
             throw new NotImplementedException();
         }
 
-        private UpscaleModelSetViewModel _selectedUpscaleModel;
 
-        public UpscaleModelSetViewModel SelectedUpscaleModel
+        private async Task RemoveModel()
         {
-            get { return _selectedUpscaleModel; }
-            set { _selectedUpscaleModel = value; NotifyPropertyChanged(); }
+            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
+            if (modelTemplate == null)
+                return;
+
+            if (modelTemplate.Category == ModelTemplateCategory.Upscaler)
+                await RemoveUpscaleModel(modelTemplate);
+            else if (modelTemplate.Category == ModelTemplateCategory.StableDiffusion)
+                await RemoveStableDiffusionModel(modelTemplate);
         }
 
 
-        private StableDiffusionModelSetViewModel _selectedStableDiffusionModel;
-
-        public StableDiffusionModelSetViewModel SelectedStableDiffusionModel
+        private async Task InstallModel()
         {
-            get { return _selectedStableDiffusionModel; }
-            set { _selectedStableDiffusionModel = value; NotifyPropertyChanged(); }
+            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
+            if (modelTemplate == null)
+                return;
+
+            if (modelTemplate.Category == ModelTemplateCategory.Upscaler)
+                await InstallUpscaleModel(modelTemplate);
+            else if (modelTemplate.Category == ModelTemplateCategory.StableDiffusion)
+                await InstallStableDiffusionModel(modelTemplate);
         }
 
-        private async Task AddUpscaleModel()
+
+        private async Task UninstallModel()
         {
-            var invalidNames = UISettings.UpscaleModelSets.Select(x => x.ModelSet.Name).ToList();
-            var addModelDialog = _dialogService.GetDialog<AddUpscaleModelDialog>();
-            if (addModelDialog.ShowDialog(invalidNames))
+            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
+            if (modelTemplate == null)
+                return;
+
+            if (modelTemplate.Category == ModelTemplateCategory.Upscaler)
+                await UninstallUpscaleModel(modelTemplate);
+            else if (modelTemplate.Category == ModelTemplateCategory.StableDiffusion)
+                await UninstallStableDiffusionModel(modelTemplate);
+        }
+
+
+        private async Task UpdateModel()
+        {
+            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.IsUserTemplate && x.Name == _selectedModelTemplate.Name);
+            if (modelTemplate == null)
+                return;
+
+            if (modelTemplate.Category == ModelTemplateCategory.Upscaler)
+                await UpdateUpscaleModel(modelTemplate);
+            else if (modelTemplate.Category == ModelTemplateCategory.StableDiffusion)
+                await UpdateStableDiffusionModel(modelTemplate);
+        }
+
+        private async Task UpdateModelAdvanced()
+        {
+            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.IsUserTemplate && x.Name == _selectedModelTemplate.Name);
+            if (modelTemplate == null)
+                return;
+
+            if (modelTemplate.Category == ModelTemplateCategory.Upscaler)
+                await UpdateUpscaleModelAdvanced(modelTemplate);
+            else if (modelTemplate.Category == ModelTemplateCategory.StableDiffusion)
+                await UpdateStableDiffusionModelAdvanced(modelTemplate);
+        }
+
+
+
+        private Task DownloadModel(bool isRepostitoryClone)
+        {
+            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
+            if (modelTemplate == null)
+                return Task.CompletedTask;
+
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                UISettings.UpscaleModelSets.Add(new UpscaleModelSetViewModel
+                var repositoryUrl = modelTemplate.Repository;
+                var outputDirectory = Path.Combine(folderDialog.SelectedPath, repositoryUrl.Split('/').LastOrDefault());
+                modelTemplate.IsDownloading = true;
+                modelTemplate.CancellationTokenSource = new CancellationTokenSource();
+
+                // Download File, do not await
+                _ = Task.Factory.StartNew(async () =>
                 {
-                    Name = addModelDialog.ModelName,
-                    ModelSet = addModelDialog.ModelSet
+                    modelTemplate.ErrorMessage = null;
+                    modelTemplate.ProgressValue = 1;
+                    modelTemplate.ProgressText = $"Starting Download...";
+                    Action<string, double, double> progress = (f, fp, tp) =>
+                    {
+                        modelTemplate.ProgressText = $"{f}";
+                        modelTemplate.ProgressValue = tp;
+                    };
+                    try
+                    {
+                        var isDownloadComplete = !isRepostitoryClone
+                           ? await _modelDownloadService.DownloadHttpAsync(modelTemplate.RepositoryFiles, outputDirectory, progress, modelTemplate.CancellationTokenSource.Token)
+                           : await _modelDownloadService.DownloadRepositoryAsync(modelTemplate.RepositoryClone, outputDirectory, progress, modelTemplate.CancellationTokenSource.Token);
+                        App.UIInvoke(async () =>
+                        {
+                            if (isDownloadComplete)
+                            {
+                                if (modelTemplate.Category == ModelTemplateCategory.Upscaler)
+                                    await DownloadUpscaleModelComplete(modelTemplate, outputDirectory);
+                                if (modelTemplate.Category == ModelTemplateCategory.StableDiffusion)
+                                    await DownloadStableDiffusionModelComplete(modelTemplate, outputDirectory);
+                            }
+
+                            modelTemplate.IsDownloading = false;
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        modelTemplate.IsDownloading = false;
+                        modelTemplate.ProgressText = null;
+                        modelTemplate.ProgressValue = 0;
+                        modelTemplate.ErrorMessage = ex.Message;
+                    }
                 });
-
-                await SaveConfigurationFile();
             }
+            return Task.CompletedTask;
         }
 
-        private async Task RemoveUpscaleModel()
+        private Task DownloadModelCancel()
         {
-            UISettings.UpscaleModelSets.Remove(SelectedUpscaleModel);
-            await SaveConfigurationFile();
-            SelectedUpscaleModel = UISettings.UpscaleModelSets.FirstOrDefault();
+            _selectedModelTemplate?.CancellationTokenSource?.Cancel();
+            return Task.CompletedTask;
         }
 
-        private async Task UpdateUpscaleModel()
+        private Task ModelTemplateLayout(LayoutViewType layoutViewType)
         {
-            var invalidNames = UISettings.UpscaleModelSets.Select(x => x.ModelSet.Name).ToList();
-            var addModelDialog = _dialogService.GetDialog<UpdateUpscaleModelDialog>();
-            if (addModelDialog.ShowDialog(SelectedUpscaleModel.ModelSet, invalidNames))
+            ModelTemplateLayoutView = layoutViewType;
+            return Task.CompletedTask;
+        }
+
+        private async Task UpdateModelMetadata()
+        {
+            var updateMetadataDialog = _dialogService.GetDialog<UpdateModelMetadataDialog>();
+            if (updateMetadataDialog.ShowDialog(_selectedModelTemplate))
             {
-                SelectedUpscaleModel.Name = addModelDialog.ModelName;
-                SelectedUpscaleModel.ModelSet = addModelDialog.ModelSet;
                 await SaveConfigurationFile();
             }
         }
 
-
-
-        private async Task AddStableDiffusionModel()
+        private Task ViewModelMetadata()
         {
-            var invalidNames = UISettings.StableDiffusionModelSets.Select(x => x.ModelSet.Name).ToList();
-            var addModelDialog = _dialogService.GetDialog<AddModelDialog>();
-            if (addModelDialog.ShowDialog(invalidNames))
-            {
-                UISettings.StableDiffusionModelSets.Add(new StableDiffusionModelSetViewModel
-                {
-                    Name = addModelDialog.ModelName,
-                    ModelSet = addModelDialog.ModelSet
-                });
-
-                await SaveConfigurationFile();
-            }
+            var viewMetadataDialog = _dialogService.GetDialog<ViewModelMetadataDialog>();
+            viewMetadataDialog.ShowDialog(_selectedModelTemplate);
+            return Task.CompletedTask;
         }
-
-        private async Task RemoveStableDiffusionModel()
-        {
-            UISettings.StableDiffusionModelSets.Remove(SelectedStableDiffusionModel);
-            await SaveConfigurationFile();
-            SelectedStableDiffusionModel = UISettings.StableDiffusionModelSets.FirstOrDefault();
-        }
-
-
-        private async Task UpdateStableDiffusionModel()
-        {
-            var invalidNames = UISettings.StableDiffusionModelSets.Select(x => x.ModelSet.Name).ToList();
-            var addModelDialog = _dialogService.GetDialog<UpdateModelDialog>();
-            if (addModelDialog.ShowDialog(SelectedStableDiffusionModel.ModelSet, invalidNames))
-            {
-                SelectedStableDiffusionModel.Name = addModelDialog.ModelName;
-                SelectedStableDiffusionModel.ModelSet = addModelDialog.ModelSet;
-                await SaveConfigurationFile();
-            }
-        }
-
-
-
 
         private Task<bool> SaveConfigurationFile()
         {
             try
             {
                 ConfigManager.SaveConfiguration(UISettings);
+                ModelTemplateRefresh();
                 return Task.FromResult(true);
             }
             catch (Exception ex)
@@ -202,50 +353,30 @@ namespace OnnxStack.UI.Views
         }
 
 
-        private Task Save()
-        {
-            try
-            {
-                ConfigManager.SaveConfiguration(UISettings);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error saving configuration file, {ex.Message}");
-            }
-            return Task.CompletedTask;
-        }
-
-        #region INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public void NotifyPropertyChanged([CallerMemberName] string property = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
-        }
-        #endregion
-
-
-
+        #region ModelTemplate
 
         private void InitializeTemplates()
         {
             if (ModelTemplateCollectionView != null)
                 ModelTemplateCollectionView.CollectionChanged -= ModelTemplateCollectionView_CollectionChanged;
 
-            foreach (var item in UISettings.Templates)
+            foreach (var template in UISettings.Templates.Where(x => x.IsUserTemplate))
             {
-                item.IsInstalled = UISettings.StableDiffusionModelSets.Any(x => x.Name == item.Name);
+                template.IsInstalled = UISettings.UpscaleModelSets.Any(x => x.Name == template.Name)
+                                    || UISettings.StableDiffusionModelSets.Any(x => x.Name == template.Name);
             }
 
+            ModelTemplateFilterAuthors = UISettings.Templates
+               .Where(x => !string.IsNullOrEmpty(x.Author))
+               .Select(x => x.Author)
+               .Distinct()
+               .OrderBy(x => x)
+               .ToList();
+            ModelTemplateFilterAuthors.Insert(0, "All");
+            ModelTemplateFilterAuthor = "All";
             ModelTemplateCollectionView = new ListCollectionView(UISettings.Templates);
             ModelTemplateSort();
             ModelTemplateCollectionView.Filter = ModelTemplateFilter;
-            ModelTemplateFilterAuthors = UISettings.Templates
-                .Where(x => !string.IsNullOrEmpty(x.Author))
-                .Select(x => x.Author)
-                .Distinct()
-                .OrderBy(x => x)
-                .ToList();
             ModelTemplateCollectionView.MoveCurrentToFirst();
             SelectedModelTemplate = (ModelTemplateViewModel)ModelTemplateCollectionView.CurrentItem;
             ModelTemplateCollectionView.CollectionChanged += ModelTemplateCollectionView_CollectionChanged;
@@ -274,8 +405,21 @@ namespace OnnxStack.UI.Views
                 return false;
 
             return (string.IsNullOrEmpty(_modelTemplateFilterText) || template.Name.Contains(_modelTemplateFilterText, StringComparison.OrdinalIgnoreCase))
-                && (string.IsNullOrEmpty(_modelTemplateFilterAuthor) || _modelTemplateFilterAuthor.Equals(template.Author, StringComparison.OrdinalIgnoreCase))
-                && (_modelTemplateFilterTemplateType is null || _modelTemplateFilterTemplateType == template.TemplateType);
+                && (_modelTemplateFilterAuthor == "All" || _modelTemplateFilterAuthor.Equals(template.Author, StringComparison.OrdinalIgnoreCase))
+                && (_modelTemplateFilterTemplateType is null || _modelTemplateFilterTemplateType == template.Template)
+                && (_modelTemplateFilterStatus == ModelTemplateStatusFilter.All
+                                                       || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Installed && template.IsInstalled && template.IsUserTemplate)
+                                                       || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Uninstalled && !template.IsInstalled && template.IsUserTemplate)
+                                                       || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Template && !template.IsUserTemplate));
+        }
+
+        private Task ModelTemplateFilterReset()
+        {
+            ModelTemplateFilterAuthor = "All";
+            ModelTemplateFilterStatus = default;
+            ModelTemplateFilterTemplateType = null;
+            ModelTemplateFilterText = null;
+            return Task.CompletedTask;
         }
 
 
@@ -289,302 +433,306 @@ namespace OnnxStack.UI.Views
             {
                 var inverseDirction = ModelTemplateSortDirection == ListSortDirection.Ascending ? ListSortDirection.Descending : ListSortDirection.Ascending;
                 ModelTemplateCollectionView.SortDescriptions.Add(new SortDescription("IsInstalled", inverseDirction));
+                ModelTemplateCollectionView.SortDescriptions.Add(new SortDescription("IsUserTemplate", ListSortDirection.Ascending));
+                ModelTemplateCollectionView.SortDescriptions.Add(new SortDescription("Rank", ListSortDirection.Descending));
                 ModelTemplateCollectionView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
                 return;
             }
-
             ModelTemplateCollectionView.SortDescriptions.Add(new SortDescription(ModelTemplateSortProperty, ModelTemplateSortDirection));
         }
 
+        #endregion
 
-        private ModelTemplateViewModel _selectedModelTemplate;
+        #region StableDiffusion Model
 
-        public ModelTemplateViewModel SelectedModelTemplate
+        private async Task AddStableDiffusionModel()
         {
-            get { return _selectedModelTemplate; }
-            set { _selectedModelTemplate = value; NotifyPropertyChanged(); }
-        }
-
-
-        private ICollectionView _modelTemplateCollectionView;
-
-        public ICollectionView ModelTemplateCollectionView
-        {
-            get { return _modelTemplateCollectionView; }
-            set { _modelTemplateCollectionView = value; NotifyPropertyChanged(); }
-        }
-
-
-
-
-
-
-        private string _modelTemplateSortProperty;
-        private ListSortDirection _modelTemplateSortDirection;
-        private string _modelTemplateFilterText;
-        private string _modelTemplateFilterAuthor;
-        private List<string> _modelTemplateFilterAuthors;
-
-        public string ModelTemplateSortProperty
-        {
-            get { return _modelTemplateSortProperty; }
-            set { _modelTemplateSortProperty = value; NotifyPropertyChanged(); ModelTemplateSort(); }
-        }
-
-        public ListSortDirection ModelTemplateSortDirection
-        {
-            get { return _modelTemplateSortDirection; }
-            set { _modelTemplateSortDirection = value; NotifyPropertyChanged(); ModelTemplateSort(); }
-        }
-
-        public string ModelTemplateFilterText
-        {
-            get { return _modelTemplateFilterText; }
-            set { _modelTemplateFilterText = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
-        }
-
-        private ModelTemplateType? _modelTemplateFilterTemplateType;
-
-        public ModelTemplateType? ModelTemplateFilterTemplateType
-        {
-            get { return _modelTemplateFilterTemplateType; }
-            set { _modelTemplateFilterTemplateType = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
-        }
-
-
-        public string ModelTemplateFilterAuthor
-        {
-            get { return _modelTemplateFilterAuthor; }
-            set { _modelTemplateFilterAuthor = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
-        }
-
-        public List<string> ModelTemplateFilterAuthors
-        {
-            get { return _modelTemplateFilterAuthors; }
-            set { _modelTemplateFilterAuthors = value; NotifyPropertyChanged(); }
-        }
-
-        private LayoutViewType _modelTemplateLayoutView;
-
-        public LayoutViewType ModelTemplateLayoutView
-        {
-            get { return _modelTemplateLayoutView; }
-            set { _modelTemplateLayoutView = value; NotifyPropertyChanged(); }
-        }
-
-
-
-
-
-
-
-        private async Task InstallLocalStableDiffusionModel()
-        {
-            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
-            if (modelTemplate == null)
-                return; // TODO: Error
-
-            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
-            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            var addModelDialog = _dialogService.GetDialog<AddModelDialog>();
+            if (addModelDialog.ShowDialog())
             {
-                if (_selectedModelTemplate.TemplateType == ModelTemplateType.Upscaler)
-                {
-
-                }
-                else
-                {
-                    var stableDiffusionTemplate = _selectedModelTemplate.StableDiffusionTemplate;
-                    if (stableDiffusionTemplate == null)
-                        return; // TODO: Error
-
-                    var modelSet = _modelFactory.CreateModelSet(modelTemplate.Name, folderDialog.SelectedPath, stableDiffusionTemplate.PipelineType, stableDiffusionTemplate.ModelType);
-                    var isModelSetValid = modelSet.ModelConfigurations.All(x => File.Exists(x.OnnxModelPath));
-                    if (isModelSetValid == false)
-                        return; // TODO: Error
-
-                    UISettings.StableDiffusionModelSets.Add(new StableDiffusionModelSetViewModel
-                    {
-                        Name = modelSet.Name,
-                        ModelSet = modelSet
-                    });
-                }
-            }
-
-            // Update/Save
-            UISettings.Templates.Remove(modelTemplate);
-            modelTemplate.IsInstalled = true;
-            UISettings.Templates.Add(modelTemplate);
-            SelectedModelTemplate = modelTemplate;
-            await SaveConfigurationFile();
-        }
-
-
-        private async Task UninstallStableDiffusionModel()
-        {
-            //TODO: Unload
-            var modelSet = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == SelectedModelTemplate.Name);
-            UISettings.StableDiffusionModelSets.Remove(modelSet);
-
-            var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
-            if (modelTemplate == null)
-                return; // TODO: Error
-
-            if (modelTemplate.IsUserTemplate)
-                UISettings.Templates.Remove(modelTemplate);
-
-            UISettings.Templates.Remove(modelTemplate);
-            modelTemplate.IsInstalled = false;
-            UISettings.Templates.Add(modelTemplate);
-
-            SelectedModelTemplate = modelTemplate;
-            await SaveConfigurationFile();
-        }
-
-
-        private async Task RenameStableDiffusionModel()
-        {
-            var invalidNames = UISettings.Templates.Select(x => x.Name).ToList();
-            var addModelDialog = _dialogService.GetDialog<TextInputDialog>();
-            if (addModelDialog.ShowDialog("Rename Model", "New Name", 1, 50, invalidNames))
-            {
-                var modelSet = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
-                modelSet.Name = addModelDialog.TextResult;
-                modelSet.ModelSet.Name = addModelDialog.TextResult;
-
-                var modelTemplate = UISettings.Templates.FirstOrDefault(x => x.Name == _selectedModelTemplate.Name);
+                var modelTemplate = addModelDialog.ModelTemplate;
                 if (modelTemplate == null)
                     return; // TODO: Error
 
-                UISettings.Templates.Remove(modelTemplate);
-                if (!modelTemplate.IsUserTemplate)
+                await InstallStableDiffusionModel(modelTemplate, addModelDialog.ModelSetResult);
+            }
+        }
+
+        private async Task RemoveStableDiffusionModel(ModelTemplateViewModel modelTemplate)
+        {
+            if (!modelTemplate.IsUserTemplate)
+                return; // TODO: Cant remove Templates
+            if (modelTemplate.Category != ModelTemplateCategory.StableDiffusion)
+                return; // TODO: Error
+
+            var modelSet = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            UISettings.StableDiffusionModelSets.Remove(modelSet);
+            UISettings.Templates.Remove(modelTemplate);
+            await SaveConfigurationFile();
+        }
+
+
+        private async Task InstallStableDiffusionModel(ModelTemplateViewModel modelTemplate)
+        {
+            var addModelDialog = _dialogService.GetDialog<AddModelDialog>();
+            if (!addModelDialog.ShowDialog(modelTemplate))
+                return; // User Canceled
+
+            await InstallStableDiffusionModel(modelTemplate, addModelDialog.ModelSetResult);
+        }
+
+
+        private async Task InstallStableDiffusionModel(ModelTemplateViewModel modelTemplate, StableDiffusionModelSet modelSetResult)
+        {
+            if (modelTemplate.IsUserTemplate)
+            {
+                modelTemplate.IsInstalled = true;
+            }
+            else
+            {
+                var newModelTemplate = new ModelTemplateViewModel
                 {
-                    modelTemplate.IsInstalled = false;
-                    var userTemplate = modelTemplate with
-                    {
-                        IsInstalled = true,
-                        IsUserTemplate = true,
-                        Name = addModelDialog.TextResult
-                    };
-                    UISettings.Templates.Add(modelTemplate);
-                    UISettings.Templates.Add(userTemplate);
-                    SelectedModelTemplate = userTemplate;
-                }
-                else
-                {
-                    modelTemplate.Name = addModelDialog.TextResult;
-                    UISettings.Templates.Add(modelTemplate);
-                }
+                    Name = modelSetResult.Name,
+                    Category = ModelTemplateCategory.StableDiffusion,
+                    IsInstalled = true,
+                    IsUserTemplate = true,
+                    ImageIcon = string.Empty,// modelTemplate.ImageIcon,
+                    Author = "Unknown", //modelTemplate.Author,
+                    Template = modelTemplate.Template,
+                    StableDiffusionTemplate = modelTemplate.StableDiffusionTemplate with { },
+                };
+                UISettings.Templates.Add(newModelTemplate);
+                SelectedModelTemplate = newModelTemplate;
+            }
+
+            UISettings.StableDiffusionModelSets.Add(new StableDiffusionModelSetViewModel
+            {
+                IsEnabled = true,
+                Name = modelSetResult.Name,
+                ModelSet = modelSetResult
+            });
+            await SaveConfigurationFile();
+        }
+
+        private async Task UninstallStableDiffusionModel(ModelTemplateViewModel modelTemplate)
+        {
+            if (modelTemplate.Category != ModelTemplateCategory.StableDiffusion)
+                return; // TODO: Error
+
+            var modelSet = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            UISettings.StableDiffusionModelSets.Remove(modelSet);
+
+            modelTemplate.IsInstalled = false;
+            await SaveConfigurationFile();
+        }
+
+        private async Task UpdateStableDiffusionModel(ModelTemplateViewModel modelTemplate)
+        {
+            var stableDiffusionModel = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            if (stableDiffusionModel == null)
+                return; // TODO: Error
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateModelSettingsDialog>();
+            if (updateModelDialog.ShowDialog(stableDiffusionModel.ModelSet))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                stableDiffusionModel.ModelSet = modelSet;
+                stableDiffusionModel.Name = modelSet.Name;
+                stableDiffusionModel.IsEnabled = modelSet.IsEnabled;
+                SelectedModelTemplate.Name = modelSet.Name;
                 await SaveConfigurationFile();
             }
         }
-    }
-
-    public enum LayoutViewType
-    {
-        Tile = 0,
-        List = 1
-    }
-
-    public enum ModelTemplateType
-    {
-        StableDiffusion = 0,
-        StableDiffusionXL = 1,
-        LatentConsistency = 10,
-        LatentConsistencyXL = 11,
-        InstaFlow = 30,
-        Upscaler = 100,
-        Other = 255
-    }
 
 
-    public class UpscaleModelSetViewModel
-    {
-        public string Name { get; set; }
-        public UpscaleModelSet ModelSet { get; set; }
-    }
-
-
-    public record ModelTemplateViewModel : INotifyPropertyChanged
-    {
-        private string _name;
-
-        public string Name
+        private async Task UpdateStableDiffusionModelAdvanced(ModelTemplateViewModel modelTemplate)
         {
-            get { return _name; }
-            set { _name = value; NotifyPropertyChanged(); }
+            var stableDiffusionModel = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            if (stableDiffusionModel == null)
+                return; // TODO: Error
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateModelDialog>();
+            if (updateModelDialog.ShowDialog(stableDiffusionModel.ModelSet))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                stableDiffusionModel.ModelSet = modelSet;
+                stableDiffusionModel.Name = modelSet.Name;
+                stableDiffusionModel.IsEnabled = modelSet.IsEnabled;
+                SelectedModelTemplate.Name = modelSet.Name;
+                await SaveConfigurationFile();
+            }
+        }
+
+        private async Task DownloadStableDiffusionModelComplete(ModelTemplateViewModel modelTemplate, string outputDirectory)
+        {
+            var modelSet = _modelFactory.CreateStableDiffusionModelSet(modelTemplate.Name, outputDirectory, modelTemplate.StableDiffusionTemplate);
+            var isModelSetValid = modelSet.ModelConfigurations.All(x => File.Exists(x.OnnxModelPath));
+            if (!isModelSetValid)
+            {
+                // Error, Invalid modelset after download
+                modelTemplate.IsDownloading = false;
+                modelTemplate.ErrorMessage = "Error: Download completed but ModelSet is invalid";
+                return;
+            }
+
+            UISettings.StableDiffusionModelSets.Add(new StableDiffusionModelSetViewModel
+            {
+                IsEnabled = true,
+                Name = modelSet.Name,
+                ModelSet = modelSet
+            });
+
+            // Update/Save
+            modelTemplate.IsInstalled = true;
+            await SaveConfigurationFile();
+        }
+
+        #endregion
+
+        #region Upscale Model
+
+        private async Task AddUpscaleModel()
+        {
+            var addModelDialog = _dialogService.GetDialog<AddUpscaleModelDialog>();
+            if (addModelDialog.ShowDialog())
+            {
+                var modelTemplate = addModelDialog.ModelTemplate;
+                if (modelTemplate == null)
+                    return; // TODO: Error
+
+                await InstallUpscaleModel(modelTemplate, addModelDialog.ModelSetResult);
+            }
+        }
+
+        private async Task UpdateUpscaleModel(ModelTemplateViewModel modelTemplate)
+        {
+            var upscaleModel = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            if (upscaleModel == null)
+                return; // TODO: Error
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateUpscaleModelSettingsDialog>();
+            if (updateModelDialog.ShowDialog(upscaleModel.ModelSet))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                upscaleModel.ModelSet = modelSet;
+                upscaleModel.Name = modelSet.Name;
+                upscaleModel.IsEnabled = modelSet.IsEnabled;
+                SelectedModelTemplate.Name = modelSet.Name;
+                await SaveConfigurationFile();
+            }
+        }
+
+        private async Task UpdateUpscaleModelAdvanced(ModelTemplateViewModel modelTemplate)
+        {
+            var upscaleModel = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            if (upscaleModel == null)
+                return; // TODO: Error
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateUpscaleModelDialog>();
+            if (updateModelDialog.ShowDialog(upscaleModel.ModelSet))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                upscaleModel.ModelSet = modelSet;
+                upscaleModel.Name = modelSet.Name;
+                upscaleModel.IsEnabled = modelSet.IsEnabled;
+                SelectedModelTemplate.Name = modelSet.Name;
+                await SaveConfigurationFile();
+            }
+        }
+
+        private async Task RemoveUpscaleModel(ModelTemplateViewModel modelTemplate)
+        {
+            if (!modelTemplate.IsUserTemplate)
+                return; // TODO: Cant remove Templates
+            if (modelTemplate.Category != ModelTemplateCategory.Upscaler)
+                return; // TODO: Error
+
+            var modelSet = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            UISettings.UpscaleModelSets.Remove(modelSet);
+            UISettings.Templates.Remove(modelTemplate);
+            await SaveConfigurationFile();
         }
 
 
-        private string _imageIcon;
-
-        public string ImageIcon
+        private async Task InstallUpscaleModel(ModelTemplateViewModel modelTemplate)
         {
-            get { return _imageIcon; }
-            set { _imageIcon = value; }
+            var addModelDialog = _dialogService.GetDialog<AddUpscaleModelDialog>();
+            if (!addModelDialog.ShowDialog(modelTemplate))
+                return; // User Canceled
+
+            await InstallUpscaleModel(modelTemplate, addModelDialog.ModelSetResult);
+        }
+
+        private async Task InstallUpscaleModel(ModelTemplateViewModel modelTemplate, UpscaleModelSet modelSetResult)
+        {
+            if (modelTemplate.IsUserTemplate)
+            {
+                modelTemplate.IsInstalled = true;
+            }
+            else
+            {
+                var newModelTemplate = new ModelTemplateViewModel
+                {
+                    Name = modelSetResult.Name,
+                    Category = ModelTemplateCategory.Upscaler,
+                    IsInstalled = true,
+                    IsUserTemplate = true,
+                    ImageIcon = string.Empty,// modelTemplate.ImageIcon,
+                    Author = "Unknown", //modelTemplate.Author,
+                    Template = modelTemplate.Template,
+                    UpscaleTemplate = modelTemplate.UpscaleTemplate with { },
+                };
+                UISettings.Templates.Add(newModelTemplate);
+                SelectedModelTemplate = newModelTemplate;
+            }
+
+            UISettings.UpscaleModelSets.Add(new UpscaleModelSetViewModel
+            {
+                IsEnabled = true,
+                Name = modelSetResult.Name,
+                ModelSet = modelSetResult
+            });
+            await SaveConfigurationFile();
         }
 
 
-        private string _author;
-
-        public string Author
+        private async Task UninstallUpscaleModel(ModelTemplateViewModel modelTemplate)
         {
-            get { return _author; }
-            set { _author = value; }
+            if (modelTemplate.Category != ModelTemplateCategory.Upscaler)
+                return; // TODO: Error
+
+            var modelSet = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            UISettings.UpscaleModelSets.Remove(modelSet);
+
+            modelTemplate.IsInstalled = false;
+            await SaveConfigurationFile();
         }
 
-
-        private ModelTemplateType _templateType;
-
-        public ModelTemplateType TemplateType
+        private async Task DownloadUpscaleModelComplete(ModelTemplateViewModel modelTemplate, string outputDirectory)
         {
-            get { return _templateType; }
-            set { _templateType = value; }
+            var modelSet = _modelFactory.CreateUpscaleModelSet(modelTemplate.Name, outputDirectory, modelTemplate.UpscaleTemplate);
+            var isModelSetValid = modelSet.ModelConfigurations.All(x => File.Exists(x.OnnxModelPath));
+            if (!isModelSetValid)
+            {
+                // Error, Invalid modelset after download
+                modelTemplate.IsDownloading = false;
+                modelTemplate.ErrorMessage = "Error: Download completed but ModelSet is invalid";
+                return;
+            }
+
+            UISettings.UpscaleModelSets.Add(new UpscaleModelSetViewModel
+            {
+                IsEnabled = true,
+                Name = modelSet.Name,
+                ModelSet = modelSet
+            });
+
+            // Update/Save
+            modelTemplate.IsInstalled = true;
+            await SaveConfigurationFile();
         }
 
-
-
-        private bool _isInstalled;
-
-        [JsonIgnore]
-        public bool IsInstalled
-        {
-            get { return _isInstalled; }
-            set { _isInstalled = value; NotifyPropertyChanged(); }
-        }
-
-
-        private bool _isDownloading;
-
-        [JsonIgnore]
-        public bool IsDownloading
-        {
-            get { return _isDownloading; }
-            set { _isDownloading = value; }
-        }
-
-        private int _progressValue;
-
-        [JsonIgnore]
-        public int ProgressValue
-        {
-            get { return _progressValue; }
-            set { _progressValue = value; NotifyPropertyChanged(); }
-        }
-
-        private string _progressText;
-
-        [JsonIgnore]
-        public string ProgressText
-        {
-            get { return _progressText; }
-            set { _progressText = value; NotifyPropertyChanged(); }
-        }
-
-        public bool IsUserTemplate { get; set; }
-
-
-        public StableDiffusionModelTemplate StableDiffusionTemplate { get; set; }
-
+        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
@@ -596,6 +744,147 @@ namespace OnnxStack.UI.Views
         #endregion
     }
 
-    public record StableDiffusionModelTemplate(DiffuserPipelineType PipelineType, ModelType ModelType);
+    public enum LayoutViewType
+    {
+        TileLarge = 0,
+        TileSmall = 1,
+        List = 2
+    }
+
+
+    public enum ModelTemplateCategory
+    {
+        StableDiffusion = 0,
+        Upscaler = 1
+    }
+
+    public enum ModelTemplateStatusFilter
+    {
+        All = 0,
+        Installed = 1,
+        Template = 2,
+        Uninstalled = 3
+    }
+
+
+    public class ModelTemplateViewModel : INotifyPropertyChanged
+    {
+        private string _name;
+        private string _imageIcon;
+        private string _author;
+
+        private bool _isInstalled;
+        private bool _isDownloading;
+        private double _progressValue;
+        private string _progressText;
+        private string _errorMessage;
+
+        public string Name
+        {
+            get { return _name; }
+            set { _name = value; NotifyPropertyChanged(); }
+        }
+
+        public string ImageIcon
+        {
+            get { return _imageIcon; }
+            set { _imageIcon = value; NotifyPropertyChanged(); }
+        }
+
+        public string Author
+        {
+            get { return _author; }
+            set { _author = value; NotifyPropertyChanged(); }
+        }
+
+        private string _description;
+
+        public string Description
+        {
+            get { return _description; }
+            set { _description = value; NotifyPropertyChanged(); }
+        }
+
+        public int Rank { get; set; }
+        public bool IsUserTemplate { get; set; }
+
+        public string Template { get; set; }
+
+        public ModelTemplateCategory Category { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public UpscaleModelTemplate UpscaleTemplate { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public StableDiffusionModelTemplate StableDiffusionTemplate { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string Repository { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string RepositoryClone { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<string> RepositoryFiles { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<string> PreviewImages { get; set; }
+
+
+        [JsonIgnore]
+        public bool IsInstalled
+        {
+            get { return _isInstalled; }
+            set { _isInstalled = value; NotifyPropertyChanged(); }
+        }
+
+        [JsonIgnore]
+        public bool IsDownloading
+        {
+            get { return _isDownloading; }
+            set { _isDownloading = value; NotifyPropertyChanged(); }
+        }
+
+        [JsonIgnore]
+        public double ProgressValue
+        {
+            get { return _progressValue; }
+            set { _progressValue = value; NotifyPropertyChanged(); }
+        }
+
+        [JsonIgnore]
+        public string ProgressText
+        {
+            get { return _progressText; }
+            set { _progressText = value; NotifyPropertyChanged(); }
+        }
+
+        [JsonIgnore]
+        public string ErrorMessage
+        {
+            get { return _errorMessage; }
+            set { _errorMessage = value; NotifyPropertyChanged(); }
+        }
+
+        [JsonIgnore]
+        public bool IsRepositoryCloneEnabled => !string.IsNullOrEmpty(RepositoryClone);
+
+        [JsonIgnore]
+        public bool IsRepositoryDownloadEnabled => !RepositoryFiles.IsNullOrEmpty();
+
+        [JsonIgnore]
+        public CancellationTokenSource CancellationTokenSource { get; set; }
+
+        #region INotifyPropertyChanged
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void NotifyPropertyChanged([CallerMemberName] string property = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+        }
+        #endregion
+    }
+
+
 
 }

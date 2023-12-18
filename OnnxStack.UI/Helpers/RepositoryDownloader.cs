@@ -16,45 +16,49 @@ namespace OnnxStack.UI.Helpers
         private readonly string _destinationPath;
         private readonly CloneOptions _cloneOptions;
         private readonly Action<string, double> _progressCallback;
-        private readonly CancellationTokenSource _cancellationTokenSource;
 
-        public RepositoryDownloader(string repositoryUrl, string destinationPath, Action<string, double> progressCallback = null, CancellationToken cancellationToken = default)
+        public RepositoryDownloader(string repositoryUrl, string destinationPath, Action<string, double> progressCallback = null)
         {
-            _repositoryUrl = repositoryUrl;
+            var repositoryArgs = repositoryUrl.Split("-b", StringSplitOptions.TrimEntries);
+            _repositoryUrl = repositoryArgs[0];
             _destinationPath = destinationPath;
             _progressCallback = progressCallback;
-            _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _lfsFilter = new LFSFilter("lfs", new[] { new FilterAttributeEntry("lfs") });
-            _cloneOptions = new CloneOptions { OnCheckoutProgress = (f, p, t) => _progressCallback?.Invoke(f, (p * 100.0 / t)) };
+            _cloneOptions = new CloneOptions
+            {
+                BranchName = repositoryArgs.Length > 1 ? repositoryArgs[1] : null,
+                OnCheckoutProgress = (f, p, t) => _progressCallback?.Invoke(f, (p * 100.0 / t))
+            };
+
             if (!GlobalSettings.GetRegisteredFilters().Any(x => x.Name == "lfs"))
                 GlobalSettings.RegisterFilter(_lfsFilter);
         }
 
 
-        public Task DownloadAsync()
+        public async Task<bool> DownloadAsync(CancellationToken cancellationToken = default)
         {
             if (!Directory.Exists(_destinationPath))
                 Directory.CreateDirectory(_destinationPath);
 
-            try
+            // Perform the clone operation.
+            cancellationToken.Register(Cancel, true);
+            await Task.Factory.StartNew(() =>
+                Repository.Clone(_repositoryUrl, _destinationPath, _cloneOptions),
+                cancellationToken,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            if (_lfsFilter.IsAborted)
             {
-                // Perform the clone operation.
-                return Task.Factory.StartNew(() =>
-                    Repository.Clone(_repositoryUrl, _destinationPath, _cloneOptions),
-                    _cancellationTokenSource.Token,
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default);
+                 DeletePartialRepository();
+                _lfsFilter.IsAborted = false;
+                throw new Exception("Operation Cancelled");
             }
-            catch (Exception)
-            {
-                _lfsFilter.KillProcess();
-                throw;
-            }
+
+            return true;
         }
 
         public void Cancel()
         {
-            _cancellationTokenSource.Cancel();
             _lfsFilter.KillProcess();
         }
 
@@ -62,13 +66,23 @@ namespace OnnxStack.UI.Helpers
         {
             Cancel();
         }
+
+        private void DeletePartialRepository()
+        {
+            var directory = new DirectoryInfo(_destinationPath) { Attributes = FileAttributes.Normal };
+            foreach (var info in directory.GetFileSystemInfos("*", SearchOption.AllDirectories))
+            {
+                info.Attributes = FileAttributes.Normal;
+            }
+            directory.Delete(true);
+        }
     }
 
     public class LFSFilter : Filter
     {
         private Process _process;
         private FilterMode _mode;
-
+      
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LFSFilter"/> class.
@@ -84,6 +98,7 @@ namespace OnnxStack.UI.Helpers
             AppDomain.CurrentDomain.UnhandledException += (s, e) => KillProcess();
         }
 
+        public bool IsAborted { get; set; }
 
         /// <summary>
         /// Kills the process.
@@ -92,6 +107,7 @@ namespace OnnxStack.UI.Helpers
         {
             try
             {
+                IsAborted = true;
                 if (_process is not null)
                 {
                     _process.Kill(true);
@@ -125,6 +141,9 @@ namespace OnnxStack.UI.Helpers
         {
             try
             {
+                if (IsAborted)
+                    return;
+
                 // write file data to stdin
                 input.CopyTo(_process.StandardInput.BaseStream);
                 input.Flush();
@@ -195,6 +214,9 @@ namespace OnnxStack.UI.Helpers
         {
             try
             {
+                if (IsAborted)
+                    return;
+
                 _mode = mode;
                 // launch git-lfs
                 _process = new Process();

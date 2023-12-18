@@ -8,7 +8,6 @@
         mc:Ignorable="d"
         Name="UI"
         Icon="/Images/Icon.png"
-        MinWidth="500"
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
@@ -17,85 +16,210 @@
         ContentRendered="OnContentRendered"
         Title="Update Model">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
-        <StackPanel DockPanel.Dock="Top">
+        <StackPanel DockPanel.Dock="Top" >
 
-            <UniformGrid Columns="2">
-                <StackPanel>
-                    <TextBlock Text="Model Pipeline"/>
-                    <ComboBox ItemsSource="{Binding Source={StaticResource DiffuserPipelineType}}" SelectedItem="{Binding PipelineType}" />
-                </StackPanel>
-                <StackPanel>
-                    <TextBlock Text="Model Type"/>
-                    <ComboBox ItemsSource="{Binding Source={StaticResource ModelType}}" SelectedItem="{Binding ModelType}" />
-                    <StackPanel.Style>
-                        <Style TargetType="{x:Type StackPanel}">
-                            <Setter Property="IsEnabled" Value="False" />
+            <UniformGrid Columns="3">
+                <GroupBox Header="Settings">
+                    <StackPanel Margin="5" >
+
+                        <DockPanel >
+                            <CheckBox DockPanel.Dock="Right" Content="IsEnabled" IsChecked="{Binding UpdateModelSet.IsEnabled}" Margin="5,18,0,0"/>
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Name" />
+                                <TextBox Text="{Binding UpdateModelSet.Name}"  />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <UniformGrid Columns="3" Margin="0,5,0,0">
+
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Pipeline" />
+                                <ComboBox ItemsSource="{Binding Source={StaticResource DiffuserPipelineType}}" SelectedItem="{Binding UpdateModelSet.PipelineType}" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Model Type" />
+                                <ComboBox ItemsSource="{Binding Source={StaticResource ModelType}}" SelectedItem="{Binding UpdateModelSet.ModelType}" />
+                            </StackPanel>
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Sample Size" />
+                                <TextBox Text="{Binding UpdateModelSet.SampleSize}" />
+                            </StackPanel>
+                        </UniformGrid>
+
+                       <UniformGrid Margin="0,5,0,0">
+                            <CheckBox IsChecked="{Binding UpdateModelSet.EnableTextToImage}"  Content="Text To Image" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <CheckBox IsChecked="{Binding UpdateModelSet.EnableImageToImage}"  Content="Image To Image" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <CheckBox IsChecked="{Binding UpdateModelSet.EnableImageInpaintLegacy}" Content="Image Inpaint Legacy" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <CheckBox IsChecked="{Binding UpdateModelSet.EnableImageInpaint}"  Content="Image Inpaint" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                        </UniformGrid>
+
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Performance" Margin="5,0" >
+                    <UniformGrid Columns="2" Margin="5">
+
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Execution Provider" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding UpdateModelSet.ExecutionProvider}" ItemContainerStyle="{StaticResource ExecutionProviderTypes}"/>
+                        </StackPanel>
+                        <TextBlock />
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Mode" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionModeType}}" SelectedItem="{Binding UpdateModelSet.ExecutionMode}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,4,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="DeviceId" />
+                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBox Text="{Binding UpdateModelSet.DeviceId}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,4,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="InterOp Threads" />
+                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBox Text="{Binding UpdateModelSet.InterOpNumThreads}" />
+                        </StackPanel>
+
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="IntraOp Threads" />
+                                <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBox Text="{Binding UpdateModelSet.IntraOpNumThreads}" />
+                        </StackPanel>
+                    </UniformGrid>
+                </GroupBox>
+
+                <GroupBox Header="Advanced Settings" >
+                    <UniformGrid Columns="3" Margin="5">
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Tokenizer Type" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource TokenizerType}}" SelectedItem="{Binding UpdateModelSet.TokenizerType}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Scale Factor" />
+                            <TextBox Text="{Binding UpdateModelSet.ScaleFactor}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Tokenizer Limit" />
+                            <TextBox Text="{Binding UpdateModelSet.TokenizerLimit}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Tokenizer Length" />
+                            <TextBox Text="{Binding UpdateModelSet.TokenizerLength}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Tokenizer2 Length" />
+                            <TextBox Text="{Binding UpdateModelSet.Tokenizer2Length}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,4,0">
+                            <TextBlock Text="Pad Token Id" />
+                            <TextBox Text="{Binding UpdateModelSet.PadTokenId}" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Blank Token Id" />
+                            <TextBox Text="{Binding UpdateModelSet.BlankTokenId}" />
+                        </StackPanel>
+                    </UniformGrid>
+                </GroupBox>
+            </UniformGrid>
+
+
+            <!--Model Files-->
+            <GroupBox Header="Model Files" Margin="0,10,0,0">
+                <DockPanel  Margin="5">
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" >
+                        <ItemsControl ItemsSource="{Binding UpdateModelSet.ModelFiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,0,0,5">
+
+                                        <!--File Picker-->
+                                        <DockPanel DockPanel.Dock="Top">
+                                            <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                                                <TextBlock />
+                                                <CheckBox IsChecked="{Binding IsOverrideEnabled}" Content="Performance Override" Margin="5,0"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Type}" />
+                                                <userControls:FilePickerTextBox FileName="{Binding OnnxModelPath, Mode=TwoWay}"  IsRequired="True" Filter="Onnx files (*.onnx)|*.onnx" Title="Model Selector" DefaultExt="onnx"/>
+                                            </StackPanel>
+                                        </DockPanel>
+
+                                        <!--Override Defaults-->
+                                        <UniformGrid Grid.Column="0" Columns="5" Visibility="{Binding IsOverrideEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,5,0,10">
+                                            <StackPanel Margin="0,0,4,0">
+                                                <TextBlock Text="Provider" />
+                                                <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding ExecutionProvider}" ItemContainerStyle="{StaticResource ExecutionProviderTypes}"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,4,0">
+                                                <TextBlock Text="Mode" />
+                                                <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionModeType}}" SelectedItem="{Binding ExecutionMode}" />
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,4,0">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Left" Text="DeviceId" />
+                                                    <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                                <TextBox Text="{Binding DeviceId, TargetNullValue=''}" />
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,4,0">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Left" Text="InterOp Threads" />
+                                                    <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                                <TextBox Text="{Binding InterOpNumThreads}" />
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Left" Text="IntraOp Threads" />
+                                                    <TextBlock Text="(0=auto)" FontSize="9" FontStyle="Italic" Margin="6,0,6,0" Opacity="0.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                                <TextBox Text="{Binding IntraOpNumThreads}" />
+                                            </StackPanel>
+                                        </UniformGrid>
+
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </GroupBox>
+
+        </StackPanel>
+
+        <DockPanel DockPanel.Dock="Bottom"  Margin="0,20,0,0" >
+            <UniformGrid DockPanel.Dock="Right" Columns="2" Height="30">
+                <Button Content="Save" Command="{Binding SaveCommand}" IsDefault="True"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}" Width="100"/>
+            </UniformGrid>
+
+            <StackPanel  HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border BorderBrush="Red" BorderThickness="1" CornerRadius="4">
+                    <StackPanel Orientation="Horizontal" Margin="30, 5">
+                        <userControls:FontAwesome Color="Red" Icon="&#xf00d;" />
+                        <TextBlock Text="{Binding ValidationError}" Margin="5,0,0,3" />
+                    </StackPanel>
+                    <Border.Style>
+                        <Style TargetType="{x:Type Border}">
+                            <Setter Property="Visibility" Value="Visible" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding PipelineType, ElementName=UI}" Value="StableDiffusionXL">
-                                    <Setter Property="IsEnabled" Value="True" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding PipelineType, ElementName=UI}" Value="LatentConsistencyXL">
-                                    <Setter Property="IsEnabled" Value="True" />
+                                <DataTrigger Binding="{Binding ValidationError}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </StackPanel.Style>
-                </StackPanel>
-            </UniformGrid>
-
-          
-
-         
-
-            <StackPanel Margin="0,10,0,0">
-                <TextBlock Text="Model Folder"/>
-                <userControls:FilePickerTextBox FileName="{Binding ModelFolder, Mode=TwoWay}" IsFolderPicker="True" />
+                    </Border.Style>
+                </Border>
             </StackPanel>
+        </DockPanel>
 
-            <StackPanel Margin="0,10,0,0">
-                <TextBlock Text="Model Name"/>
-                <TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-
-            <StackPanel Margin="5">
-                <StackPanel Orientation="Horizontal" Visibility="{Binding IsNameInvalid, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <userControls:FontAwesome Icon="&#xf00d;" Color="Red" />
-                    <TextBlock Text="Name" Margin="5,0,0,3" />
-                </StackPanel>
-
-                <ItemsControl ItemsSource="{Binding ValidationResults}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type local:ValidationResult}">
-                            <StackPanel Orientation="Horizontal">
-                                <userControls:FontAwesome >
-                                    <userControls:FontAwesome.Style>
-                                        <Style TargetType="{x:Type userControls:FontAwesome}">
-                                            <Setter Property="Color" Value="Red" />
-                                            <Setter Property="Icon" Value="&#xf00d;" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsValid}" Value="True">
-                                                    <Setter Property="Color" Value="LimeGreen" />
-                                                    <Setter Property="Icon" Value="&#xf00c;" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </userControls:FontAwesome.Style>
-                                </userControls:FontAwesome>
-                                <TextBlock Text="{Binding ModelType}" Margin="5,0,0,3" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-               
-            </StackPanel>
-
-
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <UniformGrid Columns="2" Height="30">
-                <Button Content="Ok" Command="{Binding SaveCommand}" IsDefault="True"/>
-                <Button Content="Cancel" Command="{Binding CancelCommand}" Width="100"/>
-            </UniformGrid>
-        </StackPanel>
     </DockPanel>
 </Window>

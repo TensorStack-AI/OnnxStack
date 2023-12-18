@@ -1,10 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
-using OnnxStack.Core;
+﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,16 +21,14 @@ namespace OnnxStack.UI.Dialogs
     /// </summary>
     public partial class UpdateUpscaleModelDialog : Window, INotifyPropertyChanged
     {
-        private readonly ILogger<UpdateUpscaleModelDialog> _logger;
-
         private List<string> _invalidOptions;
-        private string _modelFile;
-        private string _modelName;
         private OnnxStackUIConfig _uiSettings;
+        private UpscaleModelSet _modelSetResult;
+        private UpdateUpscaleModelSetViewModel _updateModelSet;
+        private string _validationError;
 
-        public UpdateUpscaleModelDialog(OnnxStackUIConfig uiSettings, ILogger<UpdateUpscaleModelDialog> logger)
+        public UpdateUpscaleModelDialog(OnnxStackUIConfig uiSettings)
         {
-            _logger = logger;
             _uiSettings = uiSettings;
             WindowCloseCommand = new AsyncRelayCommand(WindowClose);
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
@@ -39,6 +36,10 @@ namespace OnnxStack.UI.Dialogs
             WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
+            _invalidOptions = _uiSettings.Templates
+               .Where(x => x.IsUserTemplate)
+               .Select(x => x.Name)
+               .ToList();
             InitializeComponent();
         }
         public AsyncRelayCommand WindowMinimizeCommand { get; }
@@ -48,131 +49,82 @@ namespace OnnxStack.UI.Dialogs
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
 
-        public ObservableCollection<ValidationResult> ValidationResults { get; set; } = new ObservableCollection<ValidationResult>();
-
-
-        public string ModelName
+        public UpdateUpscaleModelSetViewModel UpdateModelSet
         {
-            get { return _modelName; }
-            set { _modelName = value; NotifyPropertyChanged(); CreateModelSet(); }
+            get { return _updateModelSet; }
+            set { _updateModelSet = value; NotifyPropertyChanged(); }
+        }
+
+        public string ValidationError
+        {
+            get { return _validationError; }
+            set { _validationError = value; NotifyPropertyChanged(); }
+        }
+
+        public UpscaleModelSet ModelSetResult
+        {
+            get { return _modelSetResult; }
         }
 
 
-        public string ModelFile
+        public bool ShowDialog(UpscaleModelSet modelSet)
         {
-            get { return _modelFile; }
-            set
-            {
-                _modelFile = value;
-                _modelName = string.IsNullOrEmpty(_modelFile)
-                    ? string.Empty
-                    : Path.GetFileNameWithoutExtension(_modelFile);
-
-                NotifyPropertyChanged();
-                NotifyPropertyChanged(nameof(ModelName));
-                CreateModelSet();
-            }
-        }
-
-        private bool _isNameInvalid;
-
-        public bool IsNameInvalid
-        {
-            get { return _isNameInvalid; }
-            set { _isNameInvalid = value; NotifyPropertyChanged(); }
-        }
-
-
-        private UpscaleModelSet _modelSet;
-
-        public UpscaleModelSet ModelSet
-        {
-            get { return _modelSet; }
-            set { _modelSet = value; NotifyPropertyChanged(); }
-        }
-
-
-
-        private void CreateModelSet()
-        {
-            ModelSet = null;
-            IsNameInvalid = false;
-            ValidationResults.Clear();
-            if (string.IsNullOrEmpty(_modelFile))
-                return;
-
-            ModelSet = new UpscaleModelSet
-            {
-                Name = ModelName.Trim(),
-                Channels = 3,
-                ScaleFactor = 4,
-                SampleSize = 512,
-
-                DeviceId = _uiSettings.DefaultDeviceId,
-                ExecutionMode = _uiSettings.DefaultExecutionMode,
-                ExecutionProvider = _uiSettings.DefaultExecutionProvider,
-                InterOpNumThreads = _uiSettings.DefaultInterOpNumThreads,
-                IntraOpNumThreads = _uiSettings.DefaultIntraOpNumThreads,
-                IsEnabled = true,
-                ModelConfigurations = new List<OnnxModelConfig>
-                {
-                    new OnnxModelConfig { Type = OnnxModelType.Unet, OnnxModelPath = _modelFile }
-                }
-            };
-
-            // Validate
-            IsNameInvalid = !InvalidOptions.IsNullOrEmpty() && InvalidOptions.Contains(_modelName);
-            foreach (var validationResult in ModelSet.ModelConfigurations.Select(x => new ValidationResult(x.Type, File.Exists(x.OnnxModelPath))))
-            {
-                ValidationResults.Add(validationResult);
-            }
-        }
-
-
-        public List<string> InvalidOptions
-        {
-            get { return _invalidOptions; }
-            set { _invalidOptions = value; NotifyPropertyChanged(); }
-        }
-
-
-        public bool ShowDialog(UpscaleModelSet modelSet, List<string> invalidOptions = null)
-        {
-            ModelSet = modelSet with { };
-            InvalidOptions = invalidOptions;
+            _invalidOptions.Remove(modelSet.Name);
+            UpdateModelSet = UpdateUpscaleModelSetViewModel.FromModelSet(modelSet);
             return base.ShowDialog() ?? false;
         }
 
+        private bool Validate()
+        {
+            if (_updateModelSet == null)
+                return false;
+
+            _modelSetResult = UpdateUpscaleModelSetViewModel.ToModelSet(_updateModelSet);
+            if (_modelSetResult == null)
+                return false;
+
+            if (_invalidOptions.Contains(_modelSetResult.Name))
+            {
+                ValidationError = $"Model with name '{_modelSetResult.Name}' already exists";
+                return false;
+            }
+
+            foreach (var modelFile in _modelSetResult.ModelConfigurations)
+            {
+                if (!File.Exists(modelFile.OnnxModelPath))
+                {
+                    ValidationError = $"'{modelFile.Type}' model file not found";
+                    return false;
+                }
+            }
+            ValidationError = null;
+            return true;
+        }
 
         private Task Save()
         {
+            
+            if (!Validate())
+                return Task.CompletedTask;
+
             DialogResult = true;
             return Task.CompletedTask;
         }
 
+
         private bool CanExecuteSave()
         {
-            if (string.IsNullOrEmpty(_modelFile))
-                return false;
-            if (string.IsNullOrEmpty(_modelName) || IsNameInvalid)
-                return false;
-            if (_modelSet is null)
-                return false;
-
-            var result = _modelName.Trim();
-            if (!InvalidOptions.IsNullOrEmpty() && InvalidOptions.Contains(result))
-                return false;
-
-            return (result.Length > 2 && result.Length <= 50)
-            && (ValidationResults.Count > 0 && ValidationResults.All(x => x.IsValid));
+            return Validate();
         }
+
 
         private Task Cancel()
         {
-            ModelSet = null;
+            _modelSetResult = null;
             DialogResult = false;
             return Task.CompletedTask;
         }
+
 
         private bool CanExecuteCancel()
         {
@@ -220,6 +172,159 @@ namespace OnnxStack.UI.Dialogs
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
+        #endregion
+    }
+
+    public class UpdateUpscaleModelSetViewModel : INotifyPropertyChanged
+    {
+        private string _name;
+        private bool _isEnabled;
+        private int _deviceId;
+        private int _interOpNumThreads;
+        private int _intraOpNumThreads;
+        private ExecutionMode _executionMode;
+        private ExecutionProvider _executionProvider;
+        private ObservableCollection<ModelFileViewModel> _modelFiles;
+        private int _channels;
+        private int _scaleFactor;
+        private int _sampleSize;
+
+        public string Name
+        {
+            get { return _name; }
+            set { _name = value; NotifyPropertyChanged(); }
+        }
+
+        public bool IsEnabled
+        {
+            get { return _isEnabled; }
+            set { _isEnabled = value; NotifyPropertyChanged(); }
+        }
+
+        public int Channels
+        {
+            get { return _channels; }
+            set { _channels = value; NotifyPropertyChanged(); }
+        }
+        public int ScaleFactor
+        {
+            get { return _scaleFactor; }
+            set { _scaleFactor = value; NotifyPropertyChanged(); }
+        }
+
+        public int SampleSize
+        {
+            get { return _sampleSize; }
+            set { _sampleSize = value; NotifyPropertyChanged(); }
+        }
+
+        public int DeviceId
+        {
+            get { return _deviceId; }
+            set { _deviceId = value; NotifyPropertyChanged(); }
+        }
+
+        public int InterOpNumThreads
+        {
+            get { return _interOpNumThreads; }
+            set { _interOpNumThreads = value; NotifyPropertyChanged(); }
+        }
+
+        public int IntraOpNumThreads
+        {
+            get { return _intraOpNumThreads; }
+            set { _intraOpNumThreads = value; NotifyPropertyChanged(); }
+        }
+
+        public ExecutionMode ExecutionMode
+        {
+            get { return _executionMode; }
+            set { _executionMode = value; NotifyPropertyChanged(); }
+        }
+
+        public ExecutionProvider ExecutionProvider
+        {
+            get { return _executionProvider; }
+            set { _executionProvider = value; NotifyPropertyChanged(); }
+        }
+
+        public ObservableCollection<ModelFileViewModel> ModelFiles
+        {
+            get { return _modelFiles; }
+            set { _modelFiles = value; NotifyPropertyChanged(); }
+        }
+
+
+        public static UpdateUpscaleModelSetViewModel FromModelSet(UpscaleModelSet modelset)
+        {
+            return new UpdateUpscaleModelSetViewModel
+            {
+                Name = modelset.Name,
+                SampleSize = modelset.SampleSize,
+                ScaleFactor = modelset.ScaleFactor,
+                Channels = modelset.Channels,
+                IsEnabled = modelset.IsEnabled,
+
+                DeviceId = modelset.DeviceId,
+                ExecutionMode = modelset.ExecutionMode,
+                ExecutionProvider = modelset.ExecutionProvider,
+                InterOpNumThreads = modelset.InterOpNumThreads,
+                IntraOpNumThreads = modelset.IntraOpNumThreads,
+                ModelFiles = new ObservableCollection<ModelFileViewModel>(modelset.ModelConfigurations.Select(c => new ModelFileViewModel
+                {
+                    Type = c.Type,
+                    OnnxModelPath = c.OnnxModelPath,
+                    DeviceId = c.DeviceId ?? modelset.DeviceId,
+                    ExecutionMode = c.ExecutionMode ?? modelset.ExecutionMode,
+                    ExecutionProvider = c.ExecutionProvider ?? modelset.ExecutionProvider,
+                    InterOpNumThreads = c.InterOpNumThreads ?? modelset.InterOpNumThreads,
+                    IntraOpNumThreads = c.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    IsOverrideEnabled =
+                             c.DeviceId.HasValue
+                          || c.ExecutionMode.HasValue
+                          || c.ExecutionProvider.HasValue
+                          || c.IntraOpNumThreads.HasValue
+                          || c.InterOpNumThreads.HasValue
+                }))
+            };
+        }
+
+        public static UpscaleModelSet ToModelSet(UpdateUpscaleModelSetViewModel modelset)
+        {
+            return new UpscaleModelSet
+            {
+                Name = modelset.Name,
+                IsEnabled = modelset.IsEnabled,
+                SampleSize = modelset.SampleSize,
+                ScaleFactor = modelset.ScaleFactor,
+                Channels = modelset.Channels,
+                DeviceId = modelset.DeviceId,
+                ExecutionMode = modelset.ExecutionMode,
+                ExecutionProvider = modelset.ExecutionProvider,
+                InterOpNumThreads = modelset.InterOpNumThreads,
+                IntraOpNumThreads = modelset.IntraOpNumThreads,
+                ModelConfigurations = new List<OnnxModelConfig>(modelset.ModelFiles.Select(x => new OnnxModelConfig
+                {
+                    Type = x.Type,
+                    OnnxModelPath = x.OnnxModelPath,
+                    DeviceId = x.IsOverrideEnabled && modelset.DeviceId != x.DeviceId ? x.DeviceId : default,
+                    ExecutionMode = x.IsOverrideEnabled && modelset.ExecutionMode != x.ExecutionMode ? x.ExecutionMode : default,
+                    ExecutionProvider = x.IsOverrideEnabled && modelset.ExecutionProvider != x.ExecutionProvider ? x.ExecutionProvider : default,
+                    IntraOpNumThreads = x.IsOverrideEnabled && modelset.IntraOpNumThreads != x.IntraOpNumThreads ? x.IntraOpNumThreads : default,
+                    InterOpNumThreads = x.IsOverrideEnabled && modelset.InterOpNumThreads != x.InterOpNumThreads ? x.InterOpNumThreads : default,
+                }))
+            };
+        }
+
+
+
+        #region INotifyPropertyChanged
+        public event PropertyChangedEventHandler PropertyChanged;
+        public void NotifyPropertyChanged([CallerMemberName] string property = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+        }
+
         #endregion
     }
 

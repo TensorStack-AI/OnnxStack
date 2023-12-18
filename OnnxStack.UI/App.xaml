@@ -26,7 +26,8 @@
         <FontFamily x:Key="FontAwesomeRegular">pack://application:,,,/Fonts/fa-regular-400.ttf#Font Awesome 5 Pro Regular</FontFamily>
         <FontFamily x:Key="FontAwesomeSolid">pack://application:,,,/Fonts/fa-solid-900.ttf#Font Awesome 5 Pro Solid</FontFamily>
 
-
+        <system:Boolean x:Key="True">True</system:Boolean>
+        <system:Boolean x:Key="False">False</system:Boolean>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
@@ -37,6 +38,7 @@
         <converters:DiffuserVisibilityConverter x:Key="DiffuserVisibilityConverter" />
         <converters:PipelineVisibilityConverter x:Key="PipelineVisibilityConverter" />
         <converters:ComboBoxAllItemConverter x:Key="ComboBoxAllItemConverter" />
+        <converters:EnumDescriptionConverter x:Key="EnumDescriptionConverter" />
 
         <ObjectDataProvider x:Key="ListSortDirection" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -53,6 +55,12 @@
         <ObjectDataProvider x:Key="ModelType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
             <ObjectDataProvider.MethodParameters>
                 <x:Type TypeName="SD_Enums:ModelType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="TokenizerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:TokenizerType"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
@@ -787,14 +795,15 @@
 
 
 
-
-
-
-
-
-
-
-
+        <Style x:Key="EnumComboBox" TargetType="{x:Type ComboBox}" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Converter={StaticResource EnumDescriptionConverter}}"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
 
 

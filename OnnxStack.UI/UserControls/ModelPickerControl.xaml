@@ -51,7 +51,7 @@
             </StackPanel>
             <ComboBox 
                 DisplayMemberPath="Name" 
-                ItemsSource="{Binding Models}" 
+                ItemsSource="{Binding UISettings.StableDiffusionModelSets}" 
                 SelectedItem="{Binding SelectedModel}" 
                 IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" >
              
@@ -63,7 +63,7 @@
                                 <Setter Property="Visibility">
                                     <Setter.Value>
                                         <MultiBinding Converter="{StaticResource DiffuserVisibilityConverter}">
-                                            <Binding Path="ModelOptions.Diffusers"/>
+                                            <Binding Path="ModelSet.Diffusers"/>
                                             <Binding Path="SupportedDiffusers" ElementName="UI" />
                                         </MultiBinding>
                                     </Setter.Value>

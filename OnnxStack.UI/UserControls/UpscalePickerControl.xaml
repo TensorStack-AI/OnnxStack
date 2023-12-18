@@ -51,7 +51,7 @@
             </StackPanel>
             <ComboBox 
                 DisplayMemberPath="Name" 
-                ItemsSource="{Binding Models}" 
+                ItemsSource="{Binding UISettings.UpscaleModelSets}" 
                 SelectedItem="{Binding SelectedModel}" 
                 IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" >
              

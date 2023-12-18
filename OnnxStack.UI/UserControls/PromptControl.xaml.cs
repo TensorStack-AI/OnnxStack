@@ -47,14 +47,14 @@ namespace OnnxStack.UI.UserControls
             DependencyProperty.Register("PromptOptions", typeof(PromptOptionsModel), typeof(PromptControl));
 
 
-        public ModelOptionsModel SelectedModel
+        public StableDiffusionModelSetViewModel SelectedModel
         {
-            get { return (ModelOptionsModel)GetValue(SelectedModelProperty); }
+            get { return (StableDiffusionModelSetViewModel)GetValue(SelectedModelProperty); }
             set { SetValue(SelectedModelProperty, value); }
         }
 
         public static readonly DependencyProperty SelectedModelProperty =
-            DependencyProperty.Register("SelectedModel", typeof(ModelOptionsModel), typeof(PromptControl));
+            DependencyProperty.Register("SelectedModel", typeof(StableDiffusionModelSetViewModel), typeof(PromptControl));
 
 
         /// <summary>

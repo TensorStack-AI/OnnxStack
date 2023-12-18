@@ -24,7 +24,7 @@
                     UISettings="{Binding UISettings}"
                     SupportedDiffusers="{Binding SupportedDiffusers}"
                     IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
-                    SelectedModel="{Binding SelectedModel, Mode=TwoWay}" Models="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=Models}"/>
+                    SelectedModel="{Binding SelectedModel, Mode=TwoWay}"/>
                 <UniformGrid Rows="2" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
                     <userControls:PromptControl
                         SelectedModel="{Binding SelectedModel}"

@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
-using OnnxStack.Core;
+﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,23 +22,14 @@ namespace OnnxStack.UI.Dialogs
     /// </summary>
     public partial class UpdateModelDialog : Window, INotifyPropertyChanged
     {
-        private readonly ILogger<UpdateModelDialog> _logger;
-
         private List<string> _invalidOptions;
-        private DiffuserPipelineType _pipelineType;
-        private ModelType _modelType;
-        private string _modelFolder;
-        private string _modelName;
-        private string _defaultTokenizerPath;
         private OnnxStackUIConfig _uiSettings;
+        private UpdateModelSetViewModel _updateModelSet;
+        private StableDiffusionModelSet _modelSetResult;
+        private string _validationError;
 
-        public UpdateModelDialog(OnnxStackUIConfig uiSettings, ILogger<UpdateModelDialog> logger)
+        public UpdateModelDialog(OnnxStackUIConfig uiSettings)
         {
-            var defaultTokenizerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cliptokenizer.onnx");
-            if (File.Exists(defaultTokenizerPath))
-                _defaultTokenizerPath = defaultTokenizerPath;
-
-            _logger = logger;
             _uiSettings = uiSettings;
             WindowCloseCommand = new AsyncRelayCommand(WindowClose);
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
@@ -46,6 +37,10 @@ namespace OnnxStack.UI.Dialogs
             WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
+            _invalidOptions = _uiSettings.Templates
+                .Where(x => x.IsUserTemplate)
+                .Select(x => x.Name)
+                .ToList();
             InitializeComponent();
         }
         public AsyncRelayCommand WindowMinimizeCommand { get; }
@@ -55,209 +50,69 @@ namespace OnnxStack.UI.Dialogs
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
 
-        public ObservableCollection<ValidationResult> ValidationResults { get; set; } = new ObservableCollection<ValidationResult>();
-
-        public DiffuserPipelineType PipelineType
+        public UpdateModelSetViewModel UpdateModelSet
         {
-            get { return _pipelineType; }
-            set
-            {
-                _pipelineType = value;
-                NotifyPropertyChanged();
-                if (_pipelineType != DiffuserPipelineType.StableDiffusionXL && _pipelineType != DiffuserPipelineType.LatentConsistencyXL)
-                {
-                    _modelType = ModelType.Base;
-                    NotifyPropertyChanged(nameof(ModelType));
-                }
-                CreateModelSet();
-            }
+            get { return _updateModelSet; }
+            set { _updateModelSet = value; NotifyPropertyChanged(); }
+        }
+       
+        public string ValidationError
+        {
+            get { return _validationError; }
+            set { _validationError = value; NotifyPropertyChanged(); }
+        }
+
+        public StableDiffusionModelSet ModelSetResult
+        {
+            get { return _modelSetResult; }
         }
 
 
-        public ModelType ModelType
+        public bool ShowDialog(StableDiffusionModelSet modelSet)
         {
-            get { return _modelType; }
-            set { _modelType = value; NotifyPropertyChanged(); CreateModelSet(); }
-        }
-
-        public string ModelName
-        {
-            get { return _modelName; }
-            set { _modelName = value; NotifyPropertyChanged(); CreateModelSet(); }
-        }
-
-
-        public string ModelFolder
-        {
-            get { return _modelFolder; }
-            set
-            {
-                _modelFolder = value;
-                _modelName = string.IsNullOrEmpty(_modelFolder)
-                    ? string.Empty
-                    : Path.GetFileName(_modelFolder);
-
-                NotifyPropertyChanged();
-                NotifyPropertyChanged(nameof(ModelName));
-                CreateModelSet();
-            }
-        }
-
-        private bool _isNameInvalid;
-
-        public bool IsNameInvalid
-        {
-            get { return _isNameInvalid; }
-            set { _isNameInvalid = value; NotifyPropertyChanged(); }
-        }
-
-
-        private StableDiffusionModelSet _modelSet;
-
-        public StableDiffusionModelSet ModelSet
-        {
-            get { return _modelSet; }
-            set { _modelSet = value; NotifyPropertyChanged(); }
-        }
-
-
-
-        private void CreateModelSet()
-        {
-            ModelSet = null;
-            IsNameInvalid = false;
-            ValidationResults.Clear();
-            if (string.IsNullOrEmpty(_modelFolder))
-                return;
-
-            ModelSet = new StableDiffusionModelSet
-            {
-                Name = ModelName.Trim(),
-                PipelineType = PipelineType,
-                ScaleFactor = 0.18215f,
-                TokenizerLimit = 77,
-                PadTokenId = 49407,
-                TokenizerLength = 768,
-                Tokenizer2Length = 1280,
-                BlankTokenId = 49407,
-                Diffusers = Enum.GetValues<DiffuserType>().ToList(),
-                SampleSize = 512,
-                TokenizerType = TokenizerType.One,
-                ModelType = ModelType.Base,
-
-                DeviceId = _uiSettings.DefaultDeviceId,
-                ExecutionMode = _uiSettings.DefaultExecutionMode,
-                ExecutionProvider = _uiSettings.DefaultExecutionProvider,
-                InterOpNumThreads = _uiSettings.DefaultInterOpNumThreads,
-                IntraOpNumThreads = _uiSettings.DefaultIntraOpNumThreads,
-                IsEnabled = true,
-                ModelConfigurations = new List<OnnxModelConfig>()
-            };
-
-
-            var unetPath = Path.Combine(ModelFolder, "unet", "model.onnx");
-            var tokenizerPath = Path.Combine(ModelFolder, "tokenizer", "model.onnx");
-            var textEncoderPath = Path.Combine(ModelFolder, "text_encoder", "model.onnx");
-            var vaeDecoder = Path.Combine(ModelFolder, "vae_decoder", "model.onnx");
-            var vaeEncoder = Path.Combine(ModelFolder, "vae_encoder", "model.onnx");
-            var tokenizer2Path = Path.Combine(ModelFolder, "tokenizer_2", "model.onnx");
-            var textEncoder2Path = Path.Combine(ModelFolder, "text_encoder_2", "model.onnx");
-            if (!File.Exists(tokenizerPath))
-                tokenizerPath = _defaultTokenizerPath;
-            if (!File.Exists(tokenizer2Path))
-                tokenizer2Path = _defaultTokenizerPath;
-
-            if (PipelineType == DiffuserPipelineType.StableDiffusionXL || PipelineType == DiffuserPipelineType.LatentConsistencyXL)
-            {
-                ModelSet.PadTokenId = 1;
-                ModelSet.SampleSize = 1024;
-                ModelSet.ScaleFactor = 0.13025f;
-                ModelSet.TokenizerType = TokenizerType.Both;
-
-                if (ModelType == ModelType.Refiner)
-                {
-                    ModelSet.ModelType = ModelType.Refiner;
-                    ModelSet.TokenizerType = TokenizerType.Two;
-                    ModelSet.Diffusers.Remove(DiffuserType.TextToImage);
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.Unet, OnnxModelPath = unetPath });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.Tokenizer2, OnnxModelPath = tokenizer2Path });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.TextEncoder2, OnnxModelPath = textEncoder2Path });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.VaeDecoder, OnnxModelPath = vaeDecoder });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.VaeEncoder, OnnxModelPath = vaeEncoder });
-                }
-                else
-                {
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.Unet, OnnxModelPath = unetPath });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.Tokenizer, OnnxModelPath = tokenizerPath });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.Tokenizer2, OnnxModelPath = tokenizer2Path });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.TextEncoder, OnnxModelPath = textEncoderPath });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.TextEncoder2, OnnxModelPath = textEncoder2Path });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.VaeDecoder, OnnxModelPath = vaeDecoder });
-                    ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.VaeEncoder, OnnxModelPath = vaeEncoder });
-                }
-            }
-            else
-            {
-                ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.Unet, OnnxModelPath = unetPath });
-                ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.Tokenizer, OnnxModelPath = tokenizerPath });
-                ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.TextEncoder, OnnxModelPath = textEncoderPath });
-                ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.VaeDecoder, OnnxModelPath = vaeDecoder });
-                ModelSet.ModelConfigurations.Add(new OnnxModelConfig { Type = OnnxModelType.VaeEncoder, OnnxModelPath = vaeEncoder });
-            }
-
-            // Validate
-            IsNameInvalid = !InvalidOptions.IsNullOrEmpty() && InvalidOptions.Contains(_modelName);
-            foreach (var validationResult in ModelSet.ModelConfigurations.Select(x => new ValidationResult(x.Type, File.Exists(x.OnnxModelPath))))
-            {
-                ValidationResults.Add(validationResult);
-            }
-        }
-
-
-        public List<string> InvalidOptions
-        {
-            get { return _invalidOptions; }
-            set { _invalidOptions = value; NotifyPropertyChanged(); }
-        }
-
-
-        public bool ShowDialog(StableDiffusionModelSet modelSet, List<string> invalidOptions = null)
-        {
-            ModelSet = modelSet with { };
-            InvalidOptions = invalidOptions;
+            _invalidOptions.Remove(modelSet.Name);
+            UpdateModelSet = UpdateModelSetViewModel.FromModelSet(modelSet);
             return ShowDialog() ?? false;
         }
 
 
         private Task Save()
         {
+            _modelSetResult = UpdateModelSetViewModel.ToModelSet(_updateModelSet);
+            if (_invalidOptions.Contains(_modelSetResult.Name))
+            {
+                ValidationError = $"Model with name '{_modelSetResult.Name}' already exists";
+                return Task.CompletedTask;
+            }
+
+            foreach (var modelFile in _modelSetResult.ModelConfigurations)
+            {
+                if (!File.Exists(modelFile.OnnxModelPath))
+                {
+                    ValidationError = $"'{modelFile.Type}' model file not found";
+                    return Task.CompletedTask;
+                }
+            }
+
             DialogResult = true;
             return Task.CompletedTask;
         }
 
+
         private bool CanExecuteSave()
         {
-            if (string.IsNullOrEmpty(_modelFolder))
-                return false;
-            if (string.IsNullOrEmpty(_modelName) || IsNameInvalid)
-                return false;
-            if (_modelSet is null)
-                return false;
-
-            var result = _modelName.Trim();
-            if (!InvalidOptions.IsNullOrEmpty() && InvalidOptions.Contains(result))
-                return false;
-
-            return (result.Length > 2 && result.Length <= 50)
-            && (ValidationResults.Count > 0 && ValidationResults.All(x => x.IsValid));
+            return true;
         }
+
 
         private Task Cancel()
         {
-            ModelSet = null;
+            _modelSetResult = null;
+            UpdateModelSet = null;
             DialogResult = false;
             return Task.CompletedTask;
         }
+
 
         private bool CanExecuteCancel()
         {
@@ -308,4 +163,275 @@ namespace OnnxStack.UI.Dialogs
         #endregion
     }
 
+    public class UpdateModelSetViewModel : INotifyPropertyChanged
+    {
+        private string _name;
+        private bool _isEnabled;
+        private int _deviceId;
+        private int _interOpNumThreads;
+        private int _intraOpNumThreads;
+        private ExecutionMode _executionMode;
+        private ExecutionProvider _executionProvider;
+        private ObservableCollection<ModelFileViewModel> _modelFiles;
+        private int _padTokenId;
+        private int _blankTokenId;
+        private float _scaleFactor;
+        private int _tokenizerLimit;
+        private int _embeddingsLength;
+        private bool _enableTextToImage;
+        private bool _enableImageToImage;
+        private bool _enableImageInpaint;
+        private bool _enableImageInpaintLegacy;
+        private DiffuserPipelineType _pipelineType;
+        private int _dualEmbeddingsLength;
+        private TokenizerType _tokenizerType;
+        private int _sampleSize;
+        private ModelType _modelType;
+
+        public string Name
+        {
+            get { return _name; }
+            set { _name = value; NotifyPropertyChanged(); }
+        }
+
+        public bool IsEnabled
+        {
+            get { return _isEnabled; }
+            set { _isEnabled = value; NotifyPropertyChanged(); }
+        }
+
+        public int PadTokenId
+        {
+            get { return _padTokenId; }
+            set { _padTokenId = value; NotifyPropertyChanged(); }
+        }
+        public int BlankTokenId
+        {
+            get { return _blankTokenId; }
+            set { _blankTokenId = value; NotifyPropertyChanged(); }
+        }
+
+        public int SampleSize
+        {
+            get { return _sampleSize; }
+            set { _sampleSize = value; NotifyPropertyChanged(); }
+        }
+
+        public float ScaleFactor
+        {
+            get { return _scaleFactor; }
+            set { _scaleFactor = value; NotifyPropertyChanged(); }
+        }
+
+        public int TokenizerLimit
+        {
+            get { return _tokenizerLimit; }
+            set { _tokenizerLimit = value; NotifyPropertyChanged(); }
+        }
+
+        public TokenizerType TokenizerType
+        {
+            get { return _tokenizerType; }
+            set { _tokenizerType = value; NotifyPropertyChanged(); }
+        }
+
+        public int Tokenizer2Length
+        {
+            get { return _dualEmbeddingsLength; }
+            set { _dualEmbeddingsLength = value; NotifyPropertyChanged(); }
+        }
+
+        public int TokenizerLength
+        {
+            get { return _embeddingsLength; }
+            set { _embeddingsLength = value; NotifyPropertyChanged(); }
+        }
+
+        public bool EnableTextToImage
+        {
+            get { return _enableTextToImage; }
+            set { _enableTextToImage = value; NotifyPropertyChanged(); }
+        }
+
+        public bool EnableImageToImage
+        {
+            get { return _enableImageToImage; }
+            set { _enableImageToImage = value; NotifyPropertyChanged(); }
+        }
+
+        public bool EnableImageInpaint
+        {
+            get { return _enableImageInpaint; }
+            set
+            { _enableImageInpaint = value; NotifyPropertyChanged(); }
+        }
+
+        public bool EnableImageInpaintLegacy
+        {
+            get { return _enableImageInpaintLegacy; }
+            set { _enableImageInpaintLegacy = value; NotifyPropertyChanged(); }
+        }
+
+        public int DeviceId
+        {
+            get { return _deviceId; }
+            set { _deviceId = value; NotifyPropertyChanged(); }
+        }
+
+        public int InterOpNumThreads
+        {
+            get { return _interOpNumThreads; }
+            set { _interOpNumThreads = value; NotifyPropertyChanged(); }
+        }
+
+        public int IntraOpNumThreads
+        {
+            get { return _intraOpNumThreads; }
+            set { _intraOpNumThreads = value; NotifyPropertyChanged(); }
+        }
+
+        public ExecutionMode ExecutionMode
+        {
+            get { return _executionMode; }
+            set { _executionMode = value; NotifyPropertyChanged(); }
+        }
+
+        public ExecutionProvider ExecutionProvider
+        {
+            get { return _executionProvider; }
+            set { _executionProvider = value; NotifyPropertyChanged(); }
+        }
+
+        public ObservableCollection<ModelFileViewModel> ModelFiles
+        {
+            get { return _modelFiles; }
+            set { _modelFiles = value; NotifyPropertyChanged(); }
+        }
+
+        public DiffuserPipelineType PipelineType
+        {
+            get { return _pipelineType; }
+            set { _pipelineType = value; NotifyPropertyChanged(); }
+        }
+
+
+
+        public ModelType ModelType
+        {
+            get { return _modelType; }
+            set { _modelType = value; NotifyPropertyChanged(); }
+        }
+
+        public IEnumerable<DiffuserType> GetDiffusers()
+        {
+            if (_enableTextToImage)
+                yield return DiffuserType.TextToImage;
+            if (_enableImageToImage)
+                yield return DiffuserType.ImageToImage;
+            if (_enableImageInpaint)
+                yield return DiffuserType.ImageInpaint;
+            if (_enableImageInpaintLegacy)
+                yield return DiffuserType.ImageInpaintLegacy;
+        }
+
+
+
+        public static UpdateModelSetViewModel FromModelSet(StableDiffusionModelSet modelset)
+        {
+            return new UpdateModelSetViewModel
+            {
+                BlankTokenId = modelset.BlankTokenId,
+                DeviceId = modelset.DeviceId,
+                EnableImageInpaint = modelset.Diffusers.Contains(DiffuserType.ImageInpaint),
+                EnableImageInpaintLegacy = modelset.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
+                EnableImageToImage = modelset.Diffusers.Contains(DiffuserType.ImageToImage),
+                EnableTextToImage = modelset.Diffusers.Contains(DiffuserType.TextToImage),
+                ExecutionMode = modelset.ExecutionMode,
+                ExecutionProvider = modelset.ExecutionProvider,
+                InterOpNumThreads = modelset.InterOpNumThreads,
+                IntraOpNumThreads = modelset.IntraOpNumThreads,
+                ModelType = modelset.ModelType,
+                Name = modelset.Name,
+                PadTokenId = modelset.PadTokenId,
+                PipelineType = modelset.PipelineType,
+                SampleSize = modelset.SampleSize,
+                ScaleFactor = modelset.ScaleFactor,
+                Tokenizer2Length = modelset.Tokenizer2Length,
+                TokenizerLength = modelset.TokenizerLength,
+                TokenizerLimit = modelset.TokenizerLimit,
+                TokenizerType = modelset.TokenizerType,
+                IsEnabled = modelset.IsEnabled,
+
+                ModelFiles = new ObservableCollection<ModelFileViewModel>(modelset.ModelConfigurations.Select(c => new ModelFileViewModel
+                {
+                    Type = c.Type,
+                    OnnxModelPath = c.OnnxModelPath,
+
+                    DeviceId = c.DeviceId ?? modelset.DeviceId,
+                    ExecutionMode = c.ExecutionMode ?? modelset.ExecutionMode,
+                    ExecutionProvider = c.ExecutionProvider ?? modelset.ExecutionProvider,
+                    InterOpNumThreads = c.InterOpNumThreads ?? modelset.InterOpNumThreads,
+                    IntraOpNumThreads = c.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    IsOverrideEnabled =
+                           c.DeviceId.HasValue
+                        || c.ExecutionMode.HasValue
+                        || c.ExecutionProvider.HasValue
+                        || c.IntraOpNumThreads.HasValue
+                        || c.InterOpNumThreads.HasValue
+                }))
+            };
+        }
+
+        public static StableDiffusionModelSet ToModelSet(UpdateModelSetViewModel modelset)
+        {
+            return new StableDiffusionModelSet
+            {
+
+                Name = modelset.Name,
+                IsEnabled = modelset.IsEnabled,
+                PipelineType = modelset.PipelineType,
+                ModelType = modelset.ModelType,
+                SampleSize = modelset.SampleSize,
+                Diffusers = new List<DiffuserType>(modelset.GetDiffusers()),
+
+                DeviceId = modelset.DeviceId,
+                ExecutionMode = modelset.ExecutionMode,
+                ExecutionProvider = modelset.ExecutionProvider,
+                InterOpNumThreads = modelset.InterOpNumThreads,
+                IntraOpNumThreads = modelset.IntraOpNumThreads,
+
+                PadTokenId = modelset.PadTokenId,
+                BlankTokenId = modelset.BlankTokenId,
+                ScaleFactor = modelset.ScaleFactor,
+                TokenizerType = modelset.TokenizerType,
+                TokenizerLimit = modelset.TokenizerLimit,
+                TokenizerLength = modelset.TokenizerLength,
+                Tokenizer2Length = modelset.Tokenizer2Length,
+
+
+
+                ModelConfigurations = new List<OnnxModelConfig>(modelset.ModelFiles.Select(x => new OnnxModelConfig
+                {
+                    Type = x.Type,
+                    OnnxModelPath = x.OnnxModelPath,
+                    DeviceId = x.IsOverrideEnabled && modelset.DeviceId != x.DeviceId ? x.DeviceId : default,
+                    ExecutionMode = x.IsOverrideEnabled && modelset.ExecutionMode != x.ExecutionMode ? x.ExecutionMode : default,
+                    ExecutionProvider = x.IsOverrideEnabled && modelset.ExecutionProvider != x.ExecutionProvider ? x.ExecutionProvider : default,
+                    IntraOpNumThreads = x.IsOverrideEnabled && modelset.IntraOpNumThreads != x.IntraOpNumThreads ? x.IntraOpNumThreads : default,
+                    InterOpNumThreads = x.IsOverrideEnabled && modelset.InterOpNumThreads != x.InterOpNumThreads ? x.InterOpNumThreads : default,
+                }))
+            };
+        }
+
+
+
+        #region INotifyPropertyChanged
+        public event PropertyChangedEventHandler PropertyChanged;
+        public void NotifyPropertyChanged([CallerMemberName] string property = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+        }
+
+        #endregion
+    }
 }

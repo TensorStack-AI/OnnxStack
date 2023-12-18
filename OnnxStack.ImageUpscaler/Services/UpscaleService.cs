@@ -205,7 +205,7 @@ namespace OnnxStack.ImageUpscaler.Services
             using (var image = inputImage.ToImage())
             {
                 var upscaleInput = CreateInputParams(image, modelSet.SampleSize, modelSet.ScaleFactor);
-                var metadata = _modelService.GetModelMetadata(modelSet, OnnxModelType.Unet);
+                var metadata = _modelService.GetModelMetadata(modelSet, OnnxModelType.Upscaler);
 
                 var outputResult = new Image<Rgba32>(upscaleInput.OutputWidth, upscaleInput.OutputHeight);
                 foreach (var tile in upscaleInput.ImageTiles)
@@ -219,7 +219,7 @@ namespace OnnxStack.ImageUpscaler.Services
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        var results = await _modelService.RunInferenceAsync(modelSet, OnnxModelType.Unet, inferenceParameters);
+                        var results = await _modelService.RunInferenceAsync(modelSet, OnnxModelType.Upscaler, inferenceParameters);
                         using (var result = results.First())
                         {
                             outputResult.Mutate(x => x.DrawImage(result.ToImage(), tile.Destination.Location, 1f));

@@ -40,7 +40,7 @@ namespace OnnxStack.UI.Views
         private ImageInput _inputImage;
         private ImageResult _resultImage;
         private ImageInput _inputImageMask;
-        private ModelOptionsModel _selectedModel;
+        private StableDiffusionModelSetViewModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private BatchOptionsModel _batchOptions;
@@ -85,7 +85,7 @@ namespace OnnxStack.UI.Views
         public AsyncRelayCommand ClearHistoryCommand { get; set; }
         public ObservableCollection<ImageResult> ImageResults { get; }
 
-        public ModelOptionsModel SelectedModel
+        public StableDiffusionModelSetViewModel SelectedModel
         {
             get { return _selectedModel; }
             set { _selectedModel = value; NotifyPropertyChanged(); }
@@ -193,8 +193,8 @@ namespace OnnxStack.UI.Views
             InputImageMask = null;
             HasInputResult = true;
             HasInputMaskResult = false;
-            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint)
-             || imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaintLegacy))
+            if (imageResult.Model.ModelSet.Diffusers.Contains(DiffuserType.ImageInpaint)
+             || imageResult.Model.ModelSet.Diffusers.Contains(DiffuserType.ImageInpaintLegacy))
             {
                 SelectedModel = imageResult.Model;
             }
@@ -229,7 +229,7 @@ namespace OnnxStack.UI.Views
 
             try
             {
-                await foreach (var resultImage in ExecuteStableDiffusion(_selectedModel.ModelOptions, promptOptions, schedulerOptions, batchOptions))
+                await foreach (var resultImage in ExecuteStableDiffusion(_selectedModel.ModelSet, promptOptions, schedulerOptions, batchOptions))
                 {
                     if (resultImage != null)
                     {
@@ -392,7 +392,7 @@ namespace OnnxStack.UI.Views
             {
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
-                DiffuserType = SelectedModel.ModelOptions.Diffusers.Contains(DiffuserType.ImageInpaint)
+                DiffuserType = SelectedModel.ModelSet.Diffusers.Contains(DiffuserType.ImageInpaint)
                     ? DiffuserType.ImageInpaint
                     : DiffuserType.ImageInpaintLegacy,
                 InputImage = new InputImage
@@ -425,7 +425,7 @@ namespace OnnxStack.UI.Views
                 Model = _selectedModel,
                 Prompt = promptOptions.Prompt,
                 NegativePrompt = promptOptions.NegativePrompt,
-                PipelineType = _selectedModel.ModelOptions.PipelineType,
+                PipelineType = _selectedModel.ModelSet.PipelineType,
                 DiffuserType = promptOptions.DiffuserType,
                 SchedulerType = schedulerOptions.SchedulerType,
                 SchedulerOptions = schedulerOptions,

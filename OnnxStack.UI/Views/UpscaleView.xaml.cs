@@ -32,7 +32,7 @@ namespace OnnxStack.UI.Views
         private int _selectedTabIndex;
         private bool _isControlsEnabled;
         private UpscaleResult _resultImage;
-        private UpscaleModelSetModel _selectedModel;
+        private UpscaleModelSetViewModel _selectedModel;
         private CancellationTokenSource _cancelationTokenSource;
         private BitmapSource _inputImage;
         private string _imageFile;
@@ -71,7 +71,7 @@ namespace OnnxStack.UI.Views
         public AsyncRelayCommand ClearHistoryCommand { get; set; }
         public ObservableCollection<UpscaleResult> ImageResults { get; }
 
-        public UpscaleModelSetModel SelectedModel
+        public UpscaleModelSetViewModel SelectedModel
         {
             get { return _selectedModel; }
             set { _selectedModel = value; NotifyPropertyChanged(); UpdateInfo(); }
@@ -200,7 +200,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var resultBytes = await _upscaleService.GenerateAsByteAsync(SelectedModel.ModelOptions, new InputImage(InputImage.GetImageBytes()));
+                var resultBytes = await _upscaleService.GenerateAsByteAsync(SelectedModel.ModelSet, new InputImage(InputImage.GetImageBytes()));
                 if (resultBytes != null)
                 {
                     var elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
@@ -306,10 +306,10 @@ namespace OnnxStack.UI.Views
         {
             if (SelectedModel != null)
             {
-                UpscaleInfo.SampleSize = SelectedModel.ModelOptions.SampleSize;
-                UpscaleInfo.ScaleFactor = SelectedModel.ModelOptions.ScaleFactor;
-                UpscaleInfo.InputWidth = InputImage?.PixelWidth ?? SelectedModel.ModelOptions.SampleSize;
-                UpscaleInfo.InputHeight = InputImage?.PixelHeight ?? SelectedModel.ModelOptions.SampleSize;
+                UpscaleInfo.SampleSize = SelectedModel.ModelSet.SampleSize;
+                UpscaleInfo.ScaleFactor = SelectedModel.ModelSet.ScaleFactor;
+                UpscaleInfo.InputWidth = InputImage?.PixelWidth ?? SelectedModel.ModelSet.SampleSize;
+                UpscaleInfo.InputHeight = InputImage?.PixelHeight ?? SelectedModel.ModelSet.SampleSize;
                 return;
             }
             UpscaleInfo = new UpscaleInfoModel();

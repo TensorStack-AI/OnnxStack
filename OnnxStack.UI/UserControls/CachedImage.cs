@@ -1,8 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Forms;
 using System.Windows.Media.Imaging;
 
 namespace OnnxStack.UI.UserControls
@@ -10,8 +11,6 @@ namespace OnnxStack.UI.UserControls
     public class CachedImage : Image
     {
         private static string _cachePath;
-
-        private BitmapImage _bitmapImage;
 
         static CachedImage()
         {
@@ -27,12 +26,11 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(ImageUrlProperty, value); }
         }
         public static readonly DependencyProperty ImageUrlProperty =
-                DependencyProperty.Register("ImageUrl", typeof(string), typeof(CachedImage), new PropertyMetadata((s, e) =>
+                DependencyProperty.Register("ImageUrl", typeof(string), typeof(CachedImage), new PropertyMetadata(async (s, e) =>
                 {
-                    if (s is CachedImage cachedImage && e.NewValue is string imageUrl)
-                        cachedImage.GetOrDownloadImage(imageUrl);
+                    if (s is CachedImage cachedImage)
+                        await cachedImage.GetOrDownloadImage(e.NewValue as string);
                 }));
-
 
         public string CacheName
         {
@@ -48,34 +46,34 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(PlaceholderProperty, value); }
         }
         public static readonly DependencyProperty PlaceholderProperty =
-                DependencyProperty.Register("Placeholder", typeof(BitmapSource), typeof(CachedImage));
+                DependencyProperty.Register("Placeholder", typeof(BitmapSource), typeof(CachedImage), new PropertyMetadata(async (s, e) =>
+                {
+                    if (s is CachedImage cachedImage && cachedImage.Source is null)
+                        await cachedImage.GetOrDownloadImage(cachedImage.ImageUrl);
+                }));
+
 
         /// <summary>
         /// Gets or downloads the image.
         /// </summary>
         /// <param name="imageUrl">The image URL.</param>
-        public void GetOrDownloadImage(string imageUrl)
+        public async Task GetOrDownloadImage(string imageUrl)
         {
             try
             {
-                Source = Placeholder;
                 if (string.IsNullOrEmpty(imageUrl))
                 {
-                    _bitmapImage = null;
+                    Source = Placeholder;
                     return;
                 }
 
                 var filename = Path.GetFileName(imageUrl);
-                var directory = Path.Combine(_cachePath, CacheName);
+                var directory = Path.Combine(_cachePath, CacheName ?? ".default");
                 var existingImage = Path.Combine(directory, filename);
-                if (File.Exists(existingImage))
-                {
-                    LoadImage(existingImage);
-                }
-                else
-                {
-                    DownloadImage(imageUrl, existingImage);
-                }
+
+                Source = File.Exists(existingImage)
+                    ? await LoadImage(existingImage)
+                    : await DownloadImage(imageUrl, existingImage);
             }
             catch (Exception)
             {
@@ -88,17 +86,27 @@ namespace OnnxStack.UI.UserControls
         /// Loads the image from the cahe directory.
         /// </summary>
         /// <param name="imageFile">The image file.</param>
-        public void LoadImage(string imageFile)
+        private static async Task<BitmapImage> LoadImage(string imageFile)
         {
-            using (var fileStream = new FileStream(imageFile, FileMode.Open, FileAccess.Read))
+            var tcs = new TaskCompletionSource<BitmapImage>();
+            try
             {
-                _bitmapImage = new BitmapImage();
-                _bitmapImage.BeginInit();
-                _bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                _bitmapImage.StreamSource = fileStream;
-                _bitmapImage.EndInit();
-                Source = _bitmapImage;
+                using (var fileStream = new FileStream(imageFile, FileMode.Open, FileAccess.Read))
+                {
+                    var bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = fileStream;
+                    bitmapImage.EndInit();
+                    bitmapImage.Freeze();
+                    tcs.SetResult(bitmapImage);
+                }
             }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+            return await tcs.Task;
         }
 
 
@@ -107,27 +115,29 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="destination">The destination.</param>
-        public void DownloadImage(string source, string destination)
+        private static async Task<BitmapImage> DownloadImage(string source, string destination)
         {
-            _bitmapImage = new BitmapImage();
-            _bitmapImage.DownloadCompleted += (s, e) =>
+            var bitmapImage = new BitmapImage();
+            using (var httpClient = new HttpClient())
+            using (var imageStream = new MemoryStream(await httpClient.GetByteArrayAsync(source)))
             {
-                if (_bitmapImage is null)
-                    return;
+                var imagebytes = await httpClient.GetByteArrayAsync(source);
+                bitmapImage.BeginInit();
+                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                bitmapImage.StreamSource = imageStream;
+                bitmapImage.EndInit();
+                bitmapImage.Freeze();
 
-                Source = _bitmapImage;
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmapImage));
                 Directory.CreateDirectory(Path.GetDirectoryName(destination));
-                BitmapEncoder encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(_bitmapImage));
-                using (var fileStream = new FileStream(destination, FileMode.Create))
+                using (var fileStream = new FileStream(destination, FileMode.CreateNew))
                 {
                     encoder.Save(fileStream);
                 }
-            };
-            _bitmapImage.BeginInit();
-            _bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-            _bitmapImage.UriSource = new Uri(source);
-            _bitmapImage.EndInit();
+                return bitmapImage;
+            }
         }
     }
+
 }

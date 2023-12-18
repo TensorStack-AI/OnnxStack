@@ -1,14 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
-using Models;
 using OnnxStack.Core;
 using OnnxStack.ImageUpscaler.Services;
-using OnnxStack.StableDiffusion.Common;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -42,20 +37,7 @@ namespace OnnxStack.UI.UserControls
 
         public AsyncRelayCommand LoadCommand { get; set; }
         public AsyncRelayCommand UnloadCommand { get; set; }
-
-
-        /// <summary>
-        /// Gets or sets the models.
-        /// </summary>
-        public ObservableCollection<UpscaleModelSetModel> Models
-        {
-            get { return (ObservableCollection<UpscaleModelSetModel>)GetValue(ModelsProperty); }
-            set { SetValue(ModelsProperty, value); }
-        }
-        public static readonly DependencyProperty ModelsProperty =
-            DependencyProperty.Register("Models", typeof(ObservableCollection<UpscaleModelSetModel>), typeof(UpscalePickerControl), new PropertyMetadata(propertyChangedCallback: OnModelsChanged));
-
-
+  
         public OnnxStackUIConfig UISettings
         {
             get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
@@ -65,29 +47,16 @@ namespace OnnxStack.UI.UserControls
             DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(UpscalePickerControl));
 
 
-
-        /// <summary>
-        /// Gets or sets the supported diffusers.
-        /// </summary>
-        public List<DiffuserType> SupportedDiffusers
-        {
-            get { return (List<DiffuserType>)GetValue(SupportedDiffusersProperty); }
-            set { SetValue(SupportedDiffusersProperty, value); }
-        }
-        public static readonly DependencyProperty SupportedDiffusersProperty =
-            DependencyProperty.Register("SupportedDiffusers", typeof(List<DiffuserType>), typeof(UpscalePickerControl));
-
-
         /// <summary>
         /// Gets or sets the selected model.
         /// </summary>
-        public UpscaleModelSetModel SelectedModel
+        public UpscaleModelSetViewModel SelectedModel
         {
-            get { return (UpscaleModelSetModel)GetValue(SelectedModelProperty); }
+            get { return (UpscaleModelSetViewModel)GetValue(SelectedModelProperty); }
             set { SetValue(SelectedModelProperty, value); }
         }
         public static readonly DependencyProperty SelectedModelProperty =
-            DependencyProperty.Register("SelectedModel", typeof(UpscaleModelSetModel), typeof(UpscalePickerControl));
+            DependencyProperty.Register("SelectedModel", typeof(UpscaleModelSetViewModel), typeof(UpscalePickerControl));
 
 
 
@@ -96,7 +65,7 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private async Task LoadModel()
         {
-            if (_upscaleService.IsModelLoaded(SelectedModel.ModelOptions))
+            if (_upscaleService.IsModelLoaded(SelectedModel.ModelSet))
                 return;
 
             var elapsed = _logger.LogBegin($"'{SelectedModel.Name}' Loading...");
@@ -107,15 +76,17 @@ namespace OnnxStack.UI.UserControls
             {
                 if (UISettings.ModelCacheMode == ModelCacheMode.Single)
                 {
-                    foreach (var model in Models.Where(x => x.IsLoaded))
+                    foreach (var model in UISettings.UpscaleModelSets.Where(x => x.IsLoaded))
                     {
                         _logger.LogInformation($"'{model.Name}' Unloading...");
-                        await _upscaleService.UnloadModelAsync(model.ModelOptions);
+                        await _upscaleService.UnloadModelAsync(model.ModelSet);
                         model.IsLoaded = false;
                     }
                 }
 
-                SelectedModel.IsLoaded = await _upscaleService.LoadModelAsync(SelectedModel.ModelOptions);
+                SelectedModel.ModelSet.ApplyConfigurationOverrides();
+                await _upscaleService.AddModelAsync(SelectedModel.ModelSet);
+                SelectedModel.IsLoaded = await _upscaleService.LoadModelAsync(SelectedModel.ModelSet);
             }
             catch (Exception ex)
             {
@@ -132,29 +103,15 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private async Task UnloadModel()
         {
-            if (!_upscaleService.IsModelLoaded(SelectedModel.ModelOptions))
+            if (!_upscaleService.IsModelLoaded(SelectedModel.ModelSet))
                 return;
 
             _logger.LogInformation($"'{SelectedModel.Name}' Unloading...");
             SelectedModel.IsLoading = true;
-            await _upscaleService.UnloadModelAsync(SelectedModel.ModelOptions);
+            await _upscaleService.UnloadModelAsync(SelectedModel.ModelSet);
             SelectedModel.IsLoading = false;
             SelectedModel.IsLoaded = false;
             _logger.LogInformation($"'{SelectedModel.Name}' Unloaded.");
-        }
-
-
-        /// <summary>
-        /// Called when the Models source collection has changes, via Settings most likely.
-        /// </summary>
-        /// <param name="owner">The owner.</param>
-        /// <param name="e">The <see cref="DependencyPropertyChangedEventArgs"/> instance containing the event data.</param>
-        private static void OnModelsChanged(DependencyObject owner, DependencyPropertyChangedEventArgs e)
-        {
-            if (owner is UpscalePickerControl control)
-            {
-                control.SelectedModel = control.Models.FirstOrDefault(x => x.ModelOptions.IsEnabled);
-            }
         }
 
         #region INotifyPropertyChanged

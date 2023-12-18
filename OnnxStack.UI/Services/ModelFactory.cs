@@ -2,12 +2,11 @@
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime;
-using System.Text;
 
 namespace OnnxStack.UI.Services
 {
@@ -24,20 +23,31 @@ namespace OnnxStack.UI.Services
                 _defaultTokenizerPath = defaultTokenizerPath;
         }
 
-        public StableDiffusionModelSet CreateModelSet(string name, string folder, DiffuserPipelineType pipeline, ModelType modelType)
+        public StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, string modelTemplateType)
+        {
+            var template = _settings.Templates
+                .Where(x => x.Category == ModelTemplateCategory.StableDiffusion && x.Template == modelTemplateType && !x.IsUserTemplate)
+                .FirstOrDefault();
+            if (template == null)
+                return null;
+
+            return CreateStableDiffusionModelSet(name, folder, template.StableDiffusionTemplate);
+        }
+
+        public StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, StableDiffusionModelTemplate modelTemplate)
         {
             var modelSet = new StableDiffusionModelSet
             {
                 Name = name,
-                PipelineType = pipeline,
+                PipelineType = modelTemplate.PipelineType,
                 ScaleFactor = 0.18215f,
                 TokenizerLimit = 77,
                 PadTokenId = 49407,
                 TokenizerLength = 768,
                 Tokenizer2Length = 1280,
                 BlankTokenId = 49407,
-                Diffusers = Enum.GetValues<DiffuserType>().ToList(),
-                SampleSize = 512,
+                Diffusers = modelTemplate.DiffuserTypes.ToList(),
+                SampleSize = modelTemplate.SampleSize,
                 TokenizerType = TokenizerType.One,
                 ModelType = ModelType.Base,
 
@@ -63,14 +73,14 @@ namespace OnnxStack.UI.Services
             if (!File.Exists(tokenizer2Path))
                 tokenizer2Path = _defaultTokenizerPath;
 
-            if (pipeline == DiffuserPipelineType.StableDiffusionXL || pipeline == DiffuserPipelineType.LatentConsistencyXL)
+            if (modelSet.PipelineType == DiffuserPipelineType.StableDiffusionXL || modelSet.PipelineType == DiffuserPipelineType.LatentConsistencyXL)
             {
                 modelSet.PadTokenId = 1;
                 modelSet.SampleSize = 1024;
                 modelSet.ScaleFactor = 0.13025f;
                 modelSet.TokenizerType = TokenizerType.Both;
 
-                if (modelType == ModelType.Refiner)
+                if (modelTemplate.ModelType == ModelType.Refiner)
                 {
                     modelSet.ModelType = ModelType.Refiner;
                     modelSet.TokenizerType = TokenizerType.Two;
@@ -104,5 +114,33 @@ namespace OnnxStack.UI.Services
             return modelSet;
         }
 
+        public UpscaleModelSet CreateUpscaleModelSet(string name, string filename, string modelTemplateType)
+        {
+            var template = _settings.Templates
+               .Where(x => x.Category == ModelTemplateCategory.StableDiffusion && x.Template == modelTemplateType && !x.IsUserTemplate)
+               .FirstOrDefault();
+            if (template == null)
+                return null;
+
+            return CreateUpscaleModelSet(name, filename, template.UpscaleTemplate);
+        }
+
+
+        public UpscaleModelSet CreateUpscaleModelSet(string name, string filename, UpscaleModelTemplate modelTemplate)
+        {
+            return new UpscaleModelSet
+            {
+                Name = name,
+                IsEnabled = true,
+                Channels = 3,
+                SampleSize = modelTemplate.SampleSize,
+                ScaleFactor = modelTemplate.ScaleFactor,
+                ModelConfigurations = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.Upscaler, OnnxModelPath = filename } }
+            };
+        }
     }
+
+
+    public record UpscaleModelTemplate(int ScaleFactor, int SampleSize);
+    public record StableDiffusionModelTemplate(DiffuserPipelineType PipelineType, ModelType ModelType, int SampleSize, params DiffuserType[] DiffuserTypes);
 }

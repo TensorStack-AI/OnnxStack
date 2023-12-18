@@ -12,35 +12,6 @@ namespace OnnxStack.UI.Services
 {
     public class ModelDownloadService : IModelDownloadService
     {
-
-        /// <summary>
-        /// Downloads the model via HTTP.
-        /// </summary>
-        /// <param name="modelConfigTemplate">The model configuration template.</param>
-        /// <param name="destinationPath">The destination path.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public async Task<bool> DownloadHttpAsync(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
-        {
-            return await DownloadFileAsync(modelConfigTemplate.ModelFiles, destinationPath, progressCallback, cancellationToken);
-        }
-
-
-        /// <summary>
-        /// Downloads the model repository.
-        /// </summary>
-        /// <param name="modelConfigTemplate">The model configuration template.</param>
-        /// <param name="destinationPath">The destination path.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public async Task<bool> DownloadRepositoryAsync(ModelConfigTemplate modelConfigTemplate, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
-        {
-            return await DownloadRepositoryAsync(modelConfigTemplate.Repository, destinationPath, progressCallback, cancellationToken);
-        }
-
-
         /// <summary>
         /// Downloads the repository.
         /// </summary>
@@ -49,14 +20,12 @@ namespace OnnxStack.UI.Services
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<bool> DownloadRepositoryAsync(string repository, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
+        public async Task<bool> DownloadRepositoryAsync(string repositoryUrl, string destinationPath, Action<string, double, double> progressCallback = default, CancellationToken cancellationToken = default)
         {
-
-            using (var downloader = new RepositoryDownloader(repository, destinationPath, (f, p) => progressCallback?.Invoke(f, p, p)))
+            using (var downloader = new RepositoryDownloader(repositoryUrl, destinationPath, (f, p) => progressCallback?.Invoke(f, p, p)))
             {
-                await downloader.DownloadAsync();
+                return await downloader.DownloadAsync(cancellationToken);
             }
-            return true;
         }
 
 
@@ -69,26 +38,21 @@ namespace OnnxStack.UI.Services
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="increment">The increment.</param>
         /// <returns></returns>
-        private async Task<bool> DownloadFileAsync(List<string> fileList, string output, Action<string, double, double> progressCallback, CancellationToken cancellationToken = default, double increment = 1)
+        public async Task<bool> DownloadHttpAsync(List<string> modelFileList, string output, Action<string, double, double> progressCallback, CancellationToken cancellationToken = default, double increment = 1)
         {
+            var remainingFiles = GetFiles(modelFileList, output);
             using (var httpClient = new HttpClient())
             {
-                var totalDownloadSize = await GetTotalSizeFromHeadersAsync(fileList, httpClient);
+                var totalDownloadSize = await GetTotalSizeFromHeadersAsync(remainingFiles, httpClient);
                 if (totalDownloadSize == 0)
                     throw new Exception("Queried file headers returned 0 bytes");
 
                 var totalBytesRead = 0L;
-                foreach (var file in fileList)
+                foreach (var file in remainingFiles)
                 {
-                    var filename = Path.GetFileName(file);
-                    var directory = Path.GetDirectoryName(file).Split(new[] { '\\', '/' }).LastOrDefault();
-                    var destination = Path.Combine(output, directory);
-                    var destinationFile = Path.Combine(destination, filename);
-
                     try
                     {
-                        Directory.CreateDirectory(destination);
-                        using (var response = await httpClient.GetAsync(file, HttpCompletionOption.ResponseHeadersRead))
+                        using (var response = await httpClient.GetAsync(file.Url, HttpCompletionOption.ResponseHeadersRead))
                         {
                             response.EnsureSuccessStatusCode();
                             var fileSize = response.Content.Headers.ContentLength ?? -1;
@@ -97,7 +61,7 @@ namespace OnnxStack.UI.Services
                             var bytesRead = 0;
 
                             var lastProgress = 0d;
-                            using (var fileStream = File.Create(destinationFile))
+                            using (var fileStream = File.Create(file.FileName))
                             using (var stream = await response.Content.ReadAsStreamAsync())
                             {
                                 while (true)
@@ -119,7 +83,7 @@ namespace OnnxStack.UI.Services
                                         if (totalProgressValue > lastProgress || totalProgressValue >= 100)
                                         {
                                             lastProgress = totalProgressValue + increment;
-                                            progressCallback?.Invoke(file, fileProgress, totalProgressValue);
+                                            progressCallback?.Invoke(file.Url, fileProgress, totalProgressValue);
                                         }
                                     }
                                 }
@@ -128,7 +92,7 @@ namespace OnnxStack.UI.Services
                     }
                     catch (Exception ex)
                     {
-                        TryDelete(destinationFile);
+                        TryDelete(file.FileName);
                         throw new Exception($"Error: {ex.Message}");
                     }
                 }
@@ -144,14 +108,14 @@ namespace OnnxStack.UI.Services
         /// <param name="httpClient">The HTTP client.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Failed to query file headers, {ex.Message}</exception>
-        private static async Task<long> GetTotalSizeFromHeadersAsync(List<string> fileList, HttpClient httpClient)
+        private static async Task<long> GetTotalSizeFromHeadersAsync(IEnumerable<FileInfo> fileList, HttpClient httpClient)
         {
             try
             {
                 var totalDownloadSize = 0L;
                 foreach (var file in fileList)
                 {
-                    using (var response = await httpClient.GetAsync(file, HttpCompletionOption.ResponseHeadersRead))
+                    using (var response = await httpClient.GetAsync(file.Url, HttpCompletionOption.ResponseHeadersRead))
                     {
                         response.EnsureSuccessStatusCode();
                         totalDownloadSize += response.Content.Headers.ContentLength ?? 0;
@@ -182,5 +146,23 @@ namespace OnnxStack.UI.Services
                 // LOG ME
             }
         }
+
+        private IEnumerable<FileInfo> GetFiles(IEnumerable<string> urlFileList, string outputDirectory)
+        {
+            foreach (var fileUrl in urlFileList)
+            {
+                var filename = Path.GetFileName(fileUrl);
+                var directory = Path.GetDirectoryName(fileUrl).Split(new[] { '\\', '/' }).LastOrDefault();
+                var destination = Path.Combine(outputDirectory, directory);
+                var destinationFile = Path.Combine(destination, filename);
+                if (File.Exists(destinationFile))
+                    continue;
+
+                Directory.CreateDirectory(destination);
+                yield return new FileInfo(fileUrl, destinationFile);
+            }
+        }
+
+        private record FileInfo(string Url, string FileName);
     }
 }

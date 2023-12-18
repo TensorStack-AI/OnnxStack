@@ -1,10 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
-using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
+using OnnxStack.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -27,18 +26,24 @@ namespace OnnxStack.UI.Dialogs
         private List<string> _invalidOptions;
         private string _modelFile;
         private string _modelName;
-        private OnnxStackUIConfig _uiSettings;
+        private IModelFactory _modelFactory;
+        private OnnxStackUIConfig _settings;
+        private ModelTemplateViewModel _modelTemplate;
+        private UpscaleModelSet _modelSetResult;
 
-        public AddUpscaleModelDialog(OnnxStackUIConfig uiSettings, ILogger<AddUpscaleModelDialog> logger)
+        public AddUpscaleModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddUpscaleModelDialog> logger)
         {
             _logger = logger;
-            _uiSettings = uiSettings;
+            _settings = settings;
+            _modelFactory = modelFactory;
             WindowCloseCommand = new AsyncRelayCommand(WindowClose);
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
             WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
             WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
-            CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
+            CancelCommand = new AsyncRelayCommand(Cancel);
+            ModelTemplates = _settings.Templates.Where(x => !x.IsUserTemplate && x.Category == ModelTemplateCategory.Upscaler).ToList();
+            InvalidOptions = _settings.Templates.Where(x => x.IsUserTemplate).Select(x => x.Name.ToLower()).ToList();
             InitializeComponent();
         }
         public AsyncRelayCommand WindowMinimizeCommand { get; }
@@ -47,16 +52,25 @@ namespace OnnxStack.UI.Dialogs
         public AsyncRelayCommand WindowCloseCommand { get; }
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
-
         public ObservableCollection<ValidationResult> ValidationResults { get; set; } = new ObservableCollection<ValidationResult>();
+        public List<ModelTemplateViewModel> ModelTemplates { get; set; }
 
+        public ModelTemplateViewModel ModelTemplate
+        {
+            get { return _modelTemplate; }
+            set { _modelTemplate = value; NotifyPropertyChanged(); CreateModelSet(); }
+        }
+        public List<string> InvalidOptions
+        {
+            get { return _invalidOptions; }
+            set { _invalidOptions = value; NotifyPropertyChanged(); }
+        }
 
         public string ModelName
         {
             get { return _modelName; }
-            set { _modelName = value; NotifyPropertyChanged(); CreateModelSet(); }
+            set { _modelName = value; _modelName?.Trim(); NotifyPropertyChanged(); CreateModelSet(); }
         }
-
 
         public string ModelFile
         {
@@ -64,9 +78,10 @@ namespace OnnxStack.UI.Dialogs
             set
             {
                 _modelFile = value;
-                _modelName = string.IsNullOrEmpty(_modelFile)
-                    ? string.Empty
-                    : Path.GetFileNameWithoutExtension(_modelFile);
+                if (_modelTemplate is not null && !_modelTemplate.IsUserTemplate)
+                    _modelName = string.IsNullOrEmpty(_modelFile)
+                        ? string.Empty
+                        : Path.GetFileNameWithoutExtension(_modelFile);
 
                 NotifyPropertyChanged();
                 NotifyPropertyChanged(nameof(ModelName));
@@ -74,72 +89,57 @@ namespace OnnxStack.UI.Dialogs
             }
         }
 
-        private bool _isNameInvalid;
-
-        public bool IsNameInvalid
+        public UpscaleModelSet ModelSetResult
         {
-            get { return _isNameInvalid; }
-            set { _isNameInvalid = value; NotifyPropertyChanged(); }
+            get { return _modelSetResult; }
+        }
+
+        private bool _enableTemplateSelection = true;
+
+        public bool EnableTemplateSelection
+        {
+            get { return _enableTemplateSelection; }
+            set { _enableTemplateSelection = value; NotifyPropertyChanged(); }
+        }
+
+        private bool _enableNameSelection = true;
+        public bool EnableNameSelection
+        {
+            get { return _enableNameSelection; }
+            set { _enableNameSelection = value; NotifyPropertyChanged(); }
         }
 
 
-        private UpscaleModelSet _modelSet;
-
-        public UpscaleModelSet ModelSet
+        public bool ShowDialog(ModelTemplateViewModel selectedTemplate = null)
         {
-            get { return _modelSet; }
-            set { _modelSet = value; NotifyPropertyChanged(); }
+            if (selectedTemplate is not null)
+            {
+                EnableNameSelection = !selectedTemplate.IsUserTemplate;
+                EnableTemplateSelection = false;
+                ModelTemplate = selectedTemplate;
+                ModelName = selectedTemplate.IsUserTemplate ? selectedTemplate.Name : string.Empty;
+            }
+            return base.ShowDialog() ?? false;
         }
-
 
 
         private void CreateModelSet()
         {
-            ModelSet = null;
-            IsNameInvalid = false;
+            _modelSetResult = null;
             ValidationResults.Clear();
             if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            ModelSet = new UpscaleModelSet
-            {
-                Name = ModelName.Trim(),
-                Channels = 3,
-                ScaleFactor = 4,
-                SampleSize = 512,
-
-                DeviceId = _uiSettings.DefaultDeviceId,
-                ExecutionMode = _uiSettings.DefaultExecutionMode,
-                ExecutionProvider = _uiSettings.DefaultExecutionProvider,
-                InterOpNumThreads = _uiSettings.DefaultInterOpNumThreads,
-                IntraOpNumThreads = _uiSettings.DefaultIntraOpNumThreads,
-                IsEnabled = true,
-                ModelConfigurations = new List<OnnxModelConfig>
-                {
-                    new OnnxModelConfig { Type = OnnxModelType.Unet, OnnxModelPath = _modelFile }
-                }
-            };
+            _modelSetResult = _modelFactory.CreateUpscaleModelSet(ModelName.Trim(), _modelFile, _modelTemplate.UpscaleTemplate);
 
             // Validate
-            IsNameInvalid = !InvalidOptions.IsNullOrEmpty() && InvalidOptions.Contains(_modelName);
-            foreach (var validationResult in ModelSet.ModelConfigurations.Select(x => new ValidationResult(x.Type, File.Exists(x.OnnxModelPath))))
+            if (_enableNameSelection)
+                ValidationResults.Add(new ValidationResult("Name", !InvalidOptions.Contains(_modelName.ToLower()) && _modelName.Length > 2 && _modelName.Length < 50));
+
+            foreach (var validationResult in _modelSetResult.ModelConfigurations.Select(x => new ValidationResult(x.Type.ToString(), File.Exists(x.OnnxModelPath))))
             {
                 ValidationResults.Add(validationResult);
             }
-        }
-
-
-        public List<string> InvalidOptions
-        {
-            get { return _invalidOptions; }
-            set { _invalidOptions = value; NotifyPropertyChanged(); }
-        }
-
-
-        public bool ShowDialog(List<string> invalidOptions = null)
-        {
-            InvalidOptions = invalidOptions;
-            return base.ShowDialog() ?? false;
         }
 
 
@@ -149,33 +149,23 @@ namespace OnnxStack.UI.Dialogs
             return Task.CompletedTask;
         }
 
+
         private bool CanExecuteSave()
         {
             if (string.IsNullOrEmpty(_modelFile))
                 return false;
-            if (string.IsNullOrEmpty(_modelName) || IsNameInvalid)
-                return false;
-            if (_modelSet is null)
+            if (_modelSetResult is null)
                 return false;
 
-            var result = _modelName.Trim();
-            if (!InvalidOptions.IsNullOrEmpty() && InvalidOptions.Contains(result))
-                return false;
-
-            return (result.Length > 2 && result.Length <= 50)
-            && (ValidationResults.Count > 0 && ValidationResults.All(x => x.IsValid));
+            return ValidationResults.Count > 0 && ValidationResults.All(x => x.IsValid);
         }
+
 
         private Task Cancel()
         {
-            ModelSet = null;
+            _modelSetResult = null;
             DialogResult = false;
             return Task.CompletedTask;
-        }
-
-        private bool CanExecuteCancel()
-        {
-            return true;
         }
 
         #region BaseWindow
@@ -221,5 +211,4 @@ namespace OnnxStack.UI.Dialogs
         }
         #endregion
     }
-
 }

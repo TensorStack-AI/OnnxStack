@@ -1,10 +1,13 @@
 ﻿using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.UI.Models;
 
 namespace OnnxStack.UI.Services
 {
     public interface IModelFactory
     {
-        StableDiffusionModelSet CreateModelSet(string name, string folder, DiffuserPipelineType pipeline, ModelType modelType);
+        UpscaleModelSet CreateUpscaleModelSet(string name, string filename, string modelTemplateType);
+        UpscaleModelSet CreateUpscaleModelSet(string name, string filename, UpscaleModelTemplate modelTemplate);
+        StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, string modelTemplateType);
+        StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, StableDiffusionModelTemplate modelTemplate);
     }
 }

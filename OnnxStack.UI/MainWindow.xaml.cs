@@ -26,8 +26,6 @@ namespace OnnxStack.UI
         private int _selectedTabIndex;
         private INavigatable _selectedTabItem;
         private readonly ILogger<MainWindow> _logger;
-        private ObservableCollection<ModelOptionsModel> _models;
-        private ObservableCollection<UpscaleModelSetModel> _upscaleModels;
 
         public MainWindow(OnnxStackUIConfig uiSettings, StableDiffusionConfig configuration, ImageUpscalerConfig upscaleConfiguration, ILogger<MainWindow> logger)
         {
@@ -45,8 +43,6 @@ namespace OnnxStack.UI
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
             WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
             WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
-            Models = CreateModelOptions(configuration.ModelSets);
-            UpscaleModels = CreateUpscaleModelOptions(upscaleConfiguration.ModelSets);
             InitializeComponent();
         }
 
@@ -72,18 +68,6 @@ namespace OnnxStack.UI
         }
         public static readonly DependencyProperty UISettingsProperty =
             DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(MainWindow));
-
-        public ObservableCollection<ModelOptionsModel> Models
-        {
-            get { return _models; }
-            set { _models = value; NotifyPropertyChanged(); }
-        }
-
-        public ObservableCollection<UpscaleModelSetModel> UpscaleModels
-        {
-            get { return _upscaleModels; }
-            set { _upscaleModels = value; NotifyPropertyChanged(); }
-        }
 
 
         public int SelectedTabIndex
@@ -138,29 +122,7 @@ namespace OnnxStack.UI
             Upscaler = 4
         }
 
-        private ObservableCollection<ModelOptionsModel> CreateModelOptions(List<StableDiffusionModelSet> onnxModelSets)
-        {
-            var models = onnxModelSets
-            .Select(model => new ModelOptionsModel
-            {
-                Name = model.Name,
-                ModelOptions = model,
-                IsEnabled = model.IsEnabled
-            });
-            return new ObservableCollection<ModelOptionsModel>(models);
-        }
 
-
-        private ObservableCollection<UpscaleModelSetModel> CreateUpscaleModelOptions(List<UpscaleModelSet> modelSets)
-        {
-            var models = modelSets.Select(model => new UpscaleModelSetModel
-            {
-                Name = model.Name,
-                ModelOptions = model,
-                IsEnabled = model.IsEnabled
-            });
-            return new ObservableCollection<UpscaleModelSetModel>(models);
-        }
 
         private async Task SaveImageResultFile(ImageResult imageResult)
         {
