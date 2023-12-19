@@ -80,12 +80,12 @@ namespace OnnxStack.UI.Dialogs
             set { _iconImage = value; NotifyPropertyChanged(); }
         }
 
-        private string _repositoryClone;
+        private string _repository;
 
-        public string RepositoryClone
+        public string Repository
         {
-            get { return _repositoryClone; }
-            set { _repositoryClone = value; NotifyPropertyChanged(); }
+            get { return _repository; }
+            set { _repository = value; NotifyPropertyChanged(); }
         }
 
         private string _repositoryBranch;
@@ -105,15 +105,13 @@ namespace OnnxStack.UI.Dialogs
         {
             _modelTemplate = modelTemplate;
 
-            Website = _modelTemplate.Repository;
+            Website = _modelTemplate.Website;
             Author = _modelTemplate.Author;
             Description = _modelTemplate.Description;
             IconImage = _modelTemplate.ImageIcon;
-
-            var repository = _modelTemplate.RepositoryClone?.Split("-b", StringSplitOptions.TrimEntries);
-            RepositoryClone = repository?.FirstOrDefault();
-            RepositoryBranch = repository?.LastOrDefault();
-
+            Repository = _modelTemplate.Repository;
+            RepositoryBranch = _modelTemplate.RepositoryBranch;
+           
             for (int i = 0; i < 4; i++)
             {
                 PreviewImages.Add(_modelTemplate.PreviewImages?.ElementAtOrDefault(i));
@@ -129,13 +127,12 @@ namespace OnnxStack.UI.Dialogs
         private Task Save()
         {
             // validate links;
-            _modelTemplate.Repository = Website;
+            _modelTemplate.Website = Website;
             _modelTemplate.Author = Author;
             _modelTemplate.ImageIcon = IconImage;
             _modelTemplate.Description = Description;
-            _modelTemplate.RepositoryClone = string.IsNullOrEmpty(_repositoryBranch)
-                ? RepositoryClone
-                : $"{_repositoryClone} -b {_repositoryBranch}";
+            _modelTemplate.Repository = Repository;
+            _modelTemplate.RepositoryBranch = RepositoryBranch;
             _modelTemplate.PreviewImages = PreviewImages.Where(x => !string.IsNullOrEmpty(x)).ToList();
             _modelTemplate.RepositoryFiles = RepositoryFiles.Where(x => !string.IsNullOrEmpty(x)).ToList();
 

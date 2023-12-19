@@ -811,10 +811,13 @@ namespace OnnxStack.UI.Views
         public StableDiffusionModelTemplate StableDiffusionTemplate { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string Website { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Repository { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string RepositoryClone { get; set; }
+        public string RepositoryBranch { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<string> RepositoryFiles { get; set; }
@@ -822,6 +825,16 @@ namespace OnnxStack.UI.Views
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<string> PreviewImages { get; set; }
 
+        [JsonIgnore]
+        public string RepositoryClone
+        {
+            get
+            {
+                return string.IsNullOrEmpty(RepositoryBranch)
+                ? Repository
+                : $"{Repository} -b {RepositoryBranch}";
+            }
+        }
 
         [JsonIgnore]
         public bool IsInstalled
@@ -859,13 +872,15 @@ namespace OnnxStack.UI.Views
         }
 
         [JsonIgnore]
-        public bool IsRepositoryCloneEnabled => !string.IsNullOrEmpty(RepositoryClone);
+        public bool IsRepositoryCloneEnabled => !string.IsNullOrEmpty(Repository);
 
         [JsonIgnore]
         public bool IsRepositoryDownloadEnabled => !RepositoryFiles.IsNullOrEmpty();
 
         [JsonIgnore]
         public CancellationTokenSource CancellationTokenSource { get; set; }
+
+
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

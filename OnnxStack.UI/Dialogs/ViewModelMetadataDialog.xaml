@@ -37,7 +37,7 @@
                 </StackPanel>
                 <StackPanel Margin="0,0,4,0" >
                     <TextBlock Text="Website" FontWeight="DemiBold" Margin="0,15,0,0" Opacity=".7"/>
-                    <TextBlock Text="{Binding ModelTemplate.Repository, TargetNullValue=Unknown}"  />
+                    <TextBlock Text="{Binding ModelTemplate.Website, TargetNullValue=Unknown}"  />
                 </StackPanel>
             </DockPanel>
 
@@ -51,7 +51,7 @@
 
             <StackPanel>
                 <TextBlock Text="Repository Clone" FontWeight="DemiBold" Margin="0,15,0,0" Opacity=".7"/>
-                <TextBlock Text="{Binding ModelTemplate.RepositoryClone, TargetNullValue=Unknown}"  />
+                <TextBlock Text="{Binding ModelTemplate.Repository, TargetNullValue=Unknown}"  />
             </StackPanel>
 
             <TextBlock Text="Direct Download Files" FontWeight="DemiBold" Margin="0,15,0,0" Opacity=".7"/>
