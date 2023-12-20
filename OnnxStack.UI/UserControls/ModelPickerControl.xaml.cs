@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace OnnxStack.UI.UserControls
 {
@@ -22,6 +23,7 @@ namespace OnnxStack.UI.UserControls
     {
         private readonly ILogger<ModelPickerControl> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
+        private ICollectionView _modelCollectionView;
 
         /// <summary>Initializes a new instance of the <see cref="ModelPickerControl" /> class.</summary>
         public ModelPickerControl()
@@ -46,8 +48,11 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelPickerControl));
-
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(ModelPickerControl), new PropertyMetadata((d, e) =>
+            {
+                if (d is ModelPickerControl control && e.NewValue is OnnxStackUIConfig settings)
+                    control.InitializeModels();
+            }));
 
         /// <summary>
         /// Gets or sets the supported diffusers.
@@ -58,8 +63,11 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(SupportedDiffusersProperty, value); }
         }
         public static readonly DependencyProperty SupportedDiffusersProperty =
-            DependencyProperty.Register("SupportedDiffusers", typeof(List<DiffuserType>), typeof(ModelPickerControl));
-
+            DependencyProperty.Register("SupportedDiffusers", typeof(List<DiffuserType>), typeof(ModelPickerControl), new PropertyMetadata((d, e) =>
+            {
+                if (d is ModelPickerControl control && e.NewValue is List<DiffuserType> diffusers)
+                    control.ModelCollectionView?.Refresh();
+            }));
 
         /// <summary>
         /// Gets or sets the selected model.
@@ -72,6 +80,25 @@ namespace OnnxStack.UI.UserControls
         public static readonly DependencyProperty SelectedModelProperty =
             DependencyProperty.Register("SelectedModel", typeof(StableDiffusionModelSetViewModel), typeof(ModelPickerControl));
 
+
+        public ICollectionView ModelCollectionView
+        {
+            get { return _modelCollectionView; }
+            set { _modelCollectionView = value; NotifyPropertyChanged(); }
+        }
+
+
+        private void InitializeModels()
+        {
+            ModelCollectionView = new ListCollectionView(UISettings.StableDiffusionModelSets);
+            ModelCollectionView.Filter = (obj) =>
+            {
+                if (obj is not StableDiffusionModelSetViewModel viewModel)
+                    return false;
+
+                return viewModel.ModelSet.Diffusers.Intersect(SupportedDiffusers).Any();
+            };
+        }
 
 
         /// <summary>

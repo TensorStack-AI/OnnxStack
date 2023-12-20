@@ -52,8 +52,9 @@
             <Grid>
                 <ComboBox 
                      DisplayMemberPath="Name" 
-                     ItemsSource="{Binding UISettings.StableDiffusionModelSets}" 
+                     ItemsSource="{Binding ModelCollectionView}" 
                      SelectedItem="{Binding SelectedModel}" 
+                     IsSynchronizedWithCurrentItem="False"
                      IsEnabled="{Binding SelectedModel.IsLoading, FallbackValue=True, TargetNullValue=True, Converter={StaticResource InverseBoolConverter}}" > 
                 </ComboBox>
                 <TextBlock Text="-- Select Model --" Visibility="{Binding SelectedModel, Converter={StaticResource InverseNullVisibilityConverter}}" IsHitTestVisible="False" Margin="3,2" FontStyle="Italic" Opacity=".7" />
