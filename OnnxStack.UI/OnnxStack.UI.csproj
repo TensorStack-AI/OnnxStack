@@ -51,7 +51,6 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.2" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
-        <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.1" />
      </ItemGroup>
 
 </Project>
