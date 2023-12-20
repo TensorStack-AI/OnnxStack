@@ -39,15 +39,17 @@ namespace OnnxStack.UI.Services
             var modelSet = new StableDiffusionModelSet
             {
                 Name = name,
+                IsEnabled = true,
+                SampleSize = modelTemplate.SampleSize,
                 PipelineType = modelTemplate.PipelineType,
+                Diffusers = modelTemplate.DiffuserTypes.ToList(),
+
                 ScaleFactor = 0.18215f,
                 TokenizerLimit = 77,
                 PadTokenId = 49407,
                 TokenizerLength = 768,
                 Tokenizer2Length = 1280,
                 BlankTokenId = 49407,
-                Diffusers = modelTemplate.DiffuserTypes.ToList(),
-                SampleSize = modelTemplate.SampleSize,
                 TokenizerType = TokenizerType.One,
                 ModelType = ModelType.Base,
 
@@ -56,7 +58,6 @@ namespace OnnxStack.UI.Services
                 ExecutionProvider = _settings.DefaultExecutionProvider,
                 InterOpNumThreads = _settings.DefaultInterOpNumThreads,
                 IntraOpNumThreads = _settings.DefaultIntraOpNumThreads,
-                IsEnabled = true,
                 ModelConfigurations = new List<OnnxModelConfig>()
             };
 
@@ -76,7 +77,6 @@ namespace OnnxStack.UI.Services
             if (modelSet.PipelineType == DiffuserPipelineType.StableDiffusionXL || modelSet.PipelineType == DiffuserPipelineType.LatentConsistencyXL)
             {
                 modelSet.PadTokenId = 1;
-                modelSet.SampleSize = 1024;
                 modelSet.ScaleFactor = 0.13025f;
                 modelSet.TokenizerType = TokenizerType.Both;
 
@@ -139,8 +139,4 @@ namespace OnnxStack.UI.Services
             };
         }
     }
-
-
-    public record UpscaleModelTemplate(int ScaleFactor, int SampleSize);
-    public record StableDiffusionModelTemplate(DiffuserPipelineType PipelineType, ModelType ModelType, int SampleSize, params DiffuserType[] DiffuserTypes);
 }

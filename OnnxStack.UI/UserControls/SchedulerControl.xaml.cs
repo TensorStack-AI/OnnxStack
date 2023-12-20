@@ -4,7 +4,9 @@ using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Views;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -20,12 +22,13 @@ namespace OnnxStack.UI.UserControls
     /// </summary>
     public partial class SchedulerControl : UserControl, INotifyPropertyChanged
     {
-        private ObservableCollection<SchedulerType> _schedulerTypes = new();
+        private StableDiffusionSchedulerDefaults _schedulerDefaults;
+        private List<SchedulerType> _schedulerTypes = new();
 
         /// <summary>Initializes a new instance of the <see cref="SchedulerControl" /> class.</summary>
         public SchedulerControl()
         {
-            ValidSizes = new ObservableCollection<int>(Constants.ValidSizes);
+            ValidSizes = new List<int>(Constants.ValidSizes);
             NewSeedCommand = new RelayCommand(NewSeed);
             RandomSeedCommand = new RelayCommand(RandomSeed);
             ResetParametersCommand = new RelayCommand(ResetParameters);
@@ -35,9 +38,18 @@ namespace OnnxStack.UI.UserControls
         public ICommand ResetParametersCommand { get; }
         public ICommand NewSeedCommand { get; }
         public ICommand RandomSeedCommand { get; }
-        public ObservableCollection<int> ValidSizes { get; }
+        public List<int> ValidSizes { get; }
 
-        public ObservableCollection<SchedulerType> SchedulerTypes
+        public OnnxStackUIConfig UISettings
+        {
+            get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
+            set { SetValue(UISettingsProperty, value); }
+        }
+        public static readonly DependencyProperty UISettingsProperty =
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(SchedulerControl));
+
+
+        public List<SchedulerType> SchedulerTypes
         {
             get { return _schedulerTypes; }
             set { _schedulerTypes = value; NotifyPropertyChanged(); }
@@ -111,6 +123,14 @@ namespace OnnxStack.UI.UserControls
 
 
 
+        public StableDiffusionSchedulerDefaults SchedulerDefaults
+        {
+            get { return _schedulerDefaults; }
+            set { _schedulerDefaults = value; NotifyPropertyChanged(); }
+        }
+
+
+
         /// <summary>
         /// Called when the selected model has changed.
         /// </summary>
@@ -120,50 +140,10 @@ namespace OnnxStack.UI.UserControls
             if (model is null)
                 return;
 
-            SchedulerTypes.Clear();
-            foreach (SchedulerType type in model.ModelSet.PipelineType.GetSchedulerTypes())
-                SchedulerTypes.Add(type);
-
-            SchedulerOptions.Width = 512;
-            SchedulerOptions.Height = 512;
-            if (model.ModelSet.PipelineType == DiffuserPipelineType.StableDiffusion)
-            {
-                SchedulerOptions.OriginalInferenceSteps = 100;
-                SchedulerOptions.InferenceSteps = 30;
-                SchedulerOptions.GuidanceScale = 7.5f;
-                SchedulerOptions.SchedulerType = SchedulerType.DDIM;
-            }
-            else if (model.ModelSet.PipelineType == DiffuserPipelineType.LatentConsistency)
-            {
-                SchedulerOptions.OriginalInferenceSteps = 50;
-                SchedulerOptions.InferenceSteps = 6;
-                SchedulerOptions.GuidanceScale = 1f;
-                SchedulerOptions.SchedulerType = SchedulerType.LCM;
-            }
-            else if (model.ModelSet.PipelineType == DiffuserPipelineType.LatentConsistencyXL)
-            {
-                SchedulerOptions.OriginalInferenceSteps = 50;
-                SchedulerOptions.InferenceSteps = 6;
-                SchedulerOptions.GuidanceScale = 1f;
-                SchedulerOptions.Width = 1024;
-                SchedulerOptions.Height = 1024;
-                SchedulerOptions.SchedulerType = SchedulerType.LCM;
-            }
-            else if (model.ModelSet.PipelineType == DiffuserPipelineType.InstaFlow)
-            {
-                SchedulerOptions.InferenceSteps = 1;
-                SchedulerOptions.GuidanceScale = 0f;
-                SchedulerOptions.SchedulerType = SchedulerType.InstaFlow;
-            }
-            else if (model.ModelSet.PipelineType == DiffuserPipelineType.StableDiffusionXL)
-            {
-                SchedulerOptions.OriginalInferenceSteps = 100;
-                SchedulerOptions.InferenceSteps = 30;
-                SchedulerOptions.GuidanceScale = 5f;
-                SchedulerOptions.Width = 1024;
-                SchedulerOptions.Height = 1024;
-                SchedulerOptions.SchedulerType = SchedulerType.EulerAncestral;
-            }
+            SchedulerTypes = new List<SchedulerType>(model.ModelSet.PipelineType.GetSchedulerTypes());
+            SchedulerDefaults = UISettings.Templates.FirstOrDefault(x => x.Name == model.Name)?.StableDiffusionTemplate?.SchedulerDefaults
+                    ?? new StableDiffusionSchedulerDefaults();
+            ResetParameters();
         }
 
 
@@ -174,7 +154,11 @@ namespace OnnxStack.UI.UserControls
         {
             SchedulerOptions = new SchedulerOptionsModel
             {
-                SchedulerType = SelectedModel.ModelSet.PipelineType.GetSchedulerTypes().First()
+                SchedulerType = SchedulerDefaults.SchedulerType,
+                GuidanceScale = SchedulerDefaults.Guidance,
+                InferenceSteps = SchedulerDefaults.Steps,
+                Width = SelectedModel.ModelSet.SampleSize,
+                Height = SelectedModel.ModelSet.SampleSize
             };
         }
 

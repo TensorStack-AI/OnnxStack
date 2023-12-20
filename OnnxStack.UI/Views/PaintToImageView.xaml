@@ -31,6 +31,7 @@
                         PromptOptions="{Binding PromptOptions}" 
                         IsEnabled="{Binding IsControlsEnabled}"/>
                     <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
+                        UISettings="{Binding UISettings}"
                         SelectedModel="{Binding SelectedModel}"
                         DiffuserType="ImageToImage" 
                         BatchOptions="{Binding BatchOptions}"

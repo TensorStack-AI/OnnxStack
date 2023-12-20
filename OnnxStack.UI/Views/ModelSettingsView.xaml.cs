@@ -450,7 +450,7 @@ namespace OnnxStack.UI.Views
             var addModelDialog = _dialogService.GetDialog<AddModelDialog>();
             if (addModelDialog.ShowDialog())
             {
-                 await InstallStableDiffusionModel(addModelDialog.ModelTemplate, addModelDialog.ModelSetResult);
+                await InstallStableDiffusionModel(addModelDialog.ModelTemplate, addModelDialog.ModelSetResult);
             }
         }
 
