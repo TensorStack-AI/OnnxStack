@@ -12,7 +12,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -451,22 +450,22 @@ namespace OnnxStack.UI.Views
             var addModelDialog = _dialogService.GetDialog<AddModelDialog>();
             if (addModelDialog.ShowDialog())
             {
-                var modelTemplate = addModelDialog.ModelTemplate;
-                if (modelTemplate == null)
-                    return; // TODO: Error
-
-                await InstallStableDiffusionModel(modelTemplate, addModelDialog.ModelSetResult);
+                 await InstallStableDiffusionModel(addModelDialog.ModelTemplate, addModelDialog.ModelSetResult);
             }
         }
 
         private async Task RemoveStableDiffusionModel(ModelTemplateViewModel modelTemplate)
         {
             if (!modelTemplate.IsUserTemplate)
-                return; // TODO: Cant remove Templates
-            if (modelTemplate.Category != ModelTemplateCategory.StableDiffusion)
-                return; // TODO: Error
+                return; // Cant remove Templates
 
             var modelSet = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            if (modelSet.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             UISettings.StableDiffusionModelSets.Remove(modelSet);
             UISettings.Templates.Remove(modelTemplate);
             await SaveConfigurationFile();
@@ -516,12 +515,14 @@ namespace OnnxStack.UI.Views
 
         private async Task UninstallStableDiffusionModel(ModelTemplateViewModel modelTemplate)
         {
-            if (modelTemplate.Category != ModelTemplateCategory.StableDiffusion)
-                return; // TODO: Error
-
             var modelSet = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
-            UISettings.StableDiffusionModelSets.Remove(modelSet);
+            if (modelSet.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
+            UISettings.StableDiffusionModelSets.Remove(modelSet);
             modelTemplate.IsInstalled = false;
             await SaveConfigurationFile();
         }
@@ -529,8 +530,12 @@ namespace OnnxStack.UI.Views
         private async Task UpdateStableDiffusionModel(ModelTemplateViewModel modelTemplate)
         {
             var stableDiffusionModel = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
-            if (stableDiffusionModel == null)
-                return; // TODO: Error
+            if (stableDiffusionModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
 
             var updateModelDialog = _dialogService.GetDialog<UpdateModelSettingsDialog>();
             if (updateModelDialog.ShowDialog(stableDiffusionModel.ModelSet))
@@ -548,8 +553,11 @@ namespace OnnxStack.UI.Views
         private async Task UpdateStableDiffusionModelAdvanced(ModelTemplateViewModel modelTemplate)
         {
             var stableDiffusionModel = UISettings.StableDiffusionModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
-            if (stableDiffusionModel == null)
-                return; // TODO: Error
+            if (stableDiffusionModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             var updateModelDialog = _dialogService.GetDialog<UpdateModelDialog>();
             if (updateModelDialog.ShowDialog(stableDiffusionModel.ModelSet))
@@ -595,19 +603,19 @@ namespace OnnxStack.UI.Views
             var addModelDialog = _dialogService.GetDialog<AddUpscaleModelDialog>();
             if (addModelDialog.ShowDialog())
             {
-                var modelTemplate = addModelDialog.ModelTemplate;
-                if (modelTemplate == null)
-                    return; // TODO: Error
-
-                await InstallUpscaleModel(modelTemplate, addModelDialog.ModelSetResult);
+                await InstallUpscaleModel(addModelDialog.ModelTemplate, addModelDialog.ModelSetResult);
             }
         }
 
         private async Task UpdateUpscaleModel(ModelTemplateViewModel modelTemplate)
         {
             var upscaleModel = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
-            if (upscaleModel == null)
-                return; // TODO: Error
+            if (upscaleModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
 
             var updateModelDialog = _dialogService.GetDialog<UpdateUpscaleModelSettingsDialog>();
             if (updateModelDialog.ShowDialog(upscaleModel.ModelSet))
@@ -624,8 +632,11 @@ namespace OnnxStack.UI.Views
         private async Task UpdateUpscaleModelAdvanced(ModelTemplateViewModel modelTemplate)
         {
             var upscaleModel = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
-            if (upscaleModel == null)
-                return; // TODO: Error
+            if (upscaleModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             var updateModelDialog = _dialogService.GetDialog<UpdateUpscaleModelDialog>();
             if (updateModelDialog.ShowDialog(upscaleModel.ModelSet))
@@ -642,11 +653,15 @@ namespace OnnxStack.UI.Views
         private async Task RemoveUpscaleModel(ModelTemplateViewModel modelTemplate)
         {
             if (!modelTemplate.IsUserTemplate)
-                return; // TODO: Cant remove Templates
-            if (modelTemplate.Category != ModelTemplateCategory.Upscaler)
-                return; // TODO: Error
-
+                return; // Cant remove Templates
+        
             var modelSet = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
+            if (modelSet.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             UISettings.UpscaleModelSets.Remove(modelSet);
             UISettings.Templates.Remove(modelTemplate);
             await SaveConfigurationFile();
@@ -696,12 +711,14 @@ namespace OnnxStack.UI.Views
 
         private async Task UninstallUpscaleModel(ModelTemplateViewModel modelTemplate)
         {
-            if (modelTemplate.Category != ModelTemplateCategory.Upscaler)
-                return; // TODO: Error
-
             var modelSet = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
-            UISettings.UpscaleModelSets.Remove(modelSet);
+            if (modelSet.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
+            UISettings.UpscaleModelSets.Remove(modelSet);
             modelTemplate.IsInstalled = false;
             await SaveConfigurationFile();
         }
