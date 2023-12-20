@@ -3,6 +3,7 @@ using OnnxStack.Common.Config;
 using OnnxStack.Core.Config;
 using OnnxStack.UI.Views;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 
 namespace OnnxStack.UI.Models
@@ -22,12 +23,14 @@ namespace OnnxStack.UI.Models
         public ExecutionMode DefaultExecutionMode { get; set; }
         public ExecutionProvider DefaultExecutionProvider { get; set; }
 
-
-        public List<ModelConfigTemplate> ModelTemplates { get; set; } = new List<ModelConfigTemplate>();
+        public ObservableCollection<ModelTemplateViewModel> Templates { get; set; } = new ObservableCollection<ModelTemplateViewModel>();
+        public ObservableCollection<UpscaleModelSetViewModel> UpscaleModelSets { get; set; } = new ObservableCollection<UpscaleModelSetViewModel>();
+        public ObservableCollection<StableDiffusionModelSetViewModel> StableDiffusionModelSets { get; set; } = new ObservableCollection<StableDiffusionModelSetViewModel>();
 
         public void Initialize()
         {
         }
+
     }
 
     public enum ModelCacheMode

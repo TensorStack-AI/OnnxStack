@@ -46,7 +46,6 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <returns></returns>
         Task<bool> LoadModelAsync(UpscaleModelSet model);
 
-
         /// <summary>
         /// Unloads the model.
         /// </summary>
@@ -54,6 +53,14 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <returns></returns>
         Task<bool> UnloadModelAsync(UpscaleModelSet model);
 
+        /// <summary>
+        /// Determines whether [is model loaded] [the specified model options].
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns>
+        ///   <c>true</c> if [is model loaded] [the specified model options]; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsModelLoaded(UpscaleModelSet modelOptions);
 
         /// <summary>
         /// Generates the upscaled image.

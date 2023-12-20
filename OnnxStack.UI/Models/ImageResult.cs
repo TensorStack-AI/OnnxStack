@@ -13,7 +13,7 @@ namespace OnnxStack.UI.Models
         public BitmapSource Image { get; init; }
 
         [JsonIgnore]
-        public ModelOptionsModel Model { get; set; }
+        public StableDiffusionModelSetViewModel Model { get; set; }
 
         public DateTime Timestamp { get; } = DateTime.UtcNow;
         public DiffuserPipelineType PipelineType { get; set; }

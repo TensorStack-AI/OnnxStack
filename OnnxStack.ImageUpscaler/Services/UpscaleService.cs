@@ -125,6 +125,20 @@ namespace OnnxStack.ImageUpscaler.Services
 
 
         /// <summary>
+        /// Determines whether [is model loaded] [the specified model options].
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns>
+        ///   <c>true</c> if [is model loaded] [the specified model options]; otherwise, <c>false</c>.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public bool IsModelLoaded(UpscaleModelSet modelOptions)
+        {
+            return _modelService.IsModelLoaded(modelOptions);
+        }
+
+
+        /// <summary>
         /// Generates the upscaled image.
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
@@ -191,7 +205,7 @@ namespace OnnxStack.ImageUpscaler.Services
             using (var image = inputImage.ToImage())
             {
                 var upscaleInput = CreateInputParams(image, modelSet.SampleSize, modelSet.ScaleFactor);
-                var metadata = _modelService.GetModelMetadata(modelSet, OnnxModelType.Unet);
+                var metadata = _modelService.GetModelMetadata(modelSet, OnnxModelType.Upscaler);
 
                 var outputResult = new Image<Rgba32>(upscaleInput.OutputWidth, upscaleInput.OutputHeight);
                 foreach (var tile in upscaleInput.ImageTiles)
@@ -205,7 +219,7 @@ namespace OnnxStack.ImageUpscaler.Services
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        var results = await _modelService.RunInferenceAsync(modelSet, OnnxModelType.Unet, inferenceParameters);
+                        var results = await _modelService.RunInferenceAsync(modelSet, OnnxModelType.Upscaler, inferenceParameters);
                         using (var result = results.First())
                         {
                             outputResult.Mutate(x => x.DrawImage(result.ToImage(), tile.Destination.Location, 1f));
@@ -231,5 +245,6 @@ namespace OnnxStack.ImageUpscaler.Services
             var height = imageSource.Height * scaleFactor;
             return new UpscaleInput(tiles, width, height);
         }
+
     }
 }

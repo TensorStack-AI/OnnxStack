@@ -2,8 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:system="clr-namespace:System;assembly=mscorlib"
+              xmlns:componentModel="clr-namespace:System.ComponentModel;assembly=System.ComponentModel.TypeConverter"
              xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
-             xmlns:local="clr-namespace:OnnxStack.UI"
+               xmlns:local="clr-namespace:OnnxStack.UI"
              xmlns:SD_Enums="clr-namespace:OnnxStack.StableDiffusion.Enums;assembly=OnnxStack.StableDiffusion"
              xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
              xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
@@ -25,7 +26,8 @@
         <FontFamily x:Key="FontAwesomeRegular">pack://application:,,,/Fonts/fa-regular-400.ttf#Font Awesome 5 Pro Regular</FontFamily>
         <FontFamily x:Key="FontAwesomeSolid">pack://application:,,,/Fonts/fa-solid-900.ttf#Font Awesome 5 Pro Solid</FontFamily>
 
-
+        <system:Boolean x:Key="True">True</system:Boolean>
+        <system:Boolean x:Key="False">False</system:Boolean>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
@@ -35,10 +37,30 @@
         <converters:InverseNullVisibilityConverter x:Key="InverseNullVisibilityConverter" />
         <converters:DiffuserVisibilityConverter x:Key="DiffuserVisibilityConverter" />
         <converters:PipelineVisibilityConverter x:Key="PipelineVisibilityConverter" />
+        <converters:ComboBoxAllItemConverter x:Key="ComboBoxAllItemConverter" />
+        <converters:EnumDescriptionConverter x:Key="EnumDescriptionConverter" />
+
+        <ObjectDataProvider x:Key="ListSortDirection" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="componentModel:ListSortDirection"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
 
         <ObjectDataProvider x:Key="SchedulerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
             <ObjectDataProvider.MethodParameters>
                 <x:Type TypeName="SD_Enums:SchedulerType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="ModelType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:ModelType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="TokenizerType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:TokenizerType"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
@@ -106,7 +128,7 @@
 
 
 
-      
+
 
 
 
@@ -233,8 +255,8 @@
                             <TextBlock Text="{Binding SchedulerOptions.Seed}"  Margin="2,0,0,0" />
                         </StackPanel>
                     </UniformGrid>
-                    <UniformGrid Columns="6" Margin="0,2,0,2">
-                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveImageCommand}" CommandParameter="{Binding}">
+                    <UniformGrid Columns="7" Margin="0,2,0,2">
+                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveImageResultCommand}" CommandParameter="{Binding}">
                             <userControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light"  Size="13" ToolTip="Save Image File"/>
                         </Button>
                         <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveBlueprintCommand}" CommandParameter="{Binding}" BorderThickness="0, 1">
@@ -252,6 +274,9 @@
                         <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImagePaintToImageCommand}" CommandParameter="{Binding}" Padding="2,2" BorderThickness="0,1,1,1">
                             <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light" Size="13" ToolTip="Send To Upscaler"/>
                         </Button>
+                        <Button  Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateUpscalerCommand}" CommandParameter="{Binding}" Padding="2,2" BorderThickness="0,1,1,1">
+                            <userControls:FontAwesome Icon="&#xf424;" IconStyle="Light" Size="13" ToolTip="Send To Upscaler"/>
+                        </Button>
                     </UniformGrid>
                 </StackPanel>
                 <Border Margin="0,2"  BorderBrush="{StaticResource ContainerBorder}" BorderThickness="1" Background="{StaticResource ContainerBackground}" >
@@ -260,7 +285,55 @@
             </DockPanel>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type models:UpscaleResult}">
+            <DockPanel Width="220" Height="285" HorizontalAlignment="Center">
+                <StackPanel  DockPanel.Dock="Bottom" >
 
+                    <UniformGrid Columns="2" Margin="0,3">
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Scale Factor:" Margin="0,0,5,0" FontStyle="Italic"  FontSize="10" Opacity=".6" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Info.ScaleFactor}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Elapsed:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                            <TextBlock Text="{Binding Elapsed, StringFormat={}{0:F1}s}" Margin="5,0,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Input:" Margin="0,0,5,0" FontStyle="Italic" FontSize="10" Opacity=".6" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Info.InputWidth}" />
+                            <TextBlock Text="x" Margin="2,0,2,0"/>
+                            <TextBlock Text="{Binding Info.InputHeight}" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Output:" Margin="0,0,5,0" FontStyle="Italic" FontSize="10" Opacity=".6" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Info.OutputWidth}" />
+                            <TextBlock Text="x" Margin="2,0,2,0"/>
+                            <TextBlock Text="{Binding Info.OutputHeight}" />
+                        </StackPanel>
+
+                    </UniformGrid>
+
+                       
+
+                    <UniformGrid Columns="1" Height="30" IsEnabled="{Binding HasResult}">
+                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveImageCommand}" CommandParameter="{Binding}" ToolTip="Save Image File">
+                            <StackPanel Orientation="Horizontal">
+                                <userControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light"  Size="13" />
+                                <TextBlock Text="Save Image" Margin="5,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+
+
+                </StackPanel>
+                <Border Margin="0,2"  BorderBrush="{StaticResource ContainerBorder}" BorderThickness="1" Background="{StaticResource ContainerBackground}" >
+                    <Image Source="{Binding Image}" DockPanel.Dock="Left"  Stretch="Uniform" VerticalAlignment="Center" />
+                </Border>
+            </DockPanel>
+        </DataTemplate>
 
         <!--RadioButton-->
         <SolidColorBrush x:Key="RadioButtonBackground" Color="#FF2D2D2D"/>
@@ -722,14 +795,15 @@
 
 
 
-
-
-
-
-
-
-
-
+        <Style x:Key="EnumComboBox" TargetType="{x:Type ComboBox}" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Converter={StaticResource EnumDescriptionConverter}}"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
 
 

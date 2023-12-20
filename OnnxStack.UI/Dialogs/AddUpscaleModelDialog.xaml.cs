@@ -17,21 +17,21 @@ using System.Windows;
 namespace OnnxStack.UI.Dialogs
 {
     /// <summary>
-    /// Interaction logic for AddModelDialog.xaml
+    /// Interaction logic for AddUpscaleModelDialog.xaml
     /// </summary>
-    public partial class AddModelDialog : Window, INotifyPropertyChanged
+    public partial class AddUpscaleModelDialog : Window, INotifyPropertyChanged
     {
-        private readonly ILogger<AddModelDialog> _logger;
+        private readonly ILogger<AddUpscaleModelDialog> _logger;
 
         private List<string> _invalidOptions;
-        private string _modelFolder;
+        private string _modelFile;
         private string _modelName;
         private IModelFactory _modelFactory;
         private OnnxStackUIConfig _settings;
         private ModelTemplateViewModel _modelTemplate;
-        private StableDiffusionModelSet _modelSetResult;
+        private UpscaleModelSet _modelSetResult;
 
-        public AddModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddModelDialog> logger)
+        public AddUpscaleModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddUpscaleModelDialog> logger)
         {
             _logger = logger;
             _settings = settings;
@@ -42,7 +42,7 @@ namespace OnnxStack.UI.Dialogs
             WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel);
-            ModelTemplates = _settings.Templates.Where(x => !x.IsUserTemplate).ToList();
+            ModelTemplates = _settings.Templates.Where(x => !x.IsUserTemplate && x.Category == ModelTemplateCategory.Upscaler).ToList();
             InvalidOptions = _settings.Templates.Where(x => x.IsUserTemplate).Select(x => x.Name.ToLower()).ToList();
             InitializeComponent();
         }
@@ -72,16 +72,16 @@ namespace OnnxStack.UI.Dialogs
             set { _modelName = value; _modelName?.Trim(); NotifyPropertyChanged(); CreateModelSet(); }
         }
 
-        public string ModelFolder
+        public string ModelFile
         {
-            get { return _modelFolder; }
+            get { return _modelFile; }
             set
             {
-                _modelFolder = value;
+                _modelFile = value;
                 if (_modelTemplate is not null && !_modelTemplate.IsUserTemplate)
-                    _modelName = string.IsNullOrEmpty(_modelFolder)
+                    _modelName = string.IsNullOrEmpty(_modelFile)
                         ? string.Empty
-                        : Path.GetFileName(_modelFolder);
+                        : Path.GetFileNameWithoutExtension(_modelFile);
 
                 NotifyPropertyChanged();
                 NotifyPropertyChanged(nameof(ModelName));
@@ -89,7 +89,7 @@ namespace OnnxStack.UI.Dialogs
             }
         }
 
-        public StableDiffusionModelSet ModelSetResult
+        public UpscaleModelSet ModelSetResult
         {
             get { return _modelSetResult; }
         }
@@ -127,10 +127,10 @@ namespace OnnxStack.UI.Dialogs
         {
             _modelSetResult = null;
             ValidationResults.Clear();
-            if (string.IsNullOrEmpty(_modelFolder))
+            if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            _modelSetResult = _modelFactory.CreateStableDiffusionModelSet(ModelName.Trim(), ModelFolder, _modelTemplate.StableDiffusionTemplate);
+            _modelSetResult = _modelFactory.CreateUpscaleModelSet(ModelName.Trim(), _modelFile, _modelTemplate.UpscaleTemplate);
 
             // Validate
             if (_enableNameSelection)
@@ -152,7 +152,7 @@ namespace OnnxStack.UI.Dialogs
 
         private bool CanExecuteSave()
         {
-            if (string.IsNullOrEmpty(_modelFolder))
+            if (string.IsNullOrEmpty(_modelFile))
                 return false;
             if (_modelSetResult is null)
                 return false;

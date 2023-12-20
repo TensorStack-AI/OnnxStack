@@ -1,4 +1,4 @@
-﻿<Window x:Class="OnnxStack.UI.Dialogs.AddModelDialog"
+﻿<Window x:Class="OnnxStack.UI.Dialogs.AddUpscaleModelDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -16,7 +16,7 @@
         UseLayoutRounding="True"
         Style="{StaticResource BaseWindow}" 
         ContentRendered="OnContentRendered"
-        Title="Add StableDiffusion Model">
+        Title="Add Upscale Model">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top">
 
@@ -42,8 +42,8 @@
 
 
             <StackPanel Margin="0,10,0,0">
-                <TextBlock Text="Model Folder"/>
-                <userControls:FilePickerTextBox FileName="{Binding ModelFolder, Mode=TwoWay}" IsFolderPicker="True" />
+                <TextBlock Text="Upscale Model File"/>
+                <userControls:FilePickerTextBox FileName="{Binding ModelFile, Mode=TwoWay}" IsFolderPicker="False" Filter="Onnx Models (*.onnx)|*.onnx" DefaultExt="onnx" />
             </StackPanel>
 
             <StackPanel Margin="0,10,0,0" Visibility="{Binding EnableNameSelection, Converter={StaticResource BooleanToVisibilityConverter}}">

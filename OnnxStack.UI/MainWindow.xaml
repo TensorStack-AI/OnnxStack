@@ -83,6 +83,19 @@
                 <views:PaintToImageView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
+            <!--Upscale-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf424;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Upscale Image" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:UpscaleView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+            </TabItem>
+
             <!--Log Window-->
             <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TabItem.Header>
@@ -107,7 +120,6 @@
                 <views:SettingsView UISettings="{Binding UISettings, Mode=TwoWay}" Margin="0,6,0,0"/>
             </TabItem>
 
-
             <!--Models-->
             <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TabItem.Header>
@@ -118,7 +130,7 @@
                         <TextBlock Text="Models" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:ModelView UISettings="{Binding UISettings}" ModelOptions="{Binding Models, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" Margin="0,6,0,0"/>
+                <views:ModelSettingsView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
         </TabControl>
     </Grid>

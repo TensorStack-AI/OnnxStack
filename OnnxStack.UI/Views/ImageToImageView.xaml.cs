@@ -39,7 +39,7 @@ namespace OnnxStack.UI.Views
         private bool _isControlsEnabled;
         private ImageInput _inputImage;
         private ImageResult _resultImage;
-        private ModelOptionsModel _selectedModel;
+        private StableDiffusionModelSetViewModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private BatchOptionsModel _batchOptions;
@@ -84,7 +84,7 @@ namespace OnnxStack.UI.Views
         public AsyncRelayCommand ClearHistoryCommand { get; set; }
         public ObservableCollection<ImageResult> ImageResults { get; }
 
-        public ModelOptionsModel SelectedModel
+        public StableDiffusionModelSetViewModel SelectedModel
         {
             get { return _selectedModel; }
             set { _selectedModel = value; NotifyPropertyChanged(); }
@@ -177,7 +177,7 @@ namespace OnnxStack.UI.Views
             HasResult = false;
             ResultImage = null;
             HasInputResult = true;
-            if (imageResult.Model.ModelOptions.Diffusers.Contains(DiffuserType.ImageToImage))
+            if (imageResult.Model.ModelSet.Diffusers.Contains(DiffuserType.ImageToImage))
             {
                 SelectedModel = imageResult.Model;
             }
@@ -211,7 +211,7 @@ namespace OnnxStack.UI.Views
 
             try
             {
-                await foreach (var resultImage in ExecuteStableDiffusion(_selectedModel.ModelOptions, promptOptions, schedulerOptions, batchOptions))
+                await foreach (var resultImage in ExecuteStableDiffusion(_selectedModel.ModelSet, promptOptions, schedulerOptions, batchOptions))
                 {
                     if (resultImage != null)
                     {
@@ -402,7 +402,7 @@ namespace OnnxStack.UI.Views
                 Model = _selectedModel,
                 Prompt = promptOptions.Prompt,
                 NegativePrompt = promptOptions.NegativePrompt,
-                PipelineType = _selectedModel.ModelOptions.PipelineType,
+                PipelineType = _selectedModel.ModelSet.PipelineType,
                 DiffuserType = promptOptions.DiffuserType,
                 SchedulerType = schedulerOptions.SchedulerType,
                 SchedulerOptions = schedulerOptions,

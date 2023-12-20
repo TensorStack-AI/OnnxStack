@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public class StableDiffusionModelSet : IOnnxModelSetConfig
+    public record StableDiffusionModelSet : IOnnxModelSetConfig
     {
         public string Name { get; set; }
         public bool IsEnabled { get; set; }

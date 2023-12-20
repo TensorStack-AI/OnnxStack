@@ -3,9 +3,11 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Models;
 using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -49,13 +51,12 @@ namespace OnnxStack.UI
             }
         }
 
-
-        public static async Task<bool> SaveImageFileAsync(this ImageResult imageResult, string filename)
+        public static async Task<bool> SaveImageFileAsync(this BitmapSource image, string filename)
         {
             await Task.Run(() =>
             {
                 var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(imageResult.Image));
+                encoder.Frames.Add(BitmapFrame.Create(image));
                 using (var fileStream = new FileStream(filename, FileMode.Create))
                 {
                     encoder.Save(fileStream);
@@ -88,7 +89,7 @@ namespace OnnxStack.UI
             var random = RandomString();
             var imageFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
             var blueprintFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
-            if (!await imageResult.SaveImageFileAsync(imageFile))
+            if (!await imageResult.Image.SaveImageFileAsync(imageFile))
                 return false;
 
             if (includeBlueprint)
@@ -208,6 +209,18 @@ namespace OnnxStack.UI
             {
                 (System.Windows.Application.Current.MainWindow as MainWindow).UpdateOutputLog(message);
             }));
+        }
+
+
+        /// <summary>
+        /// Forces the notify collection changed event.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection">The collection.</param>
+        public static void ForceNotifyCollectionChanged<T>(this ObservableCollection<T> collection)
+        {
+            // Hack: Moving an item will invoke a collection changed event
+            collection?.Move(0, 0);
         }
     }
 }
