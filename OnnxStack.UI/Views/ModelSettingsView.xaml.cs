@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -538,6 +539,7 @@ namespace OnnxStack.UI.Views
                 stableDiffusionModel.ModelSet = modelSet;
                 stableDiffusionModel.Name = modelSet.Name;
                 SelectedModelTemplate.Name = modelSet.Name;
+                UISettings.StableDiffusionModelSets.ForceNotifyCollectionChanged();
                 await SaveConfigurationFile();
             }
         }
@@ -556,6 +558,7 @@ namespace OnnxStack.UI.Views
                 stableDiffusionModel.ModelSet = modelSet;
                 stableDiffusionModel.Name = modelSet.Name;
                 SelectedModelTemplate.Name = modelSet.Name;
+                UISettings.StableDiffusionModelSets.ForceNotifyCollectionChanged();
                 await SaveConfigurationFile();
             }
         }
@@ -613,6 +616,7 @@ namespace OnnxStack.UI.Views
                 upscaleModel.ModelSet = modelSet;
                 upscaleModel.Name = modelSet.Name;
                 SelectedModelTemplate.Name = modelSet.Name;
+                UISettings.UpscaleModelSets.ForceNotifyCollectionChanged();
                 await SaveConfigurationFile();
             }
         }
@@ -630,6 +634,7 @@ namespace OnnxStack.UI.Views
                 upscaleModel.ModelSet = modelSet;
                 upscaleModel.Name = modelSet.Name;
                 SelectedModelTemplate.Name = modelSet.Name;
+                UISettings.UpscaleModelSets.ForceNotifyCollectionChanged();
                 await SaveConfigurationFile();
             }
         }
