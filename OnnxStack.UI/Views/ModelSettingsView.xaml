@@ -20,7 +20,18 @@
                     </UniformGrid>
                 </StackPanel>
                 <Grid  >
-                    <userControls:CachedImage ImageUrl="{Binding ImageIcon, IsAsync=True}" CacheName="{Binding Name}" Placeholder="{StaticResource PlaceholderImage}"   RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                    <userControls:CachedImage ImageUrl="{Binding ImageIcon, IsAsync=True}" Placeholder="{StaticResource PlaceholderImage}"   RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True">
+                        <userControls:CachedImage.Style>
+                            <Style TargetType="{x:Type userControls:CachedImage}">
+                                <Setter Property="CacheName" Value="{Binding Name}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsUserTemplate}" Value="False">
+                                        <Setter Property="CacheName" Value="{Binding Template}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </userControls:CachedImage.Style>
+                    </userControls:CachedImage>
                     <StackPanel>
                         <Border Background="Lime" Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}" BorderBrush="{StaticResource ContainerBackground}" BorderThickness="1" CornerRadius="0" Padding="4,0,4,1" HorizontalAlignment="Right" Margin="0">
                             <TextBlock Text="Installed" Foreground="{StaticResource ContainerBackground}" FontWeight="Bold" FontSize="11"/>
@@ -46,7 +57,18 @@
                     </UniformGrid>
                 </StackPanel>
                 <Grid  >
-                    <userControls:CachedImage ImageUrl="{Binding ImageIcon, IsAsync=True}" CacheName="{Binding Name}" Placeholder="{StaticResource PlaceholderImage}"   RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                    <userControls:CachedImage ImageUrl="{Binding ImageIcon, IsAsync=True}" Placeholder="{StaticResource PlaceholderImage}"   RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True">
+                        <userControls:CachedImage.Style>
+                            <Style TargetType="{x:Type userControls:CachedImage}">
+                                <Setter Property="CacheName" Value="{Binding Name}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsUserTemplate}" Value="False">
+                                        <Setter Property="CacheName" Value="{Binding Template}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </userControls:CachedImage.Style>
+                    </userControls:CachedImage>
                     <StackPanel>
                         <Border Background="Lime" Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}" BorderBrush="{StaticResource ContainerBackground}" BorderThickness="1" CornerRadius="0" Padding="4,0,4,1" HorizontalAlignment="Right" Margin="0">
                             <TextBlock Text="Installed" Foreground="{StaticResource ContainerBackground}" FontWeight="Bold" FontSize="11"/>
@@ -59,32 +81,47 @@
             </DockPanel>
         </DataTemplate>
         <ItemsPanelTemplate x:Key="LayoutTileLargeViewPanelTemplate">
-            <WrapPanel ItemWidth="228" ItemHeight="274" IsItemsHost="True" />
+            <WrapPanel ItemWidth="225" ItemHeight="274" IsItemsHost="True" />
         </ItemsPanelTemplate>
 
 
         <DataTemplate x:Key="LayoutListViewTemplate">
             <DockPanel Background="{StaticResource ContainerBackground}">
                 <StackPanel DockPanel.Dock="Left" Width="50" Height="50">
-                    <userControls:CachedImage ImageUrl="{Binding ImageIcon, IsAsync=True}" CacheName="{Binding Name}" Placeholder="{StaticResource PlaceholderImage}"   RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                    <userControls:CachedImage ImageUrl="{Binding ImageIcon, IsAsync=True}" Placeholder="{StaticResource PlaceholderImage}"   RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True">
+                        <userControls:CachedImage.Style>
+                            <Style TargetType="{x:Type userControls:CachedImage}">
+                                <Setter Property="CacheName" Value="{Binding Name}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsUserTemplate}" Value="False">
+                                        <Setter Property="CacheName" Value="{Binding Template}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </userControls:CachedImage.Style>
+                    </userControls:CachedImage>
                 </StackPanel>
-                <StackPanel DockPanel.Dock="Right">
-                    <Border Background="LimeGreen" Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}" BorderBrush="{StaticResource ContainerBackground}" BorderThickness="1" CornerRadius="0" Padding="4,0,4,1" HorizontalAlignment="Right" Margin="0">
-                        <TextBlock Text="Installed" Foreground="{StaticResource ContainerBackground}" FontWeight="Bold" FontSize="11"/>
-                    </Border>
-                    <Border Background="Aqua" Visibility="{Binding IsUserTemplate, Converter={StaticResource InverseBooleanToVisibilityConverter}}" BorderBrush="{StaticResource ContainerBackground}" BorderThickness="1" CornerRadius="0" Padding="4,0,4,1" HorizontalAlignment="Right" Margin="0">
-                        <TextBlock Text="Template" Foreground="{StaticResource ContainerBackground}" FontWeight="Bold" FontSize="11"/>
-                    </Border>
-                </StackPanel>
+                <DockPanel DockPanel.Dock="Right">
+
+                    <StackPanel DockPanel.Dock="Top" Margin="2">
+                        <Border Background="LimeGreen" Visibility="{Binding IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}" BorderBrush="{StaticResource ContainerBackground}" BorderThickness="1" CornerRadius="0" Padding="4,0,4,1" HorizontalAlignment="Right" Margin="0">
+                            <TextBlock Text="Installed" Foreground="{StaticResource ContainerBackground}" FontWeight="Bold" FontSize="11"/>
+                        </Border>
+                        <Border Background="Aqua" Visibility="{Binding IsUserTemplate, Converter={StaticResource InverseBooleanToVisibilityConverter}}" BorderBrush="{StaticResource ContainerBackground}" BorderThickness="1" CornerRadius="0" Padding="4,0,4,1" HorizontalAlignment="Right" Margin="0">
+                            <TextBlock Text="Template" Foreground="{StaticResource ContainerBackground}" FontWeight="Bold" FontSize="11"/>
+                        </Border>
+                    </StackPanel>
+                  
+
+                    <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="2">
+                        <TextBlock Text="{Binding Template, Converter={StaticResource EnumDescriptionConverter}}" HorizontalAlignment="Left" FontSize="15" Opacity=".7"  />
+                    </StackPanel>
+                </DockPanel>
 
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Bottom" >
-                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Margin="0,2,0,5"/>
-                        <UniformGrid Columns="1"  HorizontalAlignment="Stretch"  Margin="3">
-                            <TextBlock Text="{Binding Author}" HorizontalAlignment="Left" Opacity=".7" />
-                            <TextBlock Text="{Binding Template, Converter={StaticResource EnumDescriptionConverter}}" HorizontalAlignment="Left" Opacity=".7" />
-                        </UniformGrid>
-
+                    <StackPanel Margin="5,0,0,0" >
+                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="18" />
+                        <TextBlock Text="{Binding Author}" HorizontalAlignment="Left" Opacity=".7" />
                     </StackPanel>
                 </DockPanel>
             </DockPanel>
@@ -117,13 +154,13 @@
         <!--Left Container-->
         <DockPanel Grid.Column="0">
 
-            <!--Left Container Bottom-->
+            <!--Left Container Bottom--><!--
             <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource ContainerBorder}" BorderThickness="1" MinWidth="350" Height="35" Margin="0,5,5,0">
                 <UniformGrid Columns="2">
                     <Button Content="Add StableDiffusion Model" Command="{Binding AddStableDiffusionModelCommand}"/>
                     <Button Content="Add Upscale Model" Command="{Binding AddUpscaleModelCommand}" />
                 </UniformGrid>
-            </Border>
+            </Border>-->
 
             <!--Left Container Main-->
             <Border  BorderBrush="{StaticResource ContainerBorder}" BorderThickness="1" MinWidth="350" Margin="0,0,5,0"  >
