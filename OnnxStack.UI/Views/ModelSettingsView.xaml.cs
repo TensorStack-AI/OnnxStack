@@ -423,8 +423,8 @@ namespace OnnxStack.UI.Views
             if (obj is not ModelTemplateViewModel template)
                 return false;
 
-            return (string.IsNullOrEmpty(_modelTemplateFilterText) 
-                || template.Name.Contains(_modelTemplateFilterText, StringComparison.OrdinalIgnoreCase) 
+            return (string.IsNullOrEmpty(_modelTemplateFilterText)
+                || template.Name.Contains(_modelTemplateFilterText, StringComparison.OrdinalIgnoreCase)
                 || (!string.IsNullOrEmpty(template.Description) && template.Description.Contains(_modelTemplateFilterText, StringComparison.OrdinalIgnoreCase))
                 || (!template.Tags.IsNullOrEmpty() && template.Tags.Any(x => x.StartsWith(x, StringComparison.OrdinalIgnoreCase))))
                 && (_modelTemplateFilterTag == "All" || (!template.Tags.IsNullOrEmpty() && template.Tags.Contains(_modelTemplateFilterTag, StringComparer.OrdinalIgnoreCase)))
@@ -749,7 +749,13 @@ namespace OnnxStack.UI.Views
 
         private async Task DownloadUpscaleModelComplete(ModelTemplateViewModel modelTemplate, string outputDirectory)
         {
-            var modelSet = _modelFactory.CreateUpscaleModelSet(modelTemplate.Name, outputDirectory, modelTemplate.UpscaleTemplate);
+            var fileUrl = modelTemplate.RepositoryFiles.FirstOrDefault();
+            var filename = Path.GetFileName(fileUrl);
+            var directory = Path.GetDirectoryName(fileUrl).Split(new[] { '\\', '/' }).LastOrDefault();
+            var destination = Path.Combine(outputDirectory, directory);
+            var destinationFile = Path.Combine(destination, filename);
+
+            var modelSet = _modelFactory.CreateUpscaleModelSet(modelTemplate.Name, destinationFile, modelTemplate.UpscaleTemplate);
             var isModelSetValid = modelSet.ModelConfigurations.All(x => File.Exists(x.OnnxModelPath));
             if (!isModelSetValid)
             {
