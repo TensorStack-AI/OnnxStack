@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
+using System.Numerics.Tensors;
 namespace OnnxStack.StableDiffusion.Helpers
 {
 
@@ -14,6 +14,7 @@ namespace OnnxStack.StableDiffusion.Helpers
     public static class TensorHelper
     {
         private static readonly int vectorSize = Vector<float>.Count;
+
         /// <summary>
         /// Creates a new tensor.
         /// </summary>
@@ -44,17 +45,9 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <returns></returns>
         public static DenseTensor<float> MultiplyTensorByFloat(this DenseTensor<float> tensor, float value)
         {
-            var mullTensor = new DenseTensor<float>(tensor.Dimensions);
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize)) * value)
-                    .CopyTo(mullTensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                mullTensor.Buffer.Span[i] = tensor.Buffer.Span[i] * value;
-            }
-            return mullTensor;
+            var result = new DenseTensor<float>(tensor.Dimensions);
+            TensorPrimitives.Multiply(tensor.Buffer.Span, value, result.Buffer.Span);
+            return result;
         }
 
 
@@ -66,19 +59,11 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <returns></returns>
         public static DenseTensor<float> SubtractFloat(this DenseTensor<float> tensor, float value)
         {
-            var subTensor = new DenseTensor<float>(tensor.Dimensions);
-            Vector<float> vectorValue = new Vector<float>(value);
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                Vector.Subtract(new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize)), vectorValue)
-                    .CopyTo(subTensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                subTensor.Buffer.Span[i] = tensor.Buffer.Span[i] - value;
-            }
-            return subTensor;
+            var result = new DenseTensor<float>(tensor.Dimensions);
+            TensorPrimitives.Subtract(tensor.Buffer.Span, value, result.Buffer.Span);
+            return result;
         }
+
 
         /// <summary>
         /// Adds the tensors.
@@ -88,18 +73,9 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <returns></returns>
         public static DenseTensor<float> AddTensors(this DenseTensor<float> tensor, DenseTensor<float> sumTensor)
         {
-            var addTensor = new DenseTensor<float>(tensor.Dimensions);
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize))
-                    + new Vector<float>(sumTensor.Buffer.Span.Slice(i * vectorSize, vectorSize)))
-                    .CopyTo(addTensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                addTensor.Buffer.Span[i] = tensor.Buffer.Span[i] + sumTensor.Buffer.Span[i];
-            }
-            return addTensor;
+            var result = new DenseTensor<float>(tensor.Dimensions);
+            TensorPrimitives.Add(tensor.Buffer.Span, sumTensor.Buffer.Span, result.Buffer.Span);
+            return result;
         }
 
 
@@ -111,12 +87,12 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <returns></returns>
         public static DenseTensor<float> SumTensors(this DenseTensor<float>[] tensors, ReadOnlySpan<int> dimensions)
         {
-            var sumTensor = new DenseTensor<float>(dimensions);
+            var result = new DenseTensor<float>(dimensions);
             for (int m = 0; m < tensors.Length; m++)
             {
-                sumTensor.Add(tensors[m]);
+                TensorPrimitives.Add(result.Buffer.Span, tensors[m].Buffer.Span, result.Buffer.Span);
             }
-            return sumTensor;
+            return result;
         }
 
 
@@ -129,17 +105,95 @@ namespace OnnxStack.StableDiffusion.Helpers
         public static DenseTensor<float> SubtractTensors(this DenseTensor<float> tensor, DenseTensor<float> subTensor)
         {
             var result = new DenseTensor<float>(tensor.Dimensions);
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize))
-                    - new Vector<float>(subTensor.Buffer.Span.Slice(i * vectorSize, vectorSize)))
-                    .CopyTo(result.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                result.Buffer.Span[i] = tensor.Buffer.Span[i] - subTensor.Buffer.Span[i];
-            }
+            TensorPrimitives.Subtract(tensor.Buffer.Span, subTensor.Buffer.Span, result.Buffer.Span);
             return result;
+        }
+
+        /// <summary>
+        /// Divides the tensor by float, mutates the original
+        /// </summary>
+        /// <param name="tensor">The tensor to mutate.</param>
+        /// <param name="value">The value to divide by.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> DivideBy(this DenseTensor<float> tensor, float value)
+        {
+            value = 1 / value;
+            TensorPrimitives.Multiply(tensor.Buffer.Span, value, tensor.Buffer.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Multiples the tensor by float, mutates the original
+        /// </summary>
+        /// <param name="tensor">The tensor to mutate.</param>
+        /// <param name="value">The value to multiply by.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> MultiplyBy(this DenseTensor<float> tensor, float value) => DivideBy(tensor, 1 / value);
+
+
+        /// <summary>
+        /// Computes the absolute values of the Tensor
+        /// </summary>
+        /// <param name="tensor">The tensor to mutate.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> Abs(this DenseTensor<float> tensor)
+        {
+            TensorPrimitives.Abs(tensor.Buffer.Span, tensor.Buffer.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Multiplies the specified tensor.
+        /// </summary>
+        /// <param name="tensor1">The tensor to mutate.</param>
+        /// <param name="mulTensor">The tensor to multiply by.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> Multiply(this DenseTensor<float> tensor, DenseTensor<float> mulTensor)
+        {
+            TensorPrimitives.Multiply(tensor.Buffer.Span, mulTensor.Buffer.Span, tensor.Buffer.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Divides the specified tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor to mutate.</param>
+        /// <param name="divTensor">The tensor to divide by.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> Divide(this DenseTensor<float> tensor, DenseTensor<float> divTensor)
+        {
+            TensorPrimitives.Divide(tensor.Buffer.Span, divTensor.Buffer.Span, tensor.Buffer.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Adds the tensors, mutates the original
+        /// </summary>
+        /// <param name="tensor">The tensor to mutate.</param>
+        /// <param name="addTensor">The tensor values to add to tensor.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> Add(this DenseTensor<float> tensor, DenseTensor<float> addTensor)
+        {
+            TensorPrimitives.Add(tensor.Buffer.Span, addTensor.Buffer.Span, tensor.Buffer.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Subtracts the tensors, mutates the original
+        /// </summary>
+        /// <param name="tensor">The tensor to mutate.</param>
+        /// <param name="subTensor">The tensor to subtract from tensor.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> Subtract(this DenseTensor<float> tensor, DenseTensor<float> subTensor)
+        {
+            TensorPrimitives.Subtract(tensor.Buffer.Span, subTensor.Buffer.Span, tensor.Buffer.Span);
+            return tensor;
         }
 
 
@@ -189,72 +243,7 @@ namespace OnnxStack.StableDiffusion.Helpers
                 clipTensor.Buffer.Span[i] = Math.Clamp(tensor.Buffer.Span[i], minValue, maxValue);
             }
             return clipTensor;
-            
-        }
 
-
-        /// <summary>
-        /// Computes the absolute values of the Tensor
-        /// </summary>
-        /// <param name="tensor">The tensor to mutate.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> Abs(this DenseTensor<float> tensor)
-        {
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                Span<float> buffer = tensor.Buffer.Span.Slice(i * vectorSize, vectorSize);
-                Vector.Abs(new Vector<float>(buffer))
-                    .CopyTo(buffer);
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                tensor.Buffer.Span[i] = Math.Abs(tensor.Buffer.Span[i]);
-            }
-            return tensor;
-        }
-
-
-        /// <summary>
-        /// Multiplies the specified tensor.
-        /// </summary>
-        /// <param name="tensor1">The tensor to mutate.</param>
-        /// <param name="mulTensor">The tensor to multiply by.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> Multiply(this DenseTensor<float> tensor, DenseTensor<float> mulTensor)
-        {
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize))
-                    * new Vector<float>(mulTensor.Buffer.Span.Slice(i * vectorSize, vectorSize)))
-                    .CopyTo(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                tensor.Buffer.Span[i] = tensor.Buffer.Span[i] * mulTensor.Buffer.Span[i];
-            }
-            return tensor;
-        }
-
-
-        /// <summary>
-        /// Divides the specified tensor.
-        /// </summary>
-        /// <param name="tensor">The tensor to mutate.</param>
-        /// <param name="divTensor">The tensor to divide by.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> Divide(this DenseTensor<float> tensor, DenseTensor<float> divTensor)
-        {
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize))
-                    / new Vector<float>(divTensor.Buffer.Span.Slice(i * vectorSize, vectorSize)))
-                    .CopyTo(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                tensor.Buffer.Span[i] = tensor.Buffer.Span[i] / divTensor.Buffer.Span[i];
-            }
-            return tensor;
         }
 
 
@@ -283,6 +272,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             return new DenseTensor<float>(buffer, dimensions);
         }
 
+
         private static DenseTensor<float> Concatenate(DenseTensor<float> tensor1, DenseTensor<float> tensor2)
         {
             var dimensions = new int[] { tensor1.Dimensions[0], tensor1.Dimensions[1], tensor1.Dimensions[2] + tensor2.Dimensions[2] };
@@ -302,7 +292,6 @@ namespace OnnxStack.StableDiffusion.Helpers
 
             return concatenatedTensor;
         }
-
 
 
         /// <summary>
@@ -408,82 +397,5 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
             return new DenseTensor<float>(buffer, dimensions);
         }
-
-
-        /// <summary>
-        /// Adds the tensors, mutates the original
-        /// </summary>
-        /// <param name="tensor">The tensor to mutate.</param>
-        /// <param name="addTensor">The tensor values to add to tensor.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> Add(this DenseTensor<float> tensor, DenseTensor<float> addTensor)
-        {
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize))
-                    + new Vector<float>(addTensor.Buffer.Span.Slice(i * vectorSize, vectorSize)))
-                    .CopyTo(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                tensor.Buffer.Span[i] = tensor.Buffer.Span[i] + addTensor.Buffer.Span[i];
-            }
-            return tensor;
-        }
-
-
-        /// <summary>
-        /// Subtracts the tensors, mutates the original
-        /// </summary>
-        /// <param name="tensor">The tensor to mutate.</param>
-        /// <param name="subTensor">The tensor to subtract from tensor.</param>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> Subtract(this DenseTensor<float> tensor, DenseTensor<float> subTensor)
-        {
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize))
-                    - new Vector<float>(subTensor.Buffer.Span.Slice(i * vectorSize, vectorSize)))
-                    .CopyTo(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                tensor.Buffer.Span[i] = tensor.Buffer.Span[i] - subTensor.Buffer.Span[i];
-            }
-            return tensor;
-        }
-
-
-        /// <summary>
-        /// Divides the tensor by float, mutates the original
-        /// </summary>
-        /// <param name="tensor">The tensor to mutate.</param>
-        /// <param name="value">The value to divide by.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> DivideBy(this DenseTensor<float> tensor, float value)
-        {
-            value = 1 / value;
-            var mullTensor = new DenseTensor<float>(tensor.Dimensions);
-            for (int i = 0; i < tensor.Length / vectorSize; i++)
-            {
-                (new Vector<float>(tensor.Buffer.Span.Slice(i * vectorSize, vectorSize)) * value)
-                    .CopyTo(mullTensor.Buffer.Span.Slice(i * vectorSize, vectorSize));
-            }
-            for (int i = (int)(tensor.Length - tensor.Length % vectorSize); i < tensor.Length; i++)
-            {
-                mullTensor.Buffer.Span[i] = tensor.Buffer.Span[i] * value;
-            }
-            return mullTensor;
-        }
-
-
-        /// <summary>
-        /// Multiples the tensor by float, mutates the original
-        /// </summary>
-        /// <param name="tensor">The tensor to mutate.</param>
-        /// <param name="value">The value to multiply by.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> MultiplyBy(this DenseTensor<float> tensor, float value) => DivideBy(tensor, 1 / value);
     }
 }
