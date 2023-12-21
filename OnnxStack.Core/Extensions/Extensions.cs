@@ -36,9 +36,20 @@ namespace OnnxStack.Core
                     sessionOptions.AppendExecutionProvider_CPU();
                     return sessionOptions;
                 case ExecutionProvider.CoreML:
-                    sessionOptions.AppendExecutionProvider_CoreML(
-                        CoreMLFlags.COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE
-                    );
+                    sessionOptions.AppendExecutionProvider_CoreML(CoreMLFlags.COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE);
+                    return sessionOptions;
+                case ExecutionProvider.OpenVino:
+                    var deviceId = configuration.DeviceId switch
+                    {
+                        0 => "CPU_FP32",
+                        1 => "GPU_FP32",
+                        2 => "GPU_FP16",
+                        3 => "MYRIAD_FP16",
+                        4 => "VAD-M_FP16",
+                        5 => "VAD-F_FP32",
+                        _ => string.Empty
+                    };
+                    sessionOptions.AppendExecutionProvider_OpenVINO(deviceId);
                     return sessionOptions;
             }
         }
