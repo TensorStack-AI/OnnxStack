@@ -41,6 +41,8 @@ namespace OnnxStack.UI.Views
         private string _modelTemplateFilterTemplateType;
         private List<string> _modelTemplateFilterAuthors;
         private ModelTemplateStatusFilter _modelTemplateFilterStatus;
+        private string _modelTemplateFilterTag;
+        private List<string> _modelTemplateFilterTags;
 
         private LayoutViewType _modelTemplateLayoutView = LayoutViewType.TileSmall;
         private string _modelTemplateSortProperty;
@@ -141,16 +143,11 @@ namespace OnnxStack.UI.Views
             set { _modelTemplateFilterAuthors = value; NotifyPropertyChanged(); }
         }
 
-
-
         public ModelTemplateStatusFilter ModelTemplateFilterStatus
         {
             get { return _modelTemplateFilterStatus; }
             set { _modelTemplateFilterStatus = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
         }
-
-
-
 
         public LayoutViewType ModelTemplateLayoutView
         {
@@ -169,6 +166,20 @@ namespace OnnxStack.UI.Views
             get { return _modelTemplateSortDirection; }
             set { _modelTemplateSortDirection = value; NotifyPropertyChanged(); ModelTemplateSort(); }
         }
+
+        public string ModelTemplateFilterTag
+        {
+            get { return _modelTemplateFilterTag; }
+            set { _modelTemplateFilterTag = value; NotifyPropertyChanged(); ModelTemplateRefresh(); }
+        }
+
+
+        public List<string> ModelTemplateFilterTags
+        {
+            get { return _modelTemplateFilterTags; }
+            set { _modelTemplateFilterTags = value; NotifyPropertyChanged(); }
+        }
+
 
         public OnnxStackUIConfig UISettings
         {
@@ -374,6 +385,14 @@ namespace OnnxStack.UI.Views
                .ToList();
             ModelTemplateFilterAuthors.Insert(0, "All");
             ModelTemplateFilterAuthor = "All";
+            ModelTemplateFilterTags = UISettings.Templates
+                 .Where(x => !x.Tags.IsNullOrEmpty())
+                 .SelectMany(x => x.Tags)
+                 .Distinct()
+                 .OrderBy(x => x)
+                 .ToList();
+            ModelTemplateFilterTags.Insert(0, "All");
+            ModelTemplateFilterTag = "All";
             ModelTemplateCollectionView = new ListCollectionView(UISettings.Templates);
             ModelTemplateSort();
             ModelTemplateCollectionView.Filter = ModelTemplateFilter;
@@ -404,18 +423,23 @@ namespace OnnxStack.UI.Views
             if (obj is not ModelTemplateViewModel template)
                 return false;
 
-            return (string.IsNullOrEmpty(_modelTemplateFilterText) || template.Name.Contains(_modelTemplateFilterText, StringComparison.OrdinalIgnoreCase))
+            return (string.IsNullOrEmpty(_modelTemplateFilterText) 
+                || template.Name.Contains(_modelTemplateFilterText, StringComparison.OrdinalIgnoreCase) 
+                || (!string.IsNullOrEmpty(template.Description) && template.Description.Contains(_modelTemplateFilterText, StringComparison.OrdinalIgnoreCase))
+                || (!template.Tags.IsNullOrEmpty() && template.Tags.Any(x => x.StartsWith(x, StringComparison.OrdinalIgnoreCase))))
+                && (_modelTemplateFilterTag == "All" || (!template.Tags.IsNullOrEmpty() && template.Tags.Contains(_modelTemplateFilterTag, StringComparer.OrdinalIgnoreCase)))
                 && (_modelTemplateFilterAuthor == "All" || _modelTemplateFilterAuthor.Equals(template.Author, StringComparison.OrdinalIgnoreCase))
                 && (_modelTemplateFilterTemplateType is null || _modelTemplateFilterTemplateType == template.Template)
                 && (_modelTemplateFilterStatus == ModelTemplateStatusFilter.All
-                                                       || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Installed && template.IsInstalled && template.IsUserTemplate)
-                                                       || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Uninstalled && !template.IsInstalled && template.IsUserTemplate)
-                                                       || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Template && !template.IsUserTemplate));
+                        || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Installed && template.IsInstalled && template.IsUserTemplate)
+                        || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Uninstalled && !template.IsInstalled && template.IsUserTemplate)
+                        || (_modelTemplateFilterStatus == ModelTemplateStatusFilter.Template && !template.IsUserTemplate));
         }
 
         private Task ModelTemplateFilterReset()
         {
             ModelTemplateFilterAuthor = "All";
+            ModelTemplateFilterTag = "All";
             ModelTemplateFilterStatus = default;
             ModelTemplateFilterTemplateType = null;
             ModelTemplateFilterText = null;
@@ -654,7 +678,7 @@ namespace OnnxStack.UI.Views
         {
             if (!modelTemplate.IsUserTemplate)
                 return; // Cant remove Templates
-        
+
             var modelSet = UISettings.UpscaleModelSets.FirstOrDefault(x => x.Name == modelTemplate.Name);
             if (modelSet.IsLoaded)
             {
@@ -786,6 +810,7 @@ namespace OnnxStack.UI.Views
         private string _name;
         private string _imageIcon;
         private string _author;
+        private string _description;
 
         private bool _isInstalled;
         private bool _isDownloading;
@@ -810,8 +835,6 @@ namespace OnnxStack.UI.Views
             get { return _author; }
             set { _author = value; NotifyPropertyChanged(); }
         }
-
-        private string _description;
 
         public string Description
         {
@@ -846,6 +869,9 @@ namespace OnnxStack.UI.Views
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<string> PreviewImages { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<string> Tags { get; set; }
 
         [JsonIgnore]
         public string RepositoryClone
