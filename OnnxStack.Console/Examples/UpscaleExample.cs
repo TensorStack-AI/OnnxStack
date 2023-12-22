@@ -1,4 +1,5 @@
 ﻿using OnnxStack.Core.Image;
+using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.ImageUpscaler.Services;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -8,11 +9,13 @@ namespace OnnxStack.Console.Runner
     public sealed class UpscaleExample : IExampleRunner
     {
         private readonly string _outputDirectory;
+        private readonly ImageUpscalerConfig _configuration;
         private readonly IUpscaleService _imageUpscaleService;
 
 
-        public UpscaleExample(IUpscaleService imageUpscaleService)
+        public UpscaleExample(ImageUpscalerConfig configuration, IUpscaleService imageUpscaleService)
         {
+            _configuration = configuration;
             _imageUpscaleService = imageUpscaleService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(UpscaleExample));
             Directory.CreateDirectory(_outputDirectory);
@@ -24,7 +27,7 @@ namespace OnnxStack.Console.Runner
 
         public async Task RunAsync()
         {
-            var modelSet = _imageUpscaleService.ModelSets.FirstOrDefault(x => x.Name == "RealSR BSRGAN x4");
+            var modelSet = _configuration.ModelSets.FirstOrDefault(x => x.Name == "RealSR BSRGAN x4");
 
 
 

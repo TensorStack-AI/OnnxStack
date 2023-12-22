@@ -28,7 +28,6 @@ namespace OnnxStack.StableDiffusion.Services
     {
         private readonly IOnnxModelService _modelService;
         private readonly StableDiffusionConfig _configuration;
-        private readonly HashSet<StableDiffusionModelSet> _modelSetConfigs;
         private readonly ConcurrentDictionary<DiffuserPipelineType, IPipeline> _pipelines;
 
         /// <summary>
@@ -39,64 +38,7 @@ namespace OnnxStack.StableDiffusion.Services
         {
             _configuration = configuration;
             _modelService = onnxModelService;
-            _modelSetConfigs = new HashSet<StableDiffusionModelSet>(_configuration.ModelSets, new OnnxModelEqualityComparer());
-            _modelService.AddModelSet(_modelSetConfigs);
             _pipelines = pipelines.ToConcurrentDictionary(k => k.PipelineType, k => k);
-        }
-
-
-        /// <summary>
-        /// Gets the model sets.
-        /// </summary>
-        public IReadOnlyCollection<StableDiffusionModelSet> ModelSets => _modelSetConfigs;
-
-
-        /// <summary>
-        /// Adds the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        public async Task<bool> AddModelAsync(StableDiffusionModelSet model)
-        {
-            if (await _modelService.AddModelSet(model))
-            {
-                _modelSetConfigs.Add(model);
-                return true;
-            }
-            return false;
-        }
-
-
-        /// <summary>
-        /// Removes the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        public async Task<bool> RemoveModelAsync(StableDiffusionModelSet model)
-        {
-            if (await _modelService.RemoveModelSet(model))
-            {
-                _modelSetConfigs.Remove(model);
-                return true;
-            }
-            return false;
-        }
-
-
-        /// <summary>
-        /// Updates the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        public async Task<bool> UpdateModelAsync(StableDiffusionModelSet model)
-        {
-            if (await _modelService.UpdateModelSet(model))
-            {
-                _modelSetConfigs.Remove(model);
-                _modelSetConfigs.Add(model);
-                return true;
-            }
-            return false;
         }
 
 
@@ -107,9 +49,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         public async Task<bool> LoadModelAsync(StableDiffusionModelSet model)
         {
-            if (!_modelSetConfigs.TryGetValue(model, out _))
-                throw new Exception("ModelSet not found");
-
+            model.InitBlankTokenArray();
             var modelSet = await _modelService.LoadModelAsync(model);
             return modelSet is not null;
         }

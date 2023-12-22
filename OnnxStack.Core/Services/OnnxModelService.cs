@@ -17,7 +17,6 @@ namespace OnnxStack.Core.Services
     {
         private readonly OnnxStackConfig _configuration;
         private readonly ConcurrentDictionary<IOnnxModel, OnnxModelSet> _onnxModelSets;
-        private readonly ConcurrentDictionary<IOnnxModel, IOnnxModelSetConfig> _onnxModelSetConfigs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxModelService"/> class.
@@ -27,7 +26,6 @@ namespace OnnxStack.Core.Services
         {
             _configuration = configuration;
             _onnxModelSets = new ConcurrentDictionary<IOnnxModel, OnnxModelSet>(new OnnxModelEqualityComparer());
-            _onnxModelSetConfigs = new ConcurrentDictionary<IOnnxModel, IOnnxModelSetConfig>(new OnnxModelEqualityComparer());
         }
 
 
@@ -38,64 +36,11 @@ namespace OnnxStack.Core.Services
 
 
         /// <summary>
-        /// Gets the ModelSet configs.
-        /// </summary>
-        public IEnumerable<IOnnxModelSetConfig> ModelSetConfigs => _onnxModelSetConfigs.Values;
-
-
-        /// <summary>
-        /// Adds a model set.
-        /// </summary>
-        /// <param name="modelSet">The model set.</param>
-        /// <returns></returns>
-        public Task<bool> AddModelSet(IOnnxModelSetConfig modelSet)
-        {
-            return Task.FromResult(_onnxModelSetConfigs.TryAdd(modelSet, modelSet));
-        }
-
-        /// <summary>
-        /// Adds a modelsets.
-        /// </summary>
-        /// <param name="modelSets">The model sets.</param>
-        public Task AddModelSet(IEnumerable<IOnnxModelSetConfig> modelSets)
-        {
-            foreach (var modelSet in modelSets)
-            {
-                AddModelSet(modelSet);
-            }
-            return Task.CompletedTask;
-        }
-
-
-        /// <summary>
-        /// Removes the model set.
-        /// </summary>
-        /// <param name="modelSet">The model set.</param>
-        /// <returns></returns>
-        public Task<bool> RemoveModelSet(IOnnxModelSetConfig modelSet)
-        {
-            return Task.FromResult(_onnxModelSetConfigs.TryRemove(modelSet, out _));
-        }
-
-
-        /// <summary>
-        /// Updates an existing model set.
-        /// </summary>
-        /// <param name="modelSet">The model set.</param>
-        /// <returns></returns>
-        public Task<bool> UpdateModelSet(IOnnxModelSetConfig modelSet)
-        {
-            _onnxModelSetConfigs.TryRemove(modelSet, out _);
-            return Task.FromResult(_onnxModelSetConfigs.TryAdd(modelSet, modelSet));
-        }
-
-
-        /// <summary>
         /// Loads the model.
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        public async Task<OnnxModelSet> LoadModelAsync(IOnnxModel model)
+        public async Task<OnnxModelSet> LoadModelAsync(IOnnxModelSetConfig model)
         {
             return await Task.Run(() => LoadModelSet(model)).ConfigureAwait(false);
         }
@@ -264,19 +209,16 @@ namespace OnnxStack.Core.Services
         /// <param name="model">The model.</param>
         /// <returns></returns>
         /// <exception cref="System.Exception">Model {model.Name} not found in configuration</exception>
-        private OnnxModelSet LoadModelSet(IOnnxModel model)
+        private OnnxModelSet LoadModelSet(IOnnxModelSetConfig modelSetConfig)
         {
-            if (_onnxModelSets.ContainsKey(model))
-                return _onnxModelSets[model];
-
-            if (!_onnxModelSetConfigs.TryGetValue(model, out var modelSetConfig))
-                throw new Exception($"Model {model.Name} not found");
-
+            if (_onnxModelSets.ContainsKey(modelSetConfig))
+                return _onnxModelSets[modelSetConfig];
+          
             if (!modelSetConfig.IsEnabled)
-                throw new Exception($"Model {model.Name} is not enabled");
+                throw new Exception($"Model {modelSetConfig.Name} is not enabled");
 
             var modelSet = new OnnxModelSet(modelSetConfig);
-            _onnxModelSets.TryAdd(model, modelSet);
+            _onnxModelSets.TryAdd(modelSetConfig, modelSet);
             return modelSet;
         }
 

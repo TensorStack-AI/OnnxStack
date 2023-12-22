@@ -1,19 +1,20 @@
 ﻿using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion;
-using SixLabors.ImageSharp;
 using OnnxStack.StableDiffusion.Helpers;
+using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner
 {
     public sealed class StableDiffusionBatch : IExampleRunner
     {
         private readonly string _outputDirectory;
+        private readonly StableDiffusionConfig _configuration;
         private readonly IStableDiffusionService _stableDiffusionService;
 
-        public StableDiffusionBatch(IStableDiffusionService stableDiffusionService)
+        public StableDiffusionBatch(StableDiffusionConfig configuration, IStableDiffusionService stableDiffusionService)
         {
+            _configuration = configuration;
             _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionBatch));
         }
@@ -51,7 +52,7 @@ namespace OnnxStack.Console.Runner
                     BatchType = BatchOptionType.Scheduler
                 };
 
-                foreach (var model in _stableDiffusionService.ModelSets)
+                foreach (var model in _configuration.ModelSets)
                 {
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModelAsync(model);
