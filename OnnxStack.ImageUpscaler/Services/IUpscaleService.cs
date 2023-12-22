@@ -1,10 +1,8 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Image;
-using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -12,32 +10,6 @@ namespace OnnxStack.ImageUpscaler.Services
 {
     public interface IUpscaleService
     {
-
-        /// <summary>
-        /// Gets the model sets.
-        /// </summary>
-        IReadOnlyCollection<UpscaleModelSet> ModelSets { get; }
-
-        /// <summary>
-        /// Adds the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        Task<bool> AddModelAsync(UpscaleModelSet model);
-
-        /// <summary>
-        /// Removes the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        Task<bool> RemoveModelAsync(UpscaleModelSet model);
-
-        /// <summary>
-        /// Updates the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        Task<bool> UpdateModelAsync(UpscaleModelSet model);
 
         /// <summary>
         /// Loads the model.

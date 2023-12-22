@@ -11,13 +11,6 @@ namespace OnnxStack.ImageUpscaler.Config
 
         public void Initialize()
         {
-            if (ModelSets.IsNullOrEmpty())
-                return;
-
-            foreach (var modelSet in ModelSets)
-            {
-                modelSet.ApplyConfigurationOverrides();
-            }
         }
     }
 }
