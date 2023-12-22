@@ -139,8 +139,4 @@ namespace OnnxStack.UI.Services
             };
         }
     }
-
-
-    public record UpscaleModelTemplate(string Name, int ScaleFactor, int SampleSize);
-    public record StableDiffusionModelTemplate(string Name, DiffuserPipelineType PipelineType, ModelType ModelType, int SampleSize, params DiffuserType[] DiffuserTypes);
 }

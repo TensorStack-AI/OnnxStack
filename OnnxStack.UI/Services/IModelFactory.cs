@@ -1,4 +1,5 @@
 ﻿using OnnxStack.StableDiffusion.Config;
+using OnnxStack.UI.Models;
 using System.Collections.Generic;
 
 namespace OnnxStack.UI.Services
