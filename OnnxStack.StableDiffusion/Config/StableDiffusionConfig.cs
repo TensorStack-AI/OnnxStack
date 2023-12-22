@@ -23,7 +23,6 @@ namespace OnnxStack.StableDiffusion.Config
             foreach (var modelSet in ModelSets)
             {
                 modelSet.InitBlankTokenArray();
-                modelSet.ApplyConfigurationOverrides();
                 foreach (var model in modelSet.ModelConfigurations)
                 {
                     if ((model.Type == OnnxModelType.Tokenizer || model.Type == OnnxModelType.Tokenizer2) && string.IsNullOrEmpty(model.OnnxModelPath))

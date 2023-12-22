@@ -57,23 +57,6 @@ namespace OnnxStack.Core
             }
         }
 
-        /// <summary>
-        /// Applies the configuration overrides.
-        /// </summary>
-        public static void ApplyConfigurationOverrides(this IOnnxModelSetConfig innxModelSetConfig)
-        {
-            if (innxModelSetConfig.ModelConfigurations.IsNullOrEmpty())
-                return;
-
-            foreach (var modelConfig in innxModelSetConfig.ModelConfigurations)
-            {
-                modelConfig.DeviceId ??= innxModelSetConfig.DeviceId;
-                modelConfig.ExecutionMode ??= innxModelSetConfig.ExecutionMode;
-                modelConfig.InterOpNumThreads ??= innxModelSetConfig.InterOpNumThreads;
-                modelConfig.IntraOpNumThreads ??= innxModelSetConfig.IntraOpNumThreads;
-                modelConfig.ExecutionProvider ??= innxModelSetConfig.ExecutionProvider;
-            }
-        }
 
         /// <summary>
         /// Determines whether the the source sequence is null or empty

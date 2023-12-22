@@ -22,7 +22,7 @@ namespace OnnxStack.Core.Model
             _prePackedWeightsContainer = new PrePackedWeightsContainer();
             _modelSessions = configuration.ModelConfigurations.ToImmutableDictionary(
                 modelConfig => modelConfig.Type,
-                modelConfig => new OnnxModelSession(modelConfig, _prePackedWeightsContainer));
+                modelConfig => new OnnxModelSession(ApplyConfigurationOverrides(modelConfig), _prePackedWeightsContainer));
         }
 
 
@@ -94,6 +94,20 @@ namespace OnnxStack.Core.Model
                 modelSession?.Dispose();
             }
             _prePackedWeightsContainer?.Dispose();
+        }
+
+        private OnnxModelConfig ApplyConfigurationOverrides(OnnxModelConfig onnxModelConfig)
+        {
+            return new OnnxModelConfig
+            {
+                Type = onnxModelConfig.Type,
+                OnnxModelPath = onnxModelConfig.OnnxModelPath,
+                DeviceId = onnxModelConfig.DeviceId ?? _configuration.DeviceId,
+                ExecutionMode = onnxModelConfig.ExecutionMode ?? _configuration.ExecutionMode,
+                ExecutionProvider = onnxModelConfig.ExecutionProvider ?? _configuration.ExecutionProvider,
+                InterOpNumThreads = onnxModelConfig.InterOpNumThreads ?? _configuration.InterOpNumThreads,
+                IntraOpNumThreads = onnxModelConfig.IntraOpNumThreads ?? _configuration.IntraOpNumThreads,
+            };
         }
     }
 }

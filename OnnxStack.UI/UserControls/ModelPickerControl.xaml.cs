@@ -126,8 +126,7 @@ namespace OnnxStack.UI.UserControls
                 }
 
                 SelectedModel.ModelSet.InitBlankTokenArray();
-                SelectedModel.ModelSet.ApplyConfigurationOverrides();
-                await _stableDiffusionService.AddModelAsync(SelectedModel.ModelSet);
+                await _stableDiffusionService.UpdateModelAsync(SelectedModel.ModelSet);
                 SelectedModel.IsLoaded = await _stableDiffusionService.LoadModelAsync(SelectedModel.ModelSet);
             }
             catch (Exception ex)
