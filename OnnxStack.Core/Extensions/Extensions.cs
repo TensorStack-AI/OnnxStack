@@ -51,6 +51,9 @@ namespace OnnxStack.Core
                     };
                     sessionOptions.AppendExecutionProvider_OpenVINO(deviceId);
                     return sessionOptions;
+                case ExecutionProvider.TensorRT:
+                    sessionOptions.AppendExecutionProvider_Tensorrt(configuration.DeviceId.Value);
+                    return sessionOptions;
             }
         }
 
