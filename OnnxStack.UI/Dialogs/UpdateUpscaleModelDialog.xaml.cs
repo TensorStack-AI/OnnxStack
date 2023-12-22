@@ -4,7 +4,6 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Views;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -30,22 +29,15 @@ namespace OnnxStack.UI.Dialogs
         public UpdateUpscaleModelDialog(OnnxStackUIConfig uiSettings)
         {
             _uiSettings = uiSettings;
-            WindowCloseCommand = new AsyncRelayCommand(WindowClose);
-            WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
-            WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
-            WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
-            _invalidOptions = _uiSettings.Templates
-               .Where(x => x.IsUserTemplate)
+            _invalidOptions = _uiSettings.UpscaleModelSets
                .Select(x => x.Name)
                .ToList();
             InitializeComponent();
         }
-        public AsyncRelayCommand WindowMinimizeCommand { get; }
-        public AsyncRelayCommand WindowRestoreCommand { get; }
-        public AsyncRelayCommand WindowMaximizeCommand { get; }
-        public AsyncRelayCommand WindowCloseCommand { get; }
+
+        public OnnxStackUIConfig UISettings => _uiSettings;
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
 
@@ -130,41 +122,6 @@ namespace OnnxStack.UI.Dialogs
         {
             return true;
         }
-
-        #region BaseWindow
-
-        private Task WindowClose()
-        {
-            Close();
-            return Task.CompletedTask;
-        }
-
-        private Task WindowRestore()
-        {
-            if (WindowState == WindowState.Maximized)
-                WindowState = WindowState.Normal;
-            else
-                WindowState = WindowState.Maximized;
-            return Task.CompletedTask;
-        }
-
-        private Task WindowMinimize()
-        {
-            WindowState = WindowState.Minimized;
-            return Task.CompletedTask;
-        }
-
-        private Task WindowMaximize()
-        {
-            WindowState = WindowState.Maximized;
-            return Task.CompletedTask;
-        }
-
-        private void OnContentRendered(object sender, EventArgs e)
-        {
-            InvalidateVisual();
-        }
-        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

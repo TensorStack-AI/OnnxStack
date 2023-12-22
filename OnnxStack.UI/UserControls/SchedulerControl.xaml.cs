@@ -1,5 +1,4 @@
-﻿using Models;
-using OnnxStack.Core;
+﻿using OnnxStack.Core;
 using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
@@ -82,25 +81,7 @@ namespace OnnxStack.UI.UserControls
         public static readonly DependencyProperty SchedulerOptionsProperty =
             DependencyProperty.Register("SchedulerOptions", typeof(SchedulerOptionsModel), typeof(SchedulerControl));
 
-
-        public BatchOptionsModel BatchOptions
-        {
-            get { return (BatchOptionsModel)GetValue(BatchOptionsProperty); }
-            set { SetValue(BatchOptionsProperty, value); }
-        }
-        public static readonly DependencyProperty BatchOptionsProperty =
-            DependencyProperty.Register("BatchOptions", typeof(BatchOptionsModel), typeof(SchedulerControl));
-
-
-        public bool IsAutomationEnabled
-        {
-            get { return (bool)GetValue(IsAutomationEnabledProperty); }
-            set { SetValue(IsAutomationEnabledProperty, value); }
-        }
-        public static readonly DependencyProperty IsAutomationEnabledProperty =
-            DependencyProperty.Register("IsAutomationEnabled", typeof(bool), typeof(SchedulerControl));
-
-
+    
         public bool IsGenerating
         {
             get { return (bool)GetValue(IsGeneratingProperty); }

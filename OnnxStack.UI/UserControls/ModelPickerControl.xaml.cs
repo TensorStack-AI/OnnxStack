@@ -115,16 +115,12 @@ namespace OnnxStack.UI.UserControls
 
             try
             {
-                if (UISettings.ModelCacheMode == ModelCacheMode.Single)
+                foreach (var model in UISettings.StableDiffusionModelSets.Where(x => x.IsLoaded))
                 {
-                    foreach (var model in UISettings.StableDiffusionModelSets.Where(x => x.IsLoaded))
-                    {
-                        _logger.LogInformation($"'{model.Name}' Unloading...");
-                        await _stableDiffusionService.UnloadModelAsync(model.ModelSet);
-                        model.IsLoaded = false;
-                    }
+                    _logger.LogInformation($"'{model.Name}' Unloading...");
+                    await _stableDiffusionService.UnloadModelAsync(model.ModelSet);
+                    model.IsLoaded = false;
                 }
-
                 SelectedModel.IsLoaded = await _stableDiffusionService.LoadModelAsync(SelectedModel.ModelSet);
             }
             catch (Exception ex)

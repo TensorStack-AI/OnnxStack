@@ -1,16 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
-using Models;
 using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Views;
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -37,7 +33,6 @@ namespace OnnxStack.UI
             NavigateTextToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateTextToImage);
             NavigateImageToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImageToImage);
             NavigateImageInpaintCommand = new AsyncRelayCommand<ImageResult>(NavigateImageInpaint);
-            NavigateImagePaintToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImagePaintToImage);
             NavigateUpscalerCommand = new AsyncRelayCommand<ImageResult>(NavigateUpscaler);
             WindowCloseCommand = new AsyncRelayCommand(WindowClose);
             WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
@@ -58,7 +53,6 @@ namespace OnnxStack.UI
         public AsyncRelayCommand<ImageResult> NavigateTextToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageInpaintCommand { get; }
-        public AsyncRelayCommand<ImageResult> NavigateImagePaintToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateUpscalerCommand { get; }
 
         public OnnxStackUIConfig UISettings
@@ -97,11 +91,6 @@ namespace OnnxStack.UI
             await NavigateToTab(TabId.ImageInpaint, result);
         }
 
-        private async Task NavigateImagePaintToImage(ImageResult result)
-        {
-            await NavigateToTab(TabId.PaintToImage, result);
-        }
-
         private async Task NavigateUpscaler(ImageResult result)
         {
             await NavigateToTab(TabId.Upscaler, result);
@@ -118,8 +107,7 @@ namespace OnnxStack.UI
             TextToImage = 0,
             ImageToImage = 1,
             ImageInpaint = 2,
-            PaintToImage = 3,
-            Upscaler = 4
+            Upscaler = 3
         }
 
 

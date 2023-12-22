@@ -18,7 +18,7 @@
                 </StackPanel>
             </DockPanel>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" CanContentScroll="False">
-                <TextBox Style="{x:Null}" Text="{Binding LogOutput}" BorderThickness="0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" Foreground="{StaticResource ControlDefaultForeground}"/>
+                <TextBox Style="{x:Null}" Text="{Binding LogOutput}" BorderThickness="0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" />
             </ScrollViewer>
         </DockPanel>
     </Grid>

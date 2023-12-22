@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
-using Models;
 using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
@@ -12,7 +10,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,7 +40,6 @@ namespace OnnxStack.UI.Views
         private StableDiffusionModelSetViewModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
-        private BatchOptionsModel _batchOptions;
         private CancellationTokenSource _cancelationTokenSource;
 
 
@@ -64,7 +60,6 @@ namespace OnnxStack.UI.Views
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
             PromptOptions = new PromptOptionsModel();
             SchedulerOptions = new SchedulerOptionsModel { SchedulerType = SchedulerType.DDPM };
-            BatchOptions = new BatchOptionsModel();
             ImageResults = new ObservableCollection<ImageResult>();
             ProgressMax = SchedulerOptions.InferenceSteps;
             IsControlsEnabled = true;
@@ -101,12 +96,6 @@ namespace OnnxStack.UI.Views
         {
             get { return _schedulerOptions; }
             set { _schedulerOptions = value; NotifyPropertyChanged(); }
-        }
-
-        public BatchOptionsModel BatchOptions
-        {
-            get { return _batchOptions; }
-            set { _batchOptions = value; NotifyPropertyChanged(); }
         }
 
         public ImageResult ResultImage
@@ -222,26 +211,22 @@ namespace OnnxStack.UI.Views
             IsGenerating = true;
             IsControlsEnabled = false;
             ResultImage = null;
+            _cancelationTokenSource = new CancellationTokenSource();
             var promptOptions = GetPromptOptions(PromptOptions, InputImage, InputImageMask);
-            var batchOptions = BatchOptions.ToBatchOptions();
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
             schedulerOptions.Strength = 1; // Make sure strength is 1 for Image Inpainting
 
             try
             {
-                await foreach (var resultImage in ExecuteStableDiffusion(_selectedModel.ModelSet, promptOptions, schedulerOptions, batchOptions))
+                var timestamp = Stopwatch.GetTimestamp();
+                var result = await _stableDiffusionService.GenerateAsBytesAsync(_selectedModel.ModelSet, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var resultImage = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                if (resultImage != null)
                 {
-                    if (resultImage != null)
-                    {
-                        ResultImage = resultImage;
-                        HasResult = true;
-                        if (BatchOptions.IsAutomationEnabled && BatchOptions.DisableHistory)
-                            continue;
-                        if (BatchOptions.IsRealtimeEnabled && !UISettings.RealtimeHistoryEnabled)
-                            continue;
+                    ResultImage = resultImage;
+                    HasResult = true;
 
-                        ImageResults.Add(resultImage);
-                    }
+                    ImageResults.Add(resultImage);
                 }
             }
             catch (OperationCanceledException)
@@ -266,7 +251,7 @@ namespace OnnxStack.UI.Views
         private bool CanExecuteGenerate()
         {
             return !IsGenerating
-               // && !string.IsNullOrEmpty(PromptOptions.Prompt)
+                // && !string.IsNullOrEmpty(PromptOptions.Prompt)
                 && HasInputResult;
         }
 
@@ -334,58 +319,7 @@ namespace OnnxStack.UI.Views
         /// <param name="modelOptions">The model options.</param>
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
         /// <returns></returns>
-        private async IAsyncEnumerable<ImageResult> ExecuteStableDiffusion(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions)
-        {
-            _cancelationTokenSource = new CancellationTokenSource();
-
-            if (!BatchOptions.IsRealtimeEnabled)
-            {
-                if (!BatchOptions.IsAutomationEnabled)
-                {
-                    var timestamp = Stopwatch.GetTimestamp();
-                    var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
-                    yield return await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
-                }
-                else
-                {
-                    if (!BatchOptions.IsRealtimeEnabled)
-                    {
-                        var timestamp = Stopwatch.GetTimestamp();
-                        await foreach (var batchResult in _stableDiffusionService.GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, ProgressBatchCallback(), _cancelationTokenSource.Token))
-                        {
-                            yield return await GenerateResultAsync(batchResult.ImageResult.ToImageBytes(), promptOptions, batchResult.SchedulerOptions, timestamp);
-                            timestamp = Stopwatch.GetTimestamp();
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // Realtime Diffusion
-                IsControlsEnabled = true;
-                SchedulerOptions.Seed = SchedulerOptions.Seed == 0 ? Random.Shared.Next() : SchedulerOptions.Seed;
-                while (!_cancelationTokenSource.IsCancellationRequested)
-                {
-                    var refreshTimestamp = Stopwatch.GetTimestamp();
-                    if (SchedulerOptions.HasChanged || PromptOptions.HasChanged || HasInputMaskResult)
-                    {
-                        HasInputMaskResult = false;
-                        PromptOptions.HasChanged = false;
-                        SchedulerOptions.HasChanged = false;
-                        var realtimePromptOptions = GetPromptOptions(PromptOptions, InputImage, InputImageMask);
-                        var realtimeSchedulerOptions = SchedulerOptions.ToSchedulerOptions();
-
-                        var timestamp = Stopwatch.GetTimestamp();
-                        var result = await _stableDiffusionService.GenerateAsBytesAsync(modelOptions, realtimePromptOptions, realtimeSchedulerOptions, RealtimeProgressCallback(), _cancelationTokenSource.Token);
-                        yield return await GenerateResultAsync(result, realtimePromptOptions, realtimeSchedulerOptions, timestamp);
-                    }
-                    await Utils.RefreshDelay(refreshTimestamp, UISettings.RealtimeRefreshRate, _cancelationTokenSource.Token);
-                }
-            }
-        }
-
         private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, ImageInput imageInput, ImageInput imageInputMask)
         {
             return new PromptOptions
@@ -415,7 +349,7 @@ namespace OnnxStack.UI.Views
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="timestamp">The timestamp.</param>
         /// <returns></returns>
-        private async Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        private Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
         {
             var image = Utils.CreateBitmap(imageBytes);
 
@@ -431,10 +365,7 @@ namespace OnnxStack.UI.Views
                 SchedulerOptions = schedulerOptions,
                 Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
             };
-
-            if (UISettings.ImageAutoSave)
-                await imageResult.AutoSaveAsync(Path.Combine(UISettings.ImageAutoSaveDirectory, "ImageInpaint"), UISettings.ImageAutoSaveBlueprint);
-            return imageResult;
+            return Task.FromResult(imageResult);
         }
 
 
@@ -458,46 +389,7 @@ namespace OnnxStack.UI.Views
                 });
             };
         }
-
-        private Action<int, int, int, int> ProgressBatchCallback()
-        {
-            return (batchIndex, batchCount, step, steps) =>
-            {
-                App.UIInvoke(() =>
-                {
-                    if (_cancelationTokenSource.IsCancellationRequested)
-                        return;
-
-                    if (BatchOptions.BatchsValue != batchCount)
-                        BatchOptions.BatchsValue = batchCount;
-                    if (BatchOptions.BatchValue != batchIndex)
-                        BatchOptions.BatchValue = batchIndex;
-                    if (BatchOptions.StepValue != step)
-                        BatchOptions.StepValue = step;
-                    if (BatchOptions.StepsValue != steps)
-                        BatchOptions.StepsValue = steps;
-                });
-            };
-        }
-
-        private Action<int, int> RealtimeProgressCallback()
-        {
-            return (value, maximum) =>
-            {
-                App.UIInvoke(() =>
-                {
-                    if (_cancelationTokenSource.IsCancellationRequested)
-                        return;
-
-                    if (BatchOptions.StepValue != value)
-                        BatchOptions.StepValue = value;
-                    if (BatchOptions.StepsValue != maximum)
-                        BatchOptions.StepsValue = maximum;
-                });
-            };
-        }
-
-
+       
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         public void NotifyPropertyChanged([CallerMemberName] string property = "")

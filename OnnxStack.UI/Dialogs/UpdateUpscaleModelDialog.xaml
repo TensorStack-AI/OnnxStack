@@ -15,8 +15,6 @@
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
-        Style="{StaticResource BaseWindow}" 
-        ContentRendered="OnContentRendered"
         Title="Update Upscale Model">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top">
@@ -78,7 +76,7 @@
 
                     <StackPanel Margin="0,0,4,0">
                         <TextBlock Text="Execution Provider" />
-                        <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding UpdateModelSet.ExecutionProvider}" ItemContainerStyle="{StaticResource ExecutionProviderTypes}"/>
+                        <ComboBox ItemsSource="{Binding UISettings.SupportedExecutionProviders}" SelectedItem="{Binding UpdateModelSet.ExecutionProvider}" />
                     </StackPanel>
                     <TextBlock />
                     <StackPanel Margin="0,0,4,0">

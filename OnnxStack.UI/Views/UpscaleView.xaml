@@ -16,8 +16,8 @@
         <!--Control Panel-->
         <DockPanel Grid.Column="0" DataContext="{Binding ElementName=UI}" Margin="3,3,3,0">
             <UniformGrid DockPanel.Dock="Bottom" Columns="2" Height="30">
-                <Button Command="{Binding CancelCommand}" Margin="0,0,1,0" Style="{StaticResource ButtonGenerateCancelStyle}"/>
-                <Button Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" Style="{StaticResource ButtonGenerateStyle}" IsDefault="True" Margin="1,0,0,0"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}" Margin="0,0,1,0" />
+                <Button Content="Generate" Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" IsDefault="True" Margin="1,0,0,0"/>
             </UniformGrid>
             <DockPanel >
                 <userControls:UpscalePickerControl DockPanel.Dock="Top"
@@ -55,7 +55,7 @@
 
 
                     <StackPanel >
-                        <Border BorderBrush="{StaticResource ControlDarkerBorderBrush}" BorderThickness="2">
+                        <Border BorderBrush="Gainsboro"  BorderThickness="2">
                             <Image Source="{Binding InputImage, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}"
                                    Height="{Binding ElementName=col1, Path=Width.Value}"></Image>
                         </Border>
@@ -95,7 +95,7 @@
                     </TabItem.Header>
                     <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">
 
-                        <Border BorderBrush="{StaticResource ControlDarkerBorderBrush}" BorderThickness="2" Margin="40">
+                        <Border BorderBrush="Gainsboro" BorderThickness="2" Margin="40">
                             <DockPanel Margin="2">
 
                                 <StackPanel DockPanel.Dock="Bottom">

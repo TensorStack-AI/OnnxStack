@@ -1,16 +1,10 @@
-﻿using Models;
-using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
+﻿using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Models;
 using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
-using System.Reflection;
-using System.Runtime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -81,24 +75,6 @@ namespace OnnxStack.UI
         }
 
 
-        public static async Task<bool> AutoSaveAsync(this ImageResult imageResult, string autosaveDirectory, bool includeBlueprint)
-        {
-            if (!Directory.Exists(autosaveDirectory))
-                Directory.CreateDirectory(autosaveDirectory);
-
-            var random = RandomString();
-            var imageFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
-            var blueprintFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
-            if (!await imageResult.Image.SaveImageFileAsync(imageFile))
-                return false;
-
-            if (includeBlueprint)
-                return await imageResult.SaveBlueprintFileAsync(blueprintFile);
-
-            return true;
-        }
-
-
         public static SchedulerOptions ToSchedulerOptions(this SchedulerOptionsModel model)
         {
             return new SchedulerOptions
@@ -161,47 +137,7 @@ namespace OnnxStack.UI
             };
         }
 
-        public static PromptOptionsModel ToPromptOptionsModel(this PromptOptions promptOptions)
-        {
-            return new PromptOptionsModel
-            {
-                Prompt = promptOptions.Prompt,
-                NegativePrompt = promptOptions.NegativePrompt
-            };
-        }
 
-
-
-        public static BatchOptionsModel ToBatchOptionsModel(this BatchOptions batchOptions)
-        {
-            return new BatchOptionsModel
-            {
-                BatchType = batchOptions.BatchType,
-                ValueTo = batchOptions.ValueTo,
-                Increment = batchOptions.Increment,
-                ValueFrom = batchOptions.ValueFrom
-            };
-        }
-
-
-        public static BatchOptions ToBatchOptions(this BatchOptionsModel batchOptionsModel)
-        {
-            return new BatchOptions
-            {
-                BatchType = batchOptionsModel.BatchType,
-                ValueTo = batchOptionsModel.ValueTo,
-                Increment = batchOptionsModel.Increment,
-                ValueFrom = batchOptionsModel.ValueFrom
-            };
-        }
-
-        internal static async Task RefreshDelay(long startTime, int refreshRate, CancellationToken cancellationToken)
-        {
-            var endTime = Stopwatch.GetTimestamp();
-            var elapsedMilliseconds = (endTime - startTime) * 1000.0 / Stopwatch.Frequency;
-            int adjustedDelay = Math.Max(0, refreshRate - (int)elapsedMilliseconds);
-            await Task.Delay(adjustedDelay, cancellationToken).ConfigureAwait(false);
-        }
 
         public static void LogToWindow(string message)
         {

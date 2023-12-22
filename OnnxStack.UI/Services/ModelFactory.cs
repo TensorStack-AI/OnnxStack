@@ -2,7 +2,6 @@
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Models;
-using OnnxStack.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,17 +20,6 @@ namespace OnnxStack.UI.Services
             var defaultTokenizerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cliptokenizer.onnx");
             if (File.Exists(defaultTokenizerPath))
                 _defaultTokenizerPath = defaultTokenizerPath;
-        }
-
-        public StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, string modelTemplateType)
-        {
-            var template = _settings.Templates
-                .Where(x => x.Category == ModelTemplateCategory.StableDiffusion && x.Template == modelTemplateType && !x.IsUserTemplate)
-                .FirstOrDefault();
-            if (template == null)
-                return null;
-
-            return CreateStableDiffusionModelSet(name, folder, template.StableDiffusionTemplate);
         }
 
         public StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, StableDiffusionModelTemplate modelTemplate)
@@ -114,18 +102,6 @@ namespace OnnxStack.UI.Services
             return modelSet;
         }
 
-        public UpscaleModelSet CreateUpscaleModelSet(string name, string filename, string modelTemplateType)
-        {
-            var template = _settings.Templates
-               .Where(x => x.Category == ModelTemplateCategory.StableDiffusion && x.Template == modelTemplateType && !x.IsUserTemplate)
-               .FirstOrDefault();
-            if (template == null)
-                return null;
-
-            return CreateUpscaleModelSet(name, filename, template.UpscaleTemplate);
-        }
-
-
         public UpscaleModelSet CreateUpscaleModelSet(string name, string filename, UpscaleModelTemplate modelTemplate)
         {
             return new UpscaleModelSet
@@ -141,6 +117,6 @@ namespace OnnxStack.UI.Services
     }
 
 
-    public record UpscaleModelTemplate(int ScaleFactor, int SampleSize);
-    public record StableDiffusionModelTemplate(DiffuserPipelineType PipelineType, ModelType ModelType, int SampleSize, params DiffuserType[] DiffuserTypes);
+    public record UpscaleModelTemplate(string Name, int ScaleFactor, int SampleSize);
+    public record StableDiffusionModelTemplate(string Name, DiffuserPipelineType PipelineType, ModelType ModelType, int SampleSize, params DiffuserType[] DiffuserTypes);
 }

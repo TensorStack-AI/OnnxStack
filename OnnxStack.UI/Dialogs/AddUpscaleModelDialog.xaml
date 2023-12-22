@@ -14,13 +14,11 @@
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
-        Style="{StaticResource BaseWindow}" 
-        ContentRendered="OnContentRendered"
         Title="Add Upscale Model">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top">
 
-            <StackPanel Visibility="{Binding EnableTemplateSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
                 <TextBlock Text="Model Type"/>
                 <ComboBox ItemsSource="{Binding ModelTemplates}" SelectedItem="{Binding ModelTemplate}" DisplayMemberPath="Name" >
                     <ComboBox.ItemContainerStyle>
@@ -46,7 +44,7 @@
                 <userControls:FilePickerTextBox FileName="{Binding ModelFile, Mode=TwoWay}" IsFolderPicker="False" Filter="Onnx Models (*.onnx)|*.onnx" DefaultExt="onnx" />
             </StackPanel>
 
-            <StackPanel Margin="0,10,0,0" Visibility="{Binding EnableNameSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Margin="0,10,0,0">
                 <TextBlock Text="Model Name"/>
                 <TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>

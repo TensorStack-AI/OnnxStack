@@ -10,9 +10,7 @@
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
-        UseLayoutRounding="True"
-        Style="{StaticResource BaseWindow}" 
-        ContentRendered="OnContentRendered">
+        UseLayoutRounding="True">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top">
             <TextBlock Text="{Binding ErrorMessage}" FontSize="13" FontWeight="DemiBold" HorizontalAlignment="Center" Foreground="Red" Margin="0,10">

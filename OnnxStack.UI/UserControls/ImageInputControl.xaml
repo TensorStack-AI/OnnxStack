@@ -17,7 +17,7 @@
         <SolidColorBrush x:Key="RedHighlight" Color="Red"  Opacity="0.5" />
     </UserControl.Resources>
 
-    <Border DataContext="{Binding ElementName=UI}" BorderBrush="{StaticResource ControlBrightDefaultBorderBrush}" BorderThickness="2" >
+    <Border DataContext="{Binding ElementName=UI}" BorderBrush="Gainsboro"  BorderThickness="2" >
         <StackPanel Margin="2" >
             <Canvas Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512" ClipToBounds="True">
                 <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512">

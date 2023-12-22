@@ -12,8 +12,6 @@
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
-        Style="{StaticResource BaseWindow}" 
-        ContentRendered="OnContentRendered"
         Title="Update Model">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top" >
@@ -59,7 +57,7 @@
 
                         <StackPanel Margin="0,0,4,0">
                             <TextBlock Text="Execution Provider" />
-                            <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding UpdateModelSet.ExecutionProvider}" ItemContainerStyle="{StaticResource ExecutionProviderTypes}"/>
+                            <ComboBox ItemsSource="{Binding UISettings.SupportedExecutionProviders}" SelectedItem="{Binding UpdateModelSet.ExecutionProvider}" />
                         </StackPanel>
                         <TextBlock />
                         <StackPanel Margin="0,0,4,0">
@@ -153,7 +151,7 @@
                                         <UniformGrid Grid.Column="0" Columns="5" Visibility="{Binding IsOverrideEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,5,0,10">
                                             <StackPanel Margin="0,0,4,0">
                                                 <TextBlock Text="Provider" />
-                                                <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionProviderType}}" SelectedItem="{Binding ExecutionProvider}" ItemContainerStyle="{StaticResource ExecutionProviderTypes}"/>
+                                                <ComboBox ItemsSource="{Binding UISettings.SupportedExecutionProviders, ElementName=UI}" SelectedItem="{Binding ExecutionProvider}" />
                                             </StackPanel>
                                             <StackPanel Margin="0,0,4,0">
                                                 <TextBlock Text="Mode" />
