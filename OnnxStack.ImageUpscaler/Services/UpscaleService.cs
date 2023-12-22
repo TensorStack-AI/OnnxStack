@@ -23,7 +23,6 @@ namespace OnnxStack.ImageUpscaler.Services
     {
         private readonly IOnnxModelService _modelService;
         private readonly ImageUpscalerConfig _configuration;
-        private readonly HashSet<UpscaleModelSet> _modelSetConfigs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UpscaleService"/> class.
@@ -35,66 +34,6 @@ namespace OnnxStack.ImageUpscaler.Services
         {
             _configuration = configuration;
             _modelService = modelService;
-            _modelSetConfigs = new HashSet<UpscaleModelSet>(_configuration.ModelSets, new OnnxModelEqualityComparer());
-            _modelService.AddModelSet(_modelSetConfigs);
-        }
-
-
-        /// <summary>
-        /// Gets the model sets.
-        /// </summary>
-        public IReadOnlyCollection<UpscaleModelSet> ModelSets => _modelSetConfigs;
-
-
-        /// <summary>
-        /// Adds the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public async Task<bool> AddModelAsync(UpscaleModelSet model)
-        {
-            if (await _modelService.AddModelSet(model))
-            {
-                _modelSetConfigs.Add(model);
-                return true;
-            }
-            return false;
-        }
-
-
-        /// <summary>
-        /// Removes the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public async Task<bool> RemoveModelAsync(UpscaleModelSet model)
-        {
-            if (await _modelService.RemoveModelSet(model))
-            {
-                _modelSetConfigs.Remove(model);
-                return true;
-            }
-            return false;
-        }
-
-
-        /// <summary>
-        /// Updates the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public async Task<bool> UpdateModelAsync(UpscaleModelSet model)
-        {
-            if (await _modelService.UpdateModelSet(model))
-            {
-                _modelSetConfigs.Remove(model);
-                _modelSetConfigs.Add(model);
-                return true;
-            }
-            return false;
         }
 
 
@@ -105,9 +44,6 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <returns></returns>
         public async Task<bool> LoadModelAsync(UpscaleModelSet model)
         {
-            if (!_modelSetConfigs.TryGetValue(model, out _))
-                throw new Exception("ModelSet not found");
-
             var modelSet = await _modelService.LoadModelAsync(model);
             return modelSet is not null;
         }

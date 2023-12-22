@@ -13,34 +13,6 @@ namespace OnnxStack.StableDiffusion.Common
 {
     public interface IStableDiffusionService
     {
-         /// <summary>
-        /// Gets the models.
-        /// </summary>
-        IReadOnlyCollection<StableDiffusionModelSet> ModelSets { get; }
-
-        /// <summary>
-        /// Adds the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        Task<bool> AddModelAsync(StableDiffusionModelSet model);
-
-
-        /// <summary>
-        /// Removes the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        Task<bool> RemoveModelAsync(StableDiffusionModelSet model);
-
-
-        /// <summary>
-        /// Updates the model.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns></returns>
-        Task<bool> UpdateModelAsync(StableDiffusionModelSet model);
-
         /// <summary>
         /// Loads the model.
         /// </summary>

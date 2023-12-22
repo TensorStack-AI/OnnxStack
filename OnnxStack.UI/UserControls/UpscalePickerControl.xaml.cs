@@ -84,7 +84,6 @@ namespace OnnxStack.UI.UserControls
                     }
                 }
 
-                await _upscaleService.AddModelAsync(SelectedModel.ModelSet);
                 SelectedModel.IsLoaded = await _upscaleService.LoadModelAsync(SelectedModel.ModelSet);
             }
             catch (Exception ex)
