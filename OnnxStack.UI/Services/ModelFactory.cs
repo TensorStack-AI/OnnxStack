@@ -22,6 +22,30 @@ namespace OnnxStack.UI.Services
                 _defaultTokenizerPath = defaultTokenizerPath;
         }
 
+        public IEnumerable<UpscaleModelTemplate> GetUpscaleModelTemplates()
+        {
+            yield return new UpscaleModelTemplate("Upscale 2x", 2, 512);
+            yield return new UpscaleModelTemplate("Upscale 4x", 4, 512);
+        }
+
+
+        public IEnumerable<StableDiffusionModelTemplate> GetStableDiffusionModelTemplates()
+        {
+            yield return new StableDiffusionModelTemplate("SD", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
+            yield return new StableDiffusionModelTemplate("SD-Inpaint", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512,  DiffuserType.ImageInpaint);
+
+            yield return new StableDiffusionModelTemplate("SDXL", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
+            yield return new StableDiffusionModelTemplate("SDXL-Inpaint", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.ImageInpaint);
+            yield return new StableDiffusionModelTemplate("SDXL-Refiner", DiffuserPipelineType.StableDiffusionXL, ModelType.Refiner, 1024, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
+            yield return new StableDiffusionModelTemplate("SDXL-Turbo", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
+
+            yield return new StableDiffusionModelTemplate("LCM", DiffuserPipelineType.LatentConsistency, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
+            yield return new StableDiffusionModelTemplate("LCM-SDXL", DiffuserPipelineType.LatentConsistencyXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
+
+            yield return new StableDiffusionModelTemplate("InstaFlow", DiffuserPipelineType.InstaFlow, ModelType.Base, 512, DiffuserType.TextToImage);
+        }
+
+
         public StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, StableDiffusionModelTemplate modelTemplate)
         {
             var modelSet = new StableDiffusionModelSet

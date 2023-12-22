@@ -37,15 +37,9 @@ namespace OnnxStack.UI.Dialogs
             _modelFactory = modelFactory;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel);
-            ModelTemplates = GetModelTemplates().ToList();
+            ModelTemplates = new List<StableDiffusionModelTemplate>( _modelFactory.GetStableDiffusionModelTemplates());
             InvalidOptions = _settings.StableDiffusionModelSets.Select(x => x.Name.ToLower()).ToList();
             InitializeComponent();
-        }
-
-        private IEnumerable<StableDiffusionModelTemplate> GetModelTemplates()
-        {
-            yield return new StableDiffusionModelTemplate("StableDiffusion", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
-            yield return new StableDiffusionModelTemplate("SDXL", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
         }
 
         public AsyncRelayCommand SaveCommand { get; }
@@ -105,6 +99,8 @@ namespace OnnxStack.UI.Dialogs
         {
             _modelSetResult = null;
             ValidationResults.Clear();
+            if (_modelTemplate is null)
+                return;
             if (string.IsNullOrEmpty(_modelFolder))
                 return;
 

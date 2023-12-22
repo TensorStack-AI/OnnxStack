@@ -36,16 +36,11 @@ namespace OnnxStack.UI.Dialogs
             _modelFactory = modelFactory;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel);
-            ModelTemplates = GetModelTemplates().ToList();
+            ModelTemplates = new List<UpscaleModelTemplate>(_modelFactory.GetUpscaleModelTemplates());
             InvalidOptions = _settings.UpscaleModelSets.Select(x => x.Name.ToLower()).ToList();
             InitializeComponent();
         }
 
-        private IEnumerable<UpscaleModelTemplate> GetModelTemplates()
-        {
-            yield return new UpscaleModelTemplate("Upscale 2x", 2, 512);
-            yield return new UpscaleModelTemplate("Upscale 4x", 4, 512);
-        }
 
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }

@@ -20,21 +20,8 @@
 
             <StackPanel >
                 <TextBlock Text="Model Type"/>
-                <ComboBox ItemsSource="{Binding ModelTemplates}" SelectedItem="{Binding ModelTemplate}" DisplayMemberPath="PipelineType" >
-                    <ComboBox.ItemContainerStyle>
-                        <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
-                            <Setter Property="Visibility" Value="Visible" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Category}" Value="Upscaler">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsUserTemplate}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-
-                        </Style>
-                    </ComboBox.ItemContainerStyle>
+                <ComboBox ItemsSource="{Binding ModelTemplates}" SelectedItem="{Binding ModelTemplate}" DisplayMemberPath="Name" >
+                   
                 </ComboBox>
             </StackPanel>
 
