@@ -14,7 +14,8 @@ __________________________
 
 # Welcome to OnnxStack!
 OnnxStack transforms machine learning in .NET, Seamlessly integrating with `ONNX Runtime` and `Microsoft ML`, this library empowers you to build, deploy, and execute machine learning models entirely within the .NET ecosystem. Bid farewell to Python dependencies and embrace a new era of intelligent applications tailored for .NET
-Welcome to Python-free AI integration with OnnxStack!
+
+### Welcome to Python-free AI integration with OnnxStack!
 
 
 
@@ -27,9 +28,9 @@ Welcome to Python-free AI integration with OnnxStack!
 [![Core Badge](https://img.shields.io/nuget/v/OnnxStack.Core?color=4bc51e&label=OnnxStack.Core)](https://www.nuget.org/packages/OnnxStack.Core)
 ![Nuget](https://img.shields.io/nuget/dt/OnnxStack.Core)
 
-`OnnxStack.Core` is a .NET library designed to facilitate seamless interaction with the `OnnxRuntime` C# API. This project simplifies the creation and disposal of `OrtValues` and offers straightforward services for loading and running inferences on a variety of models. With a focus on improving developer efficiency, the library abstracts complexities, allowing for smoother integration of `OnnxRuntime` into .NET applications. Explore the documentation for detailed usage instructions and take advantage of simplified workflows for managing `OrtValues` and conducting inferences effortlessly.
+`OnnxStack.Core` is a .NET library designed to facilitate seamless interaction with the `OnnxRuntime` C# API. This project simplifies the creation and disposal of `OrtValues` and offers straightforward services for loading and running inferences on a variety of models. With a focus on improving developer efficiency, the library abstracts complexities, allowing for smoother integration of `OnnxRuntime` into .NET applications.
 
-More information and Examples can be found in the `OnnxStack.Core` project **[README](OnnxStack.Core/README.md)**
+More information and examples can be found in the `OnnxStack.Core` project **[README](OnnxStack.Core/README.md)**
 
 __________________________
 
@@ -42,21 +43,23 @@ __________________________
 [![StableDiffusion Badge](https://img.shields.io/nuget/v/OnnxStack.StableDiffusion?color=4bc51e&label=OnnxStack.StableDiffusion)](https://www.nuget.org/packages/OnnxStack.StableDiffusion)
 ![Nuget](https://img.shields.io/nuget/dt/OnnxStack.StableDiffusion)
 
-`OnnxStack.StableDiffusion` is a .NET library for latent diffusion in C#, Leveraging `OnnxStack.Core`, this library seamlessly integrates many StableDiffusion capabilities, including
+`OnnxStack.StableDiffusion` is a .NET library for latent diffusion in C#, Leveraging `OnnxStack.Core`, this library seamlessly integrates many StableDiffusion capabilities, including:
 * Text to Image
 * Image to Image
 * Image Inpaint
 
 `OnnxStack.StableDiffusion` provides compatibility with a diverse set of models, including 
 * StableDiffusion 1.5
+* StableDiffusion Inpaint
 * SDXL
+* SDXL Inpaint
 * SDXL-Turbo
 * LatentConsistency
 * LatentConsistency XL
 * Instaflow
 
 
-More information and Examples can be found in the `OnnxStack.StableDiffusion` project **[README](OnnxStack.StableDiffusion/README.md)**
+More information and examples can be found in the `OnnxStack.StableDiffusion` project **[README](OnnxStack.StableDiffusion/README.md)**
 
 __________________________
 __________________________
@@ -66,10 +69,10 @@ __________________________
 [![Upscale Badge](https://img.shields.io/nuget/v/OnnxStack.ImageUpscaler?color=4bc51e&label=OnnxStack.ImageUpscaler)](https://www.nuget.org/packages/OnnxStack.ImageUpscaler)
 ![Nuget](https://img.shields.io/nuget/dt/OnnxStack.ImageUpscaler)
 
-`OnnxStack.ImageUpscaler` is a library designed to elevate image quality through superior upscaling techniques. Leveraging `OnnxStack.Core`, this library provides seamless integration for enhancing image resolution and supports a variety of upscaling models, allowing developers to improve image clarity and quality. Whether you are working on image processing, content creation, or any application requiring enhanced visuals, the ImageUpscale project delivers efficient and high-quality upscaling solutions. Explore the documentation for comprehensive usage details and harness the power of OnnxRuntime for advanced image upscaling in your applications.
+`OnnxStack.ImageUpscaler` is a library designed to elevate image quality through superior upscaling techniques. Leveraging `OnnxStack.Core`, this library provides seamless integration for enhancing image resolution and supports a variety of upscaling models, allowing developers to improve image clarity and quality. Whether you are working on image processing, content creation, or any application requiring enhanced visuals, the ImageUpscale project delivers efficient and high-quality upscaling solutions.
 
 
-More information and Examples can be found in the `OnnxStack.ImageUpscaler` project **[README](OnnxStack.ImageUpscaler/README.md)**
+More information and examples can be found in the `OnnxStack.ImageUpscaler` project **[README](OnnxStack.ImageUpscaler/README.md)**
 __________________________
 __________________________
 ## **[OnnxStack.ImageRecognition]()**
@@ -96,6 +99,11 @@ __________________________
 
 We welcome contributions to OnnxStack! If you have any ideas, bug reports, or improvements, feel free to open an issue or submit a pull request.
 
+* Join our Discord: **[OnnxStack Discord](https://discord.gg/uQzQgxMYWy)** 
+* Chat to us here: **[Project Discussion Board](https://github.com/saddam213/OnnxStack/discussions)** 
+
+
+
 __________________________
 ##  ONNX Runtime Resources
 - [ONNX Runtime C# API Doc](https://onnxruntime.ai/docs/api/csharp/api)
@@ -104,8 +112,6 @@ __________________________
 ## Reference
 Special thanks to the creators of the fantastic repositories below; all were instrumental in the creation of OnnxStack.
 
-[Stable Diffusion with C# and ONNX Runtime](https://github.com/cassiebreviu/stablediffusion) by Cassie Breviu (@cassiebreviu)
-
-[Diffusers](https://github.com/huggingface/diffusers) by Huggingface (@huggingface)
-
-[Onnx-Web](https://github.com/ssube/onnx-web) by Sean Sube (@ssube)
+* [Stable Diffusion with C# and ONNX Runtime](https://github.com/cassiebreviu/stablediffusion) by Cassie Breviu (@cassiebreviu)
+* [Diffusers](https://github.com/huggingface/diffusers) by Huggingface (@huggingface)
+* [Onnx-Web](https://github.com/ssube/onnx-web) by Sean Sube (@ssube)
