@@ -37,7 +37,7 @@ namespace OnnxStack.UI.UserControls
 
         public AsyncRelayCommand LoadCommand { get; set; }
         public AsyncRelayCommand UnloadCommand { get; set; }
-  
+
         public OnnxStackUIConfig UISettings
         {
             get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
@@ -74,16 +74,12 @@ namespace OnnxStack.UI.UserControls
 
             try
             {
-                if (UISettings.ModelCacheMode == ModelCacheMode.Single)
+                foreach (var model in UISettings.UpscaleModelSets.Where(x => x.IsLoaded))
                 {
-                    foreach (var model in UISettings.UpscaleModelSets.Where(x => x.IsLoaded))
-                    {
-                        _logger.LogInformation($"'{model.Name}' Unloading...");
-                        await _upscaleService.UnloadModelAsync(model.ModelSet);
-                        model.IsLoaded = false;
-                    }
+                    _logger.LogInformation($"'{model.Name}' Unloading...");
+                    await _upscaleService.UnloadModelAsync(model.ModelSet);
+                    model.IsLoaded = false;
                 }
-
                 SelectedModel.IsLoaded = await _upscaleService.LoadModelAsync(SelectedModel.ModelSet);
             }
             catch (Exception ex)

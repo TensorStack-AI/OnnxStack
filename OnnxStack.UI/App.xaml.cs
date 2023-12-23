@@ -39,13 +39,8 @@ namespace OnnxStack.UI
             builder.Services.AddTransient<UpdateModelDialog>();
             builder.Services.AddTransient<AddUpscaleModelDialog>();
             builder.Services.AddTransient<UpdateUpscaleModelDialog>();
-            builder.Services.AddTransient<UpdateModelSettingsDialog>();
-            builder.Services.AddTransient<UpdateModelMetadataDialog>();
-            builder.Services.AddTransient<ViewModelMetadataDialog>();
-            builder.Services.AddTransient<UpdateUpscaleModelSettingsDialog> ();
             builder.Services.AddSingleton<IModelFactory, ModelFactory>();
             builder.Services.AddSingleton<IDialogService, DialogService>();
-            builder.Services.AddSingleton<IModelDownloadService, ModelDownloadService>();
 
             // Build App
             _applicationHost = builder.Build();

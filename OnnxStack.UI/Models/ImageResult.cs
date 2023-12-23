@@ -1,5 +1,4 @@
-﻿using Models;
-using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using System;
 using System.Text.Json.Serialization;

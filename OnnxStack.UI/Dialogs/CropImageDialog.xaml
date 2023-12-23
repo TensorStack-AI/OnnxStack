@@ -14,9 +14,7 @@
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
-        UseLayoutRounding="True"
-        Style="{StaticResource BaseWindow}" 
-        ContentRendered="OnContentRendered">
+        UseLayoutRounding="True">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
 
         <StackPanel  DockPanel.Dock="Bottom" >
@@ -47,7 +45,7 @@
                 <Button IsCancel="True" Command="{Binding CancelCommand}" MinWidth="100" Height="30">_Cancel</Button>
             </UniformGrid>
         </StackPanel>
-        <Border BorderThickness="2" BorderBrush="{StaticResource ContainerBorder}" >
+        <Border BorderThickness="2"  >
             <Canvas Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  MouseWheel="CropFrame_MouseWheel">
                 <Image Source="{Binding SourceImage, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding ImageWidth}" Height="{Binding ImageHeight}" />
                 <Canvas x:Name="CropFrame" Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" Visibility="{Binding IsCropped, Converter={StaticResource InverseBooleanToVisibilityConverter}}"  MouseLeftButtonUp="CropFrame_MouseLeftButtonUp" MouseLeftButtonDown="CropFrame_MouseLeftButtonDown" MouseMove="CropFrame_MouseMove"  >

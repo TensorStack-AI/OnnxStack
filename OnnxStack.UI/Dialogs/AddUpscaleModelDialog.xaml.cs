@@ -3,8 +3,6 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
-using OnnxStack.UI.Views;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -28,7 +26,7 @@ namespace OnnxStack.UI.Dialogs
         private string _modelName;
         private IModelFactory _modelFactory;
         private OnnxStackUIConfig _settings;
-        private ModelTemplateViewModel _modelTemplate;
+        private UpscaleModelTemplate _modelTemplate;
         private UpscaleModelSet _modelSetResult;
 
         public AddUpscaleModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddUpscaleModelDialog> logger)
@@ -36,26 +34,20 @@ namespace OnnxStack.UI.Dialogs
             _logger = logger;
             _settings = settings;
             _modelFactory = modelFactory;
-            WindowCloseCommand = new AsyncRelayCommand(WindowClose);
-            WindowRestoreCommand = new AsyncRelayCommand(WindowRestore);
-            WindowMinimizeCommand = new AsyncRelayCommand(WindowMinimize);
-            WindowMaximizeCommand = new AsyncRelayCommand(WindowMaximize);
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel);
-            ModelTemplates = _settings.Templates.Where(x => !x.IsUserTemplate && x.Category == ModelTemplateCategory.Upscaler).ToList();
-            InvalidOptions = _settings.Templates.Where(x => x.IsUserTemplate).Select(x => x.Name.ToLower()).ToList();
+            ModelTemplates = new List<UpscaleModelTemplate>(_modelFactory.GetUpscaleModelTemplates());
+            InvalidOptions = _settings.UpscaleModelSets.Select(x => x.Name.ToLower()).ToList();
             InitializeComponent();
         }
-        public AsyncRelayCommand WindowMinimizeCommand { get; }
-        public AsyncRelayCommand WindowRestoreCommand { get; }
-        public AsyncRelayCommand WindowMaximizeCommand { get; }
-        public AsyncRelayCommand WindowCloseCommand { get; }
+
+
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
         public ObservableCollection<ValidationResult> ValidationResults { get; set; } = new ObservableCollection<ValidationResult>();
-        public List<ModelTemplateViewModel> ModelTemplates { get; set; }
+        public List<UpscaleModelTemplate> ModelTemplates { get; set; }
 
-        public ModelTemplateViewModel ModelTemplate
+        public UpscaleModelTemplate ModelTemplate
         {
             get { return _modelTemplate; }
             set { _modelTemplate = value; NotifyPropertyChanged(); CreateModelSet(); }
@@ -78,7 +70,7 @@ namespace OnnxStack.UI.Dialogs
             set
             {
                 _modelFile = value;
-                if (_modelTemplate is not null && !_modelTemplate.IsUserTemplate)
+                if (_modelTemplate is not null)
                     _modelName = string.IsNullOrEmpty(_modelFile)
                         ? string.Empty
                         : Path.GetFileNameWithoutExtension(_modelFile);
@@ -94,31 +86,9 @@ namespace OnnxStack.UI.Dialogs
             get { return _modelSetResult; }
         }
 
-        private bool _enableTemplateSelection = true;
 
-        public bool EnableTemplateSelection
+        public new bool ShowDialog()
         {
-            get { return _enableTemplateSelection; }
-            set { _enableTemplateSelection = value; NotifyPropertyChanged(); }
-        }
-
-        private bool _enableNameSelection = true;
-        public bool EnableNameSelection
-        {
-            get { return _enableNameSelection; }
-            set { _enableNameSelection = value; NotifyPropertyChanged(); }
-        }
-
-
-        public bool ShowDialog(ModelTemplateViewModel selectedTemplate = null)
-        {
-            if (selectedTemplate is not null)
-            {
-                EnableNameSelection = !selectedTemplate.IsUserTemplate;
-                EnableTemplateSelection = false;
-                ModelTemplate = selectedTemplate;
-                ModelName = selectedTemplate.IsUserTemplate ? selectedTemplate.Name : string.Empty;
-            }
             return base.ShowDialog() ?? false;
         }
 
@@ -130,12 +100,10 @@ namespace OnnxStack.UI.Dialogs
             if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            _modelSetResult = _modelFactory.CreateUpscaleModelSet(ModelName.Trim(), _modelFile, _modelTemplate.UpscaleTemplate);
+            _modelSetResult = _modelFactory.CreateUpscaleModelSet(ModelName.Trim(), _modelFile, _modelTemplate);
 
             // Validate
-            if (_enableNameSelection)
-                ValidationResults.Add(new ValidationResult("Name", !InvalidOptions.Contains(_modelName.ToLower()) && _modelName.Length > 2 && _modelName.Length < 50));
-
+            ValidationResults.Add(new ValidationResult("Name", !InvalidOptions.Contains(_modelName.ToLower()) && _modelName.Length > 2 && _modelName.Length < 50));
             foreach (var validationResult in _modelSetResult.ModelConfigurations.Select(x => new ValidationResult(x.Type.ToString(), File.Exists(x.OnnxModelPath))))
             {
                 ValidationResults.Add(validationResult);
@@ -167,41 +135,6 @@ namespace OnnxStack.UI.Dialogs
             DialogResult = false;
             return Task.CompletedTask;
         }
-
-        #region BaseWindow
-
-        private Task WindowClose()
-        {
-            Close();
-            return Task.CompletedTask;
-        }
-
-        private Task WindowRestore()
-        {
-            if (WindowState == WindowState.Maximized)
-                WindowState = WindowState.Normal;
-            else
-                WindowState = WindowState.Maximized;
-            return Task.CompletedTask;
-        }
-
-        private Task WindowMinimize()
-        {
-            WindowState = WindowState.Minimized;
-            return Task.CompletedTask;
-        }
-
-        private Task WindowMaximize()
-        {
-            WindowState = WindowState.Maximized;
-            return Task.CompletedTask;
-        }
-
-        private void OnContentRendered(object sender, EventArgs e)
-        {
-            InvalidateVisual();
-        }
-        #endregion
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

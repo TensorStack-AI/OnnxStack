@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Models;
 using OnnxStack.Core.Image;
 using OnnxStack.ImageUpscaler.Services;
 using OnnxStack.UI.Commands;

@@ -1,6 +1,4 @@
-﻿using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 

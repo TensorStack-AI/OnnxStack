@@ -15,7 +15,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Border DataContext="{Binding ElementName=UI}" BorderBrush="{StaticResource ControlBrightDefaultBorderBrush}" BorderThickness="2" >
+    <Border DataContext="{Binding ElementName=UI}" BorderBrush="Gainsboro"  BorderThickness="2" >
         <StackPanel Margin="2">
             <Image Source="{Binding Result.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" Width="{Binding SchedulerOptions.Width, FallbackValue=512}" Height="{Binding SchedulerOptions.Height, FallbackValue=512}" MinHeight="512" MinWidth="512"   >
                 <Image.ContextMenu>
@@ -51,7 +51,7 @@
                     </StackPanel>
                 </UniformGrid>
             </StackPanel>
-            <UniformGrid Columns="7" Height="30" IsEnabled="{Binding HasResult}">
+            <UniformGrid Columns="6" Height="30" IsEnabled="{Binding HasResult}">
                 <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveImageResultCommand}" CommandParameter="{Binding Result}" ToolTip="Save Image File">
                     <userControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light"  Size="13" />
                 </Button>
@@ -65,10 +65,7 @@
                     <userControls:FontAwesome Icon="&#xf302;" IconStyle="Light"  Size="13" />
                 </Button>
                 <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImageInpaintCommand}" CommandParameter="{Binding Result}" ToolTip="Send To Image Inpaint">
-                    <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"  />
-                </Button>
-                <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateImagePaintToImageCommand}" CommandParameter="{Binding Result}" ToolTip="Send To Paint To Image" BorderThickness="0,1,1,1">
-                    <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light" />
+                    <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light"  />
                 </Button>
                 <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=NavigateUpscalerCommand}" CommandParameter="{Binding Result}" ToolTip="Send To Upscaler" BorderThickness="0,1,1,1">
                     <userControls:FontAwesome Icon="&#xf424;" IconStyle="Light" />
