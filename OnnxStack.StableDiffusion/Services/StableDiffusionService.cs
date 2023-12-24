@@ -49,7 +49,6 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         public async Task<bool> LoadModelAsync(StableDiffusionModelSet model)
         {
-            model.InitBlankTokenArray();
             var modelSet = await _modelService.LoadModelAsync(model);
             return modelSet is not null;
         }

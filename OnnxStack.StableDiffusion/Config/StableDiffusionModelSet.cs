@@ -10,6 +10,8 @@ namespace OnnxStack.StableDiffusion.Config
 {
     public record StableDiffusionModelSet : IOnnxModelSetConfig
     {
+        private ImmutableArray<int> _blankTokenValueArray;
+
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
         public int PadTokenId { get; set; }
@@ -31,12 +33,17 @@ namespace OnnxStack.StableDiffusion.Config
         public ExecutionProvider ExecutionProvider { get; set; }
         public List<OnnxModelConfig> ModelConfigurations { get; set; }
 
-        [JsonIgnore]
-        public ImmutableArray<int> BlankTokenValueArray { get; set; }
 
-        public void InitBlankTokenArray()
+        [JsonIgnore]
+        public ImmutableArray<int> BlankTokenValueArray
         {
-            BlankTokenValueArray = Enumerable.Repeat(BlankTokenId, 20480).ToImmutableArray();
+            get
+            {
+                if (_blankTokenValueArray.IsDefaultOrEmpty)
+                    _blankTokenValueArray = Enumerable.Repeat(BlankTokenId, 20480).ToImmutableArray();
+
+                return _blankTokenValueArray;
+            }
         }
     }
 }
