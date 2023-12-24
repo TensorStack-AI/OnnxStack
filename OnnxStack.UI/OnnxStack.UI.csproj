@@ -11,6 +11,18 @@
     <Configurations>Debug;Release;Debug-DirectML;Debug-Cuda;Debug-TensorRT;Release-DirectML;Release-Cuda;Release-TensorRT</Configurations>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-DirectML|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Cuda|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-TensorRT|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="appsettings.json" />
     <None Remove="Fonts\fa-brands-400.ttf" />
@@ -41,7 +53,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.12.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-DirectML' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
+    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.13.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-DirectML' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
+    <PackageReference Include="OnnxStack.ImageUpscaler" Version="0.13.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-DirectML' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
     <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-DirectML' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
     <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-DirectML' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
   </ItemGroup>
