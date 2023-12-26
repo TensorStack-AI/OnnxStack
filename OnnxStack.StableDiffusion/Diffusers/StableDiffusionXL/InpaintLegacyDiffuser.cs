@@ -72,7 +72,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
 
                 // Get Time ids
-                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions, performGuidance);
+                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -86,6 +86,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
+                    var timeids = performGuidance ? addTimeIds.Repeat(2) : addTimeIds;
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
@@ -95,7 +96,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
-                        inferenceParameters.AddInputTensor(addTimeIds);
+                        inferenceParameters.AddInputTensor(timeids);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
