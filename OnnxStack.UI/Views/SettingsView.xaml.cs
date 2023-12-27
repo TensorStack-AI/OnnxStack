@@ -1,9 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core.Config;
 using OnnxStack.UI.Commands;
+using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,6 +20,7 @@ namespace OnnxStack.UI.Views
     public partial class SettingsView : UserControl, INavigatable, INotifyPropertyChanged
     {
         private readonly ILogger<SettingsView> _logger;
+        private readonly IDialogService _dialogService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsView"/> class.
@@ -24,13 +28,29 @@ namespace OnnxStack.UI.Views
         public SettingsView()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
+            {
                 _logger = App.GetService<ILogger<SettingsView>>();
+                _dialogService = App.GetService<IDialogService>();
+            }
 
-            SaveCommand = new AsyncRelayCommand(Save);
+            SaveCommand = new AsyncRelayCommand(SaveConfigurationFile);
+            AddUpscaleModelCommand = new AsyncRelayCommand(AddUpscaleModel);
+            UpdateUpscaleModelCommand = new AsyncRelayCommand(UpdateUpscaleModel, () => SelectedUpscaleModel is not null);
+            RemoveUpscaleModelCommand = new AsyncRelayCommand(RemoveUpscaleModel, () => SelectedUpscaleModel is not null);
+            AddStableDiffusionModelCommand = new AsyncRelayCommand(AddStableDiffusionModel);
+            UpdateStableDiffusionModelCommand = new AsyncRelayCommand(UpdateStableDiffusionModel, () => SelectedStableDiffusionModel is not null);
+            RemoveStableDiffusionModelCommand = new AsyncRelayCommand(RemoveStableDiffusionModel, () => SelectedStableDiffusionModel is not null);
             InitializeComponent();
         }
 
         public AsyncRelayCommand SaveCommand { get; }
+        public AsyncRelayCommand AddUpscaleModelCommand { get; }
+        public AsyncRelayCommand UpdateUpscaleModelCommand { get; }
+        public AsyncRelayCommand RemoveUpscaleModelCommand { get; }
+        public AsyncRelayCommand AddStableDiffusionModelCommand { get; }
+        public AsyncRelayCommand UpdateStableDiffusionModelCommand { get; }
+        public AsyncRelayCommand RemoveStableDiffusionModelCommand { get; }
+
 
         public OnnxStackUIConfig UISettings
         {
@@ -42,12 +62,30 @@ namespace OnnxStack.UI.Views
 
 
 
+        private StableDiffusionModelSetViewModel _selectedStableDiffusionModel;
+
+        public StableDiffusionModelSetViewModel SelectedStableDiffusionModel
+        {
+            get { return _selectedStableDiffusionModel; }
+            set { _selectedStableDiffusionModel = value; NotifyPropertyChanged(); }
+        }
+
+
+        private UpscaleModelSetViewModel _selectedUpscaleModel;
+
+        public UpscaleModelSetViewModel SelectedUpscaleModel
+        {
+            get { return _selectedUpscaleModel; }
+            set { _selectedUpscaleModel = value; NotifyPropertyChanged(); }
+        }
+
+
         public Task NavigateAsync(ImageResult imageResult)
         {
             throw new NotImplementedException();
         }
 
-        private Task Save()
+        private Task SaveConfigurationFile()
         {
             try
             {
@@ -59,6 +97,141 @@ namespace OnnxStack.UI.Views
             }
             return Task.CompletedTask;
         }
+
+
+
+
+
+
+        private async Task AddStableDiffusionModel()
+        {
+            var addModelDialog = _dialogService.GetDialog<AddModelDialog>();
+            if (addModelDialog.ShowDialog())
+            {
+                var model = new StableDiffusionModelSetViewModel
+                {
+                    Name = addModelDialog.ModelSetResult.Name,
+                    ModelSet = addModelDialog.ModelSetResult
+                };
+
+                UISettings.StableDiffusionModelSets.Add(model);
+                SelectedStableDiffusionModel = model;
+                await SaveConfigurationFile();
+            }
+        }
+
+        private async Task RemoveStableDiffusionModel()
+        {
+            if (SelectedStableDiffusionModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            UISettings.StableDiffusionModelSets.Remove(SelectedStableDiffusionModel);
+            SelectedStableDiffusionModel = UISettings.StableDiffusionModelSets.FirstOrDefault();
+            await SaveConfigurationFile();
+        }
+
+
+        private async Task UpdateStableDiffusionModel()
+        {
+            if (SelectedStableDiffusionModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateModelDialog>();
+            if (updateModelDialog.ShowDialog(SelectedStableDiffusionModel.ModelSet))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                SelectedStableDiffusionModel.ModelSet = modelSet;
+                SelectedStableDiffusionModel.Name = modelSet.Name;
+                UISettings.StableDiffusionModelSets.ForceNotifyCollectionChanged();
+                await SaveConfigurationFile();
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        private async Task AddUpscaleModel()
+        {
+            var addModelDialog = _dialogService.GetDialog<AddUpscaleModelDialog>();
+            if (addModelDialog.ShowDialog())
+            {
+                var model = new UpscaleModelSetViewModel
+                {
+                    Name = addModelDialog.ModelSetResult.Name,
+                    ModelSet = addModelDialog.ModelSetResult
+                };
+                UISettings.UpscaleModelSets.Add(model);
+                SelectedUpscaleModel = model;
+                await SaveConfigurationFile();
+            }
+        }
+
+
+
+        private async Task UpdateUpscaleModel()
+        {
+            if (SelectedUpscaleModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateUpscaleModelDialog>();
+            if (updateModelDialog.ShowDialog(SelectedUpscaleModel.ModelSet))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                SelectedUpscaleModel.ModelSet = modelSet;
+                SelectedUpscaleModel.Name = modelSet.Name;
+                UISettings.UpscaleModelSets.ForceNotifyCollectionChanged();
+                await SaveConfigurationFile();
+            }
+        }
+
+
+        private async Task RemoveUpscaleModel()
+        {
+            if (SelectedUpscaleModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            UISettings.UpscaleModelSets.Remove(SelectedUpscaleModel);
+            SelectedUpscaleModel = UISettings.UpscaleModelSets.FirstOrDefault();
+            await SaveConfigurationFile();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

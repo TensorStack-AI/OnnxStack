@@ -45,7 +45,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -60,7 +60,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
 
                 // Get Time ids
-                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions, performGuidance);
+                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -74,6 +74,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
+                    var timeids = performGuidance ? addTimeIds.Repeat(2) : addTimeIds;
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
@@ -83,7 +84,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
-                        inferenceParameters.AddInputTensor(addTimeIds);
+                        inferenceParameters.AddInputTensor(timeids);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
@@ -115,26 +116,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// </summary>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        protected DenseTensor<float> GetAddTimeIds(IModelOptions model, SchedulerOptions schedulerOptions, bool performGuidance)
+        protected DenseTensor<float> GetAddTimeIds(StableDiffusionModelSet model, SchedulerOptions schedulerOptions)
         {
-            float[] result;
-            if (model.ModelType == ModelType.Refiner)
-            {
-                //original_size + crops_coords_top_left + aesthetic_score
-                //original_size + crops_coords_top_left + negative_aesthetic_score
-                result = !performGuidance
-                    ? new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticScore }
-                    : new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticNegativeScore, schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticScore };
-            }
-            else
-            {
-                //original_size + crops_coords_top_left + target_size
-                //original_size + crops_coords_top_left + negative_target_size
-                result = !performGuidance
-                      ? new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width }
-                      : new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width, schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width };
-            }
-
+            float[] result = model.ModelType == ModelType.Refiner
+                ? new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticScore }
+                : new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width };
             return TensorHelper.CreateTensor(result, new[] { 1, result.Length });
         }
 

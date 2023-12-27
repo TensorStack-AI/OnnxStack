@@ -1,25 +1,22 @@
 ﻿using OnnxStack.Core.Image;
-using OnnxStack.StableDiffusion;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
 {
     public sealed class StableDiffusionGif : IExampleRunner
     {
         private readonly string _outputDirectory;
+        private readonly StableDiffusionConfig _configuration;
         private readonly IStableDiffusionService _stableDiffusionService;
 
-        public StableDiffusionGif(IStableDiffusionService stableDiffusionService)
+        public StableDiffusionGif(StableDiffusionConfig configuration, IStableDiffusionService stableDiffusionService)
         {
+            _configuration = configuration;
             _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionGif));
             Directory.CreateDirectory(_outputDirectory);
@@ -54,7 +51,7 @@ namespace OnnxStack.Console.Runner
             };
 
             // Choose Model
-            var model = _stableDiffusionService.Models.FirstOrDefault(x => x.Name == "LCM-Dreamshaper-V7");
+            var model = _configuration.ModelSets.FirstOrDefault(x => x.Name == "LCM-Dreamshaper-V7");
             OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
             await _stableDiffusionService.LoadModelAsync(model);
 

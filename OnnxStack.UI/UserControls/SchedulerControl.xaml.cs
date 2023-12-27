@@ -1,8 +1,5 @@
-﻿using LibGit2Sharp;
-using Models;
-using OnnxStack.Core;
+﻿using OnnxStack.Core;
 using OnnxStack.StableDiffusion;
-using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
@@ -22,7 +19,6 @@ namespace OnnxStack.UI.UserControls
     /// </summary>
     public partial class SchedulerControl : UserControl, INotifyPropertyChanged
     {
-        private SchedulerOptionsConfig _optionsConfig = new();
         private ObservableCollection<SchedulerType> _schedulerTypes = new();
 
         /// <summary>Initializes a new instance of the <see cref="SchedulerControl" /> class.</summary>
@@ -49,16 +45,16 @@ namespace OnnxStack.UI.UserControls
         /// <summary>
         /// Gets or sets the selected model.
         /// </summary>
-        public ModelOptionsModel SelectedModel
+        public StableDiffusionModelSetViewModel SelectedModel
         {
-            get { return (ModelOptionsModel)GetValue(SelectedModelProperty); }
+            get { return (StableDiffusionModelSetViewModel)GetValue(SelectedModelProperty); }
             set { SetValue(SelectedModelProperty, value); }
         }
         public static readonly DependencyProperty SelectedModelProperty =
-            DependencyProperty.Register("SelectedModel", typeof(ModelOptionsModel), typeof(SchedulerControl), new PropertyMetadata((d, e) =>
+            DependencyProperty.Register("SelectedModel", typeof(StableDiffusionModelSetViewModel), typeof(SchedulerControl), new PropertyMetadata((d, e) =>
             {
                 if (d is SchedulerControl schedulerControl)
-                    schedulerControl.OnModelChanged(e.NewValue as ModelOptionsModel);
+                    schedulerControl.OnModelChanged(e.NewValue as StableDiffusionModelSetViewModel);
             }));
 
 
@@ -85,25 +81,7 @@ namespace OnnxStack.UI.UserControls
         public static readonly DependencyProperty SchedulerOptionsProperty =
             DependencyProperty.Register("SchedulerOptions", typeof(SchedulerOptionsModel), typeof(SchedulerControl));
 
-
-        public BatchOptionsModel BatchOptions
-        {
-            get { return (BatchOptionsModel)GetValue(BatchOptionsProperty); }
-            set { SetValue(BatchOptionsProperty, value); }
-        }
-        public static readonly DependencyProperty BatchOptionsProperty =
-            DependencyProperty.Register("BatchOptions", typeof(BatchOptionsModel), typeof(SchedulerControl));
-
-
-        public bool IsAutomationEnabled
-        {
-            get { return (bool)GetValue(IsAutomationEnabledProperty); }
-            set { SetValue(IsAutomationEnabledProperty, value); }
-        }
-        public static readonly DependencyProperty IsAutomationEnabledProperty =
-            DependencyProperty.Register("IsAutomationEnabled", typeof(bool), typeof(SchedulerControl));
-
-
+    
         public bool IsGenerating
         {
             get { return (bool)GetValue(IsGeneratingProperty); }
@@ -114,52 +92,51 @@ namespace OnnxStack.UI.UserControls
 
 
 
-
-        /// <summary>
-        /// Gets or sets the options configuration.
-        /// </summary>
-        public SchedulerOptionsConfig OptionsConfig
-        {
-            get { return _optionsConfig; }
-            set { _optionsConfig = value; NotifyPropertyChanged(); }
-        }
-
-
         /// <summary>
         /// Called when the selected model has changed.
         /// </summary>
         /// <param name="modelOptionsModel">The model options model.</param>
-        private void OnModelChanged(ModelOptionsModel model)
+        private void OnModelChanged(StableDiffusionModelSetViewModel model)
         {
             if (model is null)
                 return;
 
             SchedulerTypes.Clear();
-            foreach (SchedulerType type in model.ModelOptions.PipelineType.GetSchedulerTypes())
+            foreach (SchedulerType type in model.ModelSet.PipelineType.GetSchedulerTypes())
                 SchedulerTypes.Add(type);
 
             SchedulerOptions.Width = 512;
             SchedulerOptions.Height = 512;
-            if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusion)
+            if (model.ModelSet.PipelineType == DiffuserPipelineType.StableDiffusion)
             {
                 SchedulerOptions.OriginalInferenceSteps = 100;
                 SchedulerOptions.InferenceSteps = 30;
+                SchedulerOptions.GuidanceScale = 7.5f;
                 SchedulerOptions.SchedulerType = SchedulerType.DDIM;
             }
-            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.LatentConsistency)
+            else if (model.ModelSet.PipelineType == DiffuserPipelineType.LatentConsistency)
             {
                 SchedulerOptions.OriginalInferenceSteps = 50;
                 SchedulerOptions.InferenceSteps = 6;
                 SchedulerOptions.GuidanceScale = 1f;
                 SchedulerOptions.SchedulerType = SchedulerType.LCM;
             }
-            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.InstaFlow)
+            else if (model.ModelSet.PipelineType == DiffuserPipelineType.LatentConsistencyXL)
+            {
+                SchedulerOptions.OriginalInferenceSteps = 50;
+                SchedulerOptions.InferenceSteps = 6;
+                SchedulerOptions.GuidanceScale = 1f;
+                SchedulerOptions.Width = 1024;
+                SchedulerOptions.Height = 1024;
+                SchedulerOptions.SchedulerType = SchedulerType.LCM;
+            }
+            else if (model.ModelSet.PipelineType == DiffuserPipelineType.InstaFlow)
             {
                 SchedulerOptions.InferenceSteps = 1;
                 SchedulerOptions.GuidanceScale = 0f;
                 SchedulerOptions.SchedulerType = SchedulerType.InstaFlow;
             }
-            else if (model.ModelOptions.PipelineType == DiffuserPipelineType.StableDiffusionXL)
+            else if (model.ModelSet.PipelineType == DiffuserPipelineType.StableDiffusionXL)
             {
                 SchedulerOptions.OriginalInferenceSteps = 100;
                 SchedulerOptions.InferenceSteps = 30;
@@ -168,7 +145,6 @@ namespace OnnxStack.UI.UserControls
                 SchedulerOptions.Height = 1024;
                 SchedulerOptions.SchedulerType = SchedulerType.EulerAncestral;
             }
-           
         }
 
 
@@ -179,7 +155,7 @@ namespace OnnxStack.UI.UserControls
         {
             SchedulerOptions = new SchedulerOptionsModel
             {
-                SchedulerType = SelectedModel.ModelOptions.PipelineType.GetSchedulerTypes().First()
+                SchedulerType = SelectedModel.ModelSet.PipelineType.GetSchedulerTypes().First()
             };
         }
 

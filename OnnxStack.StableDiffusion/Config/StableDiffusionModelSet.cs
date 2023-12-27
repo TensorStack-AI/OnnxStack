@@ -1,6 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -9,8 +8,10 @@ using System.Text.Json.Serialization;
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public class ModelOptions : IModelOptions, IOnnxModelSetConfig
+    public record StableDiffusionModelSet : IOnnxModelSetConfig
     {
+        private ImmutableArray<int> _blankTokenValueArray;
+
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
         public int PadTokenId { get; set; }
@@ -30,14 +31,19 @@ namespace OnnxStack.StableDiffusion.Config
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
-        public List<OnnxModelSessionConfig> ModelConfigurations { get; set; }
+        public List<OnnxModelConfig> ModelConfigurations { get; set; }
+
 
         [JsonIgnore]
-        public ImmutableArray<int> BlankTokenValueArray { get; set; }
-
-        public void InitBlankTokenArray()
+        public ImmutableArray<int> BlankTokenValueArray
         {
-            BlankTokenValueArray = Enumerable.Repeat(BlankTokenId, 20480).ToImmutableArray();
+            get
+            {
+                if (_blankTokenValueArray.IsDefaultOrEmpty)
+                    _blankTokenValueArray = Enumerable.Repeat(BlankTokenId, 20480).ToImmutableArray();
+
+                return _blankTokenValueArray;
+            }
         }
     }
 }

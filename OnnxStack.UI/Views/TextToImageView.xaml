@@ -16,15 +16,15 @@
         <!--Control Panel-->
         <DockPanel Grid.Column="0" DataContext="{Binding ElementName=UI}" Margin="3,3,3,0">
             <UniformGrid DockPanel.Dock="Bottom" Columns="2" Height="30">
-                <Button Command="{Binding CancelCommand}" Margin="0,0,1,0" Style="{StaticResource ButtonGenerateCancelStyle}"/>
-                <Button Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" Style="{StaticResource ButtonGenerateStyle}" IsDefault="True" Margin="1,0,0,0"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}" Margin="0,0,1,0" />
+                <Button Content="Generate" Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" IsDefault="True" Margin="1,0,0,0"/>
             </UniformGrid>
             <DockPanel >
                 <userControls:ModelPickerControl DockPanel.Dock="Top"
                    UISettings="{Binding UISettings}"
                    SupportedDiffusers="{Binding SupportedDiffusers}"
                    IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
-                   SelectedModel="{Binding SelectedModel, Mode=TwoWay}" Models="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=Models}"/>
+                   SelectedModel="{Binding SelectedModel, Mode=TwoWay}" />
                 <UniformGrid Rows="2" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
                     <userControls:PromptControl 
                         SelectedModel="{Binding SelectedModel}"
@@ -33,11 +33,9 @@
                     <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
                         SelectedModel="{Binding SelectedModel}"
                         DiffuserType="TextToImage" 
-                        BatchOptions="{Binding BatchOptions}"
                         SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
                         IsEnabled="{Binding IsControlsEnabled}"
-                        IsGenerating="{Binding IsGenerating}"
-                        IsAutomationEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"/>
+                        IsGenerating="{Binding IsGenerating}"/>
                 </UniformGrid>
             </DockPanel>
         </DockPanel>

@@ -23,7 +23,7 @@ namespace OnnxStack.Core
         {
             serviceCollection.AddOnnxStack();
             serviceCollection.RegisterServices();
-            serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<StableDiffusionConfig>(nameof(OnnxStackConfig)));
+            serviceCollection.AddSingleton(TryLoadAppSettings());
         }
 
 
@@ -51,6 +51,7 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IPipeline, StableDiffusionPipeline>();
             serviceCollection.AddSingleton<IPipeline, StableDiffusionXLPipeline>();
             serviceCollection.AddSingleton<IPipeline, LatentConsistencyPipeline>();
+            serviceCollection.AddSingleton<IPipeline, LatentConsistencyXLPipeline>();
             serviceCollection.AddSingleton<IPipeline, InstaFlowPipeline>();
 
             //StableDiffusion
@@ -69,6 +70,11 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.ImageDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.InpaintLegacyDiffuser>();
 
+            //LatentConsistencyXL
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistencyXL.TextDiffuser>();
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistencyXL.ImageDiffuser>();
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistencyXL.InpaintLegacyDiffuser>();
+
             //InstaFlow
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.InstaFlow.TextDiffuser>();
         }
@@ -85,6 +91,23 @@ namespace OnnxStack.Core
             {
                 MaximumPoolSizeMegabytes = 100,
             });
+        }
+
+
+        /// <summary>
+        /// Try load StableDiffusionConfig from application settings.
+        /// </summary>
+        /// <returns></returns>
+        private static StableDiffusionConfig TryLoadAppSettings()
+        {
+            try
+            {
+                return ConfigManager.LoadConfiguration<StableDiffusionConfig>();
+            }
+            catch
+            {
+                return new StableDiffusionConfig();
+            }
         }
     }
 }

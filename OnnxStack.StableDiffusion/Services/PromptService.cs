@@ -39,7 +39,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="prompt">The prompt.</param>
         /// <param name="negativePrompt">The negative prompt.</param>
         /// <returns>Tensor containing all text embeds generated from the prompt and negative prompt</returns>
-        public async Task<PromptEmbeddingsResult> CreatePromptAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
+        public async Task<PromptEmbeddingsResult> CreatePromptAsync(StableDiffusionModelSet model, PromptOptions promptOptions, bool isGuidanceEnabled)
         {
             return model.TokenizerType switch
             {
@@ -58,7 +58,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="isGuidanceEnabled">if set to <c>true</c> is guidance enabled.</param>
         /// <returns></returns>
-        private async Task<PromptEmbeddingsResult> CreateEmbedsOneAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
+        private async Task<PromptEmbeddingsResult> CreateEmbedsOneAsync(StableDiffusionModelSet model, PromptOptions promptOptions, bool isGuidanceEnabled)
         {
             // Tokenize Prompt and NegativePrompt
             var promptTokens = await DecodeTextAsIntAsync(model, promptOptions.Prompt);
@@ -82,7 +82,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="isGuidanceEnabled">if set to <c>true</c> is guidance enabled.</param>
         /// <returns></returns>
-        private async Task<PromptEmbeddingsResult> CreateEmbedsTwoAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
+        private async Task<PromptEmbeddingsResult> CreateEmbedsTwoAsync(StableDiffusionModelSet model, PromptOptions promptOptions, bool isGuidanceEnabled)
         {
             /// Tokenize Prompt and NegativePrompt with Tokenizer2
             var promptTokens = await DecodeTextAsLongAsync(model, promptOptions.Prompt);
@@ -109,7 +109,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="isGuidanceEnabled">if set to <c>true</c> is guidance enabled.</param>
         /// <returns></returns>
-        private async Task<PromptEmbeddingsResult> CreateEmbedsBothAsync(IModelOptions model, PromptOptions promptOptions, bool isGuidanceEnabled)
+        private async Task<PromptEmbeddingsResult> CreateEmbedsBothAsync(StableDiffusionModelSet model, PromptOptions promptOptions, bool isGuidanceEnabled)
         {
             // Tokenize Prompt and NegativePrompt
             var promptTokens = await DecodeTextAsIntAsync(model, promptOptions.Prompt);
@@ -145,7 +145,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="inputText">The input text.</param>
         /// <returns>Tokens generated for the specified text input</returns>
-        private Task<int[]> DecodeTextAsIntAsync(IModelOptions model, string inputText)
+        private Task<int[]> DecodeTextAsIntAsync(StableDiffusionModelSet model, string inputText)
         {
             if (string.IsNullOrEmpty(inputText))
                 return Task.FromResult(Array.Empty<int>());
@@ -171,7 +171,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="inputText">The input text.</param>
         /// <returns>Tokens generated for the specified text input</returns>
-        private Task<long[]> DecodeTextAsLongAsync(IModelOptions model, string inputText)
+        private Task<long[]> DecodeTextAsLongAsync(StableDiffusionModelSet model, string inputText)
         {
             if (string.IsNullOrEmpty(inputText))
                 return Task.FromResult(Array.Empty<long>());
@@ -197,7 +197,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="tokenizedInput">The tokenized input.</param>
         /// <returns></returns>
-        private async Task<float[]> EncodeTokensAsync(IModelOptions model, int[] tokenizedInput)
+        private async Task<float[]> EncodeTokensAsync(StableDiffusionModelSet model, int[] tokenizedInput)
         {
             var inputDim = new[] { 1, tokenizedInput.Length };
             var outputDim = new[] { 1, tokenizedInput.Length, model.TokenizerLength };
@@ -223,7 +223,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="model">The model.</param>
         /// <param name="tokenizedInput">The tokenized input.</param>
         /// <returns></returns>
-        private async Task<EncoderResult> EncodeTokensAsync(IModelOptions model, long[] tokenizedInput)
+        private async Task<EncoderResult> EncodeTokensAsync(StableDiffusionModelSet model, long[] tokenizedInput)
         {
             var inputDim = new[] { 1, tokenizedInput.Length };
             var promptOutputDim = new[] { 1, tokenizedInput.Length, model.Tokenizer2Length };
@@ -250,7 +250,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="inputTokens">The input tokens.</param>
         /// <param name="minimumLength">The minimum length.</param>
         /// <returns></returns>
-        private async Task<EmbedsResult> GenerateEmbedsAsync(IModelOptions model, long[] inputTokens, int minimumLength)
+        private async Task<EmbedsResult> GenerateEmbedsAsync(StableDiffusionModelSet model, long[] inputTokens, int minimumLength)
         {
             // If less than minimumLength pad with blank tokens
             if (inputTokens.Length < minimumLength)
@@ -284,7 +284,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <param name="inputTokens">The input tokens.</param>
         /// <param name="minimumLength">The minimum length.</param>
         /// <returns></returns>
-        private async Task<DenseTensor<float>> GenerateEmbedsAsync(IModelOptions model, int[] inputTokens, int minimumLength)
+        private async Task<DenseTensor<float>> GenerateEmbedsAsync(StableDiffusionModelSet model, int[] inputTokens, int minimumLength)
         {
             // If less than minimumLength pad with blank tokens
             if (inputTokens.Length < minimumLength)

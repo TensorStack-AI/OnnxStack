@@ -46,7 +46,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback"></param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override Task<DenseTensor<float>> DiffuseAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public override Task<DenseTensor<float>> DiffuseAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;
@@ -64,7 +64,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;
@@ -88,7 +88,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -107,9 +107,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 
                 // Get Model metadata
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
-
-                // Some LCM variants require no guidance embeds 
-                var guidanceEmbeddingsRequired = metadata.Inputs.Count == 4;
 
                 // Loop though the timesteps
                 var step = 0;
@@ -130,8 +127,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                        if(guidanceEmbeddingsRequired)
-                            inferenceParameters.AddInputTensor(guidanceEmbeddings);
+                        inferenceParameters.AddInputTensor(guidanceEmbeddings);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);

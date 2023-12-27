@@ -49,7 +49,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
             using (var scheduler = GetScheduler(schedulerOptions))
             {
@@ -72,7 +72,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
 
                 // Get Time ids
-                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions, performGuidance);
+                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -86,6 +86,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
+                    var timeids = performGuidance ? addTimeIds.Repeat(2) : addTimeIds;
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
@@ -95,7 +96,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
-                        inferenceParameters.AddInputTensor(addTimeIds);
+                        inferenceParameters.AddInputTensor(timeids);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
@@ -150,7 +151,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> PrepareLatentsAsync(IModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override async Task<DenseTensor<float>> PrepareLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
 
@@ -179,7 +180,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        private DenseTensor<float> PrepareMask(IModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        private DenseTensor<float> PrepareMask(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
             using (var mask = promptOptions.InputImageMask.ToImage())
             {

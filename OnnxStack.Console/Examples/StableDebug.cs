@@ -10,10 +10,12 @@ namespace OnnxStack.Console.Runner
     public sealed class StableDebug : IExampleRunner
     {
         private readonly string _outputDirectory;
+        private readonly StableDiffusionConfig _configuration;
         private readonly IStableDiffusionService _stableDiffusionService;
 
-        public StableDebug(IStableDiffusionService stableDiffusionService)
+        public StableDebug(StableDiffusionConfig configuration, IStableDiffusionService stableDiffusionService)
         {
+            _configuration = configuration;
             _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDebug));
         }
@@ -48,7 +50,7 @@ namespace OnnxStack.Console.Runner
                     Strength = 0.6f
                 };
 
-                foreach (var model in _stableDiffusionService.Models)
+                foreach (var model in _configuration.ModelSets)
                 {
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModelAsync(model);
@@ -71,7 +73,7 @@ namespace OnnxStack.Console.Runner
         }
 
 
-        private async Task<bool> GenerateImage(ModelOptions model, PromptOptions prompt, SchedulerOptions options)
+        private async Task<bool> GenerateImage(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options)
         {
             var timestamp = Stopwatch.GetTimestamp();
             var outputFilename = Path.Combine(_outputDirectory, $"{model.Name}_{options.Seed}_{options.SchedulerType}.png");

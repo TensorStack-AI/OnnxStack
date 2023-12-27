@@ -6,17 +6,25 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
+    <Configurations>Debug;Release;Debug-DirectML;Debug-Cuda;Debug-TensorRT;Release-DirectML;Release-Cuda;Release-TensorRT</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" />
-    <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" />
+    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.12.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-DirectML' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
+    <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-DirectML' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
+    <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-DirectML' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Release' " />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug-TensorRT' OR '$(Configuration)' == 'Release-TensorRT'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Release-Cuda'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug-DirectML' OR '$(Configuration)' == 'Release-DirectML'" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public class UpscaleModelSet : IOnnxModelSetConfig
+    public record UpscaleModelSet : IOnnxModelSetConfig
     {
         public string Name { get; set; }
         public int Channels { get; set; }
@@ -16,6 +16,6 @@ namespace OnnxStack.StableDiffusion.Config
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
-        public List<OnnxModelSessionConfig> ModelConfigurations { get; set; }
+        public List<OnnxModelConfig> ModelConfigurations { get; set; }
       }
 }

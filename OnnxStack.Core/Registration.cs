@@ -16,7 +16,7 @@ namespace OnnxStack.Core
         /// <param name="serviceCollection">The service collection.</param>
         public static void AddOnnxStack(this IServiceCollection serviceCollection)
         {
-            serviceCollection.AddSingleton(ConfigManager.LoadConfiguration());
+            serviceCollection.AddSingleton(TryLoadAppSettings());
             serviceCollection.AddSingleton<IOnnxModelService, OnnxModelService>();
         }
 
@@ -42,6 +42,23 @@ namespace OnnxStack.Core
             where T : class, IConfigSection
         {
             serviceCollection.AddSingleton(ConfigManager.LoadConfiguration<T>());
+        }
+
+
+        /// <summary>
+        /// Try load OnnxStackConfig from application settings if it exists.
+        /// </summary>
+        /// <returns></returns>
+        private static OnnxStackConfig TryLoadAppSettings()
+        {
+            try
+            {
+                return ConfigManager.LoadConfiguration<OnnxStackConfig>();
+            }
+            catch
+            {
+                return new OnnxStackConfig();
+            }
         }
     }
 }

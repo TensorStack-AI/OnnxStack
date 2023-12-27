@@ -1,14 +1,10 @@
-﻿using Models;
-using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
+﻿using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Models;
 using System;
-using System.Diagnostics;
+using System.Collections.ObjectModel;
 using System.IO;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -49,13 +45,12 @@ namespace OnnxStack.UI
             }
         }
 
-
-        public static async Task<bool> SaveImageFileAsync(this ImageResult imageResult, string filename)
+        public static async Task<bool> SaveImageFileAsync(this BitmapSource image, string filename)
         {
             await Task.Run(() =>
             {
                 var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(imageResult.Image));
+                encoder.Frames.Add(BitmapFrame.Create(image));
                 using (var fileStream = new FileStream(filename, FileMode.Create))
                 {
                     encoder.Save(fileStream);
@@ -77,24 +72,6 @@ namespace OnnxStack.UI
                 await JsonSerializer.SerializeAsync(fileStream, imageResult, serializerOptions);
                 return File.Exists(filename);
             }
-        }
-
-
-        public static async Task<bool> AutoSaveAsync(this ImageResult imageResult, string autosaveDirectory, bool includeBlueprint)
-        {
-            if (!Directory.Exists(autosaveDirectory))
-                Directory.CreateDirectory(autosaveDirectory);
-
-            var random = RandomString();
-            var imageFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.png");
-            var blueprintFile = Path.Combine(autosaveDirectory, $"image-{imageResult.SchedulerOptions.Seed}-{random}.json");
-            if (!await imageResult.SaveImageFileAsync(imageFile))
-                return false;
-
-            if (includeBlueprint)
-                return await imageResult.SaveBlueprintFileAsync(blueprintFile);
-
-            return true;
         }
 
 
@@ -160,47 +137,7 @@ namespace OnnxStack.UI
             };
         }
 
-        public static PromptOptionsModel ToPromptOptionsModel(this PromptOptions promptOptions)
-        {
-            return new PromptOptionsModel
-            {
-                Prompt = promptOptions.Prompt,
-                NegativePrompt = promptOptions.NegativePrompt
-            };
-        }
 
-
-
-        public static BatchOptionsModel ToBatchOptionsModel(this BatchOptions batchOptions)
-        {
-            return new BatchOptionsModel
-            {
-                BatchType = batchOptions.BatchType,
-                ValueTo = batchOptions.ValueTo,
-                Increment = batchOptions.Increment,
-                ValueFrom = batchOptions.ValueFrom
-            };
-        }
-
-
-        public static BatchOptions ToBatchOptions(this BatchOptionsModel batchOptionsModel)
-        {
-            return new BatchOptions
-            {
-                BatchType = batchOptionsModel.BatchType,
-                ValueTo = batchOptionsModel.ValueTo,
-                Increment = batchOptionsModel.Increment,
-                ValueFrom = batchOptionsModel.ValueFrom
-            };
-        }
-
-        internal static async Task RefreshDelay(long startTime, int refreshRate, CancellationToken cancellationToken)
-        {
-            var endTime = Stopwatch.GetTimestamp();
-            var elapsedMilliseconds = (endTime - startTime) * 1000.0 / Stopwatch.Frequency;
-            int adjustedDelay = Math.Max(0, refreshRate - (int)elapsedMilliseconds);
-            await Task.Delay(adjustedDelay, cancellationToken).ConfigureAwait(false);
-        }
 
         public static void LogToWindow(string message)
         {
@@ -208,6 +145,18 @@ namespace OnnxStack.UI
             {
                 (System.Windows.Application.Current.MainWindow as MainWindow).UpdateOutputLog(message);
             }));
+        }
+
+
+        /// <summary>
+        /// Forces the notify collection changed event.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection">The collection.</param>
+        public static void ForceNotifyCollectionChanged<T>(this ObservableCollection<T> collection)
+        {
+            // Hack: Moving an item will invoke a collection changed event
+            collection?.Move(0, 0);
         }
     }
 }

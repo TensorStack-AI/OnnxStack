@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Windows;
+﻿using System.Windows;
 
 namespace OnnxStack.UI.Services
 {

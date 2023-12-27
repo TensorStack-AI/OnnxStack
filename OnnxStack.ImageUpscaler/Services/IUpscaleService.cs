@@ -1,10 +1,8 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Image;
-using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -14,24 +12,11 @@ namespace OnnxStack.ImageUpscaler.Services
     {
 
         /// <summary>
-        /// Gets the configuration.
-        /// </summary>
-        ImageUpscalerConfig Configuration { get; }
-
-
-        /// <summary>
-        /// Gets the model sets.
-        /// </summary>
-        IReadOnlyList<UpscaleModelSet> ModelSets { get; }
-
-
-        /// <summary>
         /// Loads the model.
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
         Task<bool> LoadModelAsync(UpscaleModelSet model);
-
 
         /// <summary>
         /// Unloads the model.
@@ -40,6 +25,14 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <returns></returns>
         Task<bool> UnloadModelAsync(UpscaleModelSet model);
 
+        /// <summary>
+        /// Determines whether [is model loaded] [the specified model options].
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns>
+        ///   <c>true</c> if [is model loaded] [the specified model options]; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsModelLoaded(UpscaleModelSet modelOptions);
 
         /// <summary>
         /// Generates the upscaled image.

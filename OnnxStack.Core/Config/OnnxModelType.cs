@@ -8,6 +8,7 @@
         TextEncoder = 20,
         TextEncoder2 = 21,
         VaeEncoder = 30,
-        VaeDecoder = 40
+        VaeDecoder = 40,
+        Upscaler = 1000
     }
 }

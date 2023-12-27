@@ -1,15 +1,15 @@
-﻿using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.StableDiffusion.Config;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
-namespace Models
+namespace OnnxStack.UI.Models
 {
-    public class ModelOptionsModel : INotifyPropertyChanged
+    public class StableDiffusionModelSetViewModel : INotifyPropertyChanged
     {
         private string _name;
         private bool _isLoaded;
         private bool _isLoading;
-        private bool _isEnabled;
 
         public string Name
         {
@@ -17,26 +17,21 @@ namespace Models
             set { _name = value; NotifyPropertyChanged(); }
         }
 
+        [JsonIgnore]
         public bool IsLoaded
         {
             get { return _isLoaded; }
             set { _isLoaded = value; NotifyPropertyChanged(); }
         }
 
+        [JsonIgnore]
         public bool IsLoading
         {
             get { return _isLoading; }
             set { _isLoading = value; NotifyPropertyChanged(); }
         }
 
-        public bool IsEnabled
-        {
-            get { return _isEnabled; }
-            set { _isEnabled = value; NotifyPropertyChanged(); }
-        }
-
-        public IModelOptions ModelOptions { get; set; }
-
+        public StableDiffusionModelSet ModelSet { get; set; }
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
