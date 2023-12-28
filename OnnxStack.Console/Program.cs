@@ -3,7 +3,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
 using OnnxStack.ImageUpscaler;
-using OnnxStack.ImageUpscaler.Config;
 using System.Reflection;
 
 namespace OnnxStack.Console
