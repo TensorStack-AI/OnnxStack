@@ -9,6 +9,7 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -98,7 +99,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                         }
                     }
 
-                    progressCallback?.Invoke(step, timesteps.Count);
+                     ReportProgress(progressCallback, step, timesteps.Count, latents);
                     _logger?.LogEnd($"Step {step}/{timesteps.Count}", stepTime);
                 }
 
