@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
+using OnnxStack.StableDiffusion.Diffusers.LatentConsistency;
 using OnnxStack.StableDiffusion.Pipelines;
 using OnnxStack.StableDiffusion.Services;
 using SixLabors.ImageSharp;
@@ -44,6 +46,7 @@ namespace OnnxStack.Core
             ConfigureLibraries();
 
             // Services
+            serviceCollection.AddSingleton<IVideoService, VideoService>();
             serviceCollection.AddSingleton<IPromptService, PromptService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
 
@@ -69,6 +72,7 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.TextDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.ImageDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.InpaintLegacyDiffuser>();
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistency.VideoDiffuser>();
 
             //LatentConsistencyXL
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.LatentConsistencyXL.TextDiffuser>();
