@@ -1,6 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -26,6 +25,7 @@ namespace OnnxStack.StableDiffusion.Services
     /// <seealso cref="OnnxStack.StableDiffusion.Common.IStableDiffusionService" />
     public sealed class StableDiffusionService : IStableDiffusionService
     {
+        private readonly IVideoService _videoService;
         private readonly IOnnxModelService _modelService;
         private readonly StableDiffusionConfig _configuration;
         private readonly ConcurrentDictionary<DiffuserPipelineType, IPipeline> _pipelines;
@@ -34,10 +34,11 @@ namespace OnnxStack.StableDiffusion.Services
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
         /// </summary>
         /// <param name="schedulerService">The scheduler service.</param>
-        public StableDiffusionService(StableDiffusionConfig configuration, IOnnxModelService onnxModelService, IEnumerable<IPipeline> pipelines)
+        public StableDiffusionService(StableDiffusionConfig configuration, IOnnxModelService onnxModelService, IVideoService videoService, IEnumerable<IPipeline> pipelines)
         {
             _configuration = configuration;
             _modelService = onnxModelService;
+            _videoService = videoService;
             _pipelines = pipelines.ToConcurrentDictionary(k => k.PipelineType, k => k);
         }
 
@@ -115,9 +116,11 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns>The diffusion result as <see cref="byte[]"/></returns>
         public async Task<byte[]> GenerateAsBytesAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await GenerateAsync(model, prompt, options, progressCallback, cancellationToken)
-                .ContinueWith(t => t.Result.ToImageBytes(), cancellationToken)
-                .ConfigureAwait(false);
+            var generateResult = await GenerateAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
+            if (!prompt.HasInputVideo)
+                return generateResult.ToImageBytes();
+
+            return await GetVideoResultAsBytesAsync(options, generateResult, cancellationToken).ConfigureAwait(false);
         }
 
 
@@ -131,9 +134,11 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns>The diffusion result as <see cref="System.IO.Stream"/></returns>
         public async Task<Stream> GenerateAsStreamAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await GenerateAsync(model, prompt, options, progressCallback, cancellationToken)
-                .ContinueWith(t => t.Result.ToImageStream(), cancellationToken)
-                .ConfigureAwait(false);
+            var generateResult = await GenerateAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
+            if (!prompt.HasInputVideo)
+                return generateResult.ToImageStream();
+
+            return await GetVideoResultAsStreamAsync(options, generateResult, cancellationToken).ConfigureAwait(false);
         }
 
 
@@ -183,7 +188,12 @@ namespace OnnxStack.StableDiffusion.Services
         public async IAsyncEnumerable<byte[]> GenerateBatchAsBytesAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await foreach (var result in GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progressCallback, cancellationToken))
-                yield return result.ImageResult.ToImageBytes();
+            {
+                if (!promptOptions.HasInputVideo)
+                    yield return result.ImageResult.ToImageBytes();
+
+                yield return await GetVideoResultAsBytesAsync(schedulerOptions, result.ImageResult, cancellationToken).ConfigureAwait(false);
+            }
         }
 
 
@@ -200,7 +210,12 @@ namespace OnnxStack.StableDiffusion.Services
         public async IAsyncEnumerable<Stream> GenerateBatchAsStreamAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await foreach (var result in GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progressCallback, cancellationToken))
-                yield return result.ImageResult.ToImageStream();
+            {
+                if (!promptOptions.HasInputVideo)
+                    yield return result.ImageResult.ToImageStream();
+
+                yield return await GetVideoResultAsStreamAsync(schedulerOptions, result.ImageResult, cancellationToken).ConfigureAwait(false);
+            }
         }
 
 
@@ -235,6 +250,21 @@ namespace OnnxStack.StableDiffusion.Services
                 throw new Exception($"Scheduler '{schedulerOptions.SchedulerType}' is not compatible  with the `{pipeline.PipelineType}` pipeline.");
 
             return diffuser.DiffuseBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progress, cancellationToken);
+        }
+
+        private async Task<byte[]> GetVideoResultAsBytesAsync(SchedulerOptions options, DenseTensor<float> tensorResult, CancellationToken cancellationToken = default)
+        {
+            var frameTensors = tensorResult
+                .Split(tensorResult.Dimensions[0])
+                .Select(x => x.ToImageBytes());
+
+            var videoResult = await _videoService.CreateVideoAsync(frameTensors, options.VideoFPS, cancellationToken);
+            return videoResult.Data;
+        }
+
+        private async Task<MemoryStream> GetVideoResultAsStreamAsync(SchedulerOptions options, DenseTensor<float> tensorResult, CancellationToken cancellationToken = default)
+        {
+            return new MemoryStream(await GetVideoResultAsBytesAsync(options, tensorResult, cancellationToken));
         }
 
 

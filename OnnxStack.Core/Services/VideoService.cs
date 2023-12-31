@@ -88,9 +88,9 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFrames">The video frames.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<VideoResult> CreateVideoAsync(VideoFrames videoFrames, CancellationToken cancellationToken = default)
+        public async Task<VideoOutput> CreateVideoAsync(VideoFrames videoFrames, CancellationToken cancellationToken = default)
         {
-            return await CreateVideoInternalAsync(videoFrames.Frames, videoFrames.FPS, cancellationToken);
+            return await CreateVideoInternalAsync(videoFrames.Frames, videoFrames.Info.FPS, cancellationToken);
         }
 
 
@@ -101,7 +101,7 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFPS">The video FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<VideoResult> CreateVideoAsync(IEnumerable<byte[]> videoFrames, float videoFPS, CancellationToken cancellationToken = default)
+        public async Task<VideoOutput> CreateVideoAsync(IEnumerable<byte[]> videoFrames, float videoFPS, CancellationToken cancellationToken = default)
         {
             return await CreateVideoInternalAsync(videoFrames, videoFPS, cancellationToken);
         }
@@ -139,7 +139,9 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         public async Task<VideoFrames> CreateFramesAsync(byte[] videoBytes, float videoFPS, CancellationToken cancellationToken = default)
         {
-            return new VideoFrames(videoFPS, await CreateFramesInternalAsync(videoBytes, videoFPS, cancellationToken).ToListAsync(cancellationToken));
+            var videoInfo = await GetVideoInfoAsync(videoBytes, cancellationToken);
+            var videoFrames = await CreateFramesInternalAsync(videoBytes, videoFPS, cancellationToken).ToListAsync(cancellationToken);
+            return new VideoFrames(videoInfo, videoFrames);
         }
 
 
@@ -155,7 +157,10 @@ namespace OnnxStack.Core.Services
             using (var memoryStream = new MemoryStream())
             {
                 await memoryStream.CopyToAsync(videoStream, cancellationToken).ConfigureAwait(false);
-                return new VideoFrames(videoFPS, await CreateFramesInternalAsync(memoryStream.ToArray(), videoFPS, cancellationToken).ToListAsync(cancellationToken));
+                var videoBytes = memoryStream.ToArray();
+                var videoInfo = await GetVideoInfoAsync(videoBytes, cancellationToken);
+                var videoFrames = await CreateFramesInternalAsync(videoBytes, videoFPS, cancellationToken).ToListAsync(cancellationToken);
+                return new VideoFrames(videoInfo, videoFrames);
             }
         }
 
@@ -197,7 +202,7 @@ namespace OnnxStack.Core.Services
         /// <param name="fps">The FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<VideoResult> CreateVideoInternalAsync(IEnumerable<byte[]> imageData, float fps = 15, CancellationToken cancellationToken = default)
+        private async Task<VideoOutput> CreateVideoInternalAsync(IEnumerable<byte[]> imageData, float fps = 15, CancellationToken cancellationToken = default)
         {
             string tempVideoPath = GetTempFilename();
             try
@@ -224,7 +229,7 @@ namespace OnnxStack.Core.Services
 
                     // Analyze the result
                     var videoInfo = await GetVideoInfoAsync(videoResult);
-                    return new VideoResult(videoResult, videoInfo);
+                    return new VideoOutput(videoResult, videoInfo);
                 }
             }
             finally

@@ -76,7 +76,7 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFPS">The video FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<VideoResult> CreateVideoAsync(IEnumerable<byte[]> videoFrames, float videoFPS, CancellationToken cancellationToken = default);
+        Task<VideoOutput> CreateVideoAsync(IEnumerable<byte[]> videoFrames, float videoFPS, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFrames">The video frames.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<VideoResult> CreateVideoAsync(VideoFrames videoFrames, CancellationToken cancellationToken = default);
+        Task<VideoOutput> CreateVideoAsync(VideoFrames videoFrames, CancellationToken cancellationToken = default);
 
 
         /// <summary>
