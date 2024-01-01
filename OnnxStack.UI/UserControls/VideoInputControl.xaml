@@ -1,0 +1,78 @@
+﻿<UserControl x:Class="OnnxStack.UI.UserControls.VideoInputControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:local="clr-namespace:OnnxStack.UI.UserControls"
+             xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
+             xmlns:behaviors="clr-namespace:OnnxStack.UI.Behaviors"
+             xmlns:models="clr-namespace:OnnxStack.UI.Models"
+             mc:Ignorable="d" 
+              Name="UI" Focusable="True" >
+    <UserControl.Resources>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Margin" Value="-4,0,0,-4"/>
+        </Style>
+        <SolidColorBrush x:Key="RedHighlight" Color="Red"  Opacity="0.5" />
+    </UserControl.Resources>
+
+    <Border DataContext="{Binding ElementName=UI}" BorderBrush="Gainsboro"  BorderThickness="2" >
+        <DockPanel Margin="2" >
+
+
+            <StackPanel DockPanel.Dock="Bottom">
+                <UniformGrid  Columns="1" Height="30" Visibility="{Binding HasVideoResult, Converter={StaticResource BooleanToHiddenConverter}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,3">
+                        <TextBlock Text="Video File:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                        <TextBlock Text="{Binding VideoResult.FileName}" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </UniformGrid>
+                <DockPanel  Height="30" IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}" >
+                    <Button DockPanel.Dock="Right" Command="{Binding ClearVideoCommand}" Width="50" IsEnabled="{Binding HasVideoResult}">
+                        <userControls:FontAwesome Icon="&#xf2ed;" IconStyle="Light"  />
+                    </Button>
+
+                    <Button DockPanel.Dock="Left" Command="{Binding LoadVideoCommand}" ToolTip="Load Video File" Width="150" >
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"  Size="13" />
+                            <TextBlock Text="Load Video" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <DockPanel>
+                        <UniformGrid Columns="2" Margin="5,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Width:" Margin="0,0,3,0"  FontSize="10" Opacity=".6" VerticalAlignment="Bottom" FontStyle="Italic"/>
+                                <TextBlock Text="{Binding VideoResult.VideoInfo.Width, FallbackValue=0}" />
+                                <TextBlock Text="px" Margin="1,0,0,0" FontSize="10" Opacity="1" VerticalAlignment="Bottom" FontStyle="Italic"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Frame Rate" Margin="0,0,3,0"  FontSize="10" Opacity=".6" VerticalAlignment="Bottom" FontStyle="Italic"/>
+                                <TextBlock Text="{Binding VideoResult.VideoInfo.FPS, FallbackValue=0}" />
+                                <TextBlock Text="fps" Margin="1,0,0,0" FontSize="10" Opacity="1" VerticalAlignment="Bottom" FontStyle="Italic"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Height" Margin="0,0,3,0"  FontSize="10" Opacity=".6" VerticalAlignment="Bottom" FontStyle="Italic"/>
+                                <TextBlock Text="{Binding VideoResult.VideoInfo.Height, FallbackValue=0}" />
+                                <TextBlock Text="px" Margin="1,0,0,0"  FontSize="10" Opacity="1" VerticalAlignment="Bottom" FontStyle="Italic"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Duration" Margin="0,0,3,0"  FontSize="10" Opacity=".6" VerticalAlignment="Bottom" FontStyle="Italic"/>
+                                <TextBlock Text="{Binding VideoResult.VideoInfo.Duration, FallbackValue=00:00:00, StringFormat={}hh\\:mm\\:ss}" />
+                            </StackPanel>
+                        </UniformGrid>
+                    </DockPanel>
+
+                </DockPanel>
+            </StackPanel>
+
+            <Grid>
+                <Image Source="{StaticResource PlaceholderImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" />
+                <MediaElement x:Name="VideoMediaElement" Source="{Binding VideoResult.FileName}"  Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512" ClipToBounds="True" LoadedBehavior="Manual" Loaded="MediaElement_Loaded"  MediaEnded="MediaElement_MediaEnded" Volume="0" MouseLeftButtonDown="MediaElement_MouseDown" />
+                <Image Source="{Binding PreviewImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" />
+            </Grid>
+
+        </DockPanel>
+    </Border>
+</UserControl>

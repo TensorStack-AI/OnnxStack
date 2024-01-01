@@ -350,10 +350,10 @@ namespace OnnxStack.UI.Views
                     if (_cancelationTokenSource.IsCancellationRequested)
                         return;
 
-                    if (ProgressMax != progress.ProgressMax)
-                        ProgressMax = progress.ProgressMax;
+                    if (ProgressMax != progress.StepMax)
+                        ProgressMax = progress.StepMax;
 
-                    ProgressValue = progress.ProgressValue;
+                    ProgressValue = progress.StepValue;
                 });
             };
         }

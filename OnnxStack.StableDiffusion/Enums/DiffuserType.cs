@@ -17,9 +17,6 @@ namespace OnnxStack.StableDiffusion.Enums
         ImageInpaintLegacy = 3,
 
         [Description("Image To Animation")]
-        ImageToAnimation = 4,
-
-        [Description("Video To Video")]
-        VideoToVideo = 5
+        ImageToAnimation = 4
     }
 }

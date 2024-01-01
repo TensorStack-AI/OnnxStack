@@ -107,7 +107,8 @@ namespace OnnxStack.UI
             TextToImage = 0,
             ImageToImage = 1,
             ImageInpaint = 2,
-            Upscaler = 3
+            VideoToVideo = 3,
+            Upscaler = 4
         }
 
 

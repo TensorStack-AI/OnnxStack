@@ -13,7 +13,18 @@
         </Style>
     </UserControl.Resources>
     <DockPanel DataContext="{Binding ElementName=UI}" >
-        <UniformGrid Rows="2" DockPanel.Dock="Top" >
+        <UniformGrid Columns="2" DockPanel.Dock="Bottom" Visibility="{Binding IsVideoControlsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DockPanel Margin="0,0,2,0">
+                <Label DockPanel.Dock="Top">Video Input FPS</Label>
+                <TextBox Text="{Binding PromptOptions.VideoInputFPS}" behaviors:ShiftEnterBehavior.Enable="True"  TextWrapping="Wrap"/>
+            </DockPanel>
+            <DockPanel DockPanel.Dock="Bottom" Margin="2,0,0,0">
+                <Label  DockPanel.Dock="Top">Video Output FPS</Label>
+                <TextBox Text="{Binding PromptOptions.VideoOutputFPS}" behaviors:ShiftEnterBehavior.Enable="True"  TextWrapping="Wrap"/>
+            </DockPanel>
+        </UniformGrid>
+
+        <UniformGrid Rows="2" >
             <DockPanel>
                 <Label DockPanel.Dock="Top">Prompt</Label>
                 <TextBox Text="{Binding PromptOptions.Prompt, UpdateSourceTrigger=PropertyChanged}" behaviors:ShiftEnterBehavior.Enable="True"  TextWrapping="Wrap"/>
@@ -23,5 +34,6 @@
                 <TextBox Text="{Binding PromptOptions.NegativePrompt}" behaviors:ShiftEnterBehavior.Enable="True"  TextWrapping="Wrap"/>
             </DockPanel>
         </UniformGrid>
+
     </DockPanel>
 </UserControl>

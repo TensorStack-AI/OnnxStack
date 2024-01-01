@@ -29,6 +29,12 @@ namespace OnnxStack.Core.Video
         /// <param name="videoTensor">The video tensor.</param>
         public VideoInput(DenseTensor<float> videoTensor) => VideoTensor = videoTensor;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VideoInput"/> class.
+        /// </summary>
+        /// <param name="videoFrames">The video frames.</param>
+        public VideoInput(VideoFrames videoFrames) => VideoFrames = videoFrames;
+        
 
         /// <summary>
         /// Gets the video bytes.
@@ -52,6 +58,13 @@ namespace OnnxStack.Core.Video
 
 
         /// <summary>
+        /// Gets or sets the video frames.
+        /// </summary>
+        [JsonIgnore]
+        public VideoFrames VideoFrames { get; set; }
+
+
+        /// <summary>
         /// Gets a value indicating whether this instance has video.
         /// </summary>
         /// <value>
@@ -60,6 +73,7 @@ namespace OnnxStack.Core.Video
         [JsonIgnore]
         public bool HasVideo => VideoBytes != null
             || VideoStream != null
-            || VideoTensor != null;
+            || VideoTensor != null
+            || VideoFrames != null;
     }
 }

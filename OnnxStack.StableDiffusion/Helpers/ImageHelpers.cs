@@ -6,37 +6,12 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Helpers
 {
     public static class ImageHelpers
     {
-        /// <summary>
-        /// Converts to image.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        /// <returns></returns>
-        public static Image<Rgba32> ToImage(this DenseTensor<float> imageTensor)
-        {
-            var height = imageTensor.Dimensions[2];
-            var width = imageTensor.Dimensions[3];
-            var hasAlpha = imageTensor.Dimensions[1] == 4;
-            var result = new Image<Rgba32>(width, height);
-            for (var y = 0; y < height; y++)
-            {
-                for (var x = 0; x < width; x++)
-                {
-                    result[x, y] = new Rgba32(
-                        CalculateByte(imageTensor, 0, y, x),
-                        CalculateByte(imageTensor, 1, y, x),
-                        CalculateByte(imageTensor, 2, y, x),
-                        hasAlpha ? CalculateByte(imageTensor, 3, y, x) : byte.MaxValue
-                    );
-                }
-            }
-            return result;
-        }
-
 
         /// <summary>
         /// Converts to image.
@@ -55,22 +30,6 @@ namespace OnnxStack.StableDiffusion.Helpers
                 return inputImage.ImageTensor.ToImage();
 
             return inputImage.Image;
-        }
-
-
-        /// <summary>
-        /// Converts to image byte array.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        /// <returns></returns>
-        public static byte[] ToImageBytes(this DenseTensor<float> imageTensor)
-        {
-            using (var image = imageTensor.ToImage())
-            using (var memoryStream = new MemoryStream())
-            {
-                image.SaveAsPng(memoryStream);
-                return memoryStream.ToArray();
-            }
         }
 
 

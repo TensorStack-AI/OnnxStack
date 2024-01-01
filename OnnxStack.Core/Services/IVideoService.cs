@@ -1,4 +1,5 @@
-﻿using OnnxStack.Core.Video;
+﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Video;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -87,6 +88,14 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         Task<VideoOutput> CreateVideoAsync(VideoFrames videoFrames, CancellationToken cancellationToken = default);
 
+        // <summary>
+        /// Creates and MP4 video from a collection of PNG images.
+        /// </summary>
+        /// <param name="videoTensor">The video frames.</param>
+        /// <param name="videoFPS">The video FPS.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        Task<VideoOutput> CreateVideoAsync(DenseTensor<float> videoTensor, float videoFPS, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Streams frames as PNG as they are processed from a video source

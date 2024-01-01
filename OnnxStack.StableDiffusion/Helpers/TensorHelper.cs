@@ -257,6 +257,9 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <exception cref="System.NotImplementedException">Only axis 0 is supported</exception>
         public static DenseTensor<float> Concatenate(this DenseTensor<float> tensor1, DenseTensor<float> tensor2, int axis = 0)
         {
+            if (tensor1 == null)
+                return tensor2.ToDenseTensor();
+
             if (axis != 0 && axis != 2)
                 throw new NotImplementedException("Only axis 0, 2 is supported");
 

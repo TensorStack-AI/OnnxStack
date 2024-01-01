@@ -7,10 +7,15 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Models
 {
-    public record DiffusionProgress(int ProgressValue, int ProgressMax, DenseTensor<float> ProgressTensor)
+    public record DiffusionProgress(string Message = default)
     {
-        public int SubProgressMax { get; set; }
-        public int SubProgressValue { get; set; }
+        public int BatchMax { get; set; }
+        public int BatchValue { get; set; }
+        public DenseTensor<float> BatchTensor { get; set; }
+
+        public int StepMax { get; set; }
+        public int StepValue { get; set; }
+        public DenseTensor<float> StepTensor { get; set; }
     }
   
 }

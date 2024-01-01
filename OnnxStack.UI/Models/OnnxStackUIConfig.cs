@@ -21,12 +21,12 @@ namespace OnnxStack.UI.Models
 
         public IEnumerable<ExecutionProvider> GetSupportedExecutionProviders()
         {
-#if DEBUG_DIRECTML || RELEASE_DIRECTML
-            yield return ExecutionProvider.DirectML;
-#elif DEBUG_CUDA || RELEASE_CUDA
+#if DEBUG_CUDA || RELEASE_CUDA
             yield return ExecutionProvider.Cuda;
 #elif DEBUG_TENSORRT || RELEASE_TENSORRT
             yield return ExecutionProvider.TensorRT;
+#else
+            yield return ExecutionProvider.DirectML;
 #endif
             yield return ExecutionProvider.Cpu;
         }

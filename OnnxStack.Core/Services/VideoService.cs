@@ -1,4 +1,5 @@
 ﻿using FFMpegCore;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Video;
 using System;
@@ -97,6 +98,20 @@ namespace OnnxStack.Core.Services
         /// <summary>
         /// Creates and MP4 video from a collection of PNG images.
         /// </summary>
+        /// <param name="videoTensor">The video tensor.</param>
+        /// <param name="videoFPS">The video FPS.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<VideoOutput> CreateVideoAsync(DenseTensor<float> videoTensor, float videoFPS, CancellationToken cancellationToken = default)
+        {
+            var videoFrames = await videoTensor.ToVideoFramesAsBytesAsync().ToListAsync(cancellationToken);
+            return await CreateVideoInternalAsync(videoFrames, videoFPS, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Creates and MP4 video from a collection of PNG images.
+        /// </summary>
         /// <param name="videoFrames">The video frames.</param>
         /// <param name="videoFPS">The video FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -141,6 +156,7 @@ namespace OnnxStack.Core.Services
         {
             var videoInfo = await GetVideoInfoAsync(videoBytes, cancellationToken);
             var videoFrames = await CreateFramesInternalAsync(videoBytes, videoFPS, cancellationToken).ToListAsync(cancellationToken);
+            videoInfo = videoInfo with { FPS = videoFPS };
             return new VideoFrames(videoInfo, videoFrames);
         }
 
@@ -190,7 +206,7 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         private async Task<VideoInfo> GetVideoInfoInternalAsync(MemoryStream videoStream, CancellationToken cancellationToken = default)
         {
-            var result = await FFProbe.AnalyseAsync(videoStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var result = await FFProbe.AnalyseAsync(videoStream).ConfigureAwait(false);
             return new VideoInfo(result.PrimaryVideoStream.Width, result.PrimaryVideoStream.Height, result.Duration, (int)result.PrimaryVideoStream.FrameRate);
         }
 
