@@ -1,7 +1,9 @@
-﻿using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.Core.Image;
+using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner
@@ -58,13 +60,13 @@ namespace OnnxStack.Console.Runner
                     await _stableDiffusionService.LoadModelAsync(model);
 
                     var batchIndex = 0;
-                    var callback = (int batch, int batchCount, int step, int steps) =>
+                    var callback = (DiffusionProgress progress) =>
                     {
-                        batchIndex = batch;
-                        OutputHelpers.WriteConsole($"Image: {batch}/{batchCount} - Step: {step}/{steps}", ConsoleColor.Cyan);
+                        batchIndex = progress.BatchValue;
+                        OutputHelpers.WriteConsole($"Image: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Cyan);
                     };
 
-                    await foreach (var result in _stableDiffusionService.GenerateBatchAsync(model, promptOptions, schedulerOptions, batchOptions, callback))
+                    await foreach (var result in _stableDiffusionService.GenerateBatchAsync(model, promptOptions, schedulerOptions, batchOptions, default))
                     {
                         var outputFilename = Path.Combine(_outputDirectory, $"{batchIndex}_{result.SchedulerOptions.Seed}.png");
                         var image = result.ImageResult.ToImage();

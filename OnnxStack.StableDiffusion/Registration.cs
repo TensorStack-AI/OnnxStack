@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
@@ -44,6 +45,7 @@ namespace OnnxStack.Core
             ConfigureLibraries();
 
             // Services
+            serviceCollection.AddSingleton<IVideoService, VideoService>();
             serviceCollection.AddSingleton<IPromptService, PromptService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
 

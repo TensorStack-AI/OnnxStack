@@ -1,4 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
+using OnnxStack.Core.Image;
+using OnnxStack.Core.Services;
+using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -10,46 +13,57 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace OnnxStack.UI.Views
 {
     /// <summary>
-    /// Interaction logic for TextToImageView.xaml
+    /// Interaction logic for VideoToVideoView.xaml
     /// </summary>
-    public partial class TextToImageView : UserControl, INavigatable, INotifyPropertyChanged
+    public partial class VideoToVideoView : UserControl, INavigatable, INotifyPropertyChanged
     {
-        private readonly ILogger<TextToImageView> _logger;
+        private readonly ILogger<VideoToVideoView> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
+        private readonly IVideoService _videoService;
 
         private bool _hasResult;
         private int _progressMax;
         private int _progressValue;
+        private string _progressText;
         private bool _isGenerating;
         private int _selectedTabIndex;
+        private bool _hasInputResult;
         private bool _isControlsEnabled;
-        private ImageResult _resultImage;
+        private VideoInputModel _inputVideo;
+        private VideoInputModel _resultVideo;
         private StableDiffusionModelSetViewModel _selectedModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private CancellationTokenSource _cancelationTokenSource;
+        private VideoFrames _videoFrames;
+        private BitmapImage _previewSource;
+        private BitmapImage _previewResult;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TextToImageView"/> class.
+        /// Initializes a new instance of the <see cref="VideoToVideoView"/> class.
         /// </summary>
-        public TextToImageView()
+        public VideoToVideoView()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
-                _logger = App.GetService<ILogger<TextToImageView>>();
+                _logger = App.GetService<ILogger<VideoToVideoView>>();
+                _videoService = App.GetService<IVideoService>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
 
-            SupportedDiffusers = new() { DiffuserType.TextToImage };
+            SupportedDiffusers = new() { DiffuserType.ImageToImage };
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             GenerateCommand = new AsyncRelayCommand(Generate, CanExecuteGenerate);
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
@@ -67,8 +81,7 @@ namespace OnnxStack.UI.Views
             set { SetValue(UISettingsProperty, value); }
         }
         public static readonly DependencyProperty UISettingsProperty =
-            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(TextToImageView));
-
+            DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(VideoToVideoView));
 
         public List<DiffuserType> SupportedDiffusers { get; }
         public AsyncRelayCommand CancelCommand { get; }
@@ -94,10 +107,16 @@ namespace OnnxStack.UI.Views
             set { _schedulerOptions = value; NotifyPropertyChanged(); }
         }
 
-        public ImageResult ResultImage
+        public VideoInputModel ResultVideo
         {
-            get { return _resultImage; }
-            set { _resultImage = value; NotifyPropertyChanged(); }
+            get { return _resultVideo; }
+            set { _resultVideo = value; NotifyPropertyChanged(); }
+        }
+
+        public VideoInputModel InputVideo
+        {
+            get { return _inputVideo; }
+            set { _inputVideo = value; _videoFrames = null; NotifyPropertyChanged(); }
         }
 
         public int ProgressValue
@@ -112,6 +131,12 @@ namespace OnnxStack.UI.Views
             set { _progressMax = value; NotifyPropertyChanged(); }
         }
 
+        public string ProgressText
+        {
+            get { return _progressText; }
+            set { _progressText = value; NotifyPropertyChanged(); }
+        }
+
         public bool IsGenerating
         {
             get { return _isGenerating; }
@@ -122,6 +147,12 @@ namespace OnnxStack.UI.Views
         {
             get { return _hasResult; }
             set { _hasResult = value; NotifyPropertyChanged(); }
+        }
+
+        public bool HasInputResult
+        {
+            get { return _hasInputResult; }
+            set { _hasInputResult = value; NotifyPropertyChanged(); }
         }
 
         public int SelectedTabIndex
@@ -136,6 +167,18 @@ namespace OnnxStack.UI.Views
             set { _isControlsEnabled = value; NotifyPropertyChanged(); }
         }
 
+        public BitmapImage PreviewSource
+        {
+            get { return _previewSource; }
+            set { _previewSource = value; NotifyPropertyChanged(); }
+        }
+
+        public BitmapImage PreviewResult
+        {
+            get { return _previewResult; }
+            set { _previewResult = value; NotifyPropertyChanged(); }
+        }
+
 
         /// <summary>
         /// Called on Navigate
@@ -144,24 +187,9 @@ namespace OnnxStack.UI.Views
         /// <returns></returns>
         public async Task NavigateAsync(ImageResult imageResult)
         {
-            if (IsGenerating)
-                await Cancel();
-
-            Reset();
-            HasResult = false;
-            ResultImage = null;
-            if (imageResult.Model.ModelSet.Diffusers.Contains(DiffuserType.TextToImage))
-            {
-                SelectedModel = imageResult.Model;
-            }
-            PromptOptions = new PromptOptionsModel
-            {
-                Prompt = imageResult.Prompt,
-                NegativePrompt = imageResult.NegativePrompt
-            };
-            SchedulerOptions = imageResult.SchedulerOptions.ToSchedulerOptionsModel();
-            SelectedTabIndex = 0;
+            throw new NotImplementedException();
         }
+
 
 
         /// <summary>
@@ -172,23 +200,31 @@ namespace OnnxStack.UI.Views
             HasResult = false;
             IsGenerating = true;
             IsControlsEnabled = false;
-            ResultImage = null;
+            ResultVideo = null;
+            ProgressMax = 0;
             _cancelationTokenSource = new CancellationTokenSource();
-            var promptOptions = GetPromptOptions(PromptOptions);
-            var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
 
             try
             {
+                var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
+                if (_videoFrames is null || _videoFrames.Info.FPS != PromptOptions.VideoInputFPS)
+                {
+                    ProgressText = $"Generating video frames @ {PromptOptions.VideoInputFPS}fps";
+                    _videoFrames = await _videoService.CreateFramesAsync(_inputVideo.VideoBytes, PromptOptions.VideoInputFPS, _cancelationTokenSource.Token);
+                }
+                var promptOptions = GetPromptOptions(PromptOptions, _videoFrames);
+
                 var timestamp = Stopwatch.GetTimestamp();
                 var result = await _stableDiffusionService.GenerateAsBytesAsync(_selectedModel.ModelSet, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
-                var resultImage = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
-                if (resultImage != null)
+                var resultVideo = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
+                if (resultVideo != null)
                 {
-                    ResultImage = resultImage;
-                    HasResult = true;
-                    ImageResults.Add(resultImage);
+                    App.UIInvoke(() =>
+                    {
+                        ResultVideo = resultVideo;
+                        HasResult = true;
+                    });
                 }
-
             }
             catch (OperationCanceledException)
             {
@@ -211,7 +247,7 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteGenerate()
         {
-            return !IsGenerating;
+            return !IsGenerating && HasInputResult;
         }
 
 
@@ -266,49 +302,50 @@ namespace OnnxStack.UI.Views
         /// </summary>
         private void Reset()
         {
+            PreviewSource = null;
+            PreviewResult = null;
             IsGenerating = false;
             IsControlsEnabled = true;
             ProgressValue = 0;
+            ProgressMax = 1;
+            ProgressText = null;
         }
 
 
-
-        private bool IsExecuteOptionsValid(PromptOptionsModel prompt)
-        {
-            if (string.IsNullOrEmpty(prompt.Prompt))
-                return false;
-
-            return true;
-        }
-
-
-        private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel)
+        private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, VideoFrames videoFrames)
         {
             return new PromptOptions
             {
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
-                DiffuserType = DiffuserType.TextToImage
+                DiffuserType = DiffuserType.ImageToImage,
+                InputVideo = new VideoInput(videoFrames),
+                VideoInputFPS = promptOptionsModel.VideoInputFPS,
+                VideoOutputFPS = promptOptionsModel.VideoOutputFPS,
             };
         }
 
-        private Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
-        {
-            var image = Utils.CreateBitmap(imageBytes);
 
-            var imageResult = new ImageResult
+        /// <summary>
+        /// Generates the result.
+        /// </summary>
+        /// <param name="imageBytes">The image bytes.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="timestamp">The timestamp.</param>
+        /// <returns></returns>
+        private async Task<VideoInputModel> GenerateResultAsync(byte[] videoBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        {
+            var tempVideoFile = Path.Combine(".temp", $"VideoToVideo.mp4");
+            await File.WriteAllBytesAsync(tempVideoFile, videoBytes);
+            var videoInfo = await _videoService.GetVideoInfoAsync(videoBytes);
+            var videoResult = new VideoInputModel
             {
-                Image = image,
-                Model = _selectedModel,
-                Prompt = promptOptions.Prompt,
-                NegativePrompt = promptOptions.NegativePrompt,
-                PipelineType = _selectedModel.ModelSet.PipelineType,
-                DiffuserType = promptOptions.DiffuserType,
-                SchedulerType = schedulerOptions.SchedulerType,
-                SchedulerOptions = schedulerOptions,
-                Elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds
+                FileName = tempVideoFile,
+                VideoInfo = videoInfo,
+                VideoBytes = videoBytes
             };
-            return Task.FromResult(imageResult);
+            return videoResult;
         }
 
 
@@ -320,19 +357,33 @@ namespace OnnxStack.UI.Views
         {
             return (progress) =>
             {
+                if (_cancelationTokenSource.IsCancellationRequested)
+                    return;
+
                 App.UIInvoke(() =>
                 {
                     if (_cancelationTokenSource.IsCancellationRequested)
                         return;
 
-                    if (ProgressMax != progress.StepMax)
-                        ProgressMax = progress.StepMax;
+                    if (progress.BatchTensor is not null)
+                    {
+                        PreviewResult = Utils.CreateBitmap(progress.BatchTensor.ToImageBytes());
+                        PreviewSource = Utils.CreateBitmap(_videoFrames.Frames[progress.BatchValue - 1]);
+                        ProgressText = $"Video Frame {progress.BatchValue} of {_videoFrames.Frames.Count} complete";
+                    }
 
-                    ProgressValue = progress.StepValue;
-                });
+                    if (ProgressText != progress.Message && progress.BatchMax == 0)
+                        ProgressText = progress.Message;
+
+                    if (ProgressMax != progress.BatchMax)
+                        ProgressMax = progress.BatchMax;
+
+                    if (ProgressValue != progress.BatchValue)
+                        ProgressValue = progress.BatchValue;
+
+                }, DispatcherPriority.Background);
             };
         }
-
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

@@ -1,4 +1,5 @@
-﻿using OnnxStack.UI.Commands;
+﻿using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -41,6 +42,18 @@ namespace OnnxStack.UI.UserControls
         public static readonly DependencyProperty PromptOptionsProperty =
             DependencyProperty.Register("PromptOptions", typeof(PromptOptionsModel), typeof(PromptControl));
 
+
+        public bool IsVideoControlsEnabled
+        {
+            get { return (bool)GetValue(IsVideoControlsEnabledProperty); }
+            set { SetValue(IsVideoControlsEnabledProperty, value); }
+        }
+        public static readonly DependencyProperty IsVideoControlsEnabledProperty =
+            DependencyProperty.Register("IsVideoControlsEnabled", typeof(bool), typeof(PromptControl));
+
+
+
+    
 
         public StableDiffusionModelSetViewModel SelectedModel
         {

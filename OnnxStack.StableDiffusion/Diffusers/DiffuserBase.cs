@@ -3,6 +3,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
@@ -88,7 +89,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected abstract Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        protected abstract Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -99,7 +100,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="progress">The progress.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public virtual async Task<DenseTensor<float>> DiffuseAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public virtual async Task<DenseTensor<float>> DiffuseAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
@@ -113,13 +114,36 @@ namespace OnnxStack.StableDiffusion.Diffusers
             // Process prompts
             var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
 
+            // If video input, process frames
+            if (promptOptions.HasInputVideo)
+            {
+                var frameIndex = 0;
+                DenseTensor<float> videoTensor = null;
+                var videoFrames = promptOptions.InputVideo.VideoFrames.Frames;
+                var schedulerFrameCallback = CreateBatchCallback(progressCallback, videoFrames.Count, () => frameIndex);
+                foreach (var videoFrame in videoFrames)
+                {
+                    frameIndex++;
+                    promptOptions.InputImage = new InputImage(videoFrame);
+                    var frameResultTensor = await SchedulerStepAsync(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerFrameCallback, cancellationToken);
+
+                    // Frame Progress
+                    ReportBatchProgress(progressCallback, frameIndex, videoFrames.Count, frameResultTensor);
+
+                    // Concatenate frame
+                    videoTensor = videoTensor.Concatenate(frameResultTensor);
+                }
+
+                _logger?.LogEnd($"Diffuse complete", diffuseTime);
+                return videoTensor;
+            }
+
             // Run Scheduler steps
             var schedulerResult = await SchedulerStepAsync(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
-
             _logger?.LogEnd($"Diffuse complete", diffuseTime);
-
             return schedulerResult;
         }
+
 
 
         /// <summary>
@@ -133,7 +157,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public virtual async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
@@ -152,11 +176,11 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var batchSchedulerOptions = BatchGenerator.GenerateBatch(modelOptions, batchOptions, schedulerOptions);
 
             var batchIndex = 1;
-            var schedulerCallback = (int step, int steps) => progressCallback?.Invoke(batchIndex, batchSchedulerOptions.Count, step, steps);
+            var batchSchedulerCallback = CreateBatchCallback(progressCallback, batchSchedulerOptions.Count, () => batchIndex);
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
                 var diffuseTime = _logger?.LogBegin("Diffuse starting...");
-                yield return new BatchResult(batchSchedulerOption, await SchedulerStepAsync(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, schedulerCallback, cancellationToken));
+                yield return new BatchResult(batchSchedulerOption, await SchedulerStepAsync(modelOptions, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, batchSchedulerCallback, cancellationToken));
                 _logger?.LogEnd($"Diffuse complete", diffuseTime);
                 batchIndex++;
             }
@@ -251,5 +275,60 @@ namespace OnnxStack.StableDiffusion.Diffusers
         {
             return parameters.ToList();
         }
+
+
+        /// <summary>
+        /// Reports the progress.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="progress">The progress.</param>
+        /// <param name="progressMax">The progress maximum.</param>
+        /// <param name="output">The output.</param>
+        protected void ReportProgress(Action<DiffusionProgress> progressCallback, int progress, int progressMax, DenseTensor<float> progressTensor)
+        {
+            progressCallback?.Invoke(new DiffusionProgress
+            {
+                StepMax = progressMax,
+                StepValue = progress,
+                StepTensor = progressTensor
+            });
+        }
+
+
+        /// <summary>
+        /// Reports the progress.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="progress">The progress.</param>
+        /// <param name="progressMax">The progress maximum.</param>
+        /// <param name="subProgress">The sub progress.</param>
+        /// <param name="subProgressMax">The sub progress maximum.</param>
+        /// <param name="output">The output.</param>
+        protected void ReportBatchProgress(Action<DiffusionProgress> progressCallback, int progress, int progressMax, DenseTensor<float> progressTensor)
+        {
+            progressCallback?.Invoke(new DiffusionProgress
+            {
+                BatchMax = progressMax,
+                BatchValue = progress,
+                BatchTensor = progressTensor
+            });
+        }
+
+
+        private static Action<DiffusionProgress> CreateBatchCallback(Action<DiffusionProgress> progressCallback, int batchCount, Func<int> batchIndex)
+        {
+            if (progressCallback == null)
+                return progressCallback;
+
+            return (DiffusionProgress progress) => progressCallback?.Invoke(new DiffusionProgress
+            {
+                StepMax = progress.StepMax,
+                StepValue = progress.StepValue,
+                StepTensor = progress.StepTensor,
+                BatchMax = batchCount,
+                BatchValue = batchIndex()
+            });
+        }
+
     }
 }

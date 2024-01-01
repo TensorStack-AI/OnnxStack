@@ -9,6 +9,8 @@ namespace OnnxStack.UI.Models
         private string _prompt;
         private string _negativePrompt;
         private bool _hasChanged;
+        private float _videoInputFPS;
+        private float _videoOutputFPS;
 
         [Required]
         [StringLength(512, MinimumLength = 1)]
@@ -29,6 +31,18 @@ namespace OnnxStack.UI.Models
         {
             get { return _hasChanged; }
             set { _hasChanged = value; NotifyPropertyChanged(); }
+        }
+
+        public float VideoInputFPS
+        {
+            get { return _videoInputFPS; }
+            set { _videoInputFPS = value; NotifyPropertyChanged(); }
+        }
+
+        public float VideoOutputFPS
+        {
+            get { return _videoOutputFPS; }
+            set { _videoOutputFPS = value; NotifyPropertyChanged(); }
         }
 
 

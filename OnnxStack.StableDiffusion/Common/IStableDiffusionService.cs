@@ -45,7 +45,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="DenseTensor<float>"/></returns>
-        Task<DenseTensor<float>> GenerateAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<DenseTensor<float>> GenerateAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates the StableDiffusion image using the prompt and options provided.
@@ -55,7 +55,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="SixLabors.ImageSharp.Image<Rgba32>"/></returns>
-        Task<Image<Rgba32>> GenerateAsImageAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<Image<Rgba32>> GenerateAsImageAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates the StableDiffusion image using the prompt and options provided.
@@ -65,7 +65,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="byte[]"/></returns>
-        Task<byte[]> GenerateAsBytesAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<byte[]> GenerateAsBytesAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates the StableDiffusion image using the prompt and options provided.
@@ -75,7 +75,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="System.IO.Stream"/></returns>
-        Task<Stream> GenerateAsStreamAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<Stream> GenerateAsStreamAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates a batch of StableDiffusion image using the prompt and options provided.
@@ -87,7 +87,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<BatchResult> GenerateBatchAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<BatchResult> GenerateBatchAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates a batch of StableDiffusion image using the prompt and options provided.
@@ -99,7 +99,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<Image<Rgba32>> GenerateBatchAsImageAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<Image<Rgba32>> GenerateBatchAsImageAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates a batch of StableDiffusion image using the prompt and options provided.
@@ -111,7 +111,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<byte[]> GenerateBatchAsBytesAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<byte[]> GenerateBatchAsBytesAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates a batch of StableDiffusion image using the prompt and options provided.
@@ -123,6 +123,6 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<Stream> GenerateBatchAsStreamAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<Stream> GenerateBatchAsStreamAsync(StableDiffusionModelSet model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
     }
 }

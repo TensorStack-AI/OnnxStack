@@ -3,6 +3,7 @@ using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Models;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
@@ -373,19 +374,19 @@ namespace OnnxStack.UI.Views
         /// StableDiffusion progress callback.
         /// </summary>
         /// <returns></returns>
-        private Action<int, int> ProgressCallback()
+        private Action<DiffusionProgress> ProgressCallback()
         {
-            return (value, maximum) =>
+            return (progress) =>
             {
                 App.UIInvoke(() =>
                 {
                     if (_cancelationTokenSource.IsCancellationRequested)
                         return;
 
-                    if (ProgressMax != maximum)
-                        ProgressMax = maximum;
+                    if (ProgressMax != progress.StepMax)
+                        ProgressMax = progress.StepMax;
 
-                    ProgressValue = value;
+                    ProgressValue = progress.StepValue;
                 });
             };
         }

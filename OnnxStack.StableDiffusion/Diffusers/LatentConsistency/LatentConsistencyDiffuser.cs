@@ -46,7 +46,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback"></param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override Task<DenseTensor<float>> DiffuseAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public override Task<DenseTensor<float>> DiffuseAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;
@@ -64,7 +64,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<int, int, int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;
@@ -88,7 +88,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<int, int> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -143,7 +143,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         }
                     }
 
-                    progressCallback?.Invoke(step, timesteps.Count);
+                    ReportProgress(progressCallback, step, timesteps.Count, latents);
                     _logger?.LogEnd($"Step {step}/{timesteps.Count}", stepTime);
                 }
 
@@ -186,7 +186,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
             var embSin = emb.Select(MathF.Sin);
             var embCos = emb.Select(MathF.Cos);
             var guidanceEmbedding = embSin.Concat(embCos).ToArray();
-            return new DenseTensor<float>(guidanceEmbedding, new[] { 1, embeddingDim }); 
+            return new DenseTensor<float>(guidanceEmbedding, new[] { 1, embeddingDim });
         }
     }
 }
