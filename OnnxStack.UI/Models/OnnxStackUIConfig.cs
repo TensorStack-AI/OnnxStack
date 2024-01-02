@@ -14,28 +14,27 @@ namespace OnnxStack.UI.Models
         public int DefaultIntraOpNumThreads { get; set; }
         public ExecutionMode DefaultExecutionMode { get; set; }
         public ExecutionProvider DefaultExecutionProvider { get; set; }
-        public IEnumerable<ExecutionProvider> SupportedExecutionProviders => GetSupportedExecutionProviders();
+        public ExecutionProvider SupportedExecutionProvider => GetSupportedExecutionProvider();
         public ObservableCollection<UpscaleModelSetViewModel> UpscaleModelSets { get; set; } = new ObservableCollection<UpscaleModelSetViewModel>();
         public ObservableCollection<StableDiffusionModelSetViewModel> StableDiffusionModelSets { get; set; } = new ObservableCollection<StableDiffusionModelSetViewModel>();
 
 
-        public IEnumerable<ExecutionProvider> GetSupportedExecutionProviders()
+        public ExecutionProvider GetSupportedExecutionProvider()
         {
 #if DEBUG_CUDA || RELEASE_CUDA
-            yield return ExecutionProvider.Cuda;
+            return ExecutionProvider.Cuda;
 #elif DEBUG_TENSORRT || RELEASE_TENSORRT
-            yield return ExecutionProvider.TensorRT;
+            return ExecutionProvider.TensorRT;
 #else
-            yield return ExecutionProvider.DirectML;
+            return ExecutionProvider.DirectML;
 #endif
-            yield return ExecutionProvider.Cpu;
         }
 
         public void Initialize()
         {
-            DefaultExecutionProvider = SupportedExecutionProviders.Contains(DefaultExecutionProvider)
+            DefaultExecutionProvider = DefaultExecutionProvider == SupportedExecutionProvider || DefaultExecutionProvider == ExecutionProvider.Cpu
                 ? DefaultExecutionProvider
-                : SupportedExecutionProviders.First();
+                : SupportedExecutionProvider;
         }
 
     }
