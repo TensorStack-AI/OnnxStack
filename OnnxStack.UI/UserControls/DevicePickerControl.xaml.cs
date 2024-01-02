@@ -18,6 +18,9 @@ namespace OnnxStack.UI.UserControls
         private readonly IDeviceService _deviceService;
         private DeviceInfo _selectedDevice;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DevicePickerControl"/> class.
+        /// </summary>
         public DevicePickerControl()
         {
             if (!DesignerProperties.GetIsInDesignMode(this))
@@ -27,26 +30,30 @@ namespace OnnxStack.UI.UserControls
         }
 
         public static readonly DependencyProperty UISettingsProperty =
-         DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(DevicePickerControl), new PropertyMetadata((c, e) =>
-         {
-             if (c is DevicePickerControl control)
-                 control.OnSettingsChanged();
-         }));
+             DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(DevicePickerControl), new PropertyMetadata((c, e) =>
+             {
+                 if (c is DevicePickerControl control)
+                     control.OnSettingsChanged();
+             }));
 
         public static readonly DependencyProperty ExecutionProviderProperty =
-            DependencyProperty.Register("ExecutionProvider", typeof(ExecutionProvider), typeof(DevicePickerControl), new PropertyMetadata((c, e) =>
+            DependencyProperty.Register("ExecutionProvider", typeof(ExecutionProvider?), typeof(DevicePickerControl), new PropertyMetadata((c, e) =>
             {
                 if (c is DevicePickerControl control)
                     control.OnSettingsChanged();
             }));
 
         public static readonly DependencyProperty DeviceIdProperty =
-            DependencyProperty.Register("DeviceId", typeof(int), typeof(DevicePickerControl), new PropertyMetadata((c, e) =>
+            DependencyProperty.Register("DeviceId", typeof(int?), typeof(DevicePickerControl), new PropertyMetadata((c, e) =>
             {
                 if (c is DevicePickerControl control)
                     control.OnSettingsChanged();
             }));
 
+
+        /// <summary>
+        /// Gets or sets the UI settings.
+        /// </summary>
         public OnnxStackUIConfig UISettings
         {
             get { return (OnnxStackUIConfig)GetValue(UISettingsProperty); }
@@ -56,45 +63,60 @@ namespace OnnxStack.UI.UserControls
         /// <summary>
         /// Gets or sets the ExecutionProvider.
         /// </summary>
-        public ExecutionProvider ExecutionProvider
+        public ExecutionProvider? ExecutionProvider
         {
-            get { return (ExecutionProvider)GetValue(ExecutionProviderProperty); }
+            get { return (ExecutionProvider?)GetValue(ExecutionProviderProperty); }
             set { SetValue(ExecutionProviderProperty, value); }
         }
 
         /// <summary>
         /// Gets or sets the DeviceId.
         /// </summary>
-        public int DeviceId
+        public int? DeviceId
         {
-            get { return (int)GetValue(DeviceIdProperty); }
+            get { return (int?)GetValue(DeviceIdProperty); }
             set { SetValue(DeviceIdProperty, value); }
         }
 
-
+        /// <summary>
+        /// Gets the devices.
+        /// </summary>
         public IReadOnlyList<DeviceInfo> Devices => _deviceService.Devices;
 
 
-
+        /// <summary>
+        /// Gets or sets the selected device.
+        /// </summary>
         public DeviceInfo SelectedDevice
         {
             get { return _selectedDevice; }
             set { _selectedDevice = value; OnSelectedDeviceChanged(); }
         }
 
+
+        /// <summary>
+        /// Called when UISettings changed.
+        /// </summary>
         private void OnSettingsChanged()
         {
-            SelectedDevice = ExecutionProvider == ExecutionProvider.Cpu
+            SelectedDevice = ExecutionProvider == Core.Config.ExecutionProvider.Cpu
                ? Devices.FirstOrDefault()
-               : Devices.FirstOrDefault(x => x.DeviceId == DeviceId);
+               : Devices.FirstOrDefault(x => x.Name != "CPU" && x.DeviceId == DeviceId);
         }
 
+
+        /// <summary>
+        /// Called when SelectedDevice changed.
+        /// </summary>
         private void OnSelectedDeviceChanged()
         {
+            if (_selectedDevice is null)
+                return;
+
             if (_selectedDevice.Name == "CPU")
             {
                 DeviceId = 0;
-                ExecutionProvider = ExecutionProvider.Cpu;
+                ExecutionProvider = Core.Config.ExecutionProvider.Cpu;
             }
             else
             {
@@ -114,6 +136,4 @@ namespace OnnxStack.UI.UserControls
         }
         #endregion
     }
-
-
 }

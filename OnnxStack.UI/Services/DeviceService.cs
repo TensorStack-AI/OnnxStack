@@ -1,4 +1,5 @@
-﻿using OnnxStack.UI.Models;
+﻿using Microsoft.Extensions.Logging;
+using OnnxStack.UI.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,39 +10,64 @@ namespace OnnxStack.UI.Services
 {
     public class DeviceService : IDeviceService
     {
+        private readonly ILogger<DeviceService> _logger;
         private IReadOnlyList<DeviceInfo> _devices;
 
-        public DeviceService()
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DeviceService"/> class.
+        /// </summary>
+        /// <param name="logger">The logger.</param>
+        public DeviceService(ILogger<DeviceService> logger)
         {
+            _logger = logger;
             _devices = GetDevices();
         }
 
+        /// <summary>
+        /// Gets the devices.
+        /// </summary>
         public IReadOnlyList<DeviceInfo> Devices => _devices;
 
-        private static IReadOnlyList<DeviceInfo> GetDevices()
+
+        /// <summary>
+        /// Gets the devices.
+        /// </summary>
+        /// <returns></returns>
+        private IReadOnlyList<DeviceInfo> GetDevices()
         {
-            var devices = new List<DeviceInfo> { new DeviceInfo("CPU", -1, 0) };
+            _logger.LogInformation("[GetDevices] - Query Devices...");
+            var devices = new List<DeviceInfo> { new DeviceInfo("CPU", 0, 0) };
 
             try
             {
                 var adapters = new AdapterInfo[10];
                 AdapterInterop.GetAdapters(adapters);
                 devices.AddRange(adapters
-                    .Where(x => x.DeviceId > 0)
+                    .Where(x => x.DedicatedVideoMemory > 0)
                     .Select(GetDeviceInfo)
                     .ToList());
+                devices.ForEach(x => _logger.LogInformation($"[GetDevices] - Found Device: {x.Name}, DeviceId: {x.DeviceId}"));
             }
             catch (Exception ex)
             {
                 devices.Add(new DeviceInfo("GPU0", 0, 0));
                 devices.Add(new DeviceInfo("GPU1", 1, 0));
+                _logger.LogError($"[GetDevices] - Failed to query devices, {ex.Message}");
             }
+
+            _logger.LogInformation($"[GetDevices] - Query devices complete, Devices Found: {devices.Count}");
             return devices;
         }
 
+
+        /// <summary>
+        /// Gets the device information.
+        /// </summary>
+        /// <param name="adapter">The adapter.</param>
+        /// <returns></returns>
         private static DeviceInfo GetDeviceInfo(AdapterInfo adapter)
         {
-            string description = string.Empty;
+            string description;
             unsafe
             {
                 description = new string(adapter.Description);
