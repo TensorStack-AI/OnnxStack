@@ -23,10 +23,10 @@
 
             <StackPanel DockPanel.Dock="Bottom">
                 <UniformGrid  Columns="1" Height="30" Visibility="{Binding HasVideoResult, Converter={StaticResource BooleanToHiddenConverter}}">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,3">
-                        <TextBlock Text="Video File:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
-                        <TextBlock Text="{Binding VideoResult.FileName}" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <DockPanel HorizontalAlignment="Left" Margin="0,3" MaxWidth="500">
+                        <TextBlock DockPanel.Dock="Left" Text="Video File:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
+                        <TextBlock Text="{Binding VideoResult.FileName, Converter={StaticResource FullPathToFileNameConverter}}" Margin="5,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
                 </UniformGrid>
                 <DockPanel  Height="30" IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}" >
                     <Button DockPanel.Dock="Right" Command="{Binding ClearVideoCommand}" Width="50" IsEnabled="{Binding HasVideoResult}">
@@ -68,9 +68,9 @@
             </StackPanel>
 
             <Grid>
-                <Image Source="{StaticResource PlaceholderImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" />
-                <MediaElement x:Name="VideoMediaElement" Source="{Binding VideoResult.FileName}"  Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512" ClipToBounds="True" LoadedBehavior="Manual" Loaded="MediaElement_Loaded"  MediaEnded="MediaElement_MediaEnded" Volume="0" MouseLeftButtonDown="MediaElement_MouseDown" />
-                <Image Source="{Binding PreviewImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" />
+                <Image Source="{StaticResource PlaceholderImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" Visibility="{Binding IsPreviewVisible, Converter={StaticResource InverseBooleanToHiddenConverter}}"/>
+                <MediaElement x:Name="VideoMediaElement" Source="{Binding VideoResult.FileName}"  Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512" ClipToBounds="True" LoadedBehavior="Manual" Loaded="MediaElement_Loaded"  MediaEnded="MediaElement_MediaEnded" Volume="0" MouseLeftButtonDown="MediaElement_MouseDown" Visibility="{Binding IsPreviewVisible, Converter={StaticResource InverseBooleanToHiddenConverter}}" />
+                <Image Source="{Binding PreviewImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" Stretch="Uniform" HorizontalAlignment="Center" />
             </Grid>
 
         </DockPanel>

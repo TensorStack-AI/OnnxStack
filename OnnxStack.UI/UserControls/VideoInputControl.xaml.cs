@@ -64,7 +64,14 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(IsGeneratingProperty, value); }
         }
         public static readonly DependencyProperty IsGeneratingProperty =
-            DependencyProperty.Register("IsGenerating", typeof(bool), typeof(VideoInputControl));
+            DependencyProperty.Register("IsGenerating", typeof(bool), typeof(VideoInputControl), new PropertyMetadata((s, e) =>
+            {
+                if (s is VideoInputControl control && e.NewValue is bool isGenerating)
+                {
+                    if (!isGenerating)
+                        control.IsPreviewVisible = false;
+                }
+            }));
 
         public bool HasVideoResult
         {
@@ -80,7 +87,20 @@ namespace OnnxStack.UI.UserControls
             set { SetValue(PreviewImageProperty, value); }
         }
         public static readonly DependencyProperty PreviewImageProperty =
-            DependencyProperty.Register("PreviewImage", typeof(BitmapImage), typeof(VideoInputControl));
+            DependencyProperty.Register("PreviewImage", typeof(BitmapImage), typeof(VideoInputControl), new PropertyMetadata((s, e) =>
+            {
+                if (s is VideoInputControl control && !control.IsPreviewVisible)
+                    control.IsPreviewVisible = true;
+            }));
+
+        private bool _isPreviewVisible;
+
+        public bool IsPreviewVisible
+        {
+            get { return _isPreviewVisible; }
+            set { _isPreviewVisible = value; NotifyPropertyChanged(); }
+        }
+
 
 
         /// <summary>

@@ -17,7 +17,7 @@
                 <UniformGrid  Columns="1" Height="30" Visibility="{Binding HasVideoResult, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,3">
                         <TextBlock Text="Video File:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
-                        <TextBlock Text="{Binding VideoResult.FileName}" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding VideoResult.FileName, Converter={StaticResource FullPathToFileNameConverter}}" Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </UniformGrid>
 
