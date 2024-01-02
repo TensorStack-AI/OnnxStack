@@ -5,6 +5,7 @@ using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -21,6 +22,7 @@ namespace OnnxStack.UI.Views
     {
         private readonly ILogger<SettingsView> _logger;
         private readonly IDialogService _dialogService;
+        private readonly IDeviceService _deviceService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsView"/> class.
@@ -31,6 +33,8 @@ namespace OnnxStack.UI.Views
             {
                 _logger = App.GetService<ILogger<SettingsView>>();
                 _dialogService = App.GetService<IDialogService>();
+                _deviceService = App.GetService<IDeviceService>();
+             
             }
 
             SaveCommand = new AsyncRelayCommand(SaveConfigurationFile);
@@ -220,7 +224,6 @@ namespace OnnxStack.UI.Views
             SelectedUpscaleModel = UISettings.UpscaleModelSets.FirstOrDefault();
             await SaveConfigurationFile();
         }
-
 
 
 
