@@ -9,13 +9,14 @@
     <UseWindowsForms>true</UseWindowsForms>
     <PlatformTarget>x64</PlatformTarget>
     <Configurations>Debug;Release;Debug-Cuda;Debug-TensorRT;Release-Cuda;Release-TensorRT</Configurations>
+    <Platforms>x64</Platforms>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Cuda|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Cuda|x64'">
     <Optimize>True</Optimize>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-TensorRT|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-TensorRT|x64'">
     <Optimize>True</Optimize>
   </PropertyGroup>
 
@@ -38,6 +39,7 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
+    <None Include="..\OnnxStack.Adapter\x64\Debug\OnnxStack.Adapter.dll" Link="OnnxStack.Adapter.dll" />
     <Resource Include="Fonts\fa-brands-400.ttf" />
     <Resource Include="Fonts\fa-duotone-900.ttf" />
     <Resource Include="Fonts\fa-light-300.ttf" />
