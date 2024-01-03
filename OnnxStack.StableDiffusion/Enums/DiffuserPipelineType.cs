@@ -6,6 +6,7 @@
         StableDiffusionXL = 1,
         LatentConsistency = 10,
         LatentConsistencyXL = 11,
+        ControlNet = 20,
         InstaFlow = 30,
     }
 }
