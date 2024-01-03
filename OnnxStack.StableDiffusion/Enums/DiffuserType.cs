@@ -16,7 +16,10 @@ namespace OnnxStack.StableDiffusion.Enums
         [Description("Image Inpaint Legacy")]
         ImageInpaintLegacy = 3,
 
-        [Description("Image To Animation")]
-        ImageToAnimation = 4
+        [Description("ControlNet")]
+        ControlNet = 100,
+
+        [Description("ControlNet Image")]
+        ControlNetImage = 101
     }
 }

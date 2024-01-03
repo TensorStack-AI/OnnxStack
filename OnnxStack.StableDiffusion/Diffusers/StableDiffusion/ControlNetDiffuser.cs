@@ -9,6 +9,7 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
+using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,25 +17,30 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
-    public sealed class TextDiffuser : ControlNetDiffuser
+    public class ControlNetDiffuser : DiffuserBase
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TextDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="ControlNetDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public TextDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<TextDiffuser> logger)
-            : base(onnxModelService, promptService, logger)
-        {
-        }
+        public ControlNetDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<ControlNetDiffuser> logger)
+            : base(onnxModelService, promptService, logger) { }
+
+
+        /// <summary>
+        /// Gets the type of the pipeline.
+        /// </summary>
+        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.StableDiffusion;
 
 
         /// <summary>
         /// Gets the type of the diffuser.
         /// </summary>
-        public override DiffuserType DiffuserType => DiffuserType.ImageToImage;
+        public override DiffuserType DiffuserType => DiffuserType.ControlNet;
+
 
         /// <summary>
         /// Called on each Scheduler step.
@@ -47,7 +53,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
+        /// <exception cref="NotImplementedException"></exception>
         protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
@@ -63,10 +69,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
 
                 // Get Model metadata
-                var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Control);
- 
+                var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.ControlNet);
+
                 // Control Image
-                var controlImage = promptOptions.InputImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
+                var controlImage = PrepareControlImage(promptOptions, schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -98,14 +104,15 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
                             controlNetParameters.AddInputTensor(timestepTensor);
                             controlNetParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
                             controlNetParameters.AddInputTensor(controlImage);
-                            controlNetParameters.AddInputTensor(conditioningScale);
+                            if (controlNetMetadata.Inputs.Count == 5)
+                                controlNetParameters.AddInputTensor(conditioningScale);
 
                             // Optimization: Pre-allocate device buffers for inputs
                             foreach (var item in controlNetMetadata.Outputs)
                                 controlNetParameters.AddOutputBuffer();
 
                             // ControlNet inference
-                            var controlNetResults = _onnxModelService.RunInference(modelOptions, OnnxModelType.Control, controlNetParameters);
+                            var controlNetResults = _onnxModelService.RunInference(modelOptions, OnnxModelType.ControlNet, controlNetParameters);
 
                             // Add ControlNet outputs to Unet input
                             foreach (var item in controlNetResults)
@@ -139,14 +146,75 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
             }
         }
 
+
+        /// <summary>
+        /// Gets the timesteps.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
             return scheduler.Timesteps;
         }
 
+
+        /// <summary>
+        /// Prepares the input latents.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
         protected override Task<DenseTensor<float>> PrepareLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
+        }
+
+
+        /// <summary>
+        /// Creates the Conditioning Scale tensor.
+        /// </summary>
+        /// <param name="conditioningScale">The conditioningScale.</param>
+        /// <returns></returns>
+        protected static DenseTensor<double> CreateConditioningScaleTensor(float conditioningScale)
+        {
+            return TensorHelper.CreateTensor(new double[] { conditioningScale }, new int[] { 1 });
+        }
+
+
+        /// <summary>
+        /// Prepares the control image.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <returns></returns>
+        protected DenseTensor<float> PrepareControlImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        {
+            return promptOptions.InputImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
+        }
+
+
+        /// <summary>
+        /// Gets the scheduler.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="schedulerConfig">The scheduler configuration.</param>
+        /// <returns></returns>
+        protected override IScheduler GetScheduler(SchedulerOptions options)
+        {
+            return options.SchedulerType switch
+            {
+                SchedulerType.LMS => new LMSScheduler(options),
+                SchedulerType.Euler => new EulerScheduler(options),
+                SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
+                SchedulerType.DDPM => new DDPMScheduler(options),
+                SchedulerType.DDIM => new DDIMScheduler(options),
+                SchedulerType.KDPM2 => new KDPM2Scheduler(options),
+                _ => default
+            };
         }
     }
 }
