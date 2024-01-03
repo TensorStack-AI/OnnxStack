@@ -99,6 +99,7 @@ namespace OnnxStack.StableDiffusion
         {
             switch (pipelineType)
             {
+                case DiffuserPipelineType.ControlNet:
                 case DiffuserPipelineType.StableDiffusion:
                 case DiffuserPipelineType.StableDiffusionXL:
                     return new[]

@@ -9,6 +9,7 @@
         TextEncoder2 = 21,
         VaeEncoder = 30,
         VaeDecoder = 40,
+        Control = 50,
         Upscaler = 1000
     }
 }
