@@ -35,7 +35,15 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
         public override DiffuserPipelineType PipelineType => DiffuserPipelineType.ControlNet;
 
 
-
+        /// <summary>
+        /// Creates the Conditioning Scale tensor.
+        /// </summary>
+        /// <param name="conditioningScale">The conditioningScale.</param>
+        /// <returns></returns>
+        protected static DenseTensor<double> CreateConditioningScaleTensor(float conditioningScale)
+        {
+            return TensorHelper.CreateTensor(new double[] { conditioningScale }, new int[] { 1 });
+        }
 
 
         /// <summary>

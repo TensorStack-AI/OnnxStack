@@ -82,7 +82,7 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.InstaFlow.TextDiffuser>();
 
             //ControlNet
-            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.ControlNet.ImageDiffuser>();
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.ControlNet.TextDiffuser>();
         }
 
 

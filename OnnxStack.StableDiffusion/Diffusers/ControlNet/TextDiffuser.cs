@@ -9,7 +9,6 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
-using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,14 +18,14 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
 {
-    public sealed class ImageDiffuser : ControlNetDiffuser
+    public sealed class TextDiffuser : ControlNetDiffuser
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="TextDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public ImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<ImageDiffuser> logger)
+        public TextDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<TextDiffuser> logger)
             : base(onnxModelService, promptService, logger)
         {
         }
@@ -65,9 +64,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
 
                 // Get Model metadata
                 var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Control);
-
-                // TODO: do we need to pre-process?
-                var controlImage = promptOptions.InputImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width });
+ 
+                // Control Image
+                var controlImage = promptOptions.InputImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -81,6 +80,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
+                    var controlImageTensor = performGuidance ? controlImage.Repeat(2) : controlImage;
+                    var conditioningScale = CreateConditioningScaleTensor(schedulerOptions.ConditioningScale);
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
@@ -97,34 +98,35 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
                             controlNetParameters.AddInputTensor(timestepTensor);
                             controlNetParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
                             controlNetParameters.AddInputTensor(controlImage);
+                            controlNetParameters.AddInputTensor(conditioningScale);
+
+                            // Optimization: Pre-allocate device buffers for inputs
                             foreach (var item in controlNetMetadata.Outputs)
                                 controlNetParameters.AddOutputBuffer();
 
+                            // ControlNet inference
                             var controlNetResults = _onnxModelService.RunInference(modelOptions, OnnxModelType.Control, controlNetParameters);
-                            if (controlNetResults.IsNullOrEmpty())
-                                throw new Exception("Control model produced no result");
 
                             // Add ControlNet outputs to Unet input
                             foreach (var item in controlNetResults)
-                                inferenceParameters.AddInputTensor(item.ToDenseTensor());
-                        }
+                                inferenceParameters.AddInput(item);
 
+                            // Add output buffer
+                            inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        // Add output buffer
-                        inferenceParameters.AddOutputBuffer(outputDimension);
+                            // Unet inference
+                            var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
+                            using (var result = results.First())
+                            {
+                                var noisePred = result.ToDenseTensor();
 
-                        // Unet
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
-                        using (var result = results.First())
-                        {
-                            var noisePred = result.ToDenseTensor();
+                                // Perform guidance
+                                if (performGuidance)
+                                    noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
 
-                            // Perform guidance
-                            if (performGuidance)
-                                noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
-
-                            // Scheduler Step
-                            latents = scheduler.Step(noisePred, timestep, latents).Result;
+                                // Scheduler Step
+                                latents = scheduler.Step(noisePred, timestep, latents).Result;
+                            }
                         }
                     }
 
@@ -137,50 +139,14 @@ namespace OnnxStack.StableDiffusion.Diffusers.ControlNet
             }
         }
 
-
-        /// <summary>
-        /// Gets the timesteps.
-        /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="scheduler">The scheduler.</param>
-        /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
-            var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
-            var start = Math.Max(options.InferenceSteps - inittimestep, 0);
-            return scheduler.Timesteps.Skip(start).ToList();
+            return scheduler.Timesteps;
         }
 
-
-        /// <summary>
-        /// Prepares the latents for inference.
-        /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="scheduler">The scheduler.</param>
-        /// <returns></returns>
-        protected override async Task<DenseTensor<float>> PrepareLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            var imageTensor = prompt.InputImage.ToDenseTensor(new[] { 1, 3, options.Height, options.Width });
-
-            //TODO: Model Config, Channels
-            var outputDimension = options.GetScaledDimension();
-            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeEncoder);
-            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
-            {
-                inferenceParameters.AddInputTensor(imageTensor);
-                inferenceParameters.AddOutputBuffer(outputDimension);
-
-                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeEncoder, inferenceParameters);
-                using (var result = results.First())
-                {
-                    var outputResult = result.ToDenseTensor();
-                    var scaledSample = outputResult.MultiplyBy(model.ScaleFactor);
-                    return scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
-                }
-            }
+            return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
         }
-
     }
 }
