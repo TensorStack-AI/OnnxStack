@@ -45,6 +45,7 @@ namespace OnnxStack.Core
             ConfigureLibraries();
 
             // Services
+            serviceCollection.AddSingleton<IImageService, ImageService>();
             serviceCollection.AddSingleton<IVideoService, VideoService>();
             serviceCollection.AddSingleton<IPromptService, PromptService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();

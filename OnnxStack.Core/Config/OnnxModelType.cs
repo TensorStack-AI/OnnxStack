@@ -10,6 +10,7 @@
         VaeEncoder = 30,
         VaeDecoder = 40,
         ControlNet = 50,
-        Upscaler = 1000,
+        Annotation = 51,
+        Upscaler = 1000
     }
 }

@@ -63,6 +63,23 @@ namespace OnnxStack.Core.Image
             }
         }
 
+        public static Image<Rgba32> ToImageMask(this DenseTensor<float> imageTensor)
+        {
+            var width = imageTensor.Dimensions[3];
+            var height = imageTensor.Dimensions[2];
+            using (var result = new Image<L8>(width, height))
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    for (var x = 0; x < width; x++)
+                    {
+                        result[x, y] = new L8((byte)(imageTensor[0, 0, y, x] * 255.0f));
+                    }
+                }
+                return result.CloneAs<Rgba32>();
+            }
+        }
+
 
         private static byte CalculateByte(Tensor<float> imageTensor, int index, int y, int x)
         {
