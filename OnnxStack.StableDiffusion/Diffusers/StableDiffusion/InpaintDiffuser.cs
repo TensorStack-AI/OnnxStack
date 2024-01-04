@@ -52,7 +52,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -70,7 +70,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 var maskedImage = await PrepareImageMask(modelOptions, promptOptions, schedulerOptions);
 
                 // Get Model metadata
-                var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
+                var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -95,7 +95,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
+                        var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.Unet, inferenceParameters);
                         using (var result = results.First())
                         {
                             var noisePred = result.ToDenseTensor();
@@ -125,7 +125,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        private DenseTensor<float> PrepareMask(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        private DenseTensor<float> PrepareMask(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
             using (var imageMask = promptOptions.InputImageMask.ToImage())
             {
@@ -170,7 +170,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        private async Task<DenseTensor<float>> PrepareImageMask(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        private async Task<DenseTensor<float>> PrepareImageMask(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
             using (var image = promptOptions.InputImage.ToImage())
             using (var mask = promptOptions.InputImageMask.ToImage())
@@ -218,13 +218,13 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                 // Encode the image
                 var outputDimension = schedulerOptions.GetScaledDimension();
-                var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.VaeEncoder);
+                var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.VaeEncoder);
                 using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                 {
                     inferenceParameters.AddInputTensor(imageTensor);
                     inferenceParameters.AddOutputBuffer(outputDimension);
 
-                    var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.VaeEncoder, inferenceParameters);
+                    var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.VaeEncoder, inferenceParameters);
                     using (var result = results.First())
                     {
                         var sample = result.ToDenseTensor();
@@ -260,7 +260,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected override Task<DenseTensor<float>> PrepareLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
         }

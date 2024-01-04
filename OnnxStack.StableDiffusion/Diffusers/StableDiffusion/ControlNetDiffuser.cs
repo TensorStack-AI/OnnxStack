@@ -54,7 +54,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        protected override async Task<DenseTensor<float>> SchedulerStepAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -66,10 +66,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Get Model metadata
-                var metadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.Unet);
+                var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
 
                 // Get Model metadata
-                var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions, OnnxModelType.ControlNet);
+                var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions.ControlNetModel, OnnxModelType.ControlNet);
 
                 // Control Image
                 var controlImage = PrepareControlImage(promptOptions, schedulerOptions);
@@ -112,7 +112,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                                 controlNetParameters.AddOutputBuffer();
 
                             // ControlNet inference
-                            var controlNetResults = _onnxModelService.RunInference(modelOptions, OnnxModelType.ControlNet, controlNetParameters);
+                            var controlNetResults = _onnxModelService.RunInference(modelOptions.ControlNetModel, OnnxModelType.ControlNet, controlNetParameters);
 
                             // Add ControlNet outputs to Unet input
                             foreach (var item in controlNetResults)
@@ -122,7 +122,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                             inferenceParameters.AddOutputBuffer(outputDimension);
 
                             // Unet inference
-                            var results = await _onnxModelService.RunInferenceAsync(modelOptions, OnnxModelType.Unet, inferenceParameters);
+                            var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.Unet, inferenceParameters);
                             using (var result = results.First())
                             {
                                 var noisePred = result.ToDenseTensor();
@@ -168,7 +168,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected override Task<DenseTensor<float>> PrepareLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
         }

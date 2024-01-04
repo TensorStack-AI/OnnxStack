@@ -70,7 +70,7 @@ namespace OnnxStack.Console.Runner
         private async Task<bool> GenerateImage(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options)
         {
             var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}.png");
-            var result = await _stableDiffusionService.GenerateAsImageAsync(model, prompt, options);
+            var result = await _stableDiffusionService.GenerateAsImageAsync(new ModelOptions(model), prompt, options);
             if (result == null)
                 return false;
 

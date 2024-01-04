@@ -75,7 +75,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected abstract Task<DenseTensor<float>> PrepareLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps);
+        protected abstract Task<DenseTensor<float>> PrepareLatentsAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps);
 
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected abstract Task<DenseTensor<float>> SchedulerStepAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        protected abstract Task<DenseTensor<float>> SchedulerStepAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="progress">The progress.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public virtual async Task<DenseTensor<float>> DiffuseAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public virtual async Task<DenseTensor<float>> DiffuseAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
@@ -112,7 +112,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var performGuidance = ShouldPerformGuidance(schedulerOptions);
 
             // Process prompts
-            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
+            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions.BaseModel, promptOptions, performGuidance);
 
             // If video input, process frames
             if (promptOptions.HasInputVideo)
@@ -157,7 +157,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public virtual async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             // Create random seed if none was set
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
@@ -170,7 +170,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
             var performGuidance = ShouldPerformGuidance(schedulerOptions);
 
             // Process prompts
-            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions, promptOptions, performGuidance);
+            var promptEmbeddings = await _promptService.CreatePromptAsync(modelOptions.BaseModel, promptOptions, performGuidance);
 
             // Generate batch options
             var batchSchedulerOptions = BatchGenerator.GenerateBatch(modelOptions, batchOptions, schedulerOptions);
@@ -231,7 +231,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="options">The options.</param>
         /// <param name="latents">The latents.</param>
         /// <returns></returns>
-        protected virtual async Task<DenseTensor<float>> DecodeLatentsAsync(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
+        protected virtual async Task<DenseTensor<float>> DecodeLatentsAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
         {
             var timestamp = _logger.LogBegin();
 
@@ -239,13 +239,13 @@ namespace OnnxStack.StableDiffusion.Diffusers
             latents = latents.MultiplyBy(1.0f / model.ScaleFactor);
 
             var outputDim = new[] { 1, 3, options.Height, options.Width };
-            var metadata = _onnxModelService.GetModelMetadata(model, OnnxModelType.VaeDecoder);
+            var metadata = _onnxModelService.GetModelMetadata(model.BaseModel, OnnxModelType.VaeDecoder);
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
                 inferenceParameters.AddInputTensor(latents);
                 inferenceParameters.AddOutputBuffer(outputDim);
 
-                var results = await _onnxModelService.RunInferenceAsync(model, OnnxModelType.VaeDecoder, inferenceParameters);
+                var results = await _onnxModelService.RunInferenceAsync(model.BaseModel, OnnxModelType.VaeDecoder, inferenceParameters);
                 using (var imageResult = results.First())
                 {
                     _logger?.LogEnd("Latents decoded", timestamp);

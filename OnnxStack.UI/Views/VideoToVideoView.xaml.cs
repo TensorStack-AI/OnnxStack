@@ -215,7 +215,7 @@ namespace OnnxStack.UI.Views
                 var promptOptions = GetPromptOptions(PromptOptions, _videoFrames);
 
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(_selectedModel.ModelSet, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateAsBytesAsync(new ModelOptions(_selectedModel.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultVideo = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultVideo != null)
                 {
