@@ -82,6 +82,20 @@
                 <views:VideoToVideoView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
+            <!--ControlNet-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf1c8;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
+                            <userControls:FontAwesome Icon="&#xf1c8;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="ControlNet" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:ControlNetView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+            </TabItem>
 
             <!--Upscale-->
             <TabItem>

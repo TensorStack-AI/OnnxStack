@@ -32,6 +32,7 @@ namespace OnnxStack.UI.Models
         private float _maximumBeta = 0.999f;
         private int _originalInferenceSteps = 100;
         private SchedulerType _schedulerType;
+        private float _conditioningScale = 7f;
         private bool _hasChanged;
 
         /// <summary>
@@ -200,6 +201,13 @@ namespace OnnxStack.UI.Models
             get { return _schedulerType; }
             set { _schedulerType = value; NotifyPropertyChanged(); }
         }
+
+        public float ConditioningScale
+        {
+            get { return _conditioningScale; }
+            set { _conditioningScale = value; NotifyPropertyChanged(); }
+        }
+
 
         public bool HasChanged
         {
