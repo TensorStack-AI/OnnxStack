@@ -32,7 +32,7 @@ namespace OnnxStack.UI.Models
         private float _maximumBeta = 0.999f;
         private int _originalInferenceSteps = 100;
         private SchedulerType _schedulerType;
-        private float _conditioningScale = 7f;
+        private float _conditioningScale = 0.7f;
         private bool _hasChanged;
 
         /// <summary>

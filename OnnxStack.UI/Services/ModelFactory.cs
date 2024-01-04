@@ -32,7 +32,8 @@ namespace OnnxStack.UI.Services
         public IEnumerable<StableDiffusionModelTemplate> GetStableDiffusionModelTemplates()
         {
             yield return new StableDiffusionModelTemplate("SD", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
-            yield return new StableDiffusionModelTemplate("SD-Inpaint", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512,  DiffuserType.ImageInpaint);
+            yield return new StableDiffusionModelTemplate("SD-Inpaint", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.ImageInpaint);
+            yield return new StableDiffusionModelTemplate("SD-ControlNet", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.ControlNet, DiffuserType.ControlNetImage);
 
             yield return new StableDiffusionModelTemplate("SDXL", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
             yield return new StableDiffusionModelTemplate("SDXL-Inpaint", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.ImageInpaint);
@@ -71,14 +72,20 @@ namespace OnnxStack.UI.Services
                 ModelConfigurations = new List<OnnxModelConfig>()
             };
 
-
+            // Some repositories have the ControlNet in the unet folder, some on the controlnet folder
+            var isControlNet = modelTemplate.DiffuserTypes.Any(x => x == DiffuserType.ControlNet || x == DiffuserType.ControlNetImage);
             var unetPath = Path.Combine(folder, "unet", "model.onnx");
+            var controlNetUnetPath = Path.Combine(folder, "controlnet", "model.onnx");
+            if (isControlNet && File.Exists(controlNetUnetPath))
+                unetPath = controlNetUnetPath;
+
             var tokenizerPath = Path.Combine(folder, "tokenizer", "model.onnx");
             var textEncoderPath = Path.Combine(folder, "text_encoder", "model.onnx");
             var vaeDecoder = Path.Combine(folder, "vae_decoder", "model.onnx");
             var vaeEncoder = Path.Combine(folder, "vae_encoder", "model.onnx");
             var tokenizer2Path = Path.Combine(folder, "tokenizer_2", "model.onnx");
             var textEncoder2Path = Path.Combine(folder, "text_encoder_2", "model.onnx");
+            var controlnet = Path.Combine(folder, "controlnet", "model.onnx");
             if (!File.Exists(tokenizerPath))
                 tokenizerPath = _defaultTokenizerPath;
             if (!File.Exists(tokenizer2Path))

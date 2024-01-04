@@ -25,19 +25,19 @@
                       SupportedDiffusers="{Binding SupportedDiffusers}"
                       IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
                       SelectedModel="{Binding SelectedModel, Mode=TwoWay}"/>
-                <UniformGrid Rows="2" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
-                    <userControls:PromptControl 
-                        IsVideoControlsEnabled="True"
-                        SelectedModel="{Binding SelectedModel}"
-                        PromptOptions="{Binding PromptOptions}" 
-                        IsEnabled="{Binding IsControlsEnabled}"/>
+                <DockPanel IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
                     <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
                         SelectedModel="{Binding SelectedModel}"
                         DiffuserType="ImageToImage" 
                         SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
                         IsEnabled="{Binding IsControlsEnabled}"
                         IsGenerating="{Binding IsGenerating}"/>
-                </UniformGrid>
+                    <userControls:PromptControl 
+                        IsVideoControlsEnabled="True"
+                        SelectedModel="{Binding SelectedModel}"
+                        PromptOptions="{Binding PromptOptions}" 
+                        IsEnabled="{Binding IsControlsEnabled}"/>
+                </DockPanel>
             </DockPanel>
         </DockPanel>
 

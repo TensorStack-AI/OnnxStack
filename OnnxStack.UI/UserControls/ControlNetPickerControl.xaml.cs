@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
-using OnnxStack.ImageUpscaler.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;

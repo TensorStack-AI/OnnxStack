@@ -31,19 +31,21 @@
                           IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
                           SelectedModel="{Binding SelectedControlNetModel, Mode=TwoWay}"/>
                 </StackPanel>
-             
-                <UniformGrid Rows="2" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
-                    <userControls:PromptControl 
-                        SelectedModel="{Binding SelectedModel}"
-                        PromptOptions="{Binding PromptOptions}" 
-                        IsEnabled="{Binding IsControlsEnabled}"/>
-                    <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
-                        SelectedModel="{Binding SelectedModel}"
-                        DiffuserType="ControlNet" 
-                        SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
-                        IsEnabled="{Binding IsControlsEnabled}"
-                        IsGenerating="{Binding IsGenerating}"/>
-                </UniformGrid>
+                <Grid IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
+                    <DockPanel IsEnabled="{Binding SelectedControlNetModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
+                        <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
+                          SelectedModel="{Binding SelectedModel}"
+                          DiffuserType="ControlNet" 
+                          SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsControlsEnabled}"
+                          IsGenerating="{Binding IsGenerating}"/>
+                        <userControls:PromptControl 
+                            SelectedModel="{Binding SelectedModel}"
+                            PromptOptions="{Binding PromptOptions}" 
+                            IsEnabled="{Binding IsControlsEnabled}"/>
+                    </DockPanel>
+                </Grid>
+              
             </DockPanel>
         </DockPanel>
 
