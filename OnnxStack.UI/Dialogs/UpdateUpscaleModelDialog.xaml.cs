@@ -27,9 +27,7 @@ namespace OnnxStack.UI.Dialogs
             _uiSettings = uiSettings;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
-            _invalidOptions = _uiSettings.UpscaleModelSets
-               .Select(x => x.Name)
-               .ToList();
+            _invalidOptions = uiSettings.GetModelNames();
             InitializeComponent();
         }
 

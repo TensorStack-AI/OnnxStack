@@ -38,7 +38,7 @@ namespace OnnxStack.UI.Services
             yield return new StableDiffusionModelTemplate("SDXL", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
             yield return new StableDiffusionModelTemplate("SDXL-Inpaint", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.ImageInpaint);
             yield return new StableDiffusionModelTemplate("SDXL-Refiner", DiffuserPipelineType.StableDiffusionXL, ModelType.Refiner, 1024, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
-          
+
             yield return new StableDiffusionModelTemplate("LCM", DiffuserPipelineType.LatentConsistency, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
             yield return new StableDiffusionModelTemplate("LCM-SDXL", DiffuserPipelineType.LatentConsistencyXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
 
@@ -137,11 +137,39 @@ namespace OnnxStack.UI.Services
             return new UpscaleModelSet
             {
                 Name = name,
-                IsEnabled = true,
                 Channels = 3,
                 SampleSize = modelTemplate.SampleSize,
                 ScaleFactor = modelTemplate.ScaleFactor,
-                ModelConfigurations = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.Upscaler, OnnxModelPath = filename } }
+                ModelConfigurations = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.Upscaler, OnnxModelPath = filename } },
+
+                IsEnabled = true,
+                DeviceId = _settings.DefaultDeviceId,
+                ExecutionMode = _settings.DefaultExecutionMode,
+                ExecutionProvider = _settings.DefaultExecutionProvider,
+                InterOpNumThreads = _settings.DefaultInterOpNumThreads,
+                IntraOpNumThreads = _settings.DefaultIntraOpNumThreads
+            };
+        }
+
+
+        public ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, string modelFilename, string annotationFilename)
+        {
+            var models = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.ControlNet, OnnxModelPath = modelFilename } };
+            if (!string.IsNullOrEmpty(annotationFilename))
+                models.Add(new OnnxModelConfig { Type = OnnxModelType.Annotation, OnnxModelPath = annotationFilename });
+
+            return new ControlNetModelSet
+            {
+                Name = name,
+                Type = controlNetType,
+                ModelConfigurations = models,
+
+                IsEnabled = true,
+                DeviceId = _settings.DefaultDeviceId,
+                ExecutionMode = _settings.DefaultExecutionMode,
+                ExecutionProvider = _settings.DefaultExecutionProvider,
+                InterOpNumThreads = _settings.DefaultInterOpNumThreads,
+                IntraOpNumThreads = _settings.DefaultIntraOpNumThreads
             };
         }
     }

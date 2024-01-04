@@ -5,7 +5,6 @@ using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -23,6 +22,9 @@ namespace OnnxStack.UI.Views
         private readonly ILogger<SettingsView> _logger;
         private readonly IDialogService _dialogService;
         private readonly IDeviceService _deviceService;
+        private StableDiffusionModelSetViewModel _selectedStableDiffusionModel;
+        private UpscaleModelSetViewModel _selectedUpscaleModel;
+        private ControlNetModelSetViewModel _selectedControlNetModel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsView"/> class.
@@ -44,6 +46,10 @@ namespace OnnxStack.UI.Views
             AddStableDiffusionModelCommand = new AsyncRelayCommand(AddStableDiffusionModel);
             UpdateStableDiffusionModelCommand = new AsyncRelayCommand(UpdateStableDiffusionModel, () => SelectedStableDiffusionModel is not null);
             RemoveStableDiffusionModelCommand = new AsyncRelayCommand(RemoveStableDiffusionModel, () => SelectedStableDiffusionModel is not null);
+
+            AddControlNetModelCommand = new AsyncRelayCommand(AddControlNetModel);
+            UpdateControlNetModelCommand = new AsyncRelayCommand(UpdateControlNetModel, () => SelectedControlNetModel is not null);
+            RemoveControlNetModelCommand = new AsyncRelayCommand(RemoveControlNetModel, () => SelectedControlNetModel is not null);
             InitializeComponent();
         }
 
@@ -54,7 +60,9 @@ namespace OnnxStack.UI.Views
         public AsyncRelayCommand AddStableDiffusionModelCommand { get; }
         public AsyncRelayCommand UpdateStableDiffusionModelCommand { get; }
         public AsyncRelayCommand RemoveStableDiffusionModelCommand { get; }
-
+        public AsyncRelayCommand AddControlNetModelCommand { get; }
+        public AsyncRelayCommand UpdateControlNetModelCommand { get; }
+        public AsyncRelayCommand RemoveControlNetModelCommand { get; }
 
         public OnnxStackUIConfig UISettings
         {
@@ -65,24 +73,23 @@ namespace OnnxStack.UI.Views
             DependencyProperty.Register("UISettings", typeof(OnnxStackUIConfig), typeof(SettingsView));
 
 
-
-        private StableDiffusionModelSetViewModel _selectedStableDiffusionModel;
-
         public StableDiffusionModelSetViewModel SelectedStableDiffusionModel
         {
             get { return _selectedStableDiffusionModel; }
             set { _selectedStableDiffusionModel = value; NotifyPropertyChanged(); }
         }
-
-
-        private UpscaleModelSetViewModel _selectedUpscaleModel;
-
+             
         public UpscaleModelSetViewModel SelectedUpscaleModel
         {
             get { return _selectedUpscaleModel; }
             set { _selectedUpscaleModel = value; NotifyPropertyChanged(); }
         }
 
+        public ControlNetModelSetViewModel SelectedControlNetModel
+        {
+            get { return _selectedControlNetModel; }
+            set { _selectedControlNetModel = value; NotifyPropertyChanged(); }
+        }
 
         public Task NavigateAsync(ImageResult imageResult)
         {
@@ -103,9 +110,7 @@ namespace OnnxStack.UI.Views
         }
 
 
-
-
-
+        #region StableDiffusion
 
         private async Task AddStableDiffusionModel()
         {
@@ -157,22 +162,10 @@ namespace OnnxStack.UI.Views
             }
         }
 
+        #endregion
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        #region Upscale
 
         private async Task AddUpscaleModel()
         {
@@ -225,15 +218,62 @@ namespace OnnxStack.UI.Views
             await SaveConfigurationFile();
         }
 
+        #endregion
 
 
+        #region ControlNet
+
+        private async Task AddControlNetModel()
+        {
+            var addModelDialog = _dialogService.GetDialog<AddControlNetModelDialog>();
+            if (addModelDialog.ShowDialog())
+            {
+                var model = new ControlNetModelSetViewModel
+                {
+                    Name = addModelDialog.ModelSetResult.Name,
+                    ModelSet = addModelDialog.ModelSetResult
+                };
+                UISettings.ControlNetModelSets.Add(model);
+                SelectedControlNetModel = model;
+                await SaveConfigurationFile();
+            }
+        }
 
 
+        private async Task UpdateControlNetModel()
+        {
+            if (SelectedControlNetModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateControlNetModelDialog>();
+            if (updateModelDialog.ShowDialog(SelectedControlNetModel.ModelSet))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                SelectedControlNetModel.ModelSet = modelSet;
+                SelectedControlNetModel.Name = modelSet.Name;
+                UISettings.ControlNetModelSets.ForceNotifyCollectionChanged();
+                await SaveConfigurationFile();
+            }
+        }
 
 
+        private async Task RemoveControlNetModel()
+        {
+            if (SelectedControlNetModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
+            UISettings.ControlNetModelSets.Remove(SelectedControlNetModel);
+            SelectedControlNetModel = UISettings.ControlNetModelSets.FirstOrDefault();
+            await SaveConfigurationFile();
+        }
 
-
+        #endregion
 
 
         #region INotifyPropertyChanged

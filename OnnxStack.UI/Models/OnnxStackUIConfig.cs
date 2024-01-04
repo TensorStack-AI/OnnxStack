@@ -37,5 +37,14 @@ namespace OnnxStack.UI.Models
                 : SupportedExecutionProvider;
         }
 
+
+        public List<string> GetModelNames()
+        {
+            return UpscaleModelSets.Select(x => x.Name)
+                .Concat(StableDiffusionModelSets.Select(x => x.Name))
+                .Concat(ControlNetModelSets.Select(x => x.Name))
+                .Distinct()
+                .ToList();
+        }
     }
 }
