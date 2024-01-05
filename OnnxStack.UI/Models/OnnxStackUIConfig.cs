@@ -4,6 +4,7 @@ using OnnxStack.Core.Config;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace OnnxStack.UI.Models
 {
@@ -14,6 +15,8 @@ namespace OnnxStack.UI.Models
         public int DefaultIntraOpNumThreads { get; set; }
         public ExecutionMode DefaultExecutionMode { get; set; }
         public ExecutionProvider DefaultExecutionProvider { get; set; }
+
+        [JsonIgnore]
         public ExecutionProvider SupportedExecutionProvider => GetSupportedExecutionProvider();
         public ObservableCollection<UpscaleModelSetViewModel> UpscaleModelSets { get; set; } = new ObservableCollection<UpscaleModelSetViewModel>();
         public ObservableCollection<StableDiffusionModelSetViewModel> StableDiffusionModelSets { get; set; } = new ObservableCollection<StableDiffusionModelSetViewModel>();
