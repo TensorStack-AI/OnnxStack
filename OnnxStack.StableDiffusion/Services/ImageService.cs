@@ -179,7 +179,7 @@ namespace OnnxStack.StableDiffusion.Services
         /// <returns></returns>
         private static InputImage PrepareInputImage(InputImage inputImage, int height, int width)
         {
-            return new InputImage(inputImage.ToDenseTensor(new[] { 1, 3, height, width }, false));
+            return inputImage;
         }
 
 

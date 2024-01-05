@@ -33,6 +33,7 @@ namespace OnnxStack.UI.Models
         private int _originalInferenceSteps = 100;
         private SchedulerType _schedulerType;
         private float _conditioningScale = 0.7f;
+        private bool _processInputImage;
         private bool _hasChanged;
 
         /// <summary>
@@ -208,6 +209,11 @@ namespace OnnxStack.UI.Models
             set { _conditioningScale = value; NotifyPropertyChanged(); }
         }
 
+        public bool ProcessInputImage
+        {
+            get { return _processInputImage; }
+            set { _processInputImage = value; NotifyPropertyChanged(); }
+        }
 
         public bool HasChanged
         {

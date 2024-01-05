@@ -193,7 +193,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         protected DenseTensor<float> PrepareControlImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            return promptOptions.InputImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
+            return promptOptions.InputContolImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
         }
 
 

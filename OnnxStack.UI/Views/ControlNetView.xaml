@@ -26,7 +26,7 @@
                          SupportedDiffusers="{Binding SupportedDiffusers}"
                          IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
                          SelectedModel="{Binding SelectedModel, Mode=TwoWay}"/>
-                    <userControls:ControlNetPickerControl 
+                    <userControls:ControlNetPickerControl Visibility="{Binding SelectedModel.IsControlNet, Converter={StaticResource BooleanToVisibilityConverter}}"
                           UISettings="{Binding UISettings}"
                           IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
                           SelectedModel="{Binding SelectedControlNetModel, Mode=TwoWay}"/>
