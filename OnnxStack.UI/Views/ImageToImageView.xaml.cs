@@ -26,7 +26,6 @@ namespace OnnxStack.UI.Views
     {
         private readonly ILogger<ImageToImageView> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
-        private readonly IImageService _imageService;
 
         private bool _hasResult;
         private int _progressMax;
@@ -53,7 +52,6 @@ namespace OnnxStack.UI.Views
             {
                 _logger = App.GetService<ILogger<ImageToImageView>>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
-                _imageService = App.GetService<IImageService>();
             }
 
             SupportedDiffusers = new() { DiffuserType.ImageToImage, DiffuserType.ControlNet };
@@ -87,7 +85,7 @@ namespace OnnxStack.UI.Views
             get { return _selectedModel; }
             set { _selectedModel = value; NotifyPropertyChanged(); }
         }
-  
+
         public ControlNetModelSetViewModel SelectedControlNetModel
         {
             get { return _selectedControlNetModel; }
@@ -204,7 +202,7 @@ namespace OnnxStack.UI.Views
             IsControlsEnabled = false;
             ResultImage = null;
             _cancelationTokenSource = new CancellationTokenSource();
-            var promptOptions = await GetPromptOptions(PromptOptions, InputImage);
+            var promptOptions = GetPromptOptions(PromptOptions, InputImage);
             var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
 
             try
@@ -303,8 +301,9 @@ namespace OnnxStack.UI.Views
         }
 
 
-        private async Task<PromptOptions> GetPromptOptions(PromptOptionsModel promptOptionsModel, ImageInput imageInput)
+        private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, ImageInput imageInput)
         {
+            var imageBytes = imageInput.Image.GetImageBytes();
             if (_selectedModel.IsControlNet)
             {
                 var controlNetDiffuserType = _schedulerOptions.Strength >= 1
@@ -313,11 +312,7 @@ namespace OnnxStack.UI.Views
 
                 var inputImage = default(InputImage);
                 if (controlNetDiffuserType == DiffuserType.ControlNetImage)
-                    inputImage = new InputImage(imageInput.Image.GetImageBytes());
-
-                var controlImage = new InputImage(imageInput.Image.GetImageBytes());
-                if (_schedulerOptions.ProcessInputImage)
-                    controlImage = await _imageService.PrepareInputImage(_selectedControlNetModel.ModelSet, controlImage, _schedulerOptions.Height, _schedulerOptions.Width);
+                    inputImage = new InputImage(imageBytes);
 
                 return new PromptOptions
                 {
@@ -325,7 +320,7 @@ namespace OnnxStack.UI.Views
                     NegativePrompt = promptOptionsModel.NegativePrompt,
                     DiffuserType = controlNetDiffuserType,
                     InputImage = inputImage,
-                    InputContolImage = controlImage
+                    InputContolImage = new InputImage(imageBytes)
                 };
             }
 
@@ -334,7 +329,7 @@ namespace OnnxStack.UI.Views
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
                 DiffuserType = DiffuserType.ImageToImage,
-                InputImage = new InputImage(imageInput.Image.GetImageBytes())
+                InputImage = new InputImage(imageBytes)
             };
         }
 

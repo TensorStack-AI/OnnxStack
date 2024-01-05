@@ -17,18 +17,18 @@ namespace OnnxStack.StableDiffusion.Services
     /// <summary>
     /// Service for handing images for input and output of the diffusion process
     /// </summary>
-    /// <seealso cref="OnnxStack.StableDiffusion.Common.IImageService" />
-    public class ImageService : IImageService
+    /// <seealso cref="OnnxStack.StableDiffusion.Common.IControlNetImageService" />
+    public class ControlNetImageService : IControlNetImageService
     {
-        private readonly ILogger<ImageService> _logger;
+        private readonly ILogger<ControlNetImageService> _logger;
         private readonly IOnnxModelService _onnxModelService;
 
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageService"/> class.
+        /// Initializes a new instance of the <see cref="ControlNetImageService"/> class.
         /// </summary>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public ImageService(IOnnxModelService onnxModelService, ILogger<ImageService> logger)
+        public ControlNetImageService(IOnnxModelService onnxModelService, ILogger<ControlNetImageService> logger)
         {
             _logger = logger;
             _onnxModelService = onnxModelService;

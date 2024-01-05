@@ -21,13 +21,18 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
     public class ControlNetDiffuser : DiffuserBase
     {
+        private readonly IControlNetImageService _controlNetImageService;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ControlNetDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public ControlNetDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<ControlNetDiffuser> logger)
-            : base(onnxModelService, promptService, logger) { }
+        public ControlNetDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, IControlNetImageService controlNetImageService, ILogger<ControlNetDiffuser> logger)
+            : base(onnxModelService, promptService, logger)
+        {
+            _controlNetImageService = controlNetImageService;
+        }
 
 
         /// <summary>
@@ -72,7 +77,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions.ControlNetModel, OnnxModelType.ControlNet);
 
                 // Control Image
-                var controlImage = PrepareControlImage(promptOptions, schedulerOptions);
+                var controlImage = await PrepareControlImage(modelOptions, promptOptions, schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -191,9 +196,14 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        protected DenseTensor<float> PrepareControlImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        protected async Task<DenseTensor<float>> PrepareControlImage(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            return promptOptions.InputContolImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
+            var controlImage = promptOptions.InputContolImage;
+            if (schedulerOptions.IsControlImageProcessingEnabled)
+            {
+                controlImage = await _controlNetImageService.PrepareInputImage(modelOptions.ControlNetModel, promptOptions.InputContolImage, schedulerOptions.Height, schedulerOptions.Width);
+            }
+            return controlImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
         }
 
 

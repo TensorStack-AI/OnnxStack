@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Common
 {
-    public interface IImageService
+    public interface IControlNetImageService
     {
 
         /// <summary>

@@ -1,6 +1,8 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.Core.Config;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
@@ -32,7 +34,9 @@ namespace OnnxStack.UI.Models
             set { _isLoading = value; NotifyPropertyChanged(); }
         }
 
+        [JsonIgnore]
         public bool IsControlNet => ModelSet.Diffusers.Contains(DiffuserType.ControlNet);
+ 
 
         public StableDiffusionModelSet ModelSet { get; set; }
 

@@ -23,8 +23,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public ControlNetImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<ControlNetDiffuser> logger)
-            : base(onnxModelService, promptService, logger)
+        public ControlNetImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, IControlNetImageService controlNetImageService, ILogger<ControlNetDiffuser> logger)
+            : base(onnxModelService, promptService, controlNetImageService, logger)
         {
         }
 

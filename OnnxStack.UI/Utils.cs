@@ -104,6 +104,7 @@ namespace OnnxStack.UI
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
                 SchedulerType = model.SchedulerType,
                 ConditioningScale = model.ConditioningScale,
+                IsControlImageProcessingEnabled = model.IsControlImageProcessingEnabled
             };
         }
 
@@ -135,7 +136,8 @@ namespace OnnxStack.UI
                 VarianceType = model.VarianceType,
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
                 SchedulerType = model.SchedulerType,
-                ConditioningScale = model.ConditioningScale
+                ConditioningScale = model.ConditioningScale,
+                IsControlImageProcessingEnabled = model.IsControlImageProcessingEnabled
             };
         }
 
