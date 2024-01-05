@@ -124,7 +124,8 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 foreach (var videoFrame in videoFrames)
                 {
                     frameIndex++;
-                    promptOptions.InputImage = new InputImage(videoFrame);
+                    promptOptions.InputImage = promptOptions.DiffuserType == DiffuserType.ControlNet ? default : new InputImage(videoFrame);
+                    promptOptions.InputContolImage = promptOptions.DiffuserType == DiffuserType.ImageToImage ? default : new InputImage(videoFrame);
                     var frameResultTensor = await SchedulerStepAsync(modelOptions, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerFrameCallback, cancellationToken);
 
                     // Frame Progress
