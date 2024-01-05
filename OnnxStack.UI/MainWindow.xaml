@@ -28,8 +28,6 @@
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
                             <userControls:FontAwesome Icon="&#xf15c;" IconStyle="Light"/>
-                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
-                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
                         </StackPanel>
                         <TextBlock Text="Text To Image" Margin="5,0,0,0"/>
                     </StackPanel>
@@ -42,9 +40,7 @@
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
-                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
-                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
-                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf03e;" IconStyle="Light"/>
                         </StackPanel>
                         <TextBlock Text="Image To Image" Margin="5,0,0,0"/>
                     </StackPanel>
@@ -57,9 +53,7 @@
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
-                            <userControls:FontAwesome Icon="&#xf15b;" IconStyle="Light"/>
-                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
-                            <userControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light"/>
                         </StackPanel>
                         <TextBlock Text="Image Inpaint" Margin="5,0,0,0"/>
                     </StackPanel>
@@ -72,16 +66,13 @@
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
-                            <userControls:FontAwesome Icon="&#xf1c8;" IconStyle="Light"/>
-                            <userControls:FontAwesome Icon="&#xf054;" IconStyle="Regular" Size="8" Margin="3"/>
-                            <userControls:FontAwesome Icon="&#xf1c8;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf008;" IconStyle="Light"/>
                         </StackPanel>
                         <TextBlock Text="Video To Video" Margin="5,0,0,0"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:VideoToVideoView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
-
 
             <!--Upscale-->
             <TabItem>

@@ -32,12 +32,13 @@ namespace OnnxStack.UI.Services
         public IEnumerable<StableDiffusionModelTemplate> GetStableDiffusionModelTemplates()
         {
             yield return new StableDiffusionModelTemplate("SD", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
-            yield return new StableDiffusionModelTemplate("SD-Inpaint", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512,  DiffuserType.ImageInpaint);
+            yield return new StableDiffusionModelTemplate("SD-Inpaint", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.ImageInpaint);
+            yield return new StableDiffusionModelTemplate("SD-ControlNet", DiffuserPipelineType.StableDiffusion, ModelType.Base, 512, DiffuserType.ControlNet, DiffuserType.ControlNetImage);
 
             yield return new StableDiffusionModelTemplate("SDXL", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
             yield return new StableDiffusionModelTemplate("SDXL-Inpaint", DiffuserPipelineType.StableDiffusionXL, ModelType.Base, 1024, DiffuserType.ImageInpaint);
             yield return new StableDiffusionModelTemplate("SDXL-Refiner", DiffuserPipelineType.StableDiffusionXL, ModelType.Refiner, 1024, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
-          
+
             yield return new StableDiffusionModelTemplate("LCM", DiffuserPipelineType.LatentConsistency, ModelType.Base, 512, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
             yield return new StableDiffusionModelTemplate("LCM-SDXL", DiffuserPipelineType.LatentConsistencyXL, ModelType.Base, 1024, DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy);
 
@@ -71,14 +72,20 @@ namespace OnnxStack.UI.Services
                 ModelConfigurations = new List<OnnxModelConfig>()
             };
 
-
+            // Some repositories have the ControlNet in the unet folder, some on the controlnet folder
+            var isControlNet = modelTemplate.DiffuserTypes.Any(x => x == DiffuserType.ControlNet || x == DiffuserType.ControlNetImage);
             var unetPath = Path.Combine(folder, "unet", "model.onnx");
+            var controlNetUnetPath = Path.Combine(folder, "controlnet", "model.onnx");
+            if (isControlNet && File.Exists(controlNetUnetPath))
+                unetPath = controlNetUnetPath;
+
             var tokenizerPath = Path.Combine(folder, "tokenizer", "model.onnx");
             var textEncoderPath = Path.Combine(folder, "text_encoder", "model.onnx");
             var vaeDecoder = Path.Combine(folder, "vae_decoder", "model.onnx");
             var vaeEncoder = Path.Combine(folder, "vae_encoder", "model.onnx");
             var tokenizer2Path = Path.Combine(folder, "tokenizer_2", "model.onnx");
             var textEncoder2Path = Path.Combine(folder, "text_encoder_2", "model.onnx");
+            var controlnet = Path.Combine(folder, "controlnet", "model.onnx");
             if (!File.Exists(tokenizerPath))
                 tokenizerPath = _defaultTokenizerPath;
             if (!File.Exists(tokenizer2Path))
@@ -130,11 +137,39 @@ namespace OnnxStack.UI.Services
             return new UpscaleModelSet
             {
                 Name = name,
-                IsEnabled = true,
                 Channels = 3,
                 SampleSize = modelTemplate.SampleSize,
                 ScaleFactor = modelTemplate.ScaleFactor,
-                ModelConfigurations = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.Upscaler, OnnxModelPath = filename } }
+                ModelConfigurations = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.Upscaler, OnnxModelPath = filename } },
+
+                IsEnabled = true,
+                DeviceId = _settings.DefaultDeviceId,
+                ExecutionMode = _settings.DefaultExecutionMode,
+                ExecutionProvider = _settings.DefaultExecutionProvider,
+                InterOpNumThreads = _settings.DefaultInterOpNumThreads,
+                IntraOpNumThreads = _settings.DefaultIntraOpNumThreads
+            };
+        }
+
+
+        public ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, string modelFilename, string annotationFilename)
+        {
+            var models = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.ControlNet, OnnxModelPath = modelFilename } };
+            if (!string.IsNullOrEmpty(annotationFilename))
+                models.Add(new OnnxModelConfig { Type = OnnxModelType.Annotation, OnnxModelPath = annotationFilename });
+
+            return new ControlNetModelSet
+            {
+                Name = name,
+                Type = controlNetType,
+                ModelConfigurations = models,
+
+                IsEnabled = true,
+                DeviceId = _settings.DefaultDeviceId,
+                ExecutionMode = _settings.DefaultExecutionMode,
+                ExecutionProvider = _settings.DefaultExecutionProvider,
+                InterOpNumThreads = _settings.DefaultInterOpNumThreads,
+                IntraOpNumThreads = _settings.DefaultIntraOpNumThreads
             };
         }
     }

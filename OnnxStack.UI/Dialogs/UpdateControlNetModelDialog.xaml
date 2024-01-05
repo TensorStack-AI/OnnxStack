@@ -1,4 +1,4 @@
-﻿<Window x:Class="OnnxStack.UI.Dialogs.UpdateUpscaleModelDialog"
+﻿<Window x:Class="OnnxStack.UI.Dialogs.UpdateControlNetModelDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -15,7 +15,7 @@
         WindowStartupLocation="CenterOwner" 
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
-        Title="Update Upscale Model">
+        Title="Update ControlNet Model">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <StackPanel DockPanel.Dock="Top">
 
@@ -46,28 +46,18 @@
                     </StackPanel>
 
                     <StackPanel Margin="0,10,0,0">
-                        <TextBlock Text="Model File"/>
+                        <TextBlock Text="ControlNet Model File"/>
                         <userControls:FilePickerTextBox FileName="{Binding UpdateModelSet.ModelFiles[0].OnnxModelPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Filter="Onnx files (*.onnx)|*.onnx" DefaultExt="onnx" />
                     </StackPanel>
 
-                    <UniformGrid Columns="3" Margin="0,10,0,0">
-                        <StackPanel>
-                            <TextBlock Text="Sample Size" />
-                            <TextBox Text="{Binding UpdateModelSet.SampleSize}" />
-                        </StackPanel>
+                    <StackPanel Margin="0,10,0,0">
+                        <TextBlock Text="Annotation Model File"/>
+                        <userControls:FilePickerTextBox FileName="{Binding UpdateModelSet.ModelFiles[1].OnnxModelPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Filter="Onnx files (*.onnx)|*.onnx" DefaultExt="onnx" />
+                    </StackPanel>
 
-                        <StackPanel Margin="5,0">
-                            <TextBlock Text="Scale Factor" />
-                            <TextBox Text="{Binding UpdateModelSet.ScaleFactor}" />
-                        </StackPanel>
-
-                        <StackPanel>
-                            <TextBlock Text="Channels" />
-                            <TextBox Text="{Binding UpdateModelSet.Channels}" />
-                        </StackPanel>
-                    </UniformGrid>
                 </StackPanel>
             </GroupBox>
+
 
 
             <GroupBox Header="Performance" Margin="5,10,5,0" >
@@ -101,7 +91,6 @@
                     </UniformGrid>
                 </StackPanel>
             </GroupBox>
-
 
         </StackPanel>
 

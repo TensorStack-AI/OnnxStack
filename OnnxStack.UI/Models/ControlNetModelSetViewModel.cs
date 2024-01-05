@@ -1,14 +1,11 @@
-﻿using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
+﻿using OnnxStack.StableDiffusion.Config;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 namespace OnnxStack.UI.Models
 {
-    public class StableDiffusionModelSetViewModel : INotifyPropertyChanged
+    public class ControlNetModelSetViewModel : INotifyPropertyChanged
     {
         private string _name;
         private bool _isLoaded;
@@ -34,11 +31,7 @@ namespace OnnxStack.UI.Models
             set { _isLoading = value; NotifyPropertyChanged(); }
         }
 
-        [JsonIgnore]
-        public bool IsControlNet => ModelSet.Diffusers.Contains(DiffuserType.ControlNet);
- 
-
-        public StableDiffusionModelSet ModelSet { get; set; }
+        public ControlNetModelSet ModelSet { get; set; }
 
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;

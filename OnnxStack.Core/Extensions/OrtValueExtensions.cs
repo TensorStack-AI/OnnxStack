@@ -59,6 +59,11 @@ namespace OnnxStack.Core
             return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
         }
 
+        public static OrtValue ToOrtValue(this DenseTensor<double> tensor, OnnxNamedMetadata metadata)
+        {
+            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
+        }
+
 
         /// <summary>
         /// Creates and allocates the output tensors buffer.

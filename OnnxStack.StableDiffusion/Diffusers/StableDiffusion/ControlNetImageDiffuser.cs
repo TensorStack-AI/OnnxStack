@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
@@ -15,23 +14,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 {
-    public sealed class ImageDiffuser : LatentConsistencyDiffuser
+    public sealed class ControlNetImageDiffuser : ControlNetDiffuser
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="ControlNetImageDiffuser"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="onnxModelService">The onnx model service.</param>
-        public ImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<LatentConsistencyDiffuser> logger)
-            : base(onnxModelService, promptService, logger) { }
+        public ControlNetImageDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, IControlNetImageService controlNetImageService, ILogger<ControlNetDiffuser> logger)
+            : base(onnxModelService, promptService, controlNetImageService, logger)
+        {
+        }
 
 
         /// <summary>
         /// Gets the type of the diffuser.
         /// </summary>
-        public override DiffuserType DiffuserType => DiffuserType.ImageToImage;
+        public override DiffuserType DiffuserType => DiffuserType.ControlNetImage;
 
 
         /// <summary>
@@ -43,7 +44,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
-            // Image2Image we narrow step the range by the Strength
             var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
             var start = Math.Max(options.InferenceSteps - inittimestep, 0);
             return scheduler.Timesteps.Skip(start).ToList();
@@ -78,5 +78,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 }
             }
         }
+
     }
 }

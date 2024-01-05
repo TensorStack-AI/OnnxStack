@@ -102,7 +102,9 @@ namespace OnnxStack.UI
                 UseKarrasSigmas = model.UseKarrasSigmas,
                 VarianceType = model.VarianceType,
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
-                SchedulerType = model.SchedulerType
+                SchedulerType = model.SchedulerType,
+                ConditioningScale = model.ConditioningScale,
+                IsControlImageProcessingEnabled = model.IsControlImageProcessingEnabled
             };
         }
 
@@ -133,7 +135,9 @@ namespace OnnxStack.UI
                 UseKarrasSigmas = model.UseKarrasSigmas,
                 VarianceType = model.VarianceType,
                 OriginalInferenceSteps = model.OriginalInferenceSteps,
-                SchedulerType = model.SchedulerType
+                SchedulerType = model.SchedulerType,
+                ConditioningScale = model.ConditioningScale,
+                IsControlImageProcessingEnabled = model.IsControlImageProcessingEnabled
             };
         }
 

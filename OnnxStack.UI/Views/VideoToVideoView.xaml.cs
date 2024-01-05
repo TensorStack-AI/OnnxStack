@@ -44,6 +44,7 @@ namespace OnnxStack.UI.Views
         private VideoInputModel _inputVideo;
         private VideoInputModel _resultVideo;
         private StableDiffusionModelSetViewModel _selectedModel;
+        private ControlNetModelSetViewModel _selectedControlNetModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private CancellationTokenSource _cancelationTokenSource;
@@ -63,7 +64,7 @@ namespace OnnxStack.UI.Views
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
 
-            SupportedDiffusers = new() { DiffuserType.ImageToImage };
+            SupportedDiffusers = new() { DiffuserType.ImageToImage, DiffuserType.ControlNet };
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             GenerateCommand = new AsyncRelayCommand(Generate, CanExecuteGenerate);
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
@@ -93,6 +94,12 @@ namespace OnnxStack.UI.Views
         {
             get { return _selectedModel; }
             set { _selectedModel = value; NotifyPropertyChanged(); }
+        }
+
+        public ControlNetModelSetViewModel SelectedControlNetModel
+        {
+            get { return _selectedControlNetModel; }
+            set { _selectedControlNetModel = value; NotifyPropertyChanged(); }
         }
 
         public PromptOptionsModel PromptOptions
@@ -215,7 +222,7 @@ namespace OnnxStack.UI.Views
                 var promptOptions = GetPromptOptions(PromptOptions, _videoFrames);
 
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(_selectedModel.ModelSet, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateAsBytesAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultVideo = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultVideo != null)
                 {
@@ -247,7 +254,9 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteGenerate()
         {
-            return !IsGenerating && HasInputResult;
+            return !IsGenerating 
+                && HasInputResult
+                && (!SelectedModel.IsControlNet || (SelectedModel.IsControlNet && SelectedControlNetModel?.IsLoaded == true));
         }
 
 
@@ -314,11 +323,19 @@ namespace OnnxStack.UI.Views
 
         private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, VideoFrames videoFrames)
         {
+            var diffuserType = DiffuserType.ImageToImage;
+            if (_selectedModel.IsControlNet)
+            {
+                diffuserType = _schedulerOptions.Strength >= 1
+                     ? DiffuserType.ControlNet
+                     : DiffuserType.ControlNetImage;
+            }
+  
             return new PromptOptions
             {
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
-                DiffuserType = DiffuserType.ImageToImage,
+                DiffuserType = diffuserType,
                 InputVideo = new VideoInput(videoFrames),
                 VideoInputFPS = promptOptionsModel.VideoInputFPS,
                 VideoOutputFPS = promptOptionsModel.VideoOutputFPS,

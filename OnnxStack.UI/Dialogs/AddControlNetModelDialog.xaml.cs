@@ -4,6 +4,7 @@ using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -16,47 +17,36 @@ using System.Windows;
 namespace OnnxStack.UI.Dialogs
 {
     /// <summary>
-    /// Interaction logic for AddModelDialog.xaml
+    /// Interaction logic for AddControlNetModelDialog.xaml
     /// </summary>
-    public partial class AddModelDialog : Window, INotifyPropertyChanged
+    public partial class AddControlNetModelDialog : Window, INotifyPropertyChanged
     {
-        private readonly ILogger<AddModelDialog> _logger;
+        private readonly ILogger<AddControlNetModelDialog> _logger;
 
-        private List<string> _invalidOptions;
-        private string _modelFolder;
+        private readonly List<string> _invalidOptions;
         private string _modelName;
+        private string _modelFile;
+        private string _annotationModelFile;
+        private ControlNetType _selectedControlNetType;
         private IModelFactory _modelFactory;
         private OnnxStackUIConfig _settings;
-        private StableDiffusionModelTemplate _modelTemplate;
-        private StableDiffusionModelSet _modelSetResult;
+        private ControlNetModelSet _modelSetResult;
 
-        public AddModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddModelDialog> logger)
+        public AddControlNetModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddControlNetModelDialog> logger)
         {
             _logger = logger;
             _settings = settings;
             _modelFactory = modelFactory;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel);
-            ModelTemplates = new List<StableDiffusionModelTemplate>( _modelFactory.GetStableDiffusionModelTemplates());
-            InvalidOptions = _settings.GetModelNames();
+            _invalidOptions = _settings.GetModelNames();
             InitializeComponent();
+            SelectedControlNetType = ControlNetType.Canny;
         }
 
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
         public ObservableCollection<ValidationResult> ValidationResults { get; set; } = new ObservableCollection<ValidationResult>();
-        public List<StableDiffusionModelTemplate> ModelTemplates { get; set; }
-
-        public StableDiffusionModelTemplate ModelTemplate
-        {
-            get { return _modelTemplate; }
-            set { _modelTemplate = value; NotifyPropertyChanged(); CreateModelSet(); }
-        }
-        public List<string> InvalidOptions
-        {
-            get { return _invalidOptions; }
-            set { _invalidOptions = value; NotifyPropertyChanged(); }
-        }
 
         public string ModelName
         {
@@ -64,16 +54,15 @@ namespace OnnxStack.UI.Dialogs
             set { _modelName = value; _modelName?.Trim(); NotifyPropertyChanged(); CreateModelSet(); }
         }
 
-        public string ModelFolder
+        public string ModelFile
         {
-            get { return _modelFolder; }
+            get { return _modelFile; }
             set
             {
-                _modelFolder = value;
-                if (_modelTemplate is not null)
-                    _modelName = string.IsNullOrEmpty(_modelFolder)
-                        ? string.Empty
-                        : Path.GetFileName(_modelFolder);
+                _modelFile = value;
+                _modelName = string.IsNullOrEmpty(_modelFile)
+                    ? string.Empty
+                    : Path.GetFileNameWithoutExtension(_modelFile);
 
                 NotifyPropertyChanged();
                 NotifyPropertyChanged(nameof(ModelName));
@@ -81,12 +70,23 @@ namespace OnnxStack.UI.Dialogs
             }
         }
 
-        public StableDiffusionModelSet ModelSetResult
+        public string AnnotationModelFile
+        {
+            get { return _annotationModelFile; }
+            set { _annotationModelFile = value; NotifyPropertyChanged(); CreateModelSet(); }
+        }
+
+        public ControlNetType SelectedControlNetType
+        {
+            get { return _selectedControlNetType; }
+            set { _selectedControlNetType = value; NotifyPropertyChanged(); CreateModelSet(); }
+
+        }
+
+        public ControlNetModelSet ModelSetResult
         {
             get { return _modelSetResult; }
         }
-
-
 
 
         public new bool ShowDialog()
@@ -99,15 +99,13 @@ namespace OnnxStack.UI.Dialogs
         {
             _modelSetResult = null;
             ValidationResults.Clear();
-            if (_modelTemplate is null)
-                return;
-            if (string.IsNullOrEmpty(_modelFolder))
+            if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            _modelSetResult = _modelFactory.CreateStableDiffusionModelSet(ModelName.Trim(), ModelFolder, _modelTemplate);
+            _modelSetResult = _modelFactory.CreateControlNetModelSet(ModelName.Trim(), _selectedControlNetType, _modelFile, _annotationModelFile);
 
             // Validate
-            ValidationResults.Add(new ValidationResult("Name", !InvalidOptions.Contains(_modelName.ToLower()) && _modelName.Length > 2 && _modelName.Length < 50));
+            ValidationResults.Add(new ValidationResult("Name", !_invalidOptions.Contains(_modelName, StringComparer.OrdinalIgnoreCase) && _modelName.Length > 2 && _modelName.Length < 50));
             foreach (var validationResult in _modelSetResult.ModelConfigurations.Select(x => new ValidationResult(x.Type.ToString(), File.Exists(x.OnnxModelPath))))
             {
                 ValidationResults.Add(validationResult);
@@ -124,7 +122,7 @@ namespace OnnxStack.UI.Dialogs
 
         private bool CanExecuteSave()
         {
-            if (string.IsNullOrEmpty(_modelFolder))
+            if (string.IsNullOrEmpty(_modelFile))
                 return false;
             if (_modelSetResult is null)
                 return false;

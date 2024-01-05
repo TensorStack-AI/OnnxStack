@@ -1,12 +1,10 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Image;
-using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Helpers
 {
@@ -55,18 +53,18 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="imageData">The image data.</param>
         /// <param name="dimensions">The dimensions.</param>
         /// <returns></returns>
-        public static DenseTensor<float> ToDenseTensor(this InputImage imageData, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> ToDenseTensor(this InputImage imageData, ReadOnlySpan<int> dimensions, bool normalize = true)
         {
             if (!string.IsNullOrEmpty(imageData.ImageBase64))
-                return TensorFromBase64(imageData.ImageBase64, dimensions);
+                return TensorFromBase64(imageData.ImageBase64, dimensions, normalize);
             if (imageData.ImageBytes != null)
-                return TensorFromBytes(imageData.ImageBytes, dimensions);
+                return TensorFromBytes(imageData.ImageBytes, dimensions, normalize);
             if (imageData.ImageStream != null)
-                return TensorFromStream(imageData.ImageStream, dimensions);
+                return TensorFromStream(imageData.ImageStream, dimensions, normalize);
             if (imageData.ImageTensor != null)
                 return imageData.ImageTensor.ToDenseTensor(); // Note: Tensor Copy // TODO: Reshape to dimensions
 
-            return TensorFromImage(imageData.Image, dimensions);
+            return TensorFromImage(imageData.Image, dimensions, normalize);
         }
 
 
@@ -147,12 +145,12 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="image">The image.</param>
         /// <param name="dimensions">The dimensions.</param>
         /// <returns></returns>
-        public static DenseTensor<float> TensorFromImage(Image<Rgba32> image, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> TensorFromImage(Image<Rgba32> image, ReadOnlySpan<int> dimensions, bool normalize)
         {
             using (image)
             {
                 Resize(image, dimensions);
-                return ProcessPixels(image, dimensions);
+                return ProcessPixels(image, dimensions, normalize);
             }
         }
 
@@ -164,12 +162,12 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns></returns>
-        public static DenseTensor<float> TensorFromFile(string filename, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> TensorFromFile(string filename, ReadOnlySpan<int> dimensions, bool normalize)
         {
             using (var image = Image.Load<Rgba32>(filename))
             {
                 Resize(image, dimensions);
-                return ProcessPixels(image, dimensions);
+                return ProcessPixels(image, dimensions, normalize);
             }
         }
 
@@ -180,12 +178,12 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="base64Image">The base64 image.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        public static DenseTensor<float> TensorFromBase64(string base64Image, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> TensorFromBase64(string base64Image, ReadOnlySpan<int> dimensions, bool normalize)
         {
             using (var image = Image.Load<Rgba32>(Convert.FromBase64String(base64Image.Split(',')[1])))
             {
                 Resize(image, dimensions);
-                return ProcessPixels(image, dimensions);
+                return ProcessPixels(image, dimensions, normalize);
             }
         }
 
@@ -198,12 +196,12 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="height">The height.</param>
         /// <returns>
         /// </returns>
-        public static DenseTensor<float> TensorFromBytes(byte[] imageBytes, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> TensorFromBytes(byte[] imageBytes, ReadOnlySpan<int> dimensions, bool normalize)
         {
             using (var image = Image.Load<Rgba32>(imageBytes))
             {
                 Resize(image, dimensions);
-                return ProcessPixels(image, dimensions);
+                return ProcessPixels(image, dimensions, normalize);
             }
         }
 
@@ -215,12 +213,12 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns></returns>
-        public static DenseTensor<float> TensorFromStream(Stream imageStream, ReadOnlySpan<int> dimensions)
+        public static DenseTensor<float> TensorFromStream(Stream imageStream, ReadOnlySpan<int> dimensions, bool normalize)
         {
             using (var image = Image.Load<Rgba32>(imageStream))
             {
                 Resize(image, dimensions);
-                return ProcessPixels(image, dimensions);
+                return ProcessPixels(image, dimensions, normalize);
             }
         }
 
@@ -231,7 +229,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="image">The image.</param>
         /// <param name="dimensions">The dimensions.</param>
         /// <returns></returns>
-        private static DenseTensor<float> ProcessPixels(Image<Rgba32> image, ReadOnlySpan<int> dimensions)
+        private static DenseTensor<float> ProcessPixels(Image<Rgba32> image, ReadOnlySpan<int> dimensions, bool normalize)
         {
             var width = dimensions[3];
             var height = dimensions[2];
@@ -244,11 +242,11 @@ namespace OnnxStack.StableDiffusion.Helpers
                     for (int y = 0; y < height; y++)
                     {
                         var pixelSpan = img.GetRowSpan(y);
-                        imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f) * 2.0f - 1.0f;
-                        imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f) * 2.0f - 1.0f;
-                        imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f) * 2.0f - 1.0f;
+                        imageArray[0, 0, y, x] = normalize ? (pixelSpan[x].R / 255.0f) * 2.0f - 1.0f : (pixelSpan[x].R / 255.0f);
+                        imageArray[0, 1, y, x] = normalize ? (pixelSpan[x].G / 255.0f) * 2.0f - 1.0f : (pixelSpan[x].G / 255.0f);
+                        imageArray[0, 2, y, x] = normalize ? (pixelSpan[x].B / 255.0f) * 2.0f - 1.0f : (pixelSpan[x].B / 255.0f);
                         if (channels == 4)
-                            imageArray[0, 3, y, x] = (pixelSpan[x].A / 255.0f) * 2.0f - 1.0f;
+                            imageArray[0, 3, y, x] = normalize ? (pixelSpan[x].A / 255.0f) * 2.0f - 1.0f : (pixelSpan[x].A / 255.0f);
                     }
                 }
             });

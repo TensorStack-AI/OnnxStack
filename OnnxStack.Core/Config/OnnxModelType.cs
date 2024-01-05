@@ -9,6 +9,8 @@
         TextEncoder2 = 21,
         VaeEncoder = 30,
         VaeDecoder = 40,
+        ControlNet = 50,
+        Annotation = 51,
         Upscaler = 1000
     }
 }

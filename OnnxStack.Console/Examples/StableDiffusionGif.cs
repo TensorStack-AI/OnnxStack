@@ -102,7 +102,7 @@ namespace OnnxStack.Console.Runner
 
                         // Set prompt Image, Run Diffusion
                         promptOptions.InputImage = new InputImage(mergedFrame.CloneAs<Rgba32>());
-                        var result = await _stableDiffusionService.GenerateAsImageAsync(model, promptOptions, schedulerOptions);
+                        var result = await _stableDiffusionService.GenerateAsImageAsync(new ModelOptions(model), promptOptions, schedulerOptions);
 
                         // Save Debug Output
                         await result.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Debug-Output.png"));

@@ -37,6 +37,7 @@ namespace OnnxStack.UI.Views
         private ImageInput _inputImage;
         private ImageResult _resultImage;
         private StableDiffusionModelSetViewModel _selectedModel;
+        private ControlNetModelSetViewModel _selectedControlNetModel;
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private CancellationTokenSource _cancelationTokenSource;
@@ -53,7 +54,7 @@ namespace OnnxStack.UI.Views
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
 
-            SupportedDiffusers = new() { DiffuserType.ImageToImage };
+            SupportedDiffusers = new() { DiffuserType.ImageToImage, DiffuserType.ControlNet };
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
             GenerateCommand = new AsyncRelayCommand(Generate, CanExecuteGenerate);
             ClearHistoryCommand = new AsyncRelayCommand(ClearHistory, CanExecuteClearHistory);
@@ -83,6 +84,12 @@ namespace OnnxStack.UI.Views
         {
             get { return _selectedModel; }
             set { _selectedModel = value; NotifyPropertyChanged(); }
+        }
+
+        public ControlNetModelSetViewModel SelectedControlNetModel
+        {
+            get { return _selectedControlNetModel; }
+            set { _selectedControlNetModel = value; NotifyPropertyChanged(); }
         }
 
         public PromptOptionsModel PromptOptions
@@ -201,7 +208,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(_selectedModel.ModelSet, promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateAsBytesAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultImage = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultImage != null)
                 {
@@ -232,8 +239,8 @@ namespace OnnxStack.UI.Views
         private bool CanExecuteGenerate()
         {
             return !IsGenerating
-                // && !string.IsNullOrEmpty(PromptOptions.Prompt)
-                && HasInputResult;
+                && HasInputResult
+                && (!SelectedModel.IsControlNet || (SelectedModel.IsControlNet && SelectedControlNetModel?.IsLoaded == true));
         }
 
 
@@ -296,15 +303,33 @@ namespace OnnxStack.UI.Views
 
         private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, ImageInput imageInput)
         {
+            var imageBytes = imageInput.Image.GetImageBytes();
+            if (_selectedModel.IsControlNet)
+            {
+                var controlNetDiffuserType = _schedulerOptions.Strength >= 1
+                     ? DiffuserType.ControlNet
+                     : DiffuserType.ControlNetImage;
+
+                var inputImage = default(InputImage);
+                if (controlNetDiffuserType == DiffuserType.ControlNetImage)
+                    inputImage = new InputImage(imageBytes);
+
+                return new PromptOptions
+                {
+                    Prompt = promptOptionsModel.Prompt,
+                    NegativePrompt = promptOptionsModel.NegativePrompt,
+                    DiffuserType = controlNetDiffuserType,
+                    InputImage = inputImage,
+                    InputContolImage = new InputImage(imageBytes)
+                };
+            }
+
             return new PromptOptions
             {
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
                 DiffuserType = DiffuserType.ImageToImage,
-                InputImage = new InputImage
-                {
-                    ImageBytes = imageInput.Image.GetImageBytes()
-                }
+                InputImage = new InputImage(imageBytes)
             };
         }
 

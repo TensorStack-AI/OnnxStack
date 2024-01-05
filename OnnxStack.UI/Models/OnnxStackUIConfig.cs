@@ -17,7 +17,7 @@ namespace OnnxStack.UI.Models
         public ExecutionProvider SupportedExecutionProvider => GetSupportedExecutionProvider();
         public ObservableCollection<UpscaleModelSetViewModel> UpscaleModelSets { get; set; } = new ObservableCollection<UpscaleModelSetViewModel>();
         public ObservableCollection<StableDiffusionModelSetViewModel> StableDiffusionModelSets { get; set; } = new ObservableCollection<StableDiffusionModelSetViewModel>();
-
+        public ObservableCollection<ControlNetModelSetViewModel> ControlNetModelSets { get; set; } = new ObservableCollection<ControlNetModelSetViewModel>();
 
         public ExecutionProvider GetSupportedExecutionProvider()
         {
@@ -37,5 +37,14 @@ namespace OnnxStack.UI.Models
                 : SupportedExecutionProvider;
         }
 
+
+        public List<string> GetModelNames()
+        {
+            return UpscaleModelSets.Select(x => x.Name)
+                .Concat(StableDiffusionModelSets.Select(x => x.Name))
+                .Concat(ControlNetModelSets.Select(x => x.Name))
+                .Distinct()
+                .ToList();
+        }
     }
 }

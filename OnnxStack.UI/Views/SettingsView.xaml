@@ -24,16 +24,34 @@
                     </DockPanel>
                 </GroupBox>
 
-                <GroupBox Header="Upscale Models"  MinWidth="200">
-                    <DockPanel Margin="0,0,0,0">
-                        <UniformGrid DockPanel.Dock="Bottom" Columns="3">
-                            <Button Content="Add" Command="{Binding AddUpscaleModelCommand}"/>
-                            <Button Content="Edit"  Command="{Binding UpdateUpscaleModelCommand}"/>
-                            <Button Content="Remove"  Command="{Binding RemoveUpscaleModelCommand}"/>
-                        </UniformGrid>
-                        <ListBox ItemsSource="{Binding UISettings.UpscaleModelSets}" SelectedItem="{Binding SelectedUpscaleModel}" DisplayMemberPath="Name" />
-                    </DockPanel>
-                </GroupBox>
+                <UniformGrid Rows="2">
+                    <GroupBox Header="Upscale Models"  MinWidth="200">
+                        <DockPanel Margin="0,0,0,0">
+                            <UniformGrid DockPanel.Dock="Bottom" Columns="3">
+                                <Button Content="Add" Command="{Binding AddUpscaleModelCommand}"/>
+                                <Button Content="Edit"  Command="{Binding UpdateUpscaleModelCommand}"/>
+                                <Button Content="Remove"  Command="{Binding RemoveUpscaleModelCommand}"/>
+                            </UniformGrid>
+                            <ListBox ItemsSource="{Binding UISettings.UpscaleModelSets}" SelectedItem="{Binding SelectedUpscaleModel}" DisplayMemberPath="Name" />
+                        </DockPanel>
+                    </GroupBox>
+                    <GroupBox Header="ControlNet"  MinWidth="200" Margin="0,10,0,0">
+                        <DockPanel Margin="0,5,0,0">
+
+                            <UniformGrid DockPanel.Dock="Bottom" Columns="3">
+                                <Button Content="Add" Command="{Binding AddControlNetModelCommand}"/>
+                                <Button Content="Edit"  Command="{Binding UpdateControlNetModelCommand}"/>
+                                <Button Content="Remove"  Command="{Binding RemoveControlNetModelCommand}"/>
+                            </UniformGrid>
+                            <ListBox ItemsSource="{Binding UISettings.ControlNetModelSets}" SelectedItem="{Binding SelectedControlNetModel}" DisplayMemberPath="Name" />
+
+                        </DockPanel>
+                    </GroupBox>
+                </UniformGrid>
+
+
+
+
 
                 <GroupBox Header="Execution Defaults"  MinWidth="200" Margin="10,0,0,0">
                     <StackPanel Margin="5">

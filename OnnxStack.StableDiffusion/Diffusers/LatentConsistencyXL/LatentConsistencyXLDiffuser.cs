@@ -35,7 +35,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <param name="progressCallback"></param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override Task<DenseTensor<float>> DiffuseAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override Task<DenseTensor<float>> DiffuseAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;
@@ -53,7 +53,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(StableDiffusionModelSet modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
             promptOptions.NegativePrompt = string.Empty;

@@ -45,6 +45,7 @@ namespace OnnxStack.Core
             ConfigureLibraries();
 
             // Services
+            serviceCollection.AddSingleton<IControlNetImageService, ControlNetImageService>();
             serviceCollection.AddSingleton<IVideoService, VideoService>();
             serviceCollection.AddSingleton<IPromptService, PromptService>();
             serviceCollection.AddSingleton<IStableDiffusionService, StableDiffusionService>();
@@ -61,6 +62,8 @@ namespace OnnxStack.Core
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.ImageDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.InpaintDiffuser>();
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.InpaintLegacyDiffuser>();
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.ControlNetDiffuser>();
+            serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusion.ControlNetImageDiffuser>();
 
             //StableDiffusionXL
             serviceCollection.AddSingleton<IDiffuser, StableDiffusion.Diffusers.StableDiffusionXL.TextDiffuser>();

@@ -20,23 +20,31 @@
                 <Button Content="Generate" Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" IsDefault="True" Margin="1,0,0,0"/>
             </UniformGrid>
             <DockPanel>
-                <userControls:ModelPickerControl DockPanel.Dock="Top"
-                      UISettings="{Binding UISettings}"
-                      SupportedDiffusers="{Binding SupportedDiffusers}"
-                      IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
-                      SelectedModel="{Binding SelectedModel, Mode=TwoWay}"/>
-                <UniformGrid Rows="2" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
+                <StackPanel DockPanel.Dock="Top">
+                    <userControls:ModelPickerControl 
+                        UISettings="{Binding UISettings}"
+                        SupportedDiffusers="{Binding SupportedDiffusers}"
+                        IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
+                        SelectedModel="{Binding SelectedModel, Mode=TwoWay}"/>
+                    <userControls:ControlNetPickerControl 
+                          UISettings="{Binding UISettings}"
+                          IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
+                          SelectedModel="{Binding SelectedControlNetModel, Mode=TwoWay}"
+                          Visibility="{Binding SelectedModel.IsControlNet, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
+                </StackPanel>
+              
+                <DockPanel IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
+                    <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
+                         SelectedModel="{Binding SelectedModel}"
+                         DiffuserType="ImageToImage" 
+                         SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
+                         IsEnabled="{Binding IsControlsEnabled}"
+                         IsGenerating="{Binding IsGenerating}"/>
                     <userControls:PromptControl 
                         SelectedModel="{Binding SelectedModel}"
                         PromptOptions="{Binding PromptOptions}" 
                         IsEnabled="{Binding IsControlsEnabled}"/>
-                    <userControls:SchedulerControl DockPanel.Dock="Bottom" Margin="0, 10, 0 ,0"
-                        SelectedModel="{Binding SelectedModel}"
-                        DiffuserType="ImageToImage" 
-                        SchedulerOptions="{Binding SchedulerOptions, Mode=TwoWay}" 
-                        IsEnabled="{Binding IsControlsEnabled}"
-                        IsGenerating="{Binding IsGenerating}"/>
-                </UniformGrid>
+                </DockPanel>
             </DockPanel>
         </DockPanel>
 

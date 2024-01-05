@@ -4,8 +4,6 @@ using OnnxStack.UI.Models;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
-using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,17 +11,17 @@ using System.Windows;
 namespace OnnxStack.UI.Dialogs
 {
     /// <summary>
-    /// Interaction logic for UpdateModelDialog.xaml
+    /// Interaction logic for UpdateControlNetModelDialog.xaml
     /// </summary>
-    public partial class UpdateModelDialog : Window, INotifyPropertyChanged
+    public partial class UpdateControlNetModelDialog : Window, INotifyPropertyChanged
     {
         private List<string> _invalidOptions;
         private OnnxStackUIConfig _uiSettings;
-        private UpdateStableDiffusionModelSetViewModel _updateModelSet;
-        private StableDiffusionModelSet _modelSetResult;
+        private ControlNetModelSet _modelSetResult;
+        private UpdateControlNetModelSetViewModel _updateModelSet;
         private string _validationError;
 
-        public UpdateModelDialog(OnnxStackUIConfig uiSettings)
+        public UpdateControlNetModelDialog(OnnxStackUIConfig uiSettings)
         {
             _uiSettings = uiSettings;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
@@ -36,7 +34,7 @@ namespace OnnxStack.UI.Dialogs
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
 
-        public UpdateStableDiffusionModelSetViewModel UpdateModelSet
+        public UpdateControlNetModelSetViewModel UpdateModelSet
         {
             get { return _updateModelSet; }
             set { _updateModelSet = value; NotifyPropertyChanged(); }
@@ -48,27 +46,32 @@ namespace OnnxStack.UI.Dialogs
             set { _validationError = value; NotifyPropertyChanged(); }
         }
 
-        public StableDiffusionModelSet ModelSetResult
+        public ControlNetModelSet ModelSetResult
         {
             get { return _modelSetResult; }
         }
 
 
-        public bool ShowDialog(StableDiffusionModelSet modelSet)
+        public bool ShowDialog(ControlNetModelSet modelSet)
         {
             _invalidOptions.Remove(modelSet.Name);
-            UpdateModelSet = UpdateStableDiffusionModelSetViewModel.FromModelSet(modelSet);
-            return ShowDialog() ?? false;
+            UpdateModelSet = UpdateControlNetModelSetViewModel.FromModelSet(modelSet);
+            return base.ShowDialog() ?? false;
         }
 
-
-        private Task Save()
+        private bool Validate()
         {
-            _modelSetResult = UpdateStableDiffusionModelSetViewModel.ToModelSet(_updateModelSet);
+            if (_updateModelSet == null)
+                return false;
+
+            _modelSetResult = UpdateControlNetModelSetViewModel.ToModelSet(_updateModelSet);
+            if (_modelSetResult == null)
+                return false;
+
             if (_invalidOptions.Contains(_modelSetResult.Name))
             {
                 ValidationError = $"Model with name '{_modelSetResult.Name}' already exists";
-                return Task.CompletedTask;
+                return false;
             }
 
             foreach (var modelFile in _modelSetResult.ModelConfigurations)
@@ -76,9 +79,18 @@ namespace OnnxStack.UI.Dialogs
                 if (!File.Exists(modelFile.OnnxModelPath))
                 {
                     ValidationError = $"'{modelFile.Type}' model file not found";
-                    return Task.CompletedTask;
+                    return false;
                 }
             }
+            ValidationError = null;
+            return true;
+        }
+
+        private Task Save()
+        {
+
+            if (!Validate())
+                return Task.CompletedTask;
 
             DialogResult = true;
             return Task.CompletedTask;
@@ -87,14 +99,13 @@ namespace OnnxStack.UI.Dialogs
 
         private bool CanExecuteSave()
         {
-            return true;
+            return Validate();
         }
 
 
         private Task Cancel()
         {
             _modelSetResult = null;
-            UpdateModelSet = null;
             DialogResult = false;
             return Task.CompletedTask;
         }
@@ -113,4 +124,5 @@ namespace OnnxStack.UI.Dialogs
         }
         #endregion
     }
+
 }

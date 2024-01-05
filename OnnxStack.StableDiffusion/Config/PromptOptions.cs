@@ -20,6 +20,8 @@ namespace OnnxStack.StableDiffusion.Config
 
         public InputImage InputImageMask { get; set; }
 
+        public InputImage InputContolImage { get; set; }
+
         public VideoInput InputVideo { get; set; }
 
         public float VideoInputFPS { get; set; }

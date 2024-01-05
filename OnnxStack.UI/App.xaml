@@ -106,6 +106,12 @@
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
+        <ObjectDataProvider x:Key="ControlNetType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:ControlNetType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
 
         <!--Crop Image Dialog-->
         <SolidColorBrush x:Key="CropFrameBrush" Color="#FF3296FA" />
