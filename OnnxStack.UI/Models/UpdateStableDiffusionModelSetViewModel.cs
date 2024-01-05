@@ -29,6 +29,8 @@ namespace OnnxStack.UI.Models
         private bool _enableImageToImage;
         private bool _enableImageInpaint;
         private bool _enableImageInpaintLegacy;
+        private bool _enableControlNet;
+        private bool _enableControlNetImage;
         private DiffuserPipelineType _pipelineType;
         private int _dualEmbeddingsLength;
         private TokenizerType _tokenizerType;
@@ -113,6 +115,18 @@ namespace OnnxStack.UI.Models
             set { _enableImageInpaintLegacy = value; NotifyPropertyChanged(); }
         }
 
+        public bool EnableControlNet
+        {
+            get { return _enableControlNet; }
+            set { _enableControlNet = value; NotifyPropertyChanged(); }
+        }
+
+        public bool EnableControlNetImage
+        {
+            get { return _enableControlNetImage; }
+            set { _enableControlNetImage = value; NotifyPropertyChanged(); }
+        }
+
         public int DeviceId
         {
             get { return _deviceId; }
@@ -173,6 +187,10 @@ namespace OnnxStack.UI.Models
                 yield return DiffuserType.ImageInpaint;
             if (_enableImageInpaintLegacy)
                 yield return DiffuserType.ImageInpaintLegacy;
+            if (_enableControlNet)
+                yield return DiffuserType.ControlNet;
+            if (_enableControlNetImage)
+                yield return DiffuserType.ControlNetImage;
         }
 
 
@@ -187,6 +205,8 @@ namespace OnnxStack.UI.Models
                 EnableImageInpaintLegacy = modelset.Diffusers.Contains(DiffuserType.ImageInpaintLegacy),
                 EnableImageToImage = modelset.Diffusers.Contains(DiffuserType.ImageToImage),
                 EnableTextToImage = modelset.Diffusers.Contains(DiffuserType.TextToImage),
+                EnableControlNet = modelset.Diffusers.Contains(DiffuserType.ControlNet),
+                EnableControlNetImage = modelset.Diffusers.Contains(DiffuserType.ControlNetImage),
                 ExecutionMode = modelset.ExecutionMode,
                 ExecutionProvider = modelset.ExecutionProvider,
                 InterOpNumThreads = modelset.InterOpNumThreads,

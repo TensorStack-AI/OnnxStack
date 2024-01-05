@@ -49,6 +49,8 @@
                             <CheckBox IsChecked="{Binding UpdateModelSet.EnableImageToImage}"  Content="Image To Image" VerticalAlignment="Center" Margin="0,4,0,0"/>
                             <CheckBox IsChecked="{Binding UpdateModelSet.EnableImageInpaintLegacy}" Content="Image Inpaint Legacy" VerticalAlignment="Center" Margin="0,4,0,0"/>
                             <CheckBox IsChecked="{Binding UpdateModelSet.EnableImageInpaint}"  Content="Image Inpaint" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <CheckBox IsChecked="{Binding UpdateModelSet.EnableControlNet}"  Content="ControlNet" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <CheckBox IsChecked="{Binding UpdateModelSet.EnableControlNetImage}"  Content="ControlNet Image" VerticalAlignment="Center" Margin="0,4,0,0"/>
                         </UniformGrid>
 
                     </StackPanel>
