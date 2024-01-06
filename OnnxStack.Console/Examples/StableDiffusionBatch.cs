@@ -8,6 +8,8 @@ using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner
 {
+    using StableDiffusion;
+
     public sealed class StableDiffusionBatch : IExampleRunner
     {
         private readonly string _outputDirectory;
@@ -56,6 +58,8 @@ namespace OnnxStack.Console.Runner
 
                 foreach (var model in _configuration.ModelSets)
                 {
+                    _setSchedulerTypeForPipeline();
+
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModelAsync(model);
 
@@ -76,6 +80,13 @@ namespace OnnxStack.Console.Runner
 
                     OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.UnloadModelAsync(model);
+                    continue;
+
+                    void _setSchedulerTypeForPipeline()
+                    {
+                        SchedulerType[] scheduleTypes = model.PipelineType.GetSchedulerTypes();
+                        schedulerOptions.SchedulerType = scheduleTypes.Length == 1 ? scheduleTypes[0] : scheduleTypes[Random.Shared.Next(scheduleTypes.Length)];
+                    }
                 }
             }
         }
