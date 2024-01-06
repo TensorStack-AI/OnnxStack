@@ -28,8 +28,14 @@
 
  Download Files
 
-Use the included 'download-models.bat' file to download the required models.
-* If your on mac or linux, you can open the `download-models.bat` file and run each command manually if you are unable to run the `.bat` file.
+**Experimental script** 
+
+_Note: The `download-models.bat` file is not smart enough to know if you have already downloaded the models. If you need to re-download the models, please run the commands manually within `git` to pull the latest changes from the target repository._
+
+> If your on mac or linux, you can open the `download-models.bat` file and run each command manually if you are unable to run the `.bat` file.
+
+Use the included `download-models.bat` file to download the required models.
+
   * The `download-models.bat` will create a `onnx-models/` folder in current directory. Then it will download the required models into the `onnx-models/` folder.
   * If you are unable to run the `.bat` file or have issues, you can open the `download-models.bat` file and run each command manually.
   * The `.bat` file will not attempt to 're-download' or continue if the file already exists. If you need to re-download the models, delete the `onnx-models/` folder and run the `.bat` file again.
@@ -78,6 +84,11 @@ _It might take some time to switch branches and download all of the `.onnx` file
 
 * **Q:** My `.GIF` is flashing, is it supposed to do this?
 * **A:** The `.GIF` area has been deprecated in favor of the 'video' features that are being added.  Please ignore this example for now.
+
+* **Q:** I am getting an error: `138 are out of bounds or can not be read in full`
+* **A:**  usually means the model is corrupt or has not been fully downloaded, make sure if you clone the repo you have git LFS installed, or you will just get small pointer files not the large GB files
+
+
 
 
  
