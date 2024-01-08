@@ -5,9 +5,12 @@ using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -385,7 +388,7 @@ namespace OnnxStack.UI.Views
                     if (progress.BatchTensor is not null)
                     {
                         PreviewResult = Utils.CreateBitmap(progress.BatchTensor.ToImageBytes());
-                        PreviewSource = Utils.CreateBitmap(_videoFrames.Frames[progress.BatchValue - 1]);
+                        PreviewSource = UpdatePreviewFrame(progress.BatchValue - 1);
                         ProgressText = $"Video Frame {progress.BatchValue} of {_videoFrames.Frames.Count} complete";
                     }
 
@@ -400,6 +403,23 @@ namespace OnnxStack.UI.Views
 
                 }, DispatcherPriority.Background);
             };
+        }
+
+        public BitmapImage UpdatePreviewFrame(int index)
+        {
+            var frame = _videoFrames.Frames[index];
+            using (var memoryStream = new MemoryStream())
+            using (var frameImage = SixLabors.ImageSharp.Image.Load<Rgba32>(frame))
+            {
+                ImageHelpers.Resize(frameImage, new[] { 1, 3, _schedulerOptions.Height, _schedulerOptions.Width });
+                frameImage.SaveAsPng(memoryStream);
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.StreamSource = memoryStream;
+                image.EndInit();
+                return image;
+            }
         }
 
         #region INotifyPropertyChanged

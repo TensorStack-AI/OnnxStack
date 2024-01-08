@@ -292,8 +292,8 @@ namespace OnnxStack.UI.Dialogs
             try
             {
                 var croppedBitmap = new CroppedBitmap(_sourceImage, rect);
-                var scaleX = _cropWidth / croppedBitmap.PixelWidth;
-                var scaleY = _cropHeight / croppedBitmap.PixelHeight;
+                double scaleX = (double)_requiredWidth / croppedBitmap.PixelWidth;
+                double scaleY = (double)_requiredHeight / croppedBitmap.PixelHeight;
                 var scaleTransform = new ScaleTransform(scaleX, scaleY);
                 return new TransformedBitmap(croppedBitmap, scaleTransform);
             }

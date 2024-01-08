@@ -68,7 +68,7 @@
             </StackPanel>
 
             <Grid>
-                <Image Source="{StaticResource PlaceholderImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" Visibility="{Binding IsPreviewVisible, Converter={StaticResource InverseBooleanToHiddenConverter}}"/>
+                <Image Source="{StaticResource PlaceholderImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" Visibility="{Binding HasVideoResult, Converter={StaticResource InverseBooleanToHiddenConverter}}"/>
                 <MediaElement x:Name="VideoMediaElement" Source="{Binding VideoResult.FileName}"  Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" MinHeight="512" MinWidth="512" ClipToBounds="True" LoadedBehavior="Manual" Loaded="MediaElement_Loaded"  MediaEnded="MediaElement_MediaEnded" Volume="0" MouseLeftButtonDown="MediaElement_MouseDown" Visibility="{Binding IsPreviewVisible, Converter={StaticResource InverseBooleanToHiddenConverter}}" />
                 <Image Source="{Binding PreviewImage}" Width="{Binding SchedulerOptions.Width}" Height="{Binding SchedulerOptions.Height}" Stretch="Uniform" HorizontalAlignment="Center" />
             </Grid>
