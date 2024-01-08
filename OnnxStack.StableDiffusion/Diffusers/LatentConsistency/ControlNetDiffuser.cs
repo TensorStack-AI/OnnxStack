@@ -16,9 +16,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
+namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
-    public class ControlNetDiffuser : StableDiffusionDiffuser
+    public class ControlNetDiffuser : LatentConsistencyDiffuser
     {
         private readonly IControlNetImageService _controlNetImageService;
 
@@ -32,7 +32,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         {
             _controlNetImageService = controlNetImageService;
         }
-
 
         /// <summary>
         /// Gets the type of the diffuser.
@@ -63,6 +62,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 // Create latent sample
                 var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
 
+                // Get Guidance Scale Embedding
+                var guidanceEmbeddings = GetGuidanceScaleEmbedding(schedulerOptions.GuidanceScale);
+
                 // Get Model metadata
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
 
@@ -70,7 +72,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions.ControlNetModel, OnnxModelType.ControlNet);
 
                 // Control Image
-                var controlImage = await PrepareControlImage(modelOptions, promptOptions, schedulerOptions);
+                var controlImageTensor = await PrepareControlImage(modelOptions, promptOptions, schedulerOptions);
+
+                // Denoised result
+                DenseTensor<float> denoised = null;
 
                 // Loop though the timesteps
                 var step = 0;
@@ -81,19 +86,18 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputLatent = performGuidance ? latents.Repeat(2) : latents;
-                    var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
+                    var inputTensor = scheduler.ScaleInput(latents, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
-                    var controlImageTensor = performGuidance ? controlImage.Repeat(2) : controlImage;
                     var conditioningScale = CreateConditioningScaleTensor(schedulerOptions.ConditioningScale);
 
-                    var outputChannels = performGuidance ? 2 : 1;
-                    var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
+                    var batchCount = 1;
+                    var outputDimension = schedulerOptions.GetScaledDimension(batchCount);
                     using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                     {
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
+                        inferenceParameters.AddInputTensor(guidanceEmbeddings);
 
                         // ControlNet
                         using (var controlNetParameters = new OnnxInferenceParameters(controlNetMetadata))
@@ -101,7 +105,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                             controlNetParameters.AddInputTensor(inputTensor);
                             controlNetParameters.AddInputTensor(timestepTensor);
                             controlNetParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                            controlNetParameters.AddInputTensor(controlImage);
+                            controlNetParameters.AddInputTensor(guidanceEmbeddings);
+                            controlNetParameters.AddInputTensor(controlImageTensor);
                             if (controlNetMetadata.Inputs.Count == 5)
                                 controlNetParameters.AddInputTensor(conditioningScale);
 
@@ -125,12 +130,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                             {
                                 var noisePred = result.ToDenseTensor();
 
-                                // Perform guidance
-                                if (performGuidance)
-                                    noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
-
                                 // Scheduler Step
-                                latents = scheduler.Step(noisePred, timestep, latents).Result;
+                                var schedulerResult = scheduler.Step(noisePred, timestep, latents);
+
+                                latents = schedulerResult.Result;
+                                denoised = schedulerResult.SampleData;
                             }
                         }
                     }
