@@ -16,9 +16,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
+namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
 {
-    public class ControlNetDiffuser : StableDiffusionDiffuser
+    public class ControlNetDiffuser : StableDiffusionXLDiffuser
     {
         private readonly IControlNetImageService _controlNetImageService;
 
@@ -66,6 +66,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 // Get Model metadata
                 var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
 
+                // Get Time ids
+                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions);
+
                 // Get Model metadata
                 var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions.ControlNetModel, OnnxModelType.ControlNet);
 
@@ -84,15 +87,19 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
+                    var timeids = performGuidance ? addTimeIds.Repeat(2) : addTimeIds;
                     var controlImageTensor = performGuidance ? controlImage.Repeat(2) : controlImage;
                     var conditioningScale = CreateConditioningScaleTensor(schedulerOptions.ConditioningScale);
 
-                    var outputChannels = performGuidance ? 2 : 1;
-                    var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
+                    var batchCount = performGuidance ? 2 : 1;
+                    var outputDimension = schedulerOptions.GetScaledDimension(batchCount);
                     using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                     {
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
+                        inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
+                        inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
+                        inferenceParameters.AddInputTensor(timeids);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
 
                         // ControlNet
@@ -101,6 +108,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                             controlNetParameters.AddInputTensor(inputTensor);
                             controlNetParameters.AddInputTensor(timestepTensor);
                             controlNetParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
+                            controlNetParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
+                            controlNetParameters.AddInputTensor(timeids);
                             controlNetParameters.AddInputTensor(controlImage);
                             if (controlNetMetadata.Inputs.Count == 5)
                                 controlNetParameters.AddInputTensor(conditioningScale);

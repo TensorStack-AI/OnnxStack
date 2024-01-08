@@ -16,9 +16,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
+namespace OnnxStack.StableDiffusion.Diffusers.InstaFlow
 {
-    public class ControlNetDiffuser : StableDiffusionDiffuser
+    public class ControlNetDiffuser : InstaFlowDiffuser
     {
         private readonly IControlNetImageService _controlNetImageService;
 
@@ -32,7 +32,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         {
             _controlNetImageService = controlNetImageService;
         }
-
 
         /// <summary>
         /// Gets the type of the diffuser.
@@ -71,6 +70,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                 // Control Image
                 var controlImage = await PrepareControlImage(modelOptions, promptOptions, schedulerOptions);
+
+                // Get the distilled Timestep
+                var distilledTimestep = 1.0f / timesteps.Count;
 
                 // Loop though the timesteps
                 var step = 0;
@@ -131,6 +133,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                                 // Scheduler Step
                                 latents = scheduler.Step(noisePred, timestep, latents).Result;
+
+                                latents = noisePred
+                                    .MultiplyTensorByFloat(distilledTimestep)
+                                    .AddTensors(latents);
                             }
                         }
                     }
