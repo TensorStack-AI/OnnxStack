@@ -257,7 +257,7 @@ namespace OnnxStack.UI.Views
         /// </returns>
         private bool CanExecuteGenerate()
         {
-            return !IsGenerating 
+            return !IsGenerating
                 && HasInputResult
                 && (!SelectedModel.IsControlNet || (SelectedModel.IsControlNet && SelectedControlNetModel?.IsLoaded == true));
         }
@@ -333,7 +333,7 @@ namespace OnnxStack.UI.Views
                      ? DiffuserType.ControlNet
                      : DiffuserType.ControlNetImage;
             }
-  
+
             return new PromptOptions
             {
                 Prompt = promptOptionsModel.Prompt,
@@ -411,7 +411,7 @@ namespace OnnxStack.UI.Views
             using (var memoryStream = new MemoryStream())
             using (var frameImage = SixLabors.ImageSharp.Image.Load<Rgba32>(frame))
             {
-                ImageHelpers.Resize(frameImage, new[] { 1, 3, _schedulerOptions.Height, _schedulerOptions.Width });
+                frameImage.Resize(_schedulerOptions.Height, _schedulerOptions.Width);
                 frameImage.SaveAsPng(memoryStream);
                 var image = new BitmapImage();
                 image.BeginInit();

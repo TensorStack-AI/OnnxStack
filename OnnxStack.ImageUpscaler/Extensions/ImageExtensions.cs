@@ -1,12 +1,10 @@
-﻿using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
-using OnnxStack.Core;
-using OnnxStack.Core.Image;
+﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.ImageUpscaler.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace OnnxStack.ImageUpscaler.Extensions
 {
@@ -36,7 +34,7 @@ namespace OnnxStack.ImageUpscaler.Extensions
                     var tileRect = new Rectangle(x * tileWidth, y * tileHeight, tileWidth, tileHeight);
                     var tileDest = new Rectangle(tileRect.X * scaleFactor, tileRect.Y * scaleFactor, tileWidth * scaleFactor, tileHeight * scaleFactor);
                     var tileImage = ExtractTile(imageSource, tileRect);
-                    tiles.Add(new ImageTile(tileImage, tileDest));
+                    tiles.Add(new ImageTile { Image = tileImage, Destination = tileDest });
                 }
             }
             return tiles;
@@ -66,118 +64,24 @@ namespace OnnxStack.ImageUpscaler.Extensions
         }
 
 
-        /// <summary>
-        /// Converts to InputImage to an Image<Rgba32>
-        /// </summary>
-        /// <param name="inputImage">The input image.</param>
-        /// <returns></returns>
-        public static Image<Rgba32> ToImage(this InputImage inputImage)
+        public static void ApplyImageTile(this DenseTensor<float> imageTensor, DenseTensor<float> tileTensor, Rectangle location)
         {
-            if (!string.IsNullOrEmpty(inputImage.ImageBase64))
-                return Image.Load<Rgba32>(Convert.FromBase64String(inputImage.ImageBase64.Split(',')[1]));
-            if (inputImage.ImageBytes != null)
-                return Image.Load<Rgba32>(inputImage.ImageBytes);
-            if (inputImage.ImageStream != null)
-                return Image.Load<Rgba32>(inputImage.ImageStream);
-            if (inputImage.ImageTensor != null)
-                return inputImage.ImageTensor.ToImage();
-
-            return inputImage.Image;
-        }
-
-        /// <summary>
-        /// Converts to DenseTensor.
-        /// </summary>
-        /// <param name="image">The image.</param>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns></returns>
-        public static DenseTensor<float> ToDenseTensor(this Image<Rgba32> image, ReadOnlySpan<int> dimensions)
-        {
-            using (image)
+            var offsetY = location.Y;
+            var offsetX = location.X;
+            var dimensions = tileTensor.Dimensions.ToArray();
+            Parallel.For(0, dimensions[0], (i) =>
             {
-                return NormalizeToZeroToOne(image, dimensions);
-            }
-        }
-
-
-        /// <summary>
-        /// Converts to Image.
-        /// </summary>
-        /// <param name="ortValue">The ort value.</param>
-        /// <returns></returns>
-        public static Image<Rgba32> ToImage(this OrtValue ortValue)
-        {
-            return ortValue.ToDenseTensor().ToImage();
-        }
-
-
-        /// <summary>
-        /// Converts to image.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        /// <returns></returns>
-        public static Image<Rgba32> ToImage(this DenseTensor<float> imageTensor)
-        {
-            var height = imageTensor.Dimensions[2];
-            var width = imageTensor.Dimensions[3];
-            var result = new Image<Rgba32>(width, height);
-            for (var y = 0; y < height; y++)
-            {
-                for (var x = 0; x < width; x++)
+                Parallel.For(0, dimensions[1], (j) =>
                 {
-                    result[x, y] = new Rgba32(
-                        DenormalizeZeroToOneToByte(imageTensor, 0, y, x),
-                        DenormalizeZeroToOneToByte(imageTensor, 1, y, x),
-                        DenormalizeZeroToOneToByte(imageTensor, 2, y, x)
-                    );
-                }
-            }
-            return result;
-        }
-
-
-
-        /// <summary>
-        /// Normalizes the pixels from 0-255 to 0-1
-        /// </summary>
-        /// <param name="image">The image.</param>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns></returns>
-        private static DenseTensor<float> NormalizeToZeroToOne(Image<Rgba32> image, ReadOnlySpan<int> dimensions)
-        {
-            var width = dimensions[3];
-            var height = dimensions[2];
-            var channels = dimensions[1];
-            var imageArray = new DenseTensor<float>(new[] { 1, channels, height, width });
-            image.ProcessPixelRows(img =>
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    for (int y = 0; y < height; y++)
+                    Parallel.For(0, dimensions[2], (k) =>
                     {
-                        var pixelSpan = img.GetRowSpan(y);
-                        imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f);
-                        imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f);
-                        imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f);
-                    }
-                }
+                        Parallel.For(0, dimensions[3], (l) =>
+                        {
+                            imageTensor[i, j, k + offsetY, l + offsetX] = tileTensor[i, j, k, l];
+                        });
+                    });
+                });
             });
-            return imageArray;
-        }
-
-
-
-        /// <summary>
-        /// Denormalizes the pixels from 0-1 to 0-255
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        /// <param name="index">The index.</param>
-        /// <param name="y">The y.</param>
-        /// <param name="x">The x.</param>
-        /// <returns></returns>
-        private static byte DenormalizeZeroToOneToByte(DenseTensor<float> imageTensor, int index, int y, int x)
-        {
-            return (byte)Math.Round(Math.Clamp(imageTensor[0, index, y, x], 0, 1) * 255);
         }
     }
 }
