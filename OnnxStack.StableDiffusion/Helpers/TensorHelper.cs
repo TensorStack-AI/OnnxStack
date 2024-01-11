@@ -250,25 +250,7 @@ namespace OnnxStack.StableDiffusion.Helpers
       
 
 
-        private static DenseTensor<float> Concatenate(DenseTensor<float> tensor1, DenseTensor<float> tensor2)
-        {
-            var dimensions = new int[] { tensor1.Dimensions[0], tensor1.Dimensions[1], tensor1.Dimensions[2] + tensor2.Dimensions[2] };
-            DenseTensor<float> concatenatedTensor = new DenseTensor<float>(dimensions);
 
-            // Copy data from the first tensor
-            for (int i = 0; i < dimensions[0]; i++)
-                for (int j = 0; j < dimensions[1]; j++)
-                    for (int k = 0; k < tensor1.Dimensions[2]; k++)
-                        concatenatedTensor[i, j, k] = tensor1[i, j, k];
-
-            // Copy data from the second tensor
-            for (int i = 0; i < dimensions[0]; i++)
-                for (int j = 0; j < dimensions[1]; j++)
-                    for (int k = 0; k < tensor2.Dimensions[2]; k++)
-                        concatenatedTensor[i, j, k + tensor1.Dimensions[2]] = tensor2[i, j, k];
-
-            return concatenatedTensor;
-        }
 
 
         /// <summary>

@@ -73,7 +73,7 @@ namespace OnnxStack.StableDiffusion.Services
         private async Task<InputImage> GenerateCannyImage(ControlNetModelSet controlNetModel, InputImage inputImage, int height, int width)
         {
             _logger.LogInformation($"[GenerateCannyImage] - Generating Canny image...");
-            var controlImage = inputImage.ToDenseTensor(new[] { 1, 3, height, width }, false);
+            var controlImage = await inputImage.ToDenseTensorAsync(height, width, ImageNormalizeType.ZeroToOne);
             var metadata = _onnxModelService.GetModelMetadata(controlNetModel, OnnxModelType.Annotation);
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
@@ -108,7 +108,7 @@ namespace OnnxStack.StableDiffusion.Services
         private async Task<InputImage> GenerateHardEdgeImage(ControlNetModelSet controlNetModel, InputImage inputImage, int height, int width)
         {
             _logger.LogInformation($"[GenerateHardEdgeImage] - Generating HardEdge image...");
-            var controlImage = inputImage.ToDenseTensor(new[] { 1, 3, height, width }, false);
+            var controlImage = await inputImage.ToDenseTensorAsync(height, width, ImageNormalizeType.ZeroToOne);
             var metadata = _onnxModelService.GetModelMetadata(controlNetModel, OnnxModelType.Annotation);
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
@@ -143,7 +143,7 @@ namespace OnnxStack.StableDiffusion.Services
         private async Task<InputImage> GenerateDepthImage(ControlNetModelSet controlNetModel, InputImage inputImage, int height, int width)
         {
             _logger.LogInformation($"[GenerateDepthImage] - Generating Depth image...");
-            var controlImage = inputImage.ToDenseTensor(new[] { 1, 3, height, width }, false);
+            var controlImage = await inputImage.ToDenseTensorAsync(height, width, ImageNormalizeType.ZeroToOne);
             var metadata = _onnxModelService.GetModelMetadata(controlNetModel, OnnxModelType.Annotation);
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {

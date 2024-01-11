@@ -2,6 +2,7 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
@@ -202,7 +203,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.InstaFlow
             {
                 controlImage = await _controlNetImageService.PrepareInputImage(modelOptions.ControlNetModel, promptOptions.InputContolImage, schedulerOptions.Height, schedulerOptions.Width);
             }
-            return controlImage.ToDenseTensor(new[] { 1, 3, schedulerOptions.Height, schedulerOptions.Width }, false);
+            return await controlImage.ToDenseTensorAsync(schedulerOptions.Height, schedulerOptions.Width, ImageNormalizeType.ZeroToOne);
         }
     }
 }

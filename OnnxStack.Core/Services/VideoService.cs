@@ -289,7 +289,7 @@ namespace OnnxStack.Core.Services
                         currentIndex = 0;
 
                         // Read the PNG Header
-                        if (await processOutputStream.ReadAsync(buffer, currentIndex, 8, cancellationToken) <= 0)
+                        if (await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 8), cancellationToken) <= 0)
                             break;
 
                         currentIndex += 8;// header length
@@ -301,7 +301,7 @@ namespace OnnxStack.Core.Services
                         while (true)
                         {
                             // Read the chunk header
-                            await processOutputStream.ReadAsync(buffer, currentIndex, 12, cancellationToken);
+                            await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 12), cancellationToken);
 
                             var chunkIndex = currentIndex;
                             currentIndex += 12; // Chunk header length
@@ -313,7 +313,7 @@ namespace OnnxStack.Core.Services
                                 var totalRead = 0;
                                 while (totalRead < totalSize)
                                 {
-                                    int read = await processOutputStream.ReadAsync(buffer, currentIndex, totalSize - totalRead, cancellationToken);
+                                    int read = await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, totalSize - totalRead), cancellationToken);
                                     currentIndex += read;
                                     totalRead += read;
                                 }
@@ -325,9 +325,7 @@ namespace OnnxStack.Core.Services
                                 break;
                         }
 
-                        // Return Image stream
-                        using (var imageStream = new MemoryStream(buffer, 0, currentIndex))
-                            yield return imageStream.ToArray();
+                        yield return buffer[..currentIndex];
                     }
 
                     if (cancellationToken.IsCancellationRequested)

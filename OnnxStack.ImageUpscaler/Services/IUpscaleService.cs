@@ -5,6 +5,7 @@ using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OnnxStack.ImageUpscaler.Services
@@ -41,7 +42,7 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, InputImage inputImage);
+        Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generates the upscaled image.
@@ -49,16 +50,7 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        Task<Image<Rgba32>> GenerateAsImageAsync(UpscaleModelSet modelOptions, InputImage inputImage);
-
-
-        /// <summary>
-        /// Generates the upscaled image.
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="inputImage">The input image.</param>
-        /// <returns></returns>
-        Task<byte[]> GenerateAsByteAsync(UpscaleModelSet modelOptions, InputImage inputImage);
+        Task<Image<Rgba32>> GenerateAsImageAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -67,7 +59,16 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        Task<Stream> GenerateAsStreamAsync(UpscaleModelSet modelOptions, InputImage inputImage);
+        Task<byte[]> GenerateAsByteAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default);
+
+
+        /// <summary>
+        /// Generates the upscaled image.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <param name="inputImage">The input image.</param>
+        /// <returns></returns>
+        Task<Stream> GenerateAsStreamAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -76,7 +77,7 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="videoInput">The video input.</param>
         /// <returns></returns>
-        Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, VideoInput videoInput);
+        Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, VideoInput videoInput, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -85,7 +86,7 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="videoInput">The video input.</param>
         /// <returns></returns>
-        Task<byte[]> GenerateAsByteAsync(UpscaleModelSet modelOptions, VideoInput videoInput);
+        Task<byte[]> GenerateAsByteAsync(UpscaleModelSet modelOptions, VideoInput videoInput, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -94,6 +95,6 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="videoInput">The video input.</param>
         /// <returns></returns>
-        Task<Stream> GenerateAsStreamAsync(UpscaleModelSet modelOptions, VideoInput videoInput);
+        Task<Stream> GenerateAsStreamAsync(UpscaleModelSet modelOptions, VideoInput videoInput, CancellationToken cancellationToken = default);
     }
 }

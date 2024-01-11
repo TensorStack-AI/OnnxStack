@@ -2,6 +2,7 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
@@ -172,8 +173,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         private async Task<DenseTensor<float>> PrepareImageMask(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            using (var image = promptOptions.InputImage.ToImage())
-            using (var mask = promptOptions.InputImageMask.ToImage())
+            using (var image = await promptOptions.InputImage.ToImageAsync())
+            using (var mask = await promptOptions.InputImageMask.ToImageAsync())
             {
                 int width = schedulerOptions.Width;
                 int height = schedulerOptions.Height;
