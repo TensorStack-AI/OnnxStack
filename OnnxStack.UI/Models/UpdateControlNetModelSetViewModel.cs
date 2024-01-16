@@ -21,6 +21,8 @@ namespace OnnxStack.UI.Models
         private ExecutionProvider _executionProvider;
         private ObservableCollection<ModelFileViewModel> _modelFiles;
         private ControlNetType _controlNetType;
+        private DiffuserPipelineType _pipelineType;
+
 
         public string Name
         {
@@ -33,6 +35,13 @@ namespace OnnxStack.UI.Models
             get { return _controlNetType; }
             set { _controlNetType = value; NotifyPropertyChanged(); }
         }
+
+        public DiffuserPipelineType PipelineType
+        {
+            get { return _pipelineType; }
+            set { _pipelineType = value; NotifyPropertyChanged(); }
+        }
+
         public int DeviceId
         {
             get { return _deviceId; }
@@ -76,6 +85,7 @@ namespace OnnxStack.UI.Models
             {
                 Name = modelset.Name,
                 ControlNetType = modelset.Type,
+                PipelineType = modelset.PipelineType,
                 DeviceId = modelset.DeviceId,
                 ExecutionMode = modelset.ExecutionMode,
                 ExecutionProvider = modelset.ExecutionProvider,
@@ -107,6 +117,7 @@ namespace OnnxStack.UI.Models
                 IsEnabled = true,
                 Name = modelset.Name,
                 Type = modelset.ControlNetType,
+                PipelineType = modelset.PipelineType,
                 DeviceId = modelset.DeviceId,
                 ExecutionMode = modelset.ExecutionMode,
                 ExecutionProvider = modelset.ExecutionProvider,
