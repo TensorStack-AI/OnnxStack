@@ -171,6 +171,18 @@ namespace OnnxStack.Core.Model
 
 
         /// <summary>
+        /// Gets the expected input parameter count.
+        /// </summary>
+        public int InputCount => _metadata.Inputs.Count;
+
+
+        /// <summary>
+        /// Gets the expected output parameter count.
+        /// </summary>
+        public int OutputCount => _metadata.Outputs.Count;
+
+
+        /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()

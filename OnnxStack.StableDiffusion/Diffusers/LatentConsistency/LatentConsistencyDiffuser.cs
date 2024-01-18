@@ -127,7 +127,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                        inferenceParameters.AddInputTensor(guidanceEmbeddings);
+                        if (inferenceParameters.InputCount == 4)
+                            inferenceParameters.AddInputTensor(guidanceEmbeddings);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.Unet, inferenceParameters);
