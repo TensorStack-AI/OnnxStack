@@ -152,7 +152,7 @@ namespace OnnxStack.UI.Services
         }
 
 
-        public ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, string modelFilename, string annotationFilename)
+        public ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, DiffuserPipelineType pipelineType, string modelFilename, string annotationFilename)
         {
             var models = new List<OnnxModelConfig> { new OnnxModelConfig { Type = OnnxModelType.ControlNet, OnnxModelPath = modelFilename } };
             if (!string.IsNullOrEmpty(annotationFilename))
@@ -162,6 +162,7 @@ namespace OnnxStack.UI.Services
             {
                 Name = name,
                 Type = controlNetType,
+                PipelineType = pipelineType,
                 ModelConfigurations = models,
 
                 IsEnabled = true,
