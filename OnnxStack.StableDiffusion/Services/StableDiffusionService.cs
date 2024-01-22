@@ -333,12 +333,19 @@ namespace OnnxStack.StableDiffusion.Services
             if (!promptOptions.HasInputVideo || promptOptions.InputVideo.VideoFrames is not null)
                 return;
 
-            // Already has VideoFrames
-            if (promptOptions.InputVideo.VideoFrames is not null)
-                return;
+            if (promptOptions.VideoInputFPS == 0 || promptOptions.VideoOutputFPS == 0)
+            {
+                var videoInfo = await _videoService.GetVideoInfoAsync(promptOptions.InputVideo);
+                if (promptOptions.VideoInputFPS == 0)
+                    promptOptions.VideoInputFPS = videoInfo.FPS;
 
+                if (promptOptions.VideoOutputFPS == 0)
+                    promptOptions.VideoOutputFPS = videoInfo.FPS;
+            }
+
+            var videoFrame = await _videoService.CreateFramesAsync(promptOptions.InputVideo, promptOptions.VideoInputFPS);
             progress?.Invoke(new DiffusionProgress($"Generating video frames @ {promptOptions.VideoInputFPS}fps"));
-            promptOptions.InputVideo.VideoFrames = await _videoService.CreateFramesAsync(promptOptions.InputVideo, promptOptions.VideoInputFPS);
+            promptOptions.InputVideo.VideoFrames = videoFrame;
         }
     }
 }
