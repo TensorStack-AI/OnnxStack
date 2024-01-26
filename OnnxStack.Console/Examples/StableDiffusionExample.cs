@@ -54,6 +54,9 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModelAsync(model);
 
+                    schedulerOptions.Width = model.SampleSize;
+                    schedulerOptions.Height = model.SampleSize;
+                    
                     foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
                     {
                         schedulerOptions.SchedulerType = schedulerType;
