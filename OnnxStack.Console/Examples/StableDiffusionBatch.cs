@@ -63,6 +63,9 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
                     await _stableDiffusionService.LoadModelAsync(model);
 
+                    schedulerOptions.Width = model.SampleSize;
+                    schedulerOptions.Height = model.SampleSize;
+
                     var batchIndex = 0;
                     var callback = (DiffusionProgress progress) =>
                     {
@@ -70,7 +73,7 @@ namespace OnnxStack.Console.Runner
                         OutputHelpers.WriteConsole($"Image: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Cyan);
                     };
 
-                    await foreach (var result in _stableDiffusionService.GenerateBatchAsync(new ModelOptions(model), promptOptions, schedulerOptions, batchOptions, default))
+                    await foreach (var result in _stableDiffusionService.GenerateBatchAsync(new ModelOptions(model), promptOptions, schedulerOptions, batchOptions, callback))
                     {
                         var outputFilename = Path.Combine(_outputDirectory, $"{batchIndex}_{result.SchedulerOptions.Seed}.png");
                         var image = result.ImageResult.ToImage();
