@@ -253,31 +253,7 @@ namespace OnnxStack.StableDiffusion.Helpers
 
 
 
-        /// <summary>
-        /// Repeats the specified Tensor along the 0 axis.
-        /// </summary>
-        /// <param name="tensor1">The tensor1.</param>
-        /// <param name="count">The count.</param>
-        /// <param name="axis">The axis.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException">Only axis 0 is supported</exception>
-        public static DenseTensor<float> Repeat(this DenseTensor<float> tensor1, int count, int axis = 0)
-        {
-            if (axis != 0)
-                throw new NotImplementedException("Only axis 0 is supported");
 
-            var dimensions = tensor1.Dimensions.ToArray();
-            dimensions[0] *= count;
-
-            var length = (int)tensor1.Length;
-            var totalLength = length * count;
-            var buffer = new float[totalLength].AsMemory();
-            for (int i = 0; i < count; i++)
-            {
-                tensor1.Buffer.CopyTo(buffer[(i * length)..]);
-            }
-            return new DenseTensor<float>(buffer, dimensions);
-        }
 
 
         /// <summary>
