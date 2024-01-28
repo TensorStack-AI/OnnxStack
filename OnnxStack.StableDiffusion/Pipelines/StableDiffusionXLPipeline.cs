@@ -79,12 +79,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
-        /// Gets the diffuser.
+        /// Creates the diffuser.
         /// </summary>
         /// <param name="diffuserType">Type of the diffuser.</param>
-        /// <param name="controlNetModel"></param>
+        /// <param name="controlNetModel">The control net model.</param>
         /// <returns></returns>
-        protected override IDiffuser GetDiffuser(DiffuserType diffuserType, ControlNetModel controlNetModel)
+        protected override IDiffuser CreateDiffuser(DiffuserType diffuserType, ControlNetModel controlNetModel)
         {
             return diffuserType switch
             {
@@ -96,7 +96,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 _ => throw new NotImplementedException()
             };
         }
-
 
 
         /// <summary>
@@ -279,6 +278,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
         }
 
 
+        /// <summary>
+        /// Creates the pipeline from a ModelSet configuration.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
         public static new StableDiffusionXLPipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
         {
             var unet = new UNetConditionModel(modelSet.UnetConfig.ApplyDefaults(modelSet));

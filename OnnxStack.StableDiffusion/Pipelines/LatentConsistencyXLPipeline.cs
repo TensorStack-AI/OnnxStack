@@ -42,6 +42,15 @@ namespace OnnxStack.StableDiffusion.Pipelines
         public override DiffuserPipelineType PipelineType => DiffuserPipelineType.LatentConsistencyXL;
 
 
+        /// <summary>
+        /// Runs the pipeline.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         public override Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
@@ -50,6 +59,16 @@ namespace OnnxStack.StableDiffusion.Pipelines
         }
 
 
+        /// <summary>
+        /// Runs the pipeline batch.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         public override IAsyncEnumerable<BatchResult> RunBatchAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             // LCM does not support negative prompting
@@ -59,12 +78,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
-        /// Gets the diffuser.
+        /// Creates the diffuser.
         /// </summary>
         /// <param name="diffuserType">Type of the diffuser.</param>
-        /// <param name="controlNetModel">The control net session.</param>
+        /// <param name="controlNetModel">The control net model.</param>
         /// <returns></returns>
-        protected override IDiffuser GetDiffuser(DiffuserType diffuserType, ControlNetModel controlNetModel)
+        protected override IDiffuser CreateDiffuser(DiffuserType diffuserType, ControlNetModel controlNetModel)
         {
             return diffuserType switch
             {
@@ -78,6 +97,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
         }
 
 
+        /// <summary>
+        /// Creates the pipeline from a ModelSet configuration.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
         public static new LatentConsistencyXLPipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
         {
             var unet = new UNetConditionModel(modelSet.UnetConfig.ApplyDefaults(modelSet));
