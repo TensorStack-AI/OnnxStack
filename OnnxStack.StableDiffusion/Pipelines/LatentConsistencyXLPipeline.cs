@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
+using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using System;
 using System.Collections.Generic;
@@ -30,10 +32,21 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public LatentConsistencyXLPipeline(string name, TokenizerModel tokenizer, TokenizerModel tokenizer2, TextEncoderModel textEncoder, TextEncoderModel textEncoder2, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, List<DiffuserType> diffusers, ILogger logger = default)
-            : base(name, tokenizer, tokenizer2, textEncoder, textEncoder2, unet, vaeDecoder, vaeEncoder, diffusers, logger)
+        public LatentConsistencyXLPipeline(string name, TokenizerModel tokenizer, TokenizerModel tokenizer2, TextEncoderModel textEncoder, TextEncoderModel textEncoder2, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(name, tokenizer, tokenizer2, textEncoder, textEncoder2, unet, vaeDecoder, vaeEncoder, diffusers, defaultSchedulerOptions, logger)
         {
-            _supportedSchedulers = new List<SchedulerType> { SchedulerType.LCM };
+            _supportedSchedulers = new List<SchedulerType>
+            {
+            SchedulerType.LCM
+            };
+            _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions
+            {
+                Width = 1024,
+                Height = 1024,
+                InferenceSteps = 4,
+                GuidanceScale = 1f,
+                SchedulerType = SchedulerType.LCM
+            };
         }
 
         /// <summary>
@@ -112,7 +125,22 @@ namespace OnnxStack.StableDiffusion.Pipelines
             var textEncoder2 = new TextEncoderModel(modelSet.TextEncoder2Config.ApplyDefaults(modelSet));
             var vaeDecoder = new AutoEncoderModel(modelSet.VaeDecoderConfig.ApplyDefaults(modelSet));
             var vaeEncoder = new AutoEncoderModel(modelSet.VaeEncoderConfig.ApplyDefaults(modelSet));
-            return new LatentConsistencyXLPipeline(modelSet.Name, tokenizer, tokenizer2, textEncoder, textEncoder2, unet, vaeDecoder, vaeEncoder, modelSet.Diffusers, logger);
+            return new LatentConsistencyXLPipeline(modelSet.Name, tokenizer, tokenizer2, textEncoder, textEncoder2, unet, vaeDecoder, vaeEncoder, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
+        }
+
+
+        /// <summary>
+        /// Creates the pipeline from a folder structure.
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="deviceId">The device identifier.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        public static new LatentConsistencyXLPipeline CreatePipeline(string modelFolder, ModelType modelType = ModelType.Base, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
+        {
+            return CreatePipeline(ModelFactory.CreateModelSet(modelFolder, DiffuserPipelineType.LatentConsistencyXL, modelType, deviceId, executionProvider), logger);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
+using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -27,11 +28,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
         protected readonly AutoEncoderModel _vaeDecoder;
         protected readonly AutoEncoderModel _vaeEncoder;
 
-
         protected OnnxModelSession _controlNet;
         protected List<DiffuserType> _supportedDiffusers;
         protected IReadOnlyList<SchedulerType> _supportedSchedulers;
-
+        protected SchedulerOptions _defaultSchedulerOptions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionPipeline"/> class.
@@ -43,7 +43,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public StableDiffusionPipeline(string name, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, List<DiffuserType> diffusers = default, ILogger logger = default) : base(logger)
+        public StableDiffusionPipeline(string name, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, List<DiffuserType> diffusers = default, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default) : base(logger)
         {
             _name = name;
             _unet = unet;
@@ -65,6 +65,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 SchedulerType.DDPM,
                 SchedulerType.DDIM,
                 SchedulerType.KDPM2
+            };
+            _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions
+            {
+                InferenceSteps = 30,
+                GuidanceScale = 7.5f,
+                SchedulerType = SchedulerType.EulerAncestral
             };
         }
 
@@ -91,6 +97,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// Gets the type of the pipeline.
         /// </summary>
         public override DiffuserPipelineType PipelineType => DiffuserPipelineType.StableDiffusion;
+
+
+        /// <summary>
+        /// Gets the default scheduler options.
+        /// </summary>
+        public override SchedulerOptions DefaultSchedulerOptions => _defaultSchedulerOptions;
 
 
         /// <summary>
@@ -148,7 +160,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
             var diffuseTime = _logger?.LogBegin("Diffuser starting...");
-             _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
+            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
 
             // Check guidance
             var performGuidance = ShouldPerformGuidance(schedulerOptions);
@@ -185,7 +197,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             schedulerOptions.Seed = schedulerOptions.Seed > 0 ? schedulerOptions.Seed : Random.Shared.Next();
 
             var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
-              _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
+            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {schedulerOptions.SchedulerType}");
             _logger?.Log($"BatchType: {batchOptions.BatchType}, ValueFrom: {batchOptions.ValueFrom}, ValueTo: {batchOptions.ValueTo}, Increment: {batchOptions.Increment}");
 
             // Check guidance
@@ -366,7 +378,22 @@ namespace OnnxStack.StableDiffusion.Pipelines
             var textEncoder = new TextEncoderModel(modelSet.TextEncoderConfig.ApplyDefaults(modelSet));
             var vaeDecoder = new AutoEncoderModel(modelSet.VaeDecoderConfig.ApplyDefaults(modelSet));
             var vaeEncoder = new AutoEncoderModel(modelSet.VaeEncoderConfig.ApplyDefaults(modelSet));
-            return new StableDiffusionPipeline(modelSet.Name, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, modelSet.Diffusers, logger);
+            return new StableDiffusionPipeline(modelSet.Name, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
+        }
+
+
+        /// <summary>
+        /// Creates the pipeline from a folder structure.
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="deviceId">The device identifier.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        public static StableDiffusionPipeline CreatePipeline(string modelFolder, ModelType modelType = ModelType.Base, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
+        {
+            return CreatePipeline(ModelFactory.CreateModelSet(modelFolder, DiffuserPipelineType.StableDiffusion, modelType, deviceId, executionProvider), logger);
         }
     }
 }

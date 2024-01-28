@@ -25,6 +25,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Gets the default scheduler options.
+        /// </summary>
+        SchedulerOptions DefaultSchedulerOptions { get; }
+
+
+        /// <summary>
         /// Loads the pipeline.
         /// </summary>
         /// <returns></returns>

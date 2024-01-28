@@ -42,5 +42,8 @@ namespace OnnxStack.StableDiffusion.Config
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public AutoEncoderModelConfig VaeEncoderConfig { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public SchedulerOptions SchedulerOptions { get; set; }
     }
 }
