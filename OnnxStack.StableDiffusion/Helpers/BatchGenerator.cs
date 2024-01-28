@@ -14,7 +14,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="batchOptions">The batch options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        public static List<SchedulerOptions> GenerateBatch(ModelOptions modelOptions, BatchOptions batchOptions, SchedulerOptions schedulerOptions)
+        public static List<SchedulerOptions> GenerateBatch(DiffuserPipelineType pipelineType, BatchOptions batchOptions, SchedulerOptions schedulerOptions)
         {
             if (batchOptions.BatchType == BatchOptionType.Seed)
             {
@@ -46,7 +46,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
             else if (batchOptions.BatchType == BatchOptionType.Scheduler)
             {
-                return modelOptions.PipelineType.GetSchedulerTypes()
+                return pipelineType.GetSchedulerTypes()
                   .Select(x => schedulerOptions with { SchedulerType = x })
                   .ToList();
             }

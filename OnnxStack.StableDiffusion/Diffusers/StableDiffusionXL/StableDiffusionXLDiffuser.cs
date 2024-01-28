@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
-using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -20,13 +18,16 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
 {
     public abstract class StableDiffusionXLDiffuser : DiffuserBase
     {
+
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionXLDiffuser"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="onnxModelService">The onnx model service.</param>
-        public StableDiffusionXLDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<StableDiffusionXLDiffuser> logger)
-            : base(onnxModelService, promptService, logger) { }
+        /// <param name="unet">The unet.</param>
+        /// <param name="vaeDecoder">The vae decoder.</param>
+        /// <param name="vaeEncoder">The vae encoder.</param>
+        /// <param name="logger">The logger.</param>
+        public StableDiffusionXLDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, logger) { }
 
 
         /// <summary>
@@ -46,7 +47,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -55,13 +56,13 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = await PrepareLatentsAsync(promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Get Model metadata
-                var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
+                var metadata = await _unet.GetMetadataAsync();
 
                 // Get Time ids
-                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions);
+                var addTimeIds = GetAddTimeIds(schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -88,7 +89,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                         inferenceParameters.AddInputTensor(timeids);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.Unet, inferenceParameters);
+                        var results = await _unet.RunInferenceAsync(inferenceParameters);
                         using (var result = results.First())
                         {
                             var noisePred = result.ToDenseTensor();
@@ -107,7 +108,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                 }
 
                 // Decode Latents
-                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, latents);
+                return await DecodeLatentsAsync(promptOptions, schedulerOptions, latents);
             }
         }
 
@@ -117,9 +118,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// </summary>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        protected DenseTensor<float> GetAddTimeIds(ModelOptions model, SchedulerOptions schedulerOptions)
+        protected DenseTensor<float> GetAddTimeIds(SchedulerOptions schedulerOptions)
         {
-            float[] result = model.ModelType == ModelType.Refiner
+            float[] result = _unet.ModelType == ModelType.Refiner
                 ? new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticScore }
                 : new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width };
             return TensorHelper.CreateTensor(result, new[] { 1, result.Length });

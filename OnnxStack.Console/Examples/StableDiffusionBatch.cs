@@ -3,7 +3,6 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner

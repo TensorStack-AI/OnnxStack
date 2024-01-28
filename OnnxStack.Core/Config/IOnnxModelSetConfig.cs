@@ -1,5 +1,4 @@
 ﻿using Microsoft.ML.OnnxRuntime;
-using System.Collections.Generic;
 
 namespace OnnxStack.Core.Config
 {
@@ -11,6 +10,5 @@ namespace OnnxStack.Core.Config
         int IntraOpNumThreads { get; set; }
         ExecutionMode ExecutionMode { get; set; }
         ExecutionProvider ExecutionProvider { get; set; }
-        List<OnnxModelConfig> ModelConfigurations { get; set; }
     }
 }

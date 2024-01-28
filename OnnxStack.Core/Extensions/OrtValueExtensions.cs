@@ -114,6 +114,13 @@ namespace OnnxStack.Core
         }
 
 
+        public static T[] ToArray<T>(this OrtValue ortValue) where T : unmanaged
+        {
+            return ortValue.GetTensorDataAsSpan<T>().ToArray();
+        }
+
+
+
         /// <summary>
         /// Converts to float16.
         /// TODO: Optimization

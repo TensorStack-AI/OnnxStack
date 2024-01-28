@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace OnnxStack.Core
 {
@@ -55,6 +56,17 @@ namespace OnnxStack.Core
                     sessionOptions.AppendExecutionProvider_Tensorrt(configuration.DeviceId.Value);
                     return sessionOptions;
             }
+        }
+
+
+        public static T ApplyDefaults<T>(this T config, IOnnxModelSetConfig defaults) where T : OnnxModelConfig
+        {
+            config.DeviceId ??= defaults.DeviceId;
+            config.ExecutionMode ??= defaults.ExecutionMode;
+            config.ExecutionProvider ??= defaults.ExecutionProvider;
+            config.InterOpNumThreads ??= defaults.InterOpNumThreads;
+            config.IntraOpNumThreads ??= defaults.IntraOpNumThreads;
+            return config;
         }
 
 

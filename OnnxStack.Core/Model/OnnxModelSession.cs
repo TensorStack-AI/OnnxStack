@@ -1,23 +1,28 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Model
 {
     public class OnnxModelSession : IDisposable
     {
         private readonly SessionOptions _options;
-        private readonly InferenceSession _session;
         private readonly OnnxModelConfig _configuration;
+
+        private OnnxMetadata _metadata;
+        private InferenceSession _session;
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxModelSession"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        /// <param name="container">The container.</param>
         /// <exception cref="System.IO.FileNotFoundException">Onnx model file not found</exception>
-        public OnnxModelSession(OnnxModelConfig configuration, PrePackedWeightsContainer container)
+        public OnnxModelSession(OnnxModelConfig configuration)
         {
             if (!File.Exists(configuration.OnnxModelPath))
                 throw new FileNotFoundException("Onnx model file not found", configuration.OnnxModelPath);
@@ -25,7 +30,6 @@ namespace OnnxStack.Core.Model
             _configuration = configuration;
             _options = configuration.GetSessionOptions();
             _options.RegisterOrtExtensions();
-            _session = new InferenceSession(_configuration.OnnxModelPath, _options, container);
         }
 
 
@@ -45,6 +49,76 @@ namespace OnnxStack.Core.Model
         /// Gets the configuration.
         /// </summary>
         public OnnxModelConfig Configuration => _configuration;
+
+
+        /// <summary>
+        /// Loads the model session.
+        /// </summary>
+        public async Task LoadAsync()
+        {
+            if (_session is not null)
+                return; // Already Loaded
+
+            _session = await Task.Run(() => new InferenceSession(_configuration.OnnxModelPath, _options));
+        }
+
+
+        /// <summary>
+        /// Unloads the model session.
+        /// </summary>
+        /// <returns></returns>
+        public Task UnloadAsync()
+        {
+            if (_session is not null)
+            {
+                _metadata = null;
+                _session.Dispose();
+            }
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Gets the metadata.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<OnnxMetadata> GetMetadataAsync()
+        {
+            if (_metadata is not null)
+                return _metadata;
+
+            if (_session is null)
+                await LoadAsync();
+
+            _metadata = new OnnxMetadata
+            {
+                Inputs = _session.InputMetadata.Select(OnnxNamedMetadata.Create).ToList(),
+                Outputs = _session.OutputMetadata.Select(OnnxNamedMetadata.Create).ToList()
+            };
+            return _metadata;
+        }
+
+
+        /// <summary>
+        /// Runs inference on the model with the suppied parameters, use this method when you do not have a known output shape.
+        /// </summary>
+        /// <param name="parameters">The parameters.</param>
+        /// <returns></returns>
+        public IDisposableReadOnlyCollection<OrtValue> RunInference(OnnxInferenceParameters parameters)
+        {
+            return _session.Run(parameters.RunOptions, parameters.InputNameValues, parameters.OutputNames);
+        }
+
+
+        /// <summary>
+        /// Runs inference on the model with the suppied parameters, use this method when the output shape is known
+        /// </summary>
+        /// <param name="parameters">The parameters.</param>
+        /// <returns></returns>
+        public Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(OnnxInferenceParameters parameters)
+        {
+            return _session.RunAsync(parameters.RunOptions, parameters.InputNames, parameters.InputValues, parameters.OutputNames, parameters.OutputValues);
+        }
 
 
         /// <summary>

@@ -1,4 +1,5 @@
-﻿using Microsoft.ML.OnnxRuntime.Tensors;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
@@ -6,15 +7,14 @@ using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
+using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,55 +28,97 @@ namespace OnnxStack.StableDiffusion.Services
     public sealed class StableDiffusionService : IStableDiffusionService
     {
         private readonly IVideoService _videoService;
-        private readonly IOnnxModelService _modelService;
+        private readonly ILogger<StableDiffusionService> _logger;
         private readonly StableDiffusionConfig _configuration;
-        private readonly ConcurrentDictionary<DiffuserPipelineType, IPipeline> _pipelines;
+        private readonly Dictionary<IOnnxModel, IPipeline> _pipelines;
+        private readonly ConcurrentDictionary<IOnnxModel, ControlNetModel> _controlNetSessions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionService"/> class.
         /// </summary>
         /// <param name="schedulerService">The scheduler service.</param>
-        public StableDiffusionService(StableDiffusionConfig configuration, IOnnxModelService onnxModelService, IVideoService videoService, IEnumerable<IPipeline> pipelines)
+        public StableDiffusionService(StableDiffusionConfig configuration, IVideoService videoService, ILogger<StableDiffusionService> logger)
         {
+            _logger = logger;
             _configuration = configuration;
-            _modelService = onnxModelService;
             _videoService = videoService;
-            _pipelines = pipelines.ToConcurrentDictionary(k => k.PipelineType, k => k);
+            _pipelines = new Dictionary<IOnnxModel, IPipeline>();
+            _controlNetSessions = new ConcurrentDictionary<IOnnxModel, ControlNetModel>();
         }
 
 
         /// <summary>
         /// Loads the model.
         /// </summary>
-        /// <param name="model">The model options.</param>
+        /// <param name="model">The model.</param>
         /// <returns></returns>
-        public async Task<bool> LoadModelAsync(IOnnxModelSetConfig model)
+        public async Task<bool> LoadModelAsync(StableDiffusionModelSet model)
         {
-            var modelSet = await _modelService.LoadModelAsync(model);
-            return modelSet is not null;
+            if (_pipelines.ContainsKey(model))
+                return true;
+
+            var pipeline = CreatePipeline(model);
+            await pipeline.LoadAsync();
+            return _pipelines.TryAdd(model, pipeline);
         }
+
+
 
 
         /// <summary>
         /// Unloads the model.
         /// </summary>
-        /// <param name="modelSet">The model options.</param>
+        /// <param name="model">The model.</param>
         /// <returns></returns>
-        public async Task<bool> UnloadModelAsync(IOnnxModel modelSet)
+        public Task<bool> UnloadModelAsync(StableDiffusionModelSet model)
         {
-            return await _modelService.UnloadModelAsync(modelSet);
+            if (_pipelines.Remove(model, out var pipeline))
+            {
+                pipeline?.UnloadAsync();
+            }
+            return Task.FromResult(true);
         }
 
 
         /// <summary>
-        /// Is the model loaded.
+        /// Determines whether [is model loaded] [the specified model options].
         /// </summary>
-        /// <param name="modelSet">The model options.</param>
-        /// <returns></returns>
-        public bool IsModelLoaded(IOnnxModel modelSet)
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns>
+        ///   <c>true</c> if [is model loaded] [the specified model options]; otherwise, <c>false</c>.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public bool IsModelLoaded(StableDiffusionModelSet modelOptions)
         {
-            return _modelService.IsModelLoaded(modelSet);
+            return _pipelines.ContainsKey(modelOptions);
         }
+
+
+        public async Task<bool> LoadControlNetModelAsync(ControlNetModelSet model)
+        {
+            if (_controlNetSessions.ContainsKey(model))
+                return true;
+
+            var config = model.ControlNetConfig.ApplyDefaults(model);
+            var controlNet = new ControlNetModel(config);
+            await controlNet.LoadAsync();
+            return _controlNetSessions.TryAdd(model, controlNet);
+        }
+
+        public Task<bool> UnloadControlNetModelAsync(ControlNetModelSet model)
+        {
+            if (_controlNetSessions.Remove(model, out var controlNet))
+            {
+                controlNet?.UnloadAsync();
+            }
+            return Task.FromResult(true);
+        }
+
+        public bool IsControlNetModelLoaded(ControlNetModelSet modelOptions)
+        {
+            return _controlNetSessions.ContainsKey(modelOptions);
+        }
+
 
         /// <summary>
         /// Generates the StableDiffusion image using the prompt and options provided.
@@ -239,19 +281,17 @@ namespace OnnxStack.StableDiffusion.Services
         /// </exception>
         private async Task<DenseTensor<float>> DiffuseAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progress = null, CancellationToken cancellationToken = default)
         {
-            if (!_pipelines.TryGetValue(modelOptions.PipelineType, out var pipeline))
+            if (!_pipelines.TryGetValue(modelOptions.BaseModel, out var pipeline))
                 throw new Exception("Pipeline not found or is unsupported");
 
-            var diffuser = pipeline.GetDiffuser(promptOptions.DiffuserType);
-            if (diffuser is null)
-                throw new Exception("Diffuser not found or is unsupported");
+            var controlNet = default(ControlNetModel);
+            if (modelOptions.ControlNetModel is not null && !_controlNetSessions.TryGetValue(modelOptions.ControlNetModel, out controlNet))
+                throw new Exception("ControlNet not loaded");
 
-            var schedulerSupported = pipeline.PipelineType.GetSchedulerTypes().Contains(schedulerOptions.SchedulerType);
-            if (!schedulerSupported)
-                throw new Exception($"Scheduler '{schedulerOptions.SchedulerType}' is not compatible  with the `{pipeline.PipelineType}` pipeline.");
+            pipeline.ValidateInputs(promptOptions, schedulerOptions);
 
             await GenerateInputVideoFrames(promptOptions, progress);
-            return await diffuser.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progress, cancellationToken);
+            return await pipeline.RunAsync(promptOptions, schedulerOptions, controlNet, progress, cancellationToken);
         }
 
 
@@ -272,21 +312,19 @@ namespace OnnxStack.StableDiffusion.Services
         /// or
         /// Scheduler '{schedulerOptions.SchedulerType}' is not compatible  with the `{pipeline.PipelineType}` pipeline.
         /// </exception>
-        private async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progress = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        private async IAsyncEnumerable<BatchResult> DiffuseBatchAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            if (!_pipelines.TryGetValue(modelOptions.PipelineType, out var pipeline))
+            if (!_pipelines.TryGetValue(modelOptions.BaseModel, out var pipeline))
                 throw new Exception("Pipeline not found or is unsupported");
 
-            var diffuser = pipeline.GetDiffuser(promptOptions.DiffuserType);
-            if (diffuser is null)
-                throw new Exception("Diffuser not found or is unsupported");
+            var controlNet = default(ControlNetModel);
+            if (modelOptions.ControlNetModel is not null && !_controlNetSessions.TryGetValue(modelOptions.ControlNetModel, out controlNet))
+                throw new Exception("ControlNet not loaded");
 
-            var schedulerSupported = pipeline.PipelineType.GetSchedulerTypes().Contains(schedulerOptions.SchedulerType);
-            if (!schedulerSupported)
-                throw new Exception($"Scheduler '{schedulerOptions.SchedulerType}' is not compatible  with the `{pipeline.PipelineType}` pipeline.");
+            pipeline.ValidateInputs(promptOptions, schedulerOptions);
 
-            await GenerateInputVideoFrames(promptOptions, progress);
-            await foreach (var result in diffuser.DiffuseBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progress, cancellationToken))
+            await GenerateInputVideoFrames(promptOptions, progressCallback);
+            await foreach (var result in pipeline.RunBatchAsync(promptOptions, schedulerOptions, batchOptions, controlNet, progressCallback, cancellationToken))
             {
                 yield return result;
             }
@@ -346,6 +384,20 @@ namespace OnnxStack.StableDiffusion.Services
             var videoFrame = await _videoService.CreateFramesAsync(promptOptions.InputVideo, promptOptions.VideoInputFPS);
             progress?.Invoke(new DiffusionProgress($"Generating video frames @ {promptOptions.VideoInputFPS}fps"));
             promptOptions.InputVideo.VideoFrames = videoFrame;
+        }
+
+
+        private IPipeline CreatePipeline(StableDiffusionModelSet model)
+        {
+            return model.PipelineType switch
+            {
+                DiffuserPipelineType.StableDiffusion => StableDiffusionPipeline.CreatePipeline(model, _logger),
+                DiffuserPipelineType.StableDiffusionXL => StableDiffusionXLPipeline.CreatePipeline(model, _logger),
+                DiffuserPipelineType.LatentConsistency => LatentConsistencyPipeline.CreatePipeline(model, _logger),
+                DiffuserPipelineType.LatentConsistencyXL => LatentConsistencyXLPipeline.CreatePipeline(model, _logger),
+                DiffuserPipelineType.InstaFlow => InstaFlowPipeline.CreatePipeline(model, _logger),
+                _ => throw new NotSupportedException()
+            }; ;
         }
     }
 }

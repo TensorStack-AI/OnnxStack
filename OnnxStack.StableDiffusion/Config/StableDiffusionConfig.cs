@@ -1,6 +1,5 @@
 ﻿using OnnxStack.Common.Config;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,13 +21,16 @@ namespace OnnxStack.StableDiffusion.Config
 
             foreach (var modelSet in ModelSets)
             {
-                foreach (var model in modelSet.ModelConfigurations)
+                if (modelSet.TokenizerConfig is not null)
                 {
-                    if ((model.Type == OnnxModelType.Tokenizer || model.Type == OnnxModelType.Tokenizer2) && string.IsNullOrEmpty(model.OnnxModelPath))
-                        model.OnnxModelPath = defaultTokenizer;
+                    if (string.IsNullOrEmpty(modelSet.TokenizerConfig.OnnxModelPath) || !File.Exists(modelSet.TokenizerConfig.OnnxModelPath))
+                        modelSet.TokenizerConfig.OnnxModelPath = defaultTokenizer;
+                }
 
-                    if (!File.Exists(model.OnnxModelPath))
-                        modelSet.IsEnabled = false;
+                if (modelSet.Tokenizer2Config is not null)
+                {
+                    if (string.IsNullOrEmpty(modelSet.Tokenizer2Config.OnnxModelPath) || !File.Exists(modelSet.Tokenizer2Config.OnnxModelPath))
+                        modelSet.Tokenizer2Config.OnnxModelPath = defaultTokenizer;
                 }
             }
         }

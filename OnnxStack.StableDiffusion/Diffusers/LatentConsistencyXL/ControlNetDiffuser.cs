@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
-using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -21,17 +19,20 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
 {
     public class ControlNetDiffuser : LatentConsistencyXLDiffuser
     {
-        private readonly IControlNetImageService _controlNetImageService;
+        protected ControlNetModel _controlNet;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ControlNetDiffuser"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="onnxModelService">The onnx model service.</param>
-        public ControlNetDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, IControlNetImageService controlNetImageService, ILogger<ControlNetDiffuser> logger)
-            : base(onnxModelService, promptService, logger)
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="unet">The unet.</param>
+        /// <param name="vaeDecoder">The vae decoder.</param>
+        /// <param name="vaeEncoder">The vae encoder.</param>
+        /// <param name="logger">The logger.</param>
+        public ControlNetDiffuser(ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, logger)
         {
-            _controlNetImageService = controlNetImageService;
+            _controlNet = controlNet;
         }
 
 
@@ -42,9 +43,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
 
 
         /// <summary>
-        /// Called on each Scheduler step.
+        /// Runs the scheduler steps.
         /// </summary>
-        /// <param name="modelOptions">The model options.</param>
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="promptEmbeddings">The prompt embeddings.</param>
@@ -53,7 +53,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -62,19 +62,19 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = await PrepareLatentsAsync(promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Get Model metadata
-                var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
+                var metadata = await _unet.GetMetadataAsync();
 
                 // Get Time ids
-                var addTimeIds = GetAddTimeIds(modelOptions, schedulerOptions);
+                var addTimeIds = GetAddTimeIds(schedulerOptions);
 
                 // Get Model metadata
-                var controlNetMetadata = _onnxModelService.GetModelMetadata(modelOptions.ControlNetModel, OnnxModelType.ControlNet);
+                var controlNetMetadata = await _controlNet.GetMetadataAsync();
 
                 // Control Image
-                var controlImage = await PrepareControlImage(modelOptions, promptOptions, schedulerOptions);
+                var controlImage = await PrepareControlImage(promptOptions, schedulerOptions);
 
                 // Loop though the timesteps
                 var step = 0;
@@ -120,7 +120,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
                                 controlNetParameters.AddOutputBuffer();
 
                             // ControlNet inference
-                            var controlNetResults = _onnxModelService.RunInference(modelOptions.ControlNetModel, OnnxModelType.ControlNet, controlNetParameters);
+                            var controlNetResults = _controlNet.RunInference(controlNetParameters);
 
                             // Add ControlNet outputs to Unet input
                             foreach (var item in controlNetResults)
@@ -130,7 +130,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
                             inferenceParameters.AddOutputBuffer(outputDimension);
 
                             // Unet inference
-                            var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.Unet, inferenceParameters);
+                            var results = await _unet.RunInferenceAsync(inferenceParameters);
                             using (var result = results.First())
                             {
                                 var noisePred = result.ToDenseTensor();
@@ -150,7 +150,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
                 }
 
                 // Decode Latents
-                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, latents);
+                return await DecodeLatentsAsync(promptOptions, schedulerOptions, latents);
             }
         }
 
@@ -170,13 +170,12 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <summary>
         /// Prepares the input latents.
         /// </summary>
-        /// <param name="model">The model.</param>
         /// <param name="prompt">The prompt.</param>
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected override Task<DenseTensor<float>> PrepareLatentsAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
             return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
         }
@@ -199,14 +198,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> PrepareControlImage(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        protected async Task<DenseTensor<float>> PrepareControlImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            var controlImage = promptOptions.InputContolImage;
-            if (schedulerOptions.IsControlImageProcessingEnabled)
-            {
-                controlImage = await _controlNetImageService.PrepareInputImage(modelOptions.ControlNetModel, promptOptions.InputContolImage, schedulerOptions.Height, schedulerOptions.Width);
-            }
-            return await controlImage.ToDenseTensorAsync(schedulerOptions.Height, schedulerOptions.Width, ImageNormalizeType.ZeroToOne);
+            return await promptOptions.InputContolImage.ToDenseTensorAsync(schedulerOptions.Height, schedulerOptions.Width, ImageNormalizeType.ZeroToOne);
         }
     }
 }

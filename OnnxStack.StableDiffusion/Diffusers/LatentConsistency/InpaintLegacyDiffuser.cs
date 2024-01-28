@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
-using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -23,15 +21,16 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
     public sealed class InpaintLegacyDiffuser : LatentConsistencyDiffuser
     {
+
         /// <summary>
         /// Initializes a new instance of the <see cref="InpaintLegacyDiffuser"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="onnxModelService">The onnx model service.</param>
-        public InpaintLegacyDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<LatentConsistencyDiffuser> logger)
-            : base(onnxModelService, promptService, logger)
-        {
-        }
+        /// <param name="unet">The unet.</param>
+        /// <param name="vaeDecoder">The vae decoder.</param>
+        /// <param name="vaeEncoder">The vae encoder.</param>
+        /// <param name="logger">The logger.</param>
+        public InpaintLegacyDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, logger) { }
 
 
         /// <summary>
@@ -43,13 +42,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <summary>
         /// Gets the timesteps.
         /// </summary>
-        /// <param name="prompt">The prompt.</param>
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
-            // Image2Image we narrow step the range by the Strength
             var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
             var start = Math.Max(options.InferenceSteps - inittimestep, 0);
             return scheduler.Timesteps.Skip(start).ToList();
@@ -59,7 +56,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <summary>
         /// Runs the scheduler steps.
         /// </summary>
-        /// <param name="modelOptions">The model options.</param>
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="promptEmbeddings">The prompt embeddings.</param>
@@ -67,7 +63,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             using (var scheduler = GetScheduler(schedulerOptions))
             {
@@ -75,10 +71,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latentsOriginal = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latentsOriginal = await PrepareLatentsAsync(promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Create masks sample
-                var maskImage = PrepareMask(modelOptions, promptOptions, schedulerOptions);
+                var maskImage = PrepareMask(promptOptions, schedulerOptions);
 
                 // Generate some noise
                 var noise = scheduler.CreateRandomSample(latentsOriginal.Dimensions);
@@ -87,7 +83,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var latents = scheduler.AddNoise(latentsOriginal, noise, timesteps);
 
                 // Get Model metadata
-                var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
+                var metadata = await _unet.GetMetadataAsync();
 
                 // Get Guidance Scale Embedding
                 var guidanceEmbeddings = GetGuidanceScaleEmbedding(schedulerOptions.GuidanceScale);
@@ -118,7 +114,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                             inferenceParameters.AddInputTensor(guidanceEmbeddings);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.Unet, inferenceParameters);
+                        var results = await _unet.RunInferenceAsync(inferenceParameters);
                         using (var result = results.First())
                         {
                             var noisePred = result.ToDenseTensor();
@@ -146,7 +142,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 }
 
                 // Decode Latents
-                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, denoised);
+                return await DecodeLatentsAsync(promptOptions, schedulerOptions, denoised);
             }
         }
 
@@ -154,30 +150,26 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <summary>
         /// Prepares the input latents for inference.
         /// </summary>
-        /// <param name="model">The model.</param>
         /// <param name="prompt">The prompt.</param>
         /// <param name="options">The options.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> PrepareLatentsAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override async Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            // Image input, decode, add noise, return as latent 0
             var imageTensor = await prompt.InputImage.ToDenseTensorAsync(options.Height, options.Width);
-
-            //TODO: Model Config, Channels
             var outputDimensions = options.GetScaledDimension();
-            var metadata = _onnxModelService.GetModelMetadata(model.BaseModel, OnnxModelType.VaeEncoder);
+            var metadata = await _vaeEncoder.GetMetadataAsync();
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
                 inferenceParameters.AddInputTensor(imageTensor);
                 inferenceParameters.AddOutputBuffer(outputDimensions);
 
-                var results = await _onnxModelService.RunInferenceAsync(model.BaseModel, OnnxModelType.VaeEncoder, inferenceParameters);
+                var results = await _vaeEncoder.RunInferenceAsync(inferenceParameters);
                 using (var result = results.First())
                 {
                     var outputResult = result.ToDenseTensor();
-                    var scaledSample = outputResult.MultiplyBy(model.ScaleFactor);
+                    var scaledSample = outputResult.MultiplyBy(_vaeEncoder.ScaleFactor);
                     return scaledSample;
                 }
             }
@@ -190,7 +182,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        private DenseTensor<float> PrepareMask(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        private DenseTensor<float> PrepareMask(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
             using (var mask = promptOptions.InputImageMask.ToImage())
             {

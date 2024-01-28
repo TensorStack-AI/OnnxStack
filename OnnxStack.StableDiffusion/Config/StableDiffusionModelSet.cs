@@ -1,28 +1,17 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Models;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace OnnxStack.StableDiffusion.Config
 {
     public record StableDiffusionModelSet : IOnnxModelSetConfig
     {
-        private ImmutableArray<int> _blankTokenValueArray;
-
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
-        public int PadTokenId { get; set; }
-        public int BlankTokenId { get; set; }
-        public int TokenizerLimit { get; set; }
-        public int TokenizerLength { get; set; }
-        public int Tokenizer2Length { get; set; }
-        public TokenizerType TokenizerType { get; set; }
         public int SampleSize { get; set; } = 512;
-        public float ScaleFactor { get; set; }
-        public ModelType ModelType { get; set; }
         public DiffuserPipelineType PipelineType { get; set; }
         public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();
 
@@ -31,19 +20,27 @@ namespace OnnxStack.StableDiffusion.Config
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
-        public List<OnnxModelConfig> ModelConfigurations { get; set; }
 
 
-        [JsonIgnore]
-        public ImmutableArray<int> BlankTokenValueArray
-        {
-            get
-            {
-                if (_blankTokenValueArray.IsDefaultOrEmpty)
-                    _blankTokenValueArray = Enumerable.Repeat(BlankTokenId, 20480).ToImmutableArray();
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public TokenizerModelConfig TokenizerConfig { get; set; }
 
-                return _blankTokenValueArray;
-            }
-        }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public TokenizerModelConfig Tokenizer2Config { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public TextEncoderModelConfig TextEncoderConfig { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public TextEncoderModelConfig TextEncoder2Config { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public UNetConditionModelConfig UnetConfig { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public AutoEncoderModelConfig VaeDecoderConfig { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public AutoEncoderModelConfig VaeEncoderConfig { get; set; }
     }
 }
