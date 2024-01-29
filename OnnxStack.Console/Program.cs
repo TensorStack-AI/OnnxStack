@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
 using OnnxStack.ImageUpscaler;
+using OnnxStack.StableDiffusion.Config;
 using System.Reflection;
 
 namespace OnnxStack.Console
@@ -17,7 +18,7 @@ namespace OnnxStack.Console
 
             // Add OnnxStack
             builder.Services.AddOnnxStack();
-            builder.Services.AddOnnxStackStableDiffusion();
+            builder.Services.AddOnnxStackConfig<StableDiffusionConfig>();
             builder.Services.AddOnnxStackImageUpscaler();
 
             // Add AppService

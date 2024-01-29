@@ -1,7 +1,6 @@
-﻿using OnnxStack.StableDiffusion;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
 using System.Diagnostics;
 
@@ -11,12 +10,10 @@ namespace OnnxStack.Console.Runner
     {
         private readonly string _outputDirectory;
         private readonly StableDiffusionConfig _configuration;
-        private readonly IStableDiffusionService _stableDiffusionService;
 
-        public StableDebug(StableDiffusionConfig configuration, IStableDiffusionService stableDiffusionService)
+        public StableDebug(StableDiffusionConfig configuration)
         {
             _configuration = configuration;
-            _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDebug));
         }
 
@@ -35,59 +32,58 @@ namespace OnnxStack.Console.Runner
             var negativePrompt = "painting, drawing, sketches, monochrome, grayscale, illustration, anime, cartoon, graphic, text, crayon, graphite, abstract, easynegative, low quality, normal quality, worst quality, lowres, close up, cropped, out of frame, jpeg artifacts, duplicate, morbid, mutilated, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, glitch, deformed, mutated, cross-eyed, ugly, dehydrated, bad anatomy, bad proportions, gross proportions, cloned face, disfigured, malformed limbs, missing arms, missing legs fused fingers, too many fingers,extra fingers, extra limbs,, extra arms, extra legs,disfigured,";
             while (true)
             {
+                var developmentSeed = 624461087;
                 var promptOptions = new PromptOptions
                 {
                     Prompt = prompt,
                     NegativePrompt = negativePrompt,
                 };
 
-                var schedulerOptions = new SchedulerOptions
+                // Loop though the appsettings.json model sets
+                foreach (var modelSet in _configuration.ModelSets)
                 {
-                    SchedulerType = SchedulerType.LMS,
-                    Seed = 624461087,
-                    GuidanceScale = 8,
-                    InferenceSteps = 22,
-                    Strength = 0.6f
-                };
+                    OutputHelpers.WriteConsole($"Loading Model `{modelSet.Name}`...", ConsoleColor.Cyan);
 
-                foreach (var model in _configuration.ModelSets)
-                {
-                    OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.LoadModelAsync(model);
+                    // Create Pipeline
+                    var pipeline = PipelineBase.CreatePipeline(modelSet);
 
-                    schedulerOptions.Width = model.SampleSize;
-                    schedulerOptions.Height = model.SampleSize;
+                    // Preload Models (optional)
+                    await pipeline.LoadAsync();
 
-                    foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
+                    // Loop though schedulers
+                    foreach (var scheduler in pipeline.SupportedSchedulers)
                     {
-                        schedulerOptions.SchedulerType = schedulerType;
-                        OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
-                        await GenerateImage(model, promptOptions, schedulerOptions);
+                        // Create SchedulerOptions based on pipeline defaults
+                        var schedulerOptions = pipeline.DefaultSchedulerOptions with
+                        {
+                            Seed = developmentSeed,
+                            SchedulerType = scheduler
+                        };
+
+                        var timestamp = Stopwatch.GetTimestamp();
+                        OutputHelpers.WriteConsole($"Generating {scheduler} Image...", ConsoleColor.Green);
+
+                        // Run pipeline
+                        var result = await pipeline.RunAsync(promptOptions, schedulerOptions);
+
+                        // Create Image from Tensor result
+                        var image = result.ToImage();
+
+                        // Save Image File
+                        var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}_{schedulerOptions.SchedulerType}.png");
+                        await image.SaveAsPngAsync(outputFilename);
+
+                        OutputHelpers.WriteConsole($"{schedulerOptions.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
+                        OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);
                     }
 
-                    OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.UnloadModelAsync(model);
+                    OutputHelpers.WriteConsole($"Unloading Model `{modelSet.Name}`...", ConsoleColor.Cyan);
+
+                    // Unload pipeline
+                    await pipeline.UnloadAsync();
                 }
                 break;
             }
-        }
-
-
-        private async Task<bool> GenerateImage(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options)
-        {
-            var timestamp = Stopwatch.GetTimestamp();
-            var outputFilename = Path.Combine(_outputDirectory, $"{model.Name}_{options.Seed}_{options.SchedulerType}.png");
-            var result = await _stableDiffusionService.GenerateAsImageAsync(new ModelOptions(model), prompt, options);
-            if (result is not null)
-            {
-                await result.SaveAsPngAsync(outputFilename);
-                OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
-                OutputHelpers.WriteConsole($"Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Yellow);
-                return true;
-            }
-
-            OutputHelpers.WriteConsole($"Failed to create image", ConsoleColor.Red);
-            return false;
         }
     }
 }
