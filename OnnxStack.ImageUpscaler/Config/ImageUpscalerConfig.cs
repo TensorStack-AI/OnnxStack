@@ -1,6 +1,6 @@
 ﻿using OnnxStack.Common.Config;
 using OnnxStack.Core;
-using OnnxStack.StableDiffusion.Config;
+using OnnxStack.ImageUpscaler.Common;
 using System.Collections.Generic;
 
 namespace OnnxStack.ImageUpscaler.Config

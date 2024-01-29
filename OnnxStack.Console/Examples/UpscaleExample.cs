@@ -1,8 +1,7 @@
 ﻿using OnnxStack.Core.Image;
+using OnnxStack.FeatureExtractor.Pipelines;
 using OnnxStack.ImageUpscaler.Config;
-using OnnxStack.ImageUpscaler.Services;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace OnnxStack.Console.Runner
 {
@@ -10,13 +9,10 @@ namespace OnnxStack.Console.Runner
     {
         private readonly string _outputDirectory;
         private readonly ImageUpscalerConfig _configuration;
-        private readonly IUpscaleService _imageUpscaleService;
 
-
-        public UpscaleExample(ImageUpscalerConfig configuration, IUpscaleService imageUpscaleService)
+        public UpscaleExample(ImageUpscalerConfig configuration)
         {
             _configuration = configuration;
-            _imageUpscaleService = imageUpscaleService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(UpscaleExample));
             Directory.CreateDirectory(_outputDirectory);
         }
@@ -29,28 +25,24 @@ namespace OnnxStack.Console.Runner
 
         public async Task RunAsync()
         {
-            var modelSet = _configuration.ModelSets.FirstOrDefault(x => x.Name == "RealSR BSRGAN x4");
+            // Load Input Image
+            var inputImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
+            // Create Pipeline
+            var pipeline = ImageUpscalePipeline.CreatePipeline("D:\\Repositories\\upscaler\\SwinIR\\003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x4_GAN.onnx", 4);
 
+            // Run pipeline
+            var result = await pipeline.RunAsync(inputImage);
 
-            OutputHelpers.WriteConsole("Enter Image Path", ConsoleColor.Yellow);
-            var imageFile = OutputHelpers.ReadConsole(ConsoleColor.Gray);
-            if (!File.Exists(imageFile))
-            {
-                OutputHelpers.WriteConsole("File not found!", ConsoleColor.Red);
-                return;
-            }
+            // Create Image from Tensor result
+            var image = result.ToImage(ImageNormalizeType.ZeroToOne);
 
-            OutputHelpers.WriteConsole("Loading Model...", ConsoleColor.Cyan);
-            await _imageUpscaleService.LoadModelAsync(modelSet);
-            OutputHelpers.WriteConsole("Model Loaded.", ConsoleColor.Cyan);
+            // Save Image File
+            var outputFilename = Path.Combine(_outputDirectory, $"Upscaled.png");
+            await image.SaveAsPngAsync(outputFilename);
 
-            var inputImage = await Image.LoadAsync<Rgba32>(imageFile);
-
-            OutputHelpers.WriteConsole("Upscaling Image...", ConsoleColor.Cyan);
-            var result = await _imageUpscaleService.GenerateAsImageAsync(modelSet, new InputImage(inputImage));
-            await result.SaveAsPngAsync(Path.Combine(_outputDirectory, "Result.png"));
-            OutputHelpers.WriteConsole("Upscaling Complete.", ConsoleColor.Cyan);
+            // Unload
+            await pipeline.UnloadAsync();
         }
 
     }

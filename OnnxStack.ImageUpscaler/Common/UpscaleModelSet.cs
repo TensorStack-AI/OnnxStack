@@ -1,15 +1,13 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
-using OnnxStack.ImageUpscaler.Models;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace OnnxStack.StableDiffusion.Config
+namespace OnnxStack.ImageUpscaler.Common
 {
     public record UpscaleModelSet : IOnnxModelSetConfig
     {
         public string Name { get; set; }
-              public bool IsEnabled { get; set; }
+        public bool IsEnabled { get; set; }
         public int DeviceId { get; set; }
         public int InterOpNumThreads { get; set; }
         public int IntraOpNumThreads { get; set; }
