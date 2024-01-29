@@ -324,7 +324,7 @@ namespace OnnxStack.StableDiffusion.Services
             pipeline.ValidateInputs(promptOptions, schedulerOptions);
 
             await GenerateInputVideoFrames(promptOptions, progressCallback);
-            await foreach (var result in pipeline.RunBatchAsync(promptOptions, schedulerOptions, batchOptions, controlNet, progressCallback, cancellationToken))
+            await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken))
             {
                 yield return result;
             }
