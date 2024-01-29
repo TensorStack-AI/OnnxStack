@@ -209,7 +209,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
 
             // Generate batch options
-            var batchSchedulerOptions = BatchGenerator.GenerateBatch(DiffuserPipelineType.StableDiffusion, batchOptions, schedulerOptions);
+            var batchSchedulerOptions = BatchGenerator.GenerateBatch(this, batchOptions, schedulerOptions);
 
             // Create Diffuser
             var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);

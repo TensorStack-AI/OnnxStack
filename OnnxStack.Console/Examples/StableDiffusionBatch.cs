@@ -56,12 +56,9 @@ namespace OnnxStack.Console.Runner
                 // Preload Models (optional)
                 await pipeline.LoadAsync();
 
-                // Progress Callback (optional)
-                var progressCallback = (DiffusionProgress progress) => OutputHelpers.WriteConsole($"Image: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Cyan);
-
                 // Run Batch
                 var timestamp = Stopwatch.GetTimestamp();
-                await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions, progressCallback: progressCallback))
+                await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions, progressCallback: OutputHelpers.BatchProgressCallback))
                 {
                     // Create Image from Tensor result
                     var image = result.ImageResult.ToImage();

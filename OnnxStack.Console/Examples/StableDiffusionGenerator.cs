@@ -55,7 +55,7 @@ namespace OnnxStack.Console.Runner
                     OutputHelpers.WriteConsole($"Generating '{generationPrompt.Key}'", ConsoleColor.Green);
 
                     // Run pipeline
-                    var result = await pipeline.RunAsync(promptOptions);
+                    var result = await pipeline.RunAsync(promptOptions, progressCallback: OutputHelpers.ProgressCallback);
 
                     // Create Image from Tensor result
                     var image = result.ToImage();

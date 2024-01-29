@@ -1,5 +1,6 @@
 ﻿using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Pipelines;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="batchOptions">The batch options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        public static List<SchedulerOptions> GenerateBatch(DiffuserPipelineType pipelineType, BatchOptions batchOptions, SchedulerOptions schedulerOptions)
+        public static List<SchedulerOptions> GenerateBatch(IPipeline pipeline, BatchOptions batchOptions, SchedulerOptions schedulerOptions)
         {
             if (batchOptions.BatchType == BatchOptionType.Seed)
             {
@@ -46,7 +47,7 @@ namespace OnnxStack.StableDiffusion.Helpers
             }
             else if (batchOptions.BatchType == BatchOptionType.Scheduler)
             {
-                return pipelineType.GetSchedulerTypes()
+                return pipeline.SupportedSchedulers
                   .Select(x => schedulerOptions with { SchedulerType = x })
                   .ToList();
             }

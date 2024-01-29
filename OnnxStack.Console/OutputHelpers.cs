@@ -1,4 +1,6 @@
-﻿namespace OnnxStack.Console
+﻿using OnnxStack.StableDiffusion.Common;
+
+namespace OnnxStack.Console
 {
     internal static class OutputHelpers
     {
@@ -22,5 +24,9 @@
                 System.Console.Write(value);
             System.Console.ForegroundColor = previous;
         }
+
+        public static Action<DiffusionProgress> ProgressCallback => (DiffusionProgress progress) => WriteConsole($"Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Gray);
+        public static Action<DiffusionProgress> BatchProgressCallback => (DiffusionProgress progress) => WriteConsole($"Batch: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Gray);
+        public static Action<DiffusionProgress> FrameProgressCallback => (DiffusionProgress progress) => WriteConsole($"Frame: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Gray);
     }
 }

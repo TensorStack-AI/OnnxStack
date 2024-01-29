@@ -34,10 +34,6 @@ namespace OnnxStack.Console.Runner
             var videoInfo = await _videoService.GetVideoInfoAsync(inputFile);
             var videoInput = await _videoService.CreateFramesAsync(inputFile, videoInfo.FPS);
 
-            // Progress Callback (optional)
-            var progressCallback = (DiffusionProgress progress) => OutputHelpers.WriteConsole($"Frame: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Cyan);
-
-
             // Loop though the appsettings.json model sets
             foreach (var modelSet in _configuration.ModelSets)
             {
@@ -58,7 +54,7 @@ namespace OnnxStack.Console.Runner
                 };
 
                 // Run pipeline
-                var result = await pipeline.RunAsync(promptOptions, progressCallback: progressCallback);
+                var result = await pipeline.RunAsync(promptOptions, progressCallback: OutputHelpers.FrameProgressCallback);
 
                 // Create Video from Tensor result
                 var videoResult = await _videoService.CreateVideoAsync(result, videoInfo.FPS);

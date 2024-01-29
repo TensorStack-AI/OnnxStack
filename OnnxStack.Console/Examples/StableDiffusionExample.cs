@@ -67,7 +67,7 @@ namespace OnnxStack.Console.Runner
                         OutputHelpers.WriteConsole($"Generating '{schedulerType}' Image...", ConsoleColor.Green);
 
                         // Run pipeline
-                        var result = await pipeline.RunAsync(promptOptions, schedulerOptions);
+                        var result = await pipeline.RunAsync(promptOptions, schedulerOptions, progressCallback: OutputHelpers.ProgressCallback);
 
                         // Create Image from Tensor result
                         var image = result.ToImage();
