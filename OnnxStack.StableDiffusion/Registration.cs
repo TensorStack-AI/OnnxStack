@@ -3,8 +3,6 @@ using OnnxStack.Core.Config;
 using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Diffusers;
-using OnnxStack.StableDiffusion.Pipelines;
 using OnnxStack.StableDiffusion.Services;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Memory;

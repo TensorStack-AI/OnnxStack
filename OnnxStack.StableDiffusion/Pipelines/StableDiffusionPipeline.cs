@@ -123,14 +123,14 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// Unloads the pipeline.
         /// </summary>
         /// <returns></returns>
-        public override Task UnloadAsync()
+        public override async Task UnloadAsync()
         {
+            await Task.Yield();
             _unet?.Dispose();
             _tokenizer?.Dispose();
             _textEncoder?.Dispose();
             _vaeDecoder?.Dispose();
             _vaeEncoder?.Dispose();
-            return Task.CompletedTask;
         }
 
 
@@ -371,7 +371,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="modelSet">The model set.</param>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public static StableDiffusionPipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
+        public static new StableDiffusionPipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
         {
             var unet = new UNetConditionModel(modelSet.UnetConfig.ApplyDefaults(modelSet));
             var tokenizer = new TokenizerModel(modelSet.TokenizerConfig.ApplyDefaults(modelSet));

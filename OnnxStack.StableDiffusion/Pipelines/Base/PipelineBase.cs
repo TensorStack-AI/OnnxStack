@@ -155,8 +155,20 @@ namespace OnnxStack.StableDiffusion.Pipelines
             foreach (var videoFrame in videoFrames)
             {
                 frameIndex++;
-                promptOptions.InputImage = promptOptions.DiffuserType == DiffuserType.ControlNet ? default : new InputImage(videoFrame);
-                promptOptions.InputContolImage = promptOptions.DiffuserType == DiffuserType.ImageToImage ? default : new InputImage(videoFrame);
+                //  byte[] videoFrame = videoFrames[i].Frame;
+                if (promptOptions.DiffuserType == DiffuserType.ControlNet || promptOptions.DiffuserType == DiffuserType.ControlNetImage)
+                {
+                    // ControlNetImage uses frame as input image
+                    if (promptOptions.DiffuserType == DiffuserType.ControlNetImage)
+                        promptOptions.InputImage = new InputImage(videoFrame.Frame);
+
+                    promptOptions.InputContolImage = videoFrame.ControlImage;
+                }
+                else
+                {
+                    promptOptions.InputImage = new InputImage(videoFrame.Frame);
+                }
+
                 var frameResultTensor = await diffuser.DiffuseAsync(promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerFrameCallback, cancellationToken);
 
                 // Frame Progress
@@ -222,6 +234,25 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 BatchMax = batchCount,
                 BatchValue = batchIndex()
             });
+        }
+
+
+        /// <summary>
+        /// Creates the pipeline from a ModelSet configuration.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        public static IPipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
+        {
+            return modelSet.PipelineType switch
+            {
+                DiffuserPipelineType.StableDiffusionXL => StableDiffusionXLPipeline.CreatePipeline(modelSet, logger),
+                DiffuserPipelineType.LatentConsistency => LatentConsistencyPipeline.CreatePipeline(modelSet, logger),
+                DiffuserPipelineType.LatentConsistencyXL => LatentConsistencyXLPipeline.CreatePipeline(modelSet, logger),
+                DiffuserPipelineType.InstaFlow => InstaFlowPipeline.CreatePipeline(modelSet, logger),
+                _ => StableDiffusionPipeline.CreatePipeline(modelSet, logger)
+            };
         }
     }
 }

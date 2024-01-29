@@ -50,7 +50,6 @@ namespace OnnxStack.StableDiffusion.Helpers
             var textEncoder2Config = default(TextEncoderModelConfig);
             var tokenizerConfig = new TokenizerModelConfig
             {
-                TokenizerLength = modelType == ModelType.Turbo ? 1024 : 768,
                 OnnxModelPath = tokenizerPath
             };
 
@@ -105,6 +104,10 @@ namespace OnnxStack.StableDiffusion.Helpers
                     OnnxModelPath = textEncoder2Path
                 };
             }
+
+            // SD-Turbo has TokenizerLength 1024
+            if (pipeline == DiffuserPipelineType.StableDiffusion && modelType == ModelType.Turbo)
+                tokenizerConfig.TokenizerLength = 1024;
 
             var configuration = new StableDiffusionModelSet
             {

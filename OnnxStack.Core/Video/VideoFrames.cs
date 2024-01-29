@@ -2,5 +2,5 @@
 
 namespace OnnxStack.Core.Video
 {
-    public record VideoFrames(VideoInfo Info, IReadOnlyList<byte[]> Frames);
+    public record VideoFrames(VideoInfo Info, IReadOnlyList<VideoFrame> Frames);
 }

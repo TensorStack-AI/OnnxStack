@@ -104,6 +104,6 @@ namespace OnnxStack.Core.Services
         /// <param name="targetFPS">The target FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<byte[]> StreamFramesAsync(byte[] videoBytes, float targetFPS, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<VideoFrame> StreamFramesAsync(byte[] videoBytes, float targetFPS, CancellationToken cancellationToken = default);
     }
 }

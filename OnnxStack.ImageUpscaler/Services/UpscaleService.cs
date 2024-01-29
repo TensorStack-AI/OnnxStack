@@ -265,7 +265,7 @@ namespace OnnxStack.ImageUpscaler.Services
             var outputTensors = new List<DenseTensor<float>>();
             foreach (var frame in videoFrames.Frames)
             {
-                using (var imageFrame = Image.Load<Rgba32>(frame))
+                using (var imageFrame = Image.Load<Rgba32>(frame.Frame))
                 {
                     var input = CreateInputParams(imageFrame, modelSession.SampleSize, modelSession.ScaleFactor);
                     var outputDimension = new[] { 1, modelSession.Channels, 0, 0 };

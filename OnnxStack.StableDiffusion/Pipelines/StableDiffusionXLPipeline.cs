@@ -43,7 +43,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             {
                 SchedulerType.Euler,
                 SchedulerType.EulerAncestral,
-                SchedulerType.DDIM,
+                SchedulerType.DDPM,
                 SchedulerType.KDPM2
             };
             _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions

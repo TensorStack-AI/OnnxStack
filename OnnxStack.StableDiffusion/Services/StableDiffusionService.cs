@@ -70,13 +70,13 @@ namespace OnnxStack.StableDiffusion.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        public Task<bool> UnloadModelAsync(StableDiffusionModelSet model)
+        public async Task<bool> UnloadModelAsync(StableDiffusionModelSet model)
         {
             if (_pipelines.Remove(model, out var pipeline))
             {
-                pipeline?.UnloadAsync();
+                await pipeline?.UnloadAsync();
             }
-            return Task.FromResult(true);
+            return true;
         }
 
 
