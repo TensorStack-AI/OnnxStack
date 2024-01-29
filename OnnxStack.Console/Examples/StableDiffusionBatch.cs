@@ -19,6 +19,8 @@ namespace OnnxStack.Console.Runner
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionBatch));
         }
 
+        public int Index => 2;
+
         public string Name => "Stable Diffusion Batch Demo";
 
         public string Description => "Creates a batch of images from the text prompt provided using all Scheduler types";

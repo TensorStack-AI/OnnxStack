@@ -20,6 +20,8 @@ namespace OnnxStack.Console.Runner
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionGenerator));
         }
 
+        public int Index => 3;
+
         public string Name => "Stable Diffusion Generator";
 
         public string Description => "Generator images from fixed prompts using all Scheduler types";

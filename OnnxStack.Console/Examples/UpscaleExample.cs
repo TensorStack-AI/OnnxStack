@@ -21,6 +21,8 @@ namespace OnnxStack.Console.Runner
             Directory.CreateDirectory(_outputDirectory);
         }
 
+        public int Index => 10;
+
         public string Name => "Image Upscale Demo";
 
         public string Description => "Upscales images";

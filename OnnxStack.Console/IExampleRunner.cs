@@ -7,6 +7,8 @@ namespace OnnxStack.Console
     /// </summary>
     internal interface IExampleRunner
     {
+        int Index { get; }
+
         /// <summary>
         /// Gets the name of the Example.
         /// </summary>

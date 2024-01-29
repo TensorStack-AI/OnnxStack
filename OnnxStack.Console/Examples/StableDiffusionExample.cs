@@ -17,6 +17,8 @@ namespace OnnxStack.Console.Runner
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionExample));
         }
 
+        public int Index => 1;
+
         public string Name => "Stable Diffusion Demo";
 
         public string Description => "Creates images from the text prompt provided using all Scheduler types";

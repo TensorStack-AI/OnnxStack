@@ -17,6 +17,8 @@ namespace OnnxStack.Console.Runner
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDebug));
         }
 
+        public int Index => 0;
+
         public string Name => "Stable Diffusion Debug";
 
         public string Description => "Stable Diffusion Debugger";

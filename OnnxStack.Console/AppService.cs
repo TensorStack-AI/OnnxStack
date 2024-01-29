@@ -12,6 +12,7 @@ namespace OnnxStack.Console
             _exampleRunners = exampleRunnerTypes
                 .Select(serviceProvider.GetService)
                 .Cast<IExampleRunner>()
+                .OrderBy(x => x.Index)
                 .ToList();
         }
 

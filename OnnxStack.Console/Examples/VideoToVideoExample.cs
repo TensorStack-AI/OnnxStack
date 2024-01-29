@@ -21,6 +21,8 @@ namespace OnnxStack.Console.Runner
             Directory.CreateDirectory(_outputDirectory);
         }
 
+        public int Index => 4;
+
         public string Name => "Video To Video Demo";
 
         public string Description => "Video Stable Diffusion Inference";
