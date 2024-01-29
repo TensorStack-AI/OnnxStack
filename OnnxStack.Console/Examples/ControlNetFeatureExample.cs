@@ -1,5 +1,5 @@
 ﻿using OnnxStack.Core.Image;
-using OnnxStack.StableDiffusion.Common;
+using OnnxStack.FeatureExtractor.Pipelines;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Models;
@@ -8,23 +8,23 @@ using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner
 {
-    public sealed class ControlNetExample : IExampleRunner
+    public sealed class ControlNetFeatureExample : IExampleRunner
     {
         private readonly string _outputDirectory;
         private readonly StableDiffusionConfig _configuration;
 
-        public ControlNetExample(StableDiffusionConfig configuration)
+        public ControlNetFeatureExample(StableDiffusionConfig configuration)
         {
             _configuration = configuration;
-            _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(ControlNetExample));
+            _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(ControlNetFeatureExample));
             Directory.CreateDirectory(_outputDirectory);
         }
 
-        public int Index => 11;
+        public int Index => 12;
 
-        public string Name => "ControlNet Example";
+        public string Name => "ControlNet + Feature Extraction Example";
 
-        public string Description => "ControlNet Example";
+        public string Description => "ControlNet StableDiffusion with input image Depth feature extraction";
 
         /// <summary>
         /// ControlNet Example
@@ -32,10 +32,19 @@ namespace OnnxStack.Console.Runner
         public async Task RunAsync()
         {
             // Load Control Image
-            var controlImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\OpenPose.png");
+            var inputImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
+
+            // Create Annotation pipeline
+            var annotationPipeline = AnnotationPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators");
+
+            // Create Depth Image
+            var controlImage = await annotationPipeline.DepthImage(inputImage);
+
+            // Save Depth Image (Debug Only)
+            await controlImage.Image.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Depth.png"));
 
             // Create ControlNet
-            var controlNet = ControlNetModel.Create("D:\\Repositories\\controlnet_onnx\\controlnet\\openpose.onnx");
+            var controlNet = ControlNetModel.Create("D:\\Repositories\\controlnet_onnx\\controlnet\\depth.onnx");
 
             // Create Pipeline
             var pipeline = StableDiffusionPipeline.CreatePipeline("D:\\Repositories\\stable_diffusion_onnx", ModelType.ControlNet);
@@ -43,12 +52,10 @@ namespace OnnxStack.Console.Runner
             // Prompt
             var promptOptions = new PromptOptions
             {
-                Prompt = "Stormtrooper",
+                Prompt = "steampunk dog",
                 DiffuserType = DiffuserType.ControlNet,
                 InputContolImage = controlImage
             };
-
-            
 
             // Run pipeline
             var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet, progressCallback: OutputHelpers.ProgressCallback);
@@ -61,6 +68,7 @@ namespace OnnxStack.Console.Runner
             await image.SaveAsPngAsync(outputFilename);
 
             //Unload
+            await annotationPipeline.UnloadAsync();
             await controlNet.UnloadAsync();
             await pipeline.UnloadAsync();
         }

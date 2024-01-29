@@ -3,6 +3,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.IO;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Image
 {
@@ -89,5 +90,16 @@ namespace OnnxStack.Core.Image
             || ImageBytes != null
             || ImageStream != null
             || ImageTensor != null;
+
+
+        /// <summary>
+        /// Create an image from file
+        /// </summary>
+        /// <param name="filePath">The file path.</param>
+        /// <returns></returns>
+        public static async Task<InputImage> FromFileAsync(string filePath)
+        {
+            return new InputImage(await File.ReadAllBytesAsync(filePath));
+        }
     }
 }
