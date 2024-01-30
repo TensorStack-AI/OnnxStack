@@ -164,7 +164,7 @@ var promptOptions = new PromptOptions
 };
 
 // Run Pipleine
-var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet) ;
+var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet);
 
 // Save image result
 var image = result.ToImage();
@@ -175,4 +175,4 @@ await pipeline.UnloadAsync();
 ```
 | Input  | Output |
 | :--- | :--- |
-<img src="../Assets/Samples/Input_Depth.png" width="256"/> | <img src="../Assets/Samples/Input_Depth.png" width="256"/>
+<img src="../Assets/Samples/Input_Depth.png" width="256"/> | <img src="../Assets/Samples/Output_ControlNet.png" width="256"/>
