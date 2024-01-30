@@ -1,8 +1,9 @@
-﻿using OnnxStack.StableDiffusion;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
 {
@@ -10,16 +11,16 @@ namespace OnnxStack.Console.Runner
     {
         private readonly string _outputDirectory;
         private readonly StableDiffusionConfig _configuration;
-        private readonly IStableDiffusionService _stableDiffusionService;
         private readonly ReadOnlyDictionary<string, string> _generationPrompts;
 
-        public StableDiffusionGenerator(StableDiffusionConfig configuration, IStableDiffusionService stableDiffusionService)
+        public StableDiffusionGenerator(StableDiffusionConfig configuration)
         {
             _configuration = configuration;
-            _stableDiffusionService = stableDiffusionService;
             _generationPrompts = GeneratePrompts();
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionGenerator));
         }
+
+        public int Index => 3;
 
         public string Name => "Stable Diffusion Generator";
 
@@ -33,10 +34,15 @@ namespace OnnxStack.Console.Runner
             Directory.CreateDirectory(_outputDirectory);
 
             var seed = Random.Shared.Next();
-            foreach (var model in _configuration.ModelSets)
+            foreach (var modelSet in _configuration.ModelSets)
             {
-                OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
-                await _stableDiffusionService.LoadModelAsync(model);
+                OutputHelpers.WriteConsole($"Loading Model `{modelSet.Name}`...", ConsoleColor.Green);
+
+                // Create Pipeline
+                var pipeline = PipelineBase.CreatePipeline(modelSet);
+
+                // Preload Models (optional)
+                await pipeline.LoadAsync();
 
                 foreach (var generationPrompt in _generationPrompts)
                 {
@@ -45,35 +51,29 @@ namespace OnnxStack.Console.Runner
                         Prompt = generationPrompt.Value
                     };
 
-                    var schedulerOptions = new SchedulerOptions
-                    {
-                        Seed = Random.Shared.Next()
-                    };
-                    foreach (var schedulerType in model.PipelineType.GetSchedulerTypes())
-                    {
-                        schedulerOptions.SchedulerType = schedulerType;
-                        OutputHelpers.WriteConsole($"Generating {schedulerType} Image...", ConsoleColor.Green);
-                        await GenerateImage(model, promptOptions, schedulerOptions, generationPrompt.Key);
-                    }
+                    var timestamp = Stopwatch.GetTimestamp();
+                    OutputHelpers.WriteConsole($"Generating '{generationPrompt.Key}'", ConsoleColor.Green);
+
+                    // Run pipeline
+                    var result = await pipeline.RunAsync(promptOptions, progressCallback: OutputHelpers.ProgressCallback);
+
+                    // Create Image from Tensor result
+                    var image = result.ToImage();
+
+                    // Save Image File
+                    var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}_{generationPrompt.Key}.png");
+                    await image.SaveAsPngAsync(outputFilename);
+
+                    OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Green);
                 }
 
-                OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
-                await _stableDiffusionService.UnloadModelAsync(model);
+                OutputHelpers.WriteConsole($"Unloading Model `{modelSet.Name}`...", ConsoleColor.Green);
+
+                // Unload pipeline
+                await pipeline.UnloadAsync();
             }
             OutputHelpers.WriteConsole("Complete :)", ConsoleColor.DarkMagenta);
             OutputHelpers.ReadConsole(ConsoleColor.Gray);
-        }
-
-        private async Task<bool> GenerateImage(StableDiffusionModelSet model, PromptOptions prompt, SchedulerOptions options, string key)
-        {
-            var outputFilename = Path.Combine(_outputDirectory, $"{options.Seed}_{options.SchedulerType}_{key}.png");
-            var result = await _stableDiffusionService.GenerateAsImageAsync(new ModelOptions(model), prompt, options);
-            if (result == null)
-                return false;
-
-            await result.SaveAsPngAsync(outputFilename);
-            OutputHelpers.WriteConsole($"{options.SchedulerType} Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
-            return true;
         }
 
         private ReadOnlyDictionary<string, string> GeneratePrompts()

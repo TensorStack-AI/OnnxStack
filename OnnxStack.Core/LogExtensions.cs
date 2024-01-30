@@ -64,7 +64,7 @@ namespace OnnxStack.Core
 
         private static void LogInternal(ILogger logger, LogLevel logLevel, string message, string caller)
         {
-            logger.Log(logLevel, string.IsNullOrEmpty(caller) ? message : $"[{caller}] - {message}", args: default);
+            logger?.Log(logLevel, string.IsNullOrEmpty(caller) ? message : $"[{caller}] - {message}", args: default);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
+using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
@@ -10,7 +10,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Common
+namespace OnnxStack.UI.Services
 {
     public interface IStableDiffusionService
     {
@@ -19,7 +19,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <returns></returns>
-        Task<bool> LoadModelAsync(IOnnxModelSetConfig model);
+        Task<bool> LoadModelAsync(StableDiffusionModelSet model);
 
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <returns></returns>
-        Task<bool> UnloadModelAsync(IOnnxModel model);
+        Task<bool> UnloadModelAsync(StableDiffusionModelSet model);
 
         /// <summary>
         /// Determines whether the specified model is loaded
@@ -36,7 +36,32 @@ namespace OnnxStack.StableDiffusion.Common
         /// <returns>
         ///   <c>true</c> if the specified model is loaded; otherwise, <c>false</c>.
         /// </returns>
-        bool IsModelLoaded(IOnnxModel model);
+        bool IsModelLoaded(StableDiffusionModelSet model);
+
+
+        /// <summary>
+        /// Loads the model.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        Task<bool> LoadControlNetModelAsync(ControlNetModelSet model);
+
+
+        /// <summary>
+        /// Unloads the model.
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns></returns>
+        Task<bool> UnloadControlNetModelAsync(ControlNetModelSet model);
+
+        /// <summary>
+        /// Determines whether the specified model is loaded
+        /// </summary>
+        /// <param name="modelOptions">The model options.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified model is loaded; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsControlNetModelLoaded(ControlNetModelSet model);
 
         /// <summary>
         /// Generates the StableDiffusion image using the prompt and options provided.

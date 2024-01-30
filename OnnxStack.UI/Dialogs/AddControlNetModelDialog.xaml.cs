@@ -26,7 +26,6 @@ namespace OnnxStack.UI.Dialogs
         private readonly List<string> _invalidOptions;
         private string _modelName;
         private string _modelFile;
-        private string _annotationModelFile;
         private ControlNetType _selectedControlNetType;
         private IModelFactory _modelFactory;
         private OnnxStackUIConfig _settings;
@@ -70,12 +69,6 @@ namespace OnnxStack.UI.Dialogs
             }
         }
 
-        public string AnnotationModelFile
-        {
-            get { return _annotationModelFile; }
-            set { _annotationModelFile = value; NotifyPropertyChanged(); CreateModelSet(); }
-        }
-
         public ControlNetType SelectedControlNetType
         {
             get { return _selectedControlNetType; }
@@ -111,14 +104,11 @@ namespace OnnxStack.UI.Dialogs
             if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            _modelSetResult = _modelFactory.CreateControlNetModelSet(ModelName.Trim(), _selectedControlNetType, _selectedPipelineType, _modelFile, _annotationModelFile);
+            _modelSetResult = _modelFactory.CreateControlNetModelSet(ModelName.Trim(), _selectedControlNetType, _selectedPipelineType, _modelFile);
 
             // Validate
             ValidationResults.Add(new ValidationResult("Name", !_invalidOptions.Contains(_modelName, StringComparer.OrdinalIgnoreCase) && _modelName.Length > 2 && _modelName.Length < 50));
-            foreach (var validationResult in _modelSetResult.ModelConfigurations.Select(x => new ValidationResult(x.Type.ToString(), File.Exists(x.OnnxModelPath))))
-            {
-                ValidationResults.Add(validationResult);
-            }
+            ValidationResults.Add(new ValidationResult("Model", File.Exists(_modelSetResult.ControlNetConfig.OnnxModelPath)));
         }
 
 

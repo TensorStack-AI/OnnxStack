@@ -74,14 +74,12 @@ namespace OnnxStack.UI.Dialogs
                 return false;
             }
 
-            foreach (var modelFile in _modelSetResult.ModelConfigurations)
+            if (!File.Exists(_modelSetResult.ControlNetConfig.OnnxModelPath))
             {
-                if (!File.Exists(modelFile.OnnxModelPath))
-                {
-                    ValidationError = $"'{modelFile.Type}' model file not found";
-                    return false;
-                }
+                ValidationError = $"ContolNet model file not found";
+                return false;
             }
+            
             ValidationError = null;
             return true;
         }

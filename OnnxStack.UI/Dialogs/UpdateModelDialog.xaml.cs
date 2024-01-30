@@ -71,17 +71,33 @@ namespace OnnxStack.UI.Dialogs
                 return Task.CompletedTask;
             }
 
-            foreach (var modelFile in _modelSetResult.ModelConfigurations)
-            {
-                if (!File.Exists(modelFile.OnnxModelPath))
-                {
-                    ValidationError = $"'{modelFile.Type}' model file not found";
-                    return Task.CompletedTask;
-                }
-            }
+            if (!ValidateFile(_modelSetResult.UnetConfig.OnnxModelPath, "Unet"))
+                return Task.CompletedTask;
+            if (!ValidateFile(_modelSetResult.TokenizerConfig.OnnxModelPath, "Tokenizer"))
+                return Task.CompletedTask;
+            if (_modelSetResult.Tokenizer2Config is not null && !ValidateFile(_modelSetResult.Tokenizer2Config.OnnxModelPath, "Tokenizer2"))
+                return Task.CompletedTask;
+            if (!ValidateFile(_modelSetResult.TextEncoderConfig.OnnxModelPath, "TextEncoder"))
+                return Task.CompletedTask;
+            if (_modelSetResult.TextEncoder2Config is not null && !ValidateFile(_modelSetResult.TextEncoder2Config.OnnxModelPath, "TextEncoder2"))
+                return Task.CompletedTask;
+            if (!ValidateFile(_modelSetResult.VaeDecoderConfig.OnnxModelPath, "VaeDecoder"))
+                return Task.CompletedTask;
+            if (!ValidateFile(_modelSetResult.VaeEncoderConfig.OnnxModelPath, "VaeEncoder"))
+                return Task.CompletedTask;
 
             DialogResult = true;
             return Task.CompletedTask;
+        }
+
+        private bool ValidateFile(string file, string type)
+        {
+            if (!File.Exists(file))
+            {
+                ValidationError = $"{type} model file not found";
+                return false;
+            }
+            return true;
         }
 
 

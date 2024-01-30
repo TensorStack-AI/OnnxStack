@@ -104,7 +104,10 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         public async Task<VideoOutput> CreateVideoAsync(DenseTensor<float> videoTensor, float videoFPS, CancellationToken cancellationToken = default)
         {
-            var videoFrames = await videoTensor.ToVideoFramesAsBytesAsync().ToListAsync(cancellationToken);
+            var videoFrames = await videoTensor
+                .ToVideoFramesAsBytesAsync()
+                .Select(x => new VideoFrame(x))
+                .ToListAsync(cancellationToken);
             return await CreateVideoInternalAsync(videoFrames, videoFPS, cancellationToken);
         }
 
@@ -118,7 +121,8 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         public async Task<VideoOutput> CreateVideoAsync(IEnumerable<byte[]> videoFrames, float videoFPS, CancellationToken cancellationToken = default)
         {
-            return await CreateVideoInternalAsync(videoFrames, videoFPS, cancellationToken);
+            var frames = videoFrames.Select(x => new VideoFrame(x));
+            return await CreateVideoInternalAsync(frames, videoFPS, cancellationToken);
         }
 
 
@@ -190,7 +194,7 @@ namespace OnnxStack.Core.Services
         /// <param name="targetFPS">The target FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public IAsyncEnumerable<byte[]> StreamFramesAsync(byte[] videoBytes, float targetFPS, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<VideoFrame> StreamFramesAsync(byte[] videoBytes, float targetFPS, CancellationToken cancellationToken = default)
         {
             return CreateFramesInternalAsync(videoBytes, targetFPS, cancellationToken);
         }
@@ -220,13 +224,13 @@ namespace OnnxStack.Core.Services
         /// <param name="fps">The FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<VideoOutput> CreateVideoInternalAsync(IEnumerable<byte[]> imageData, float fps = 15, CancellationToken cancellationToken = default)
+        private async Task<VideoOutput> CreateVideoInternalAsync(IEnumerable<VideoFrame> imageData, float fps = 15, CancellationToken cancellationToken = default)
         {
             string tempVideoPath = GetTempFilename();
             try
             {
                 // Analyze first fram to get some details
-                var frameInfo = await GetVideoInfoAsync(imageData.First());
+                var frameInfo = await GetVideoInfoAsync(imageData.First().Frame);
                 var aspectRatio = (double)frameInfo.Width / frameInfo.Height;
                 using (var videoWriter = CreateWriter(tempVideoPath, fps, aspectRatio))
                 {
@@ -235,7 +239,7 @@ namespace OnnxStack.Core.Services
                     foreach (var image in imageData)
                     {
                         // Write each frame to the input stream of FFMPEG
-                        await videoWriter.StandardInput.BaseStream.WriteAsync(image, cancellationToken);
+                        await videoWriter.StandardInput.BaseStream.WriteAsync(image.Frame, cancellationToken);
                     }
 
                     // Done close stream and wait for app to process
@@ -265,7 +269,7 @@ namespace OnnxStack.Core.Services
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Invalid PNG header</exception>
-        private async IAsyncEnumerable<byte[]> CreateFramesInternalAsync(byte[] videoData, float fps = 15, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        private async IAsyncEnumerable<VideoFrame> CreateFramesInternalAsync(byte[] videoData, float fps = 15, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             string tempVideoPath = GetTempFilename();
             try
@@ -325,7 +329,7 @@ namespace OnnxStack.Core.Services
                                 break;
                         }
 
-                        yield return buffer[..currentIndex];
+                        yield return new VideoFrame(buffer[..currentIndex]);
                     }
 
                     if (cancellationToken.IsCancellationRequested)

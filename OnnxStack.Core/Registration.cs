@@ -17,7 +17,6 @@ namespace OnnxStack.Core
         public static void AddOnnxStack(this IServiceCollection serviceCollection)
         {
             serviceCollection.AddSingleton(TryLoadAppSettings());
-            serviceCollection.AddSingleton<IOnnxModelService, OnnxModelService>();
         }
 
 
@@ -29,7 +28,6 @@ namespace OnnxStack.Core
         public static void AddOnnxStack(this IServiceCollection serviceCollection, OnnxStackConfig configuration)
         {
             serviceCollection.AddSingleton(configuration);
-            serviceCollection.AddSingleton<IOnnxModelService, OnnxModelService>();
         }
 
 

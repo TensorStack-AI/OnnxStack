@@ -3,9 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace OnnxStack.Core.Config
 {
-    public class OnnxModelConfig
+    public record OnnxModelConfig
     {
-        public OnnxModelType Type { get; set; }
         public string OnnxModelPath { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

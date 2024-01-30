@@ -2,11 +2,8 @@
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public record ModelOptions(StableDiffusionModelSet BaseModel, ControlNetModelSet ControlNetModel = default)
-    {
-        public string Name => BaseModel.Name;
-        public DiffuserPipelineType PipelineType => BaseModel.PipelineType;
-        public float ScaleFactor => BaseModel.ScaleFactor;
-        public ModelType ModelType => BaseModel.ModelType;
-    }
+    public record ModelOptions(StableDiffusionModelSet BaseModel, ControlNetModelSet ControlNetModel = default);
+  
+    public record ModelConfiguration(string Name, ModelType ModelType, DiffuserPipelineType PipelineType, int SampleSize);
+
 }

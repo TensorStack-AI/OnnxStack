@@ -65,8 +65,6 @@ __________________________
 
 More information can be found in the `OnnxStack.StableDiffusion` project **[README](OnnxStack.StableDiffusion/README.md)**
 
-Code and development examples for `OnnxStack.StableDiffusion` can be founds here **[Dev Examples](OnnxStack.StableDiffusion/README_Example.md)**
-
 __________________________
 __________________________
 ## **[OnnxStack.ImageUpscaler]()**

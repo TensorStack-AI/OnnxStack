@@ -6,7 +6,6 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Models;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using SixLabors.ImageSharp.PixelFormats;
@@ -24,6 +23,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using OnnxStack.UI.Services;
 
 namespace OnnxStack.UI.Views
 {
@@ -409,7 +409,7 @@ namespace OnnxStack.UI.Views
         {
             var frame = _videoFrames.Frames[index];
             using (var memoryStream = new MemoryStream())
-            using (var frameImage = SixLabors.ImageSharp.Image.Load<Rgba32>(frame))
+            using (var frameImage = SixLabors.ImageSharp.Image.Load<Rgba32>(frame.Frame))
             {
                 frameImage.Resize(_schedulerOptions.Height, _schedulerOptions.Width);
                 frameImage.SaveAsPng(memoryStream);

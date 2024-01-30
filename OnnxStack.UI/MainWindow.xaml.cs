@@ -23,7 +23,7 @@ namespace OnnxStack.UI
         private INavigatable _selectedTabItem;
         private readonly ILogger<MainWindow> _logger;
 
-        public MainWindow(OnnxStackUIConfig uiSettings, StableDiffusionConfig configuration, ImageUpscalerConfig upscaleConfiguration, ILogger<MainWindow> logger)
+        public MainWindow(OnnxStackUIConfig uiSettings, ILogger<MainWindow> logger)
         {
             _logger = logger;
             UISettings = uiSettings;

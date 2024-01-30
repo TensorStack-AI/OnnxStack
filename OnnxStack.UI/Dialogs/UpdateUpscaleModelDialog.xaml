@@ -3,8 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:OnnxStack.UI.Dialogs"
-        xmlns:models="clr-namespace:OnnxStack.UI.Models"
         xmlns:userControls="clr-namespace:OnnxStack.UI.UserControls"
         mc:Ignorable="d"
         Name="UI"
@@ -47,7 +45,7 @@
 
                     <StackPanel Margin="0,10,0,0">
                         <TextBlock Text="Model File"/>
-                        <userControls:FilePickerTextBox FileName="{Binding UpdateModelSet.ModelFiles[0].OnnxModelPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Filter="Onnx files (*.onnx)|*.onnx" DefaultExt="onnx" />
+                        <userControls:FilePickerTextBox FileName="{Binding UpdateModelSet.ModelFile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Filter="Onnx files (*.onnx)|*.onnx" DefaultExt="onnx" />
                     </StackPanel>
 
                     <UniformGrid Columns="3" Margin="0,10,0,0">

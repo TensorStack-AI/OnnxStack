@@ -1,10 +1,10 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
-using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
-namespace OnnxStack.FeatureExtractor.Common
+namespace OnnxStack.ImageUpscaler.Common
 {
-    public record FeatureExtractorModelSet : IOnnxModelSetConfig
+    public record UpscaleModelSet : IOnnxModelSetConfig
     {
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
@@ -13,6 +13,10 @@ namespace OnnxStack.FeatureExtractor.Common
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
-        public List<OnnxModelConfig> ModelConfigurations { get; set; }
+
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public UpscaleModelConfig UpscaleModelConfig { get; set; }
+
     }
 }

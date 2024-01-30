@@ -58,6 +58,17 @@ namespace OnnxStack.Core
         }
 
 
+        public static T ApplyDefaults<T>(this T config, IOnnxModelSetConfig defaults) where T : OnnxModelConfig
+        {
+            config.DeviceId ??= defaults.DeviceId;
+            config.ExecutionMode ??= defaults.ExecutionMode;
+            config.ExecutionProvider ??= defaults.ExecutionProvider;
+            config.InterOpNumThreads ??= defaults.InterOpNumThreads;
+            config.IntraOpNumThreads ??= defaults.IntraOpNumThreads;
+            return config;
+        }
+
+
         /// <summary>
         /// Determines whether the the source sequence is null or empty
         /// </summary>

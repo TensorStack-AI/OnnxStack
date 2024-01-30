@@ -1,58 +1,153 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Services;
+using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Common;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Diffusers.LatentConsistency;
 using OnnxStack.StableDiffusion.Enums;
-using System.Collections.Concurrent;
+using OnnxStack.StableDiffusion.Helpers;
+using OnnxStack.StableDiffusion.Models;
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Pipelines
 {
-    public sealed class LatentConsistencyPipeline : IPipeline
+    public sealed class LatentConsistencyPipeline : StableDiffusionPipeline
     {
-        private readonly DiffuserPipelineType _pipelineType;
-        private readonly ILogger<LatentConsistencyPipeline> _logger;
-        private readonly ConcurrentDictionary<DiffuserType, IDiffuser> _diffusers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LatentConsistencyPipeline"/> class.
         /// </summary>
-        /// <param name="onnxModelService">The onnx model service.</param>
-        /// <param name="promptService">The prompt service.</param>
-        public LatentConsistencyPipeline(IEnumerable<IDiffuser> diffusers, ILogger<LatentConsistencyPipeline> logger)
+        /// <param name="name">The model name.</param>
+        /// <param name="tokenizer">The tokenizer.</param>
+        /// <param name="textEncoder">The text encoder.</param>
+        /// <param name="unet">The unet.</param>
+        /// <param name="vaeDecoder">The vae decoder.</param>
+        /// <param name="vaeEncoder">The vae encoder.</param>
+        /// <param name="logger">The logger.</param>
+        public LatentConsistencyPipeline(string name, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(name, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, diffusers, defaultSchedulerOptions, logger)
         {
-            _logger = logger;
-            _pipelineType = DiffuserPipelineType.LatentConsistency;
-            _diffusers = diffusers
-                .Where(x => x.PipelineType == _pipelineType)
-                .ToConcurrentDictionary(k => k.DiffuserType, v => v);
+            _supportedSchedulers = new List<SchedulerType>
+            {
+                SchedulerType.LCM
+            };
+            _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions
+            {
+                InferenceSteps = 4,
+                GuidanceScale = 1f,
+                SchedulerType = SchedulerType.LCM
+            };
         }
 
 
         /// <summary>
         /// Gets the type of the pipeline.
         /// </summary>
-        public DiffuserPipelineType PipelineType => _pipelineType;
+        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.LatentConsistency;
 
 
         /// <summary>
-        /// Gets the diffusers.
+        /// Runs the pipeline.
         /// </summary>
-        public ConcurrentDictionary<DiffuserType, IDiffuser> Diffusers => _diffusers;
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public override Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        {
+            // LCM does not support negative prompting
+            promptOptions.NegativePrompt = string.Empty;
+            return base.RunAsync(promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
+        }
 
 
         /// <summary>
-        /// Gets the diffuser.
+        /// Runs the pipeline batch.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public override IAsyncEnumerable<BatchResult> RunBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            // LCM does not support negative prompting
+            promptOptions.NegativePrompt = string.Empty;
+            return base.RunBatchAsync(batchOptions, promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Check if we should run guidance.
+        /// </summary>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <returns></returns>
+        protected override bool ShouldPerformGuidance(SchedulerOptions schedulerOptions)
+        {
+            // LCM does not support Guidance
+            return false;
+        }
+
+
+        /// <summary>
+        /// Creates the diffuser.
         /// </summary>
         /// <param name="diffuserType">Type of the diffuser.</param>
+        /// <param name="controlNetModel">The control net model.</param>
         /// <returns></returns>
-        public IDiffuser GetDiffuser(DiffuserType diffuserType)
+        protected override IDiffuser CreateDiffuser(DiffuserType diffuserType, ControlNetModel controlNetModel)
         {
-            _diffusers.TryGetValue(diffuserType, out var diffuser);
-            return diffuser;
+            return diffuserType switch
+            {
+                DiffuserType.TextToImage => new TextDiffuser(_unet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ImageToImage => new ImageDiffuser(_unet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ImageInpaintLegacy => new InpaintLegacyDiffuser(_unet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ControlNet => new ControlNetDiffuser(controlNetModel, _unet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ControlNetImage => new ControlNetImageDiffuser(controlNetModel, _unet, _vaeDecoder, _vaeEncoder, _logger),
+                _ => throw new NotImplementedException()
+            };
+        }
+
+
+        /// <summary>
+        /// Creates the pipeline from a ModelSet configuration.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        public static new LatentConsistencyPipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
+        {
+            var unet = new UNetConditionModel(modelSet.UnetConfig.ApplyDefaults(modelSet));
+            var tokenizer = new TokenizerModel(modelSet.TokenizerConfig.ApplyDefaults(modelSet));
+            var textEncoder = new TextEncoderModel(modelSet.TextEncoderConfig.ApplyDefaults(modelSet));
+            var vaeDecoder = new AutoEncoderModel(modelSet.VaeDecoderConfig.ApplyDefaults(modelSet));
+            var vaeEncoder = new AutoEncoderModel(modelSet.VaeEncoderConfig.ApplyDefaults(modelSet));
+            return new LatentConsistencyPipeline(modelSet.Name, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
+        }
+
+
+        /// <summary>
+        /// Creates the pipeline from a folder structure.
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="deviceId">The device identifier.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        public static new LatentConsistencyPipeline CreatePipeline(string modelFolder, ModelType modelType = ModelType.Base, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
+        {
+            return CreatePipeline(ModelFactory.CreateModelSet(modelFolder, DiffuserPipelineType.LatentConsistency, modelType, deviceId, executionProvider), logger);
         }
     }
 }

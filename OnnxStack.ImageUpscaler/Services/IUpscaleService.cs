@@ -1,7 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Image;
 using OnnxStack.Core.Video;
-using OnnxStack.StableDiffusion.Config;
+using OnnxStack.ImageUpscaler.Common;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.IO;

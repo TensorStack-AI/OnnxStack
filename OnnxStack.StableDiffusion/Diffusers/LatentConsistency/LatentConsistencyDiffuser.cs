@@ -1,14 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
-using OnnxStack.Core.Services;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Schedulers.LatentConsistency;
 using System;
@@ -20,15 +16,18 @@ using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 {
-    public abstract class LatentConsistencyDiffuser : DiffuserBase, IDiffuser
+    public abstract class LatentConsistencyDiffuser : DiffuserBase
     {
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LatentConsistencyDiffuser"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="onnxModelService">The onnx model service.</param>
-        public LatentConsistencyDiffuser(IOnnxModelService onnxModelService, IPromptService promptService, ILogger<LatentConsistencyDiffuser> logger)
-            : base(onnxModelService, promptService, logger) { }
+        /// <param name="unet">The unet.</param>
+        /// <param name="vaeDecoder">The vae decoder.</param>
+        /// <param name="vaeEncoder">The vae encoder.</param>
+        /// <param name="logger">The logger.</param>
+        public LatentConsistencyDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, logger) { }
 
 
         /// <summary>
@@ -38,49 +37,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
 
 
         /// <summary>
-        /// Runs the stable diffusion loop
-        /// </summary>
-        /// <param name="modelOptions"></param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="progressCallback"></param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public override Task<DenseTensor<float>> DiffuseAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            // LCM does not support negative prompting
-            promptOptions.NegativePrompt = string.Empty;
-            return base.DiffuseAsync(modelOptions, promptOptions, schedulerOptions, progressCallback, cancellationToken);
-        }
-
-
-        /// <summary>
-        /// Runs the stable diffusion batch loop
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public override IAsyncEnumerable<BatchResult> DiffuseBatchAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            // LCM does not support negative prompting
-            promptOptions.NegativePrompt = string.Empty;
-            return base.DiffuseBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progressCallback, cancellationToken);
-        }
-
-        protected override bool ShouldPerformGuidance(SchedulerOptions schedulerOptions)
-        {
-            // LCM does not support Guidance
-            return false;
-        }
-
-        /// <summary>
         /// Runs the scheduler steps.
         /// </summary>
-        /// <param name="modelOptions">The model options.</param>
         /// <param name="promptOptions">The prompt options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="promptEmbeddings">The prompt embeddings.</param>
@@ -88,7 +46,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> SchedulerStepAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
             using (var scheduler = GetScheduler(schedulerOptions))
@@ -97,7 +55,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = await PrepareLatentsAsync(modelOptions, promptOptions, schedulerOptions, scheduler, timesteps);
+                var latents = await PrepareLatentsAsync(promptOptions, schedulerOptions, scheduler, timesteps);
 
                 // Get Guidance Scale Embedding
                 var guidanceEmbeddings = GetGuidanceScaleEmbedding(schedulerOptions.GuidanceScale);
@@ -106,7 +64,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 DenseTensor<float> denoised = null;
 
                 // Get Model metadata
-                var metadata = _onnxModelService.GetModelMetadata(modelOptions.BaseModel, OnnxModelType.Unet);
+                var metadata = await _unet.GetMetadataAsync();
 
                 // Loop though the timesteps
                 var step = 0;
@@ -131,7 +89,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                             inferenceParameters.AddInputTensor(guidanceEmbeddings);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
-                        var results = await _onnxModelService.RunInferenceAsync(modelOptions.BaseModel, OnnxModelType.Unet, inferenceParameters);
+                        var results = await _unet.RunInferenceAsync(inferenceParameters);
                         using (var result = results.First())
                         {
                             var noisePred = result.ToDenseTensor();
@@ -149,7 +107,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 }
 
                 // Decode Latents
-                return await DecodeLatentsAsync(modelOptions, promptOptions, schedulerOptions, denoised);
+                return await DecodeLatentsAsync(promptOptions, schedulerOptions, denoised);
             }
         }
 
@@ -157,7 +115,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <summary>
         /// Gets the scheduler.
         /// </summary>
-        /// <param name="prompt"></param>
         /// <param name="options">The options.</param>
         /// <returns></returns>
         protected override IScheduler GetScheduler(SchedulerOptions options)

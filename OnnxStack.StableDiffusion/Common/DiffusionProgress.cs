@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnnxStack.StableDiffusion.Models
+namespace OnnxStack.StableDiffusion.Common
 {
     public record DiffusionProgress(string Message = default)
     {
@@ -17,5 +17,4 @@ namespace OnnxStack.StableDiffusion.Models
         public int StepValue { get; set; }
         public DenseTensor<float> StepTensor { get; set; }
     }
-  
 }

@@ -3,6 +3,7 @@ using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
 using System;
 using System.ComponentModel;
 using System.Linq;
@@ -65,7 +66,7 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private async Task LoadModel()
         {
-            if (_stableDiffusionService.IsModelLoaded(SelectedModel.ModelSet))
+            if (_stableDiffusionService.IsControlNetModelLoaded(SelectedModel.ModelSet))
                 return;
 
             var elapsed = _logger.LogBegin($"'{SelectedModel.Name}' Loading...");
@@ -77,10 +78,10 @@ namespace OnnxStack.UI.UserControls
                 foreach (var model in UISettings.ControlNetModelSets.Where(x => x.IsLoaded))
                 {
                     _logger.LogInformation($"'{model.Name}' Unloading...");
-                    await _stableDiffusionService.UnloadModelAsync(model.ModelSet);
+                    await _stableDiffusionService.UnloadControlNetModelAsync(model.ModelSet);
                     model.IsLoaded = false;
                 }
-                SelectedModel.IsLoaded = await _stableDiffusionService.LoadModelAsync(SelectedModel.ModelSet);
+                SelectedModel.IsLoaded = await _stableDiffusionService.LoadControlNetModelAsync(SelectedModel.ModelSet);
             }
             catch (Exception ex)
             {
@@ -97,12 +98,12 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         private async Task UnloadModel()
         {
-            if (!_stableDiffusionService.IsModelLoaded(SelectedModel.ModelSet))
+            if (!_stableDiffusionService.IsControlNetModelLoaded(SelectedModel.ModelSet))
                 return;
 
             _logger.LogInformation($"'{SelectedModel.Name}' Unloading...");
             SelectedModel.IsLoading = true;
-            await _stableDiffusionService.UnloadModelAsync(SelectedModel.ModelSet);
+            await _stableDiffusionService.UnloadControlNetModelAsync(SelectedModel.ModelSet);
             SelectedModel.IsLoading = false;
             SelectedModel.IsLoaded = false;
             _logger.LogInformation($"'{SelectedModel.Name}' Unloaded.");

@@ -102,7 +102,7 @@ namespace OnnxStack.UI.UserControls
                 return;
 
             SchedulerTypes.Clear();
-            foreach (SchedulerType type in model.ModelSet.PipelineType.GetSchedulerTypes())
+            foreach (SchedulerType type in GetSchedulerTypes(model.ModelSet.PipelineType))
                 SchedulerTypes.Add(type);
 
             SchedulerOptions.Width = 512;
@@ -155,7 +155,7 @@ namespace OnnxStack.UI.UserControls
         {
             SchedulerOptions = new SchedulerOptionsModel
             {
-                SchedulerType = SelectedModel.ModelSet.PipelineType.GetSchedulerTypes().First()
+               SchedulerType = GetSchedulerTypes(SelectedModel.ModelSet.PipelineType).First()
             };
         }
 
@@ -167,6 +167,43 @@ namespace OnnxStack.UI.UserControls
         private void RandomSeed()
         {
             SchedulerOptions.Seed = 0;
+        }
+
+
+        /// <summary>
+        /// TODO: Get from pipeline
+        /// </summary>
+        /// <param name="pipelineType">Type of the pipeline.</param>
+        /// <returns></returns>
+        private static SchedulerType[] GetSchedulerTypes(DiffuserPipelineType pipelineType)
+        {
+            switch (pipelineType)
+            {
+                case DiffuserPipelineType.StableDiffusion:
+                case DiffuserPipelineType.StableDiffusionXL:
+                    return new[]
+                    {
+                        SchedulerType.LMS,
+                        SchedulerType.Euler,
+                        SchedulerType.EulerAncestral,
+                        SchedulerType.DDPM,
+                        SchedulerType.DDIM,
+                        SchedulerType.KDPM2
+                    };
+                case DiffuserPipelineType.LatentConsistency:
+                case DiffuserPipelineType.LatentConsistencyXL:
+                    return new[]
+                    {
+                        SchedulerType.LCM
+                    };
+                case DiffuserPipelineType.InstaFlow:
+                    return new[]
+                    {
+                        SchedulerType.InstaFlow
+                    };
+                default:
+                    return default;
+            }
         }
 
         #region INotifyPropertyChanged

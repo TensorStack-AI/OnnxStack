@@ -2,26 +2,24 @@
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
-using OnnxStack.StableDiffusion.Models;
+using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
+using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
 {
-    using StableDiffusion;
-
     public sealed class StableDiffusionBatch : IExampleRunner
     {
         private readonly string _outputDirectory;
         private readonly StableDiffusionConfig _configuration;
-        private readonly IStableDiffusionService _stableDiffusionService;
 
-        public StableDiffusionBatch(StableDiffusionConfig configuration, IStableDiffusionService stableDiffusionService)
+        public StableDiffusionBatch(StableDiffusionConfig configuration)
         {
             _configuration = configuration;
-            _stableDiffusionService = stableDiffusionService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionBatch));
         }
+
+        public int Index => 2;
 
         public string Name => "Stable Diffusion Batch Demo";
 
@@ -34,63 +32,50 @@ namespace OnnxStack.Console.Runner
         {
             Directory.CreateDirectory(_outputDirectory);
 
-            while (true)
+
+            // Prompt
+            var promptOptions = new PromptOptions
             {
+                Prompt = "Photo of a cat"
+            };
 
-                var promptOptions = new PromptOptions
+            // Batch Of 5
+            var batchOptions = new BatchOptions
+            {
+                ValueTo = 5,
+                BatchType = BatchOptionType.Seed
+            };
+
+            foreach (var modelSet in _configuration.ModelSets)
+            {
+                OutputHelpers.WriteConsole($"Loading Model `{modelSet.Name}`...", ConsoleColor.Green);
+
+                // Create Pipeline
+                var pipeline = PipelineBase.CreatePipeline(modelSet);
+
+                // Preload Models (optional)
+                await pipeline.LoadAsync();
+
+                // Run Batch
+                var timestamp = Stopwatch.GetTimestamp();
+                await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions, progressCallback: OutputHelpers.BatchProgressCallback))
                 {
-                    Prompt = "Photo of a cat"
-                };
+                    // Create Image from Tensor result
+                    var image = result.ImageResult.ToImage();
 
-                var schedulerOptions = new SchedulerOptions
-                {
-                    Seed = Random.Shared.Next(),
+                    // Save Image File
+                    var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}_{result.SchedulerOptions.Seed}.png");
+                    await image.SaveAsPngAsync(outputFilename);
 
-                    GuidanceScale = 8,
-                    InferenceSteps = 20,
-                    Strength = 0.6f
-                };
-
-                var batchOptions = new BatchOptions
-                {
-                    BatchType = BatchOptionType.Scheduler
-                };
-
-                foreach (var model in _configuration.ModelSets)
-                {
-                    _setSchedulerTypeForPipeline();
-
-                    OutputHelpers.WriteConsole($"Loading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.LoadModelAsync(model);
-
-                    schedulerOptions.Width = model.SampleSize;
-                    schedulerOptions.Height = model.SampleSize;
-
-                    var batchIndex = 0;
-                    var callback = (DiffusionProgress progress) =>
-                    {
-                        batchIndex = progress.BatchValue;
-                        OutputHelpers.WriteConsole($"Image: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Cyan);
-                    };
-
-                    await foreach (var result in _stableDiffusionService.GenerateBatchAsync(new ModelOptions(model), promptOptions, schedulerOptions, batchOptions, callback))
-                    {
-                        var outputFilename = Path.Combine(_outputDirectory, $"{batchIndex}_{result.SchedulerOptions.Seed}.png");
-                        var image = result.ImageResult.ToImage();
-                        await image.SaveAsPngAsync(outputFilename);
-                        OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}", ConsoleColor.Green);
-                    }
-
-                    OutputHelpers.WriteConsole($"Unloading Model `{model.Name}`...", ConsoleColor.Green);
-                    await _stableDiffusionService.UnloadModelAsync(model);
-                    continue;
-
-                    void _setSchedulerTypeForPipeline()
-                    {
-                        SchedulerType[] scheduleTypes = model.PipelineType.GetSchedulerTypes();
-                        schedulerOptions.SchedulerType = scheduleTypes.Length == 1 ? scheduleTypes[0] : scheduleTypes[Random.Shared.Next(scheduleTypes.Length)];
-                    }
+                    OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Green);
+                    timestamp = Stopwatch.GetTimestamp();
                 }
+
+                OutputHelpers.WriteConsole($"Unloading Model `{modelSet.Name}`...", ConsoleColor.Green);
+
+                // Unload
+                await pipeline.UnloadAsync();
+
             }
         }
     }
