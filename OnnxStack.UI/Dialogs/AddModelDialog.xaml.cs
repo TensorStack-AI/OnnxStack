@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
@@ -37,7 +36,7 @@ namespace OnnxStack.UI.Dialogs
             _modelFactory = modelFactory;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel);
-            ModelTemplates = new List<StableDiffusionModelTemplate>( _modelFactory.GetStableDiffusionModelTemplates());
+            ModelTemplates = new List<StableDiffusionModelTemplate>(_modelFactory.GetStableDiffusionModelTemplates());
             InvalidOptions = _settings.GetModelNames();
             InitializeComponent();
         }
@@ -86,9 +85,6 @@ namespace OnnxStack.UI.Dialogs
             get { return _modelSetResult; }
         }
 
-
-
-
         public new bool ShowDialog()
         {
             return base.ShowDialog() ?? false;
@@ -106,12 +102,17 @@ namespace OnnxStack.UI.Dialogs
 
             _modelSetResult = _modelFactory.CreateStableDiffusionModelSet(ModelName.Trim(), ModelFolder, _modelTemplate);
 
-            // Validate
+            //// Validate
             ValidationResults.Add(new ValidationResult("Name", !InvalidOptions.Contains(_modelName.ToLower()) && _modelName.Length > 2 && _modelName.Length < 50));
-            foreach (var validationResult in _modelSetResult.ModelConfigurations.Select(x => new ValidationResult(x.Type.ToString(), File.Exists(x.OnnxModelPath))))
-            {
-                ValidationResults.Add(validationResult);
-            }
+            ValidationResults.Add(new ValidationResult("Unet Model", File.Exists(_modelSetResult.UnetConfig.OnnxModelPath)));
+            ValidationResults.Add(new ValidationResult("Tokenizer Model", File.Exists(_modelSetResult.TokenizerConfig.OnnxModelPath)));
+            if (_modelSetResult.Tokenizer2Config is not null)
+                ValidationResults.Add(new ValidationResult("Tokenizer2 Model", File.Exists(_modelSetResult.Tokenizer2Config.OnnxModelPath)));
+            ValidationResults.Add(new ValidationResult("TextEncoder Model", File.Exists(_modelSetResult.TextEncoderConfig.OnnxModelPath)));
+            if (_modelSetResult.TextEncoder2Config is not null)
+                ValidationResults.Add(new ValidationResult("TextEncoder2 Model", File.Exists(_modelSetResult.TextEncoder2Config.OnnxModelPath)));
+            ValidationResults.Add(new ValidationResult("VaeDecoder Model", File.Exists(_modelSetResult.VaeDecoderConfig.OnnxModelPath)));
+            ValidationResults.Add(new ValidationResult("VaeEncoder Model", File.Exists(_modelSetResult.VaeEncoderConfig.OnnxModelPath)));
         }
 
 

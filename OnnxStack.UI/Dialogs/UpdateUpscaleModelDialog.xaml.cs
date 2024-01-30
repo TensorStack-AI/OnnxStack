@@ -1,4 +1,4 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.ImageUpscaler.Common;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System.Collections.Generic;
@@ -75,14 +75,12 @@ namespace OnnxStack.UI.Dialogs
                 return false;
             }
 
-            foreach (var modelFile in _modelSetResult.ModelConfigurations)
+            if (!File.Exists(_modelSetResult.UpscaleModelConfig.OnnxModelPath))
             {
-                if (!File.Exists(modelFile.OnnxModelPath))
-                {
-                    ValidationError = $"'{modelFile.Type}' model file not found";
-                    return false;
-                }
+                ValidationError = $"Upscale model file not found";
+                return false;
             }
+
             ValidationError = null;
             return true;
         }

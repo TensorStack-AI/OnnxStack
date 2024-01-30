@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using OnnxStack.StableDiffusion.Config;
+using OnnxStack.ImageUpscaler.Common;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
@@ -102,12 +102,9 @@ namespace OnnxStack.UI.Dialogs
 
             _modelSetResult = _modelFactory.CreateUpscaleModelSet(ModelName.Trim(), _modelFile, _modelTemplate);
 
-            // Validate
+            //// Validate
             ValidationResults.Add(new ValidationResult("Name", !InvalidOptions.Contains(_modelName.ToLower()) && _modelName.Length > 2 && _modelName.Length < 50));
-            foreach (var validationResult in _modelSetResult.ModelConfigurations.Select(x => new ValidationResult(x.Type.ToString(), File.Exists(x.OnnxModelPath))))
-            {
-                ValidationResults.Add(validationResult);
-            }
+            ValidationResults.Add(new ValidationResult("Model", File.Exists(_modelSetResult.UpscaleModelConfig.OnnxModelPath)));
         }
 
 

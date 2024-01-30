@@ -4,6 +4,7 @@ using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

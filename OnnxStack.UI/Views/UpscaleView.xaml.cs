@@ -305,10 +305,10 @@ namespace OnnxStack.UI.Views
         {
             if (SelectedModel != null)
             {
-                UpscaleInfo.SampleSize = SelectedModel.ModelSet.SampleSize;
-                UpscaleInfo.ScaleFactor = SelectedModel.ModelSet.ScaleFactor;
-                UpscaleInfo.InputWidth = InputImage?.PixelWidth ?? SelectedModel.ModelSet.SampleSize;
-                UpscaleInfo.InputHeight = InputImage?.PixelHeight ?? SelectedModel.ModelSet.SampleSize;
+                UpscaleInfo.SampleSize = SelectedModel.ModelSet.UpscaleModelConfig.SampleSize;
+                UpscaleInfo.ScaleFactor = SelectedModel.ModelSet.UpscaleModelConfig.ScaleFactor;
+                UpscaleInfo.InputWidth = InputImage?.PixelWidth ?? SelectedModel.ModelSet.UpscaleModelConfig.SampleSize;
+                UpscaleInfo.InputHeight = InputImage?.PixelHeight ?? SelectedModel.ModelSet.UpscaleModelConfig.SampleSize;
                 return;
             }
             UpscaleInfo = new UpscaleInfoModel();
