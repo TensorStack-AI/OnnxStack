@@ -199,7 +199,7 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
  // Add text and video to prompt
  var promptOptions = new PromptOptions
  {
-     Prompt = "Iron Man",
+     Prompt = "Elon Musk",
      DiffuserType = DiffuserType.ImageToImage,
      InputVideo = videoInput
  };
@@ -218,4 +218,4 @@ await pipeline.UnloadAsync();
 | Input  | Output |
 | :--- | :--- |
 <img src="../Assets/Samples/Input.gif" width="256"/> | <img src="../Assets/Samples/Output_VideoToVideo.gif" width="256"/>
-_converted to gif for github readme_
+_converted to gif for github readme_ | _converted to gif for github readme_
