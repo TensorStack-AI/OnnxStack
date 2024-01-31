@@ -194,7 +194,7 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
 
  // Load Video
  var targetFPS = 15;
- var videoInput = await VideoInput.FromFileAsync("C:\\Users\\Deven\\Pictures\\gidsgphy.gif", targetFPS);
+ var videoInput = await VideoInput.FromFileAsync("Input.gif", targetFPS);
 
  // Add text and video to prompt
  var promptOptions = new PromptOptions
