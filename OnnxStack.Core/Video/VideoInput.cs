@@ -1,6 +1,11 @@
-﻿using Microsoft.ML.OnnxRuntime.Tensors;
+﻿using Microsoft.Extensions.Primitives;
+using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Config;
+using OnnxStack.Core.Services;
 using System.IO;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Video
 {
@@ -34,7 +39,7 @@ namespace OnnxStack.Core.Video
         /// </summary>
         /// <param name="videoFrames">The video frames.</param>
         public VideoInput(VideoFrames videoFrames) => VideoFrames = videoFrames;
-        
+
 
         /// <summary>
         /// Gets the video bytes.
@@ -75,5 +80,39 @@ namespace OnnxStack.Core.Video
             || VideoStream != null
             || VideoTensor != null
             || VideoFrames != null;
+
+
+
+        /// <summary>
+        /// Create a VideoInput from file
+        /// </summary>
+        /// <param name="videoFile">The video file.</param>
+        /// <param name="targetFPS">The target FPS.</param>
+        /// <param name="config">The configuration.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public static async Task<VideoInput> FromFileAsync(string videoFile, float? targetFPS = default, OnnxStackConfig config = default, CancellationToken cancellationToken = default)
+        {
+            var videoBytes = await File.ReadAllBytesAsync(videoFile, cancellationToken);
+            var videoService = new VideoService(config ?? new OnnxStackConfig());
+            var videoFrames = await videoService.CreateFramesAsync(videoBytes, targetFPS, cancellationToken);
+            return new VideoInput(videoFrames);
+        }
+
+
+        /// <summary>
+        /// Saves the video file
+        /// </summary>
+        /// <param name="videoTensor">The video tensor.</param>
+        /// <param name="videoFile">The video file.</param>
+        /// <param name="targetFPS">The target FPS.</param>
+        /// <param name="config">The configuration.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        public static async Task SaveFileAsync(DenseTensor<float> videoTensor, string videoFile, float targetFPS, OnnxStackConfig config = default, CancellationToken cancellationToken = default)
+        {
+            var videoService = new VideoService(config ?? new OnnxStackConfig());
+            var videoOutput = await videoService.CreateVideoAsync(videoTensor, targetFPS, cancellationToken);
+            await File.WriteAllBytesAsync(videoFile, videoOutput.Data, cancellationToken);
+        }
     }
 }
