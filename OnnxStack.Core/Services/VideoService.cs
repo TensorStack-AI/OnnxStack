@@ -135,7 +135,7 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         /// <exception cref="NotSupportedException">VideoTensor not supported</exception>
         /// <exception cref="ArgumentException">No video data found</exception>
-        public async Task<VideoFrames> CreateFramesAsync(VideoInput videoInput, float videoFPS, CancellationToken cancellationToken = default)
+        public async Task<VideoFrames> CreateFramesAsync(VideoInput videoInput, float? videoFPS = default, CancellationToken cancellationToken = default)
         {
 
             if (videoInput.VideoBytes is not null)
@@ -158,11 +158,12 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFPS">The video FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<VideoFrames> CreateFramesAsync(byte[] videoBytes, float videoFPS, CancellationToken cancellationToken = default)
+        public async Task<VideoFrames> CreateFramesAsync(byte[] videoBytes, float? videoFPS = default, CancellationToken cancellationToken = default)
         {
             var videoInfo = await GetVideoInfoAsync(videoBytes, cancellationToken);
-            var videoFrames = await CreateFramesInternalAsync(videoBytes, videoFPS, cancellationToken).ToListAsync(cancellationToken);
-            videoInfo = videoInfo with { FPS = videoFPS };
+            var targetFPS = videoFPS ?? videoInfo.FPS;
+            var videoFrames = await CreateFramesInternalAsync(videoBytes, targetFPS, cancellationToken).ToListAsync(cancellationToken);
+            videoInfo = videoInfo with { FPS = targetFPS };
             return new VideoFrames(videoInfo, videoFrames);
         }
 
@@ -174,14 +175,16 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFPS">The video FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<VideoFrames> CreateFramesAsync(Stream videoStream, float videoFPS, CancellationToken cancellationToken = default)
+        public async Task<VideoFrames> CreateFramesAsync(Stream videoStream, float? videoFPS = default, CancellationToken cancellationToken = default)
         {
             using (var memoryStream = new MemoryStream())
             {
                 await memoryStream.CopyToAsync(videoStream, cancellationToken).ConfigureAwait(false);
                 var videoBytes = memoryStream.ToArray();
                 var videoInfo = await GetVideoInfoAsync(videoBytes, cancellationToken);
-                var videoFrames = await CreateFramesInternalAsync(videoBytes, videoFPS, cancellationToken).ToListAsync(cancellationToken);
+                var targetFPS = videoFPS ?? videoInfo.FPS;
+                var videoFrames = await CreateFramesInternalAsync(videoBytes, targetFPS, cancellationToken).ToListAsync(cancellationToken);
+                videoInfo = videoInfo with { FPS = targetFPS };
                 return new VideoFrames(videoInfo, videoFrames);
             }
         }

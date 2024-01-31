@@ -29,10 +29,9 @@ namespace OnnxStack.Console.Runner
 
         public async Task RunAsync()
         {
-            string inputVideoPath = "C:\\Users\\Deven\\Pictures\\gidsgphy.gif";
-            var inputFile = File.ReadAllBytes(inputVideoPath);
-            var videoInfo = await _videoService.GetVideoInfoAsync(inputFile);
-            var videoInput = await _videoService.CreateFramesAsync(inputFile, videoInfo.FPS);
+            // Load Video
+            var targetFPS = 15;
+            var videoInput = await VideoInput.FromFileAsync("C:\\Users\\Deven\\Pictures\\gidsgphy.gif", targetFPS);
 
             // Loop though the appsettings.json model sets
             foreach (var modelSet in _configuration.ModelSets)
@@ -50,18 +49,15 @@ namespace OnnxStack.Console.Runner
                 {
                     Prompt = "Iron Man",
                     DiffuserType = DiffuserType.ImageToImage,
-                    InputVideo = new VideoInput(videoInput)
+                    InputVideo = videoInput
                 };
 
                 // Run pipeline
                 var result = await pipeline.RunAsync(promptOptions, progressCallback: OutputHelpers.FrameProgressCallback);
 
-                // Create Video from Tensor result
-                var videoResult = await _videoService.CreateVideoAsync(result, videoInfo.FPS);
-
                 // Save Video File
                 var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}.mp4");
-                await File.WriteAllBytesAsync(outputFilename, videoResult.Data);
+                await VideoInput.SaveFileAsync(result, outputFilename, targetFPS);
             }
         }
     }

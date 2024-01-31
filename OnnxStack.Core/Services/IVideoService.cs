@@ -45,7 +45,7 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFPS">The video FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<VideoFrames> CreateFramesAsync(byte[] videoBytes, float videoFPS, CancellationToken cancellationToken = default);
+        Task<VideoFrames> CreateFramesAsync(byte[] videoBytes, float? videoFPS = default, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace OnnxStack.Core.Services
         /// <param name="videoFPS">The video FPS.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<VideoFrames> CreateFramesAsync(Stream videoStream, float videoFPS, CancellationToken cancellationToken = default);
+        Task<VideoFrames> CreateFramesAsync(Stream videoStream, float? videoFPS = default, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace OnnxStack.Core.Services
         /// <returns></returns>
         /// <exception cref="NotSupportedException">VideoTensor not supported</exception>
         /// <exception cref="ArgumentException">No video data found</exception>
-        Task<VideoFrames> CreateFramesAsync(VideoInput videoInput, float videoFPS, CancellationToken cancellationToken = default);
+        Task<VideoFrames> CreateFramesAsync(VideoInput videoInput, float? videoFPS = default, CancellationToken cancellationToken = default);
 
 
         /// <summary>

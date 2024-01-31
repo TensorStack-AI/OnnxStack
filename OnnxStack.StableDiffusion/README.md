@@ -176,3 +176,46 @@ await pipeline.UnloadAsync();
 | Input  | Output |
 | :--- | :--- |
 <img src="../Assets/Samples/Input_Depth.png" width="256"/> | <img src="../Assets/Samples/Output_ControlNet.png" width="256"/>
+
+
+
+
+## Stable Diffusion VideoToVideo Example
+Run Stable Diffusion process on a video frame by frame
+```csharp
+//Model: 
+//https://huggingface.co/runwayml/stable-diffusion-v1-5 (onnx branch)
+
+ // Create Pipeline
+var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-v1-5");
+
+ // Preload Models (optional)
+ await pipeline.LoadAsync();
+
+ // Load Video
+ var targetFPS = 15;
+ var videoInput = await VideoInput.FromFileAsync("Input.gif", targetFPS);
+
+ // Add text and video to prompt
+ var promptOptions = new PromptOptions
+ {
+     Prompt = "Elon Musk",
+     DiffuserType = DiffuserType.ImageToImage,
+     InputVideo = videoInput
+ };
+
+ // Run pipeline
+ var result = await pipeline.RunAsync(promptOptions, progressCallback: OutputHelpers.FrameProgressCallback);
+
+ // Save Video File
+ var outputFilename = Path.Combine(_outputDirectory, "Output_VideoToVideo.mp4");
+ await VideoInput.SaveFileAsync(result, outputFilename, targetFPS);
+
+// Unload Pipleine
+await pipeline.UnloadAsync();
+```
+
+| Input  | Output |
+| :--- | :--- |
+<img src="../Assets/Samples/Input.gif" width="256"/> | <img src="../Assets/Samples/Output_VideoToVideo.gif" width="256"/>
+_converted to gif for github readme_ | _converted to gif for github readme_
