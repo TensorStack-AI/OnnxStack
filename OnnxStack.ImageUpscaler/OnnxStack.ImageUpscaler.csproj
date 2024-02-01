@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.17.0</Version>
+    <Version>0.19.0</Version>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
 
     <Title>OnnxStack.ImageUpscaler</Title>
-    <Company>Backyard Industries</Company>
+    <Company>Stackyard AI</Company>
     <Description>
       OnnxRuntime Image Upscale Library for .NET Core
     </Description>
-    <Copyright>Backyard Industries - 2023</Copyright>
+    <Copyright>Stackyard AI - 2024</Copyright>
     <RepositoryUrl>https://github.com/saddam213/OnnxStack</RepositoryUrl>
     <PackageTags>onnx;onnx-runtime;upscale</PackageTags>
     <Authors>sa_ddam213</Authors>
@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.Core" Version="0.17.0" Condition=" '$(Configuration)' == 'Release' " />
+    <PackageReference Include="OnnxStack.Core" Version="0.19.0" Condition=" '$(Configuration)' == 'Release' " />
     <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' " />
   </ItemGroup>
 

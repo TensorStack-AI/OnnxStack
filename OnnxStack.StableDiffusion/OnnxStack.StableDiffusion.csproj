@@ -1,20 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.17.0</Version>
+    <Version>0.19.0</Version>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
 
     <Title>OnnxStack.StableDiffusion</Title>
-    <Company>Backyard Industries</Company>
+    <Company>Stackyard AI</Company>
     <Description>
       Stable Diffusion Integration Library for .NET Core
 
       This repository harnesses the capabilities of both ONNX Runtime and Microsoft ML, offering a comprehensive solution that empowers developers to build, deploy, and execute machine learning models seamlessly in .NET environments, unlocking a world of possibilities for intelligent applications.
     </Description>
-    <Copyright>Backyard Industries - 2023</Copyright>
+    <Copyright>Stackyard AI - 2023</Copyright>
     <RepositoryUrl>https://github.com/saddam213/OnnxStack</RepositoryUrl>
     <PackageTags>onnx;onnx-runtime;llm;stable-diffusion</PackageTags>
     <Authors>sa_ddam213</Authors>
@@ -44,7 +44,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="OnnxStack.Core" Version="0.17.0" Condition=" '$(Configuration)' == 'Release' " />
+    <PackageReference Include="OnnxStack.Core" Version="0.19.0" Condition=" '$(Configuration)' == 'Release' " />
     <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' " />
   </ItemGroup>
 
