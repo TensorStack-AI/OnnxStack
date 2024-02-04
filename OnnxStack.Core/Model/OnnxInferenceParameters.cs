@@ -36,6 +36,18 @@ namespace OnnxStack.Core.Model
 
 
         /// <summary>
+        /// Adds the input parameter.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <param name="value">The value.</param>
+        public void AddInput(int index, OrtValue value)
+        {
+            var metadata = _metadata.Inputs[index];
+            _inputs.Add(metadata, value);
+        }
+
+
+        /// <summary>
         /// Adds the input tensor.
         /// </summary>
         /// <param name="value">The value.</param>
@@ -83,6 +95,17 @@ namespace OnnxStack.Core.Model
         /// </summary>
         /// <param name="value">The value.</param>
         public void AddInputTensor(DenseTensor<long> value)
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, value.ToOrtValue(metaData));
+        }
+
+
+        /// <summary>
+        /// Adds the input tensor.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void AddInputTensor(DenseTensor<bool> value)
         {
             var metaData = GetNextInputMetadata();
             _inputs.Add(metaData, value.ToOrtValue(metaData));

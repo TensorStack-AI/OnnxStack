@@ -59,7 +59,26 @@ namespace OnnxStack.Core
             return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
         }
 
+
+        /// <summary>
+        /// Converts DenseTensor<double> to OrtValue.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="metadata">The metadata.</param>
+        /// <returns></returns>
         public static OrtValue ToOrtValue(this DenseTensor<double> tensor, OnnxNamedMetadata metadata)
+        {
+            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
+        }
+
+
+        /// <summary>
+        /// Converts DenseTensor<bool> to OrtValue.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="metadata">The metadata.</param>
+        /// <returns></returns>
+        public static OrtValue ToOrtValue(this DenseTensor<bool> tensor, OnnxNamedMetadata metadata)
         {
             return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
         }
