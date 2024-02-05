@@ -165,6 +165,15 @@ namespace OnnxStack.UI.Models
             set { _pipelineType = value; NotifyPropertyChanged(); }
         }
 
+        private MemoryModeType _memoryMode;
+
+        public MemoryModeType MemoryMode
+        {
+            get { return _memoryMode; }
+            set { _memoryMode = value; NotifyPropertyChanged(); }
+        }
+
+
         private ModelType _modelType;
 
         public ModelType ModelType
@@ -250,6 +259,7 @@ namespace OnnxStack.UI.Models
                 ExecutionProvider = modelset.ExecutionProvider,
                 InterOpNumThreads = modelset.InterOpNumThreads,
                 IntraOpNumThreads = modelset.IntraOpNumThreads,
+                MemoryMode = modelset.MemoryMode,
 
                 Name = modelset.Name,
                 PipelineType = modelset.PipelineType,
@@ -401,6 +411,8 @@ namespace OnnxStack.UI.Models
                 ExecutionProvider = modelset.ExecutionProvider,
                 InterOpNumThreads = modelset.InterOpNumThreads,
                 IntraOpNumThreads = modelset.IntraOpNumThreads,
+
+                MemoryMode = modelset.MemoryMode,
 
                 UnetConfig = new UNetConditionModelConfig
                 {

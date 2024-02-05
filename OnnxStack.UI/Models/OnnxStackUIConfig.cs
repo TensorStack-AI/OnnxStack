@@ -1,6 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Common.Config;
 using OnnxStack.Core.Config;
+using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace OnnxStack.UI.Models
         public int DefaultIntraOpNumThreads { get; set; }
         public ExecutionMode DefaultExecutionMode { get; set; }
         public ExecutionProvider DefaultExecutionProvider { get; set; }
+        public MemoryModeType DefaultMemoryMode { get; set; }
 
         [JsonIgnore]
         public ExecutionProvider SupportedExecutionProvider => GetSupportedExecutionProvider();
