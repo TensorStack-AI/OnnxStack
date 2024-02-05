@@ -121,7 +121,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                     }
 
                     ReportProgress(progressCallback, step, timesteps.Count, latents);
-                    _logger?.LogEnd($"Step {step}/{timesteps.Count}", stepTime);
+                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Unload if required
