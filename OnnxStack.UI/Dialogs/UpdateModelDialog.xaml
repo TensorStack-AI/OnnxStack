@@ -65,8 +65,12 @@
                                 DeviceId="{Binding UpdateModelSet.DeviceId, Mode=TwoWay}"
                                 ExecutionProvider="{Binding UpdateModelSet.ExecutionProvider, Mode=TwoWay}" />
                         </StackPanel>
+                        <StackPanel Margin="0,5,0,0">
+                            <TextBlock Text="Memory Mode" />
+                            <ComboBox ItemsSource="{Binding Source={StaticResource MemoryModeType}}" SelectedItem="{Binding UpdateModelSet.MemoryMode}" />
+                        </StackPanel>
                         <StackPanel Margin="0,4,0,0">
-                            <TextBlock Text="Mode" />
+                            <TextBlock Text="Execution Mode" />
                             <ComboBox ItemsSource="{Binding Source={StaticResource ExecutionModeType}}" SelectedItem="{Binding UpdateModelSet.ExecutionMode}" />
                         </StackPanel>
                         <UniformGrid Columns="2" Margin="0,4,0,0">

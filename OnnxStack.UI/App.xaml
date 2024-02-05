@@ -112,6 +112,12 @@
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
+        <ObjectDataProvider x:Key="MemoryModeType" MethodName="GetValues" ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="SD_Enums:MemoryModeType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
 
         <!--Crop Image Dialog-->
         <SolidColorBrush x:Key="CropFrameBrush" Color="#FF3296FA" />

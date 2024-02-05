@@ -61,6 +61,7 @@ namespace OnnxStack.UI.Services
                 ExecutionProvider = _settings.DefaultExecutionProvider,
                 InterOpNumThreads = _settings.DefaultInterOpNumThreads,
                 IntraOpNumThreads = _settings.DefaultIntraOpNumThreads,
+                MemoryMode = _settings.DefaultMemoryMode,
                 IsEnabled = true,
             };
 

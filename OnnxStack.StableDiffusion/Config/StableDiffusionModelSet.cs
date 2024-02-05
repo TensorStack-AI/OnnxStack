@@ -14,7 +14,7 @@ namespace OnnxStack.StableDiffusion.Config
         public int SampleSize { get; set; } = 512;
         public DiffuserPipelineType PipelineType { get; set; }
         public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();
-
+        public MemoryModeType MemoryMode { get; set; }
         public int DeviceId { get; set; }
         public int InterOpNumThreads { get; set; }
         public int IntraOpNumThreads { get; set; }

@@ -29,8 +29,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public InpaintLegacyDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
-            : base(unet, vaeDecoder, vaeEncoder, logger) { }
+        public InpaintLegacyDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, memoryMode, logger) { }
 
 
         /// <summary>
@@ -120,8 +120,12 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
                     }
 
                     ReportProgress(progressCallback, step, timesteps.Count, latents);
-                    _logger?.LogEnd($"Step {step}/{timesteps.Count}", stepTime);
+                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
                 }
+
+                // Unload if required
+                if (_memoryMode == MemoryModeType.Minimum)
+                    await _unet.UnloadAsync();
 
                 // Decode Latents
                 return await DecodeLatentsAsync(promptOptions, schedulerOptions, latents);
@@ -163,6 +167,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
                 var results = await _vaeEncoder.RunInferenceAsync(inferenceParameters);
                 using (var result = results.First())
                 {
+                    // Unload if required
+                    if (_memoryMode == MemoryModeType.Minimum)
+                        await _vaeEncoder.UnloadAsync();
+
                     var outputResult = result.ToDenseTensor();
                     var scaledSample = outputResult.MultiplyBy(_vaeEncoder.ScaleFactor);
                     return scaledSample;

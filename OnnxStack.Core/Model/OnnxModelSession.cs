@@ -67,14 +67,18 @@ namespace OnnxStack.Core.Model
         /// Unloads the model session.
         /// </summary>
         /// <returns></returns>
-        public Task UnloadAsync()
+        public async Task UnloadAsync()
         {
+            // TODO: deadlock on model dispose when no synchronization context exists(console app)
+            // Task.Yield seems to force a context switch resolving any issues, revist this
+            await Task.Yield();
+
             if (_session is not null)
             {
-                _metadata = null;
                 _session.Dispose();
+                _metadata = null;
+                _session = null;
             }
-            return Task.CompletedTask;
         }
 
 

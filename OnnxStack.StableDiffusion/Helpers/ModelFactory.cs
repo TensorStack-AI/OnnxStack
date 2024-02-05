@@ -22,7 +22,7 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="deviceId">The device identifier.</param>
         /// <param name="executionProvider">The execution provider.</param>
         /// <returns></returns>
-        public static StableDiffusionModelSet CreateModelSet(string modelFolder, DiffuserPipelineType pipeline, ModelType modelType, int deviceId, ExecutionProvider executionProvider)
+        public static StableDiffusionModelSet CreateModelSet(string modelFolder, DiffuserPipelineType pipeline, ModelType modelType, int deviceId, ExecutionProvider executionProvider, MemoryModeType memoryMode)
         {
             var tokenizerPath = Path.Combine(modelFolder, "tokenizer", "model.onnx");
             if (!File.Exists(tokenizerPath))
@@ -117,6 +117,7 @@ namespace OnnxStack.StableDiffusion.Helpers
                 PipelineType = pipeline,
                 Diffusers = diffusers,
                 DeviceId = deviceId,
+                MemoryMode = memoryMode,
                 ExecutionProvider = executionProvider,
                 SchedulerOptions = GetDefaultSchedulerOptions(pipeline, modelType),
                 TokenizerConfig = tokenizerConfig,
