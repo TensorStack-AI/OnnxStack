@@ -29,8 +29,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public ControlNetDiffuser( ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
-            : base(unet, vaeDecoder, vaeEncoder, logger)
+        public ControlNetDiffuser( ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, memoryMode, logger)
         {
             _controlNet = controlNet;
         }
@@ -148,6 +148,13 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
 
                     ReportProgress(progressCallback, step, timesteps.Count, latents);
                     _logger?.LogEnd($"Step {step}/{timesteps.Count}", stepTime);
+                }
+
+                // Unload if required
+                if (_memoryMode != MemoryModeType.Maximum)
+                {
+                    await _unet.UnloadAsync();
+                    await _controlNet.UnloadAsync();
                 }
 
                 // Decode Latents

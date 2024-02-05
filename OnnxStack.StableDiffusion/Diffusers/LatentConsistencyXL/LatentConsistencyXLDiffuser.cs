@@ -19,8 +19,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        protected LatentConsistencyXLDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
-            : base(unet, vaeDecoder, vaeEncoder, logger) { }
+        protected LatentConsistencyXLDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, memoryMode, logger) { }
 
 
         /// <summary>

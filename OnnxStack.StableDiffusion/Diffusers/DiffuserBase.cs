@@ -22,6 +22,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         protected readonly UNetConditionModel _unet;
         protected readonly AutoEncoderModel _vaeDecoder;
         protected readonly AutoEncoderModel _vaeEncoder;
+        protected readonly MemoryModeType _memoryMode;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiffuserBase"/> class.
@@ -31,12 +32,13 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public DiffuserBase(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
+        public DiffuserBase(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
         {
             _logger = logger;
             _unet = unet;
             _vaeDecoder = vaeDecoder;
             _vaeEncoder = vaeEncoder;
+            _memoryMode = memoryMode;
         }
 
         /// <summary>
@@ -137,10 +139,15 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 var results = await _vaeDecoder.RunInferenceAsync(inferenceParameters);
                 using (var imageResult = results.First())
                 {
+                    // Unload if required
+                    if (_memoryMode != MemoryModeType.Maximum)
+                        await _vaeDecoder.UnloadAsync();
+
                     _logger?.LogEnd("Latents decoded", timestamp);
                     return imageResult.ToDenseTensor();
                 }
             }
+
         }
 
 

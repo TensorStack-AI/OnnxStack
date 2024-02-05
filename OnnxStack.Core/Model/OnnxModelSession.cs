@@ -67,14 +67,15 @@ namespace OnnxStack.Core.Model
         /// Unloads the model session.
         /// </summary>
         /// <returns></returns>
-        public Task UnloadAsync()
+        public async Task UnloadAsync()
         {
+            await Task.Yield();
             if (_session is not null)
             {
-                _metadata = null;
                 _session.Dispose();
+                _metadata = null;
+                _session = null;
             }
-            return Task.CompletedTask;
         }
 
 

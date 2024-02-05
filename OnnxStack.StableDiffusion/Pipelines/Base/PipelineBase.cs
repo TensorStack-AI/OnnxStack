@@ -18,14 +18,16 @@ namespace OnnxStack.StableDiffusion.Pipelines
     public abstract class PipelineBase : IPipeline
     {
         protected readonly ILogger _logger;
+        protected readonly PipelineOptions _pipelineOptions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PipelineBase"/> class.
         /// </summary>
         /// <param name="logger">The logger.</param>
-        protected PipelineBase(ILogger logger)
+        protected PipelineBase(PipelineOptions pipelineOptions, ILogger logger)
         {
             _logger = logger;
+            _pipelineOptions = pipelineOptions;
         }
 
 

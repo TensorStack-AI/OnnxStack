@@ -27,8 +27,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public ControlNetImageDiffuser(ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
-            : base(controlNet, unet, vaeDecoder, vaeEncoder, logger) { }
+        public ControlNetImageDiffuser(ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
+            : base(controlNet, unet, vaeDecoder, vaeEncoder, memoryMode, logger) { }
 
 
         /// <summary>
@@ -73,6 +73,10 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                 var results = await _vaeEncoder.RunInferenceAsync(inferenceParameters);
                 using (var result = results.First())
                 {
+                    // Unload if required
+                    if (_memoryMode != MemoryModeType.Maximum)
+                        await _vaeEncoder.UnloadAsync();
+
                     var outputResult = result.ToDenseTensor();
                     var scaledSample = outputResult.MultiplyBy(_vaeEncoder.ScaleFactor);
                     return scheduler.AddNoise(scaledSample, scheduler.CreateRandomSample(scaledSample.Dimensions), timesteps);
