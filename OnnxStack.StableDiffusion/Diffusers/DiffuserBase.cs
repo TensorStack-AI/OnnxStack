@@ -140,7 +140,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
                 using (var imageResult = results.First())
                 {
                     // Unload if required
-                    if (_memoryMode != MemoryModeType.Maximum)
+                    if (_memoryMode == MemoryModeType.Minimum)
                         await _vaeDecoder.UnloadAsync();
 
                     _logger?.LogEnd("Latents decoded", timestamp);

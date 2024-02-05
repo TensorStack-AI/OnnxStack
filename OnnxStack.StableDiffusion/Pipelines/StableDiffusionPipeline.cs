@@ -108,24 +108,18 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         public override Task LoadAsync()
         {
-            if (_pipelineOptions.MemoryMode == MemoryModeType.Maximum)
-            {
-                return Task.WhenAll(
-                    _unet.LoadAsync(),
-                    _tokenizer.LoadAsync(), 
-                    _textEncoder.LoadAsync(),
-                    _vaeDecoder.LoadAsync(), 
-                    _vaeEncoder.LoadAsync());
-            }
+            if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
+                return Task.CompletedTask;
 
-            if (_pipelineOptions.MemoryMode == MemoryModeType.Medium)
-            {
-                return Task.WhenAll(
-                    _unet.LoadAsync(), 
-                    _tokenizer.LoadAsync(),
-                    _textEncoder.LoadAsync());
-            }
-            return Task.CompletedTask;
+            // Preload all models into VRAM
+            return Task.WhenAll
+            (
+                _unet.LoadAsync(),
+                _tokenizer.LoadAsync(),
+                _textEncoder.LoadAsync(),
+                _vaeDecoder.LoadAsync(),
+                _vaeEncoder.LoadAsync()
+            );
         }
 
 
@@ -135,7 +129,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public override async Task UnloadAsync()
         {
+            // TODO: deadlock on model dispose when no synchronization context exists(console app)
+            // Task.Yield seems to force a context switch resolving any issues, revist this
             await Task.Yield();
+
             _unet?.Dispose();
             _tokenizer?.Dispose();
             _textEncoder?.Dispose();

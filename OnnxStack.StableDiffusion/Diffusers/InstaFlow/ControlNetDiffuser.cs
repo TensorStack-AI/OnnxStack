@@ -148,12 +148,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.InstaFlow
                 }
 
                 // Unload if required
-                if (_memoryMode != MemoryModeType.Maximum)
-                {
-                    await _unet.UnloadAsync();
-                    await _controlNet.UnloadAsync();
-                }
-
+                if (_memoryMode == MemoryModeType.Minimum)
+                    await Task.WhenAll(_controlNet.UnloadAsync(), _unet.UnloadAsync());
+         
                 // Decode Latents
                 return await DecodeLatentsAsync(promptOptions, schedulerOptions, latents);
             }

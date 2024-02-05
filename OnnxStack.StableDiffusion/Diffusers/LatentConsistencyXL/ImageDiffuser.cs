@@ -73,7 +73,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
                 using (var result = results.First())
                 {
                     // Unload if required
-                    if (_memoryMode != MemoryModeType.Maximum)
+                    if (_memoryMode == MemoryModeType.Minimum)
                         await _vaeEncoder.UnloadAsync();
 
                     var outputResult = result.ToDenseTensor();

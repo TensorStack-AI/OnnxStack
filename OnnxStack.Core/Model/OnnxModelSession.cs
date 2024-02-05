@@ -69,7 +69,10 @@ namespace OnnxStack.Core.Model
         /// <returns></returns>
         public async Task UnloadAsync()
         {
+            // TODO: deadlock on model dispose when no synchronization context exists(console app)
+            // Task.Yield seems to force a context switch resolving any issues, revist this
             await Task.Yield();
+
             if (_session is not null)
             {
                 _session.Dispose();

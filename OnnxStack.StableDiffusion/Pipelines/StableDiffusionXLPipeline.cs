@@ -68,14 +68,16 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         public override Task LoadAsync()
         {
-            if (_pipelineOptions.MemoryMode != MemoryModeType.Minimum)
-            {
-                return Task.WhenAll(
-                    _tokenizer2.LoadAsync(),
-                    _textEncoder2.LoadAsync(), 
-                    base.LoadAsync());
-            }
-            return base.LoadAsync();
+            if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
+                return base.LoadAsync();
+
+            // Preload all models into VRAM
+            return Task.WhenAll
+            (
+                _tokenizer2.LoadAsync(),
+                _textEncoder2.LoadAsync(),
+                base.LoadAsync()
+            );
         }
 
 

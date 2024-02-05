@@ -107,7 +107,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.InstaFlow
                 }
 
                 // Unload if required
-                if (_memoryMode != MemoryModeType.Maximum)
+                if (_memoryMode == MemoryModeType.Minimum)
                     await _unet.UnloadAsync();
 
                 // Decode Latents

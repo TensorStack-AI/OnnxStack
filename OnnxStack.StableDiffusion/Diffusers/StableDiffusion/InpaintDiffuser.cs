@@ -112,7 +112,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                 }
 
                 // Unload if required
-                if (_memoryMode != MemoryModeType.Maximum)
+                if (_memoryMode == MemoryModeType.Minimum)
                     await _unet.UnloadAsync();
 
                 // Decode Latents
@@ -229,7 +229,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                     using (var result = results.First())
                     {
                         // Unload if required
-                        if (_memoryMode != MemoryModeType.Maximum)
+                        if (_memoryMode == MemoryModeType.Minimum)
                             await _vaeEncoder.UnloadAsync();
 
                         var sample = result.ToDenseTensor();
