@@ -33,6 +33,28 @@ namespace OnnxStack.Core
 
 
         /// <summary>
+        /// Normalize the data using Min-Max scaling to ensure all values are in the range [0, 1].
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        public static void NormalizeMinMax(this DenseTensor<float> tensor)
+        {
+            var values = tensor.Buffer.Span;
+            float min = float.PositiveInfinity, max = float.NegativeInfinity;
+            foreach (var val in values)
+            {
+                if (min > val) min = val;
+                if (max < val) max = val;
+            }
+
+            var range = max - min;
+            for (var i = 0; i < values.Length; i++)
+            {
+                values[i] = (values[i] - min) / range;
+            }
+        }
+
+
+        /// <summary>
         /// Concatenates the specified tensors along the specified axis.
         /// </summary>
         /// <param name="tensor1">The tensor1.</param>

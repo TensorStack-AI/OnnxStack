@@ -35,10 +35,10 @@ namespace OnnxStack.Console.Runner
             var inputImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
             // Create Annotation pipeline
-            var annotationPipeline = AnnotationPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators");
+            var annotationPipeline = FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\depth.onnx", true);
 
             // Create Depth Image
-            var controlImage = await annotationPipeline.DepthImage(inputImage);
+            var controlImage = await annotationPipeline.RunAsync(inputImage);
 
             // Save Depth Image (Debug Only)
             await controlImage.Image.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Depth.png"));
