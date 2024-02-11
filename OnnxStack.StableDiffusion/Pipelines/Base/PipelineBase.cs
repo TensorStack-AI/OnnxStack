@@ -164,7 +164,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                     if (promptOptions.DiffuserType == DiffuserType.ControlNetImage)
                         promptOptions.InputImage = new InputImage(videoFrame.Frame);
 
-                    promptOptions.InputContolImage = videoFrame.ControlImage;
+                    promptOptions.InputContolImage = videoFrame.ExtraFrame;
                 }
                 else
                 {

@@ -2,5 +2,8 @@
 
 namespace OnnxStack.Core.Video
 {
-    public record VideoFrame(byte[] Frame, InputImage ControlImage = default);
+    public record VideoFrame(byte[] Frame)
+    {
+        public InputImage ExtraFrame { get; set; }
+    }
 }

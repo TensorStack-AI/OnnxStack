@@ -3,6 +3,7 @@ using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
+using OnnxStack.Core.Video;
 using OnnxStack.FeatureExtractor.Common;
 using System.IO;
 using System.Linq;
@@ -81,6 +82,44 @@ namespace OnnxStack.FeatureExtractor.Pipelines
             }
         }
 
+
+        /// <summary>
+        /// Generates the feature extractor video
+        /// </summary>
+        /// <param name="videoFrames">The input video.</param>
+        /// <returns></returns>
+        public async Task<VideoFrames> RunAsync(VideoFrames videoFrames, CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Extracting video features...");
+            var metadata = await _featureExtractorModel.GetMetadataAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            foreach (var videoFrame in videoFrames.Frames)
+            {
+                var image = new InputImage(videoFrame.Frame);
+                var controlImage = await image.ToDenseTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, ImageNormalizeType.ZeroToOne);
+                using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+                {
+                    inferenceParameters.AddInputTensor(controlImage);
+                    inferenceParameters.AddOutputBuffer(new[] { 1, _featureExtractorModel.Channels, _featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize });
+
+                    var results = await _featureExtractorModel.RunInferenceAsync(inferenceParameters);
+                    using (var result = results.First())
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        var resultTensor = result.ToDenseTensor();
+                        if (_featureExtractorModel.Normalize)
+                            resultTensor.NormalizeMinMax();
+
+                        var maskImage = resultTensor.ToImageMask();
+                        videoFrame.ExtraFrame = new InputImage(maskImage);
+                    }
+                }
+            }
+            _logger?.LogEnd("Extracting video features complete.", timestamp);
+            return videoFrames;
+        }
 
 
         /// <summary>
