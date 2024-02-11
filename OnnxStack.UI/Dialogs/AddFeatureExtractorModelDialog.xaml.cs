@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using OnnxStack.StableDiffusion.Config;
+using OnnxStack.FeatureExtractor.Common;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
@@ -17,35 +17,41 @@ using System.Windows;
 namespace OnnxStack.UI.Dialogs
 {
     /// <summary>
-    /// Interaction logic for AddControlNetModelDialog.xaml
+    /// Interaction logic for AddFeatureExtractorModelDialog.xaml
     /// </summary>
-    public partial class AddControlNetModelDialog : Window, INotifyPropertyChanged
+    public partial class AddFeatureExtractorModelDialog : Window, INotifyPropertyChanged
     {
-        private readonly ILogger<AddControlNetModelDialog> _logger;
+        private readonly ILogger<AddFeatureExtractorModelDialog> _logger;
 
         private readonly List<string> _invalidOptions;
         private string _modelName;
         private string _modelFile;
-        private ControlNetType _selectedControlNetType;
+        private bool _normalize;
+        private int _sampleSize = 512;
+        private int _channels = 1;
+        private string _controlNetFilter = "N/A";
         private IModelFactory _modelFactory;
         private OnnxStackUIConfig _settings;
-        private ControlNetModelSet _modelSetResult;
+        private FeatureExtractorModelSet _modelSetResult;
 
-        public AddControlNetModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddControlNetModelDialog> logger)
+        public AddFeatureExtractorModelDialog(OnnxStackUIConfig settings, IModelFactory modelFactory, ILogger<AddFeatureExtractorModelDialog> logger)
         {
             _logger = logger;
             _settings = settings;
             _modelFactory = modelFactory;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel);
-            _invalidOptions = _settings.ControlNetModelSets.Select(x => x.Name).ToList();
+            _invalidOptions = _settings.FeatureExtractorModelSets.Select(x => x.Name).ToList();
+            ControlNetFilters = new List<string> { "N/A" };
+            ControlNetFilters.AddRange(Enum.GetNames<ControlNetType>());
             InitializeComponent();
-            SelectedControlNetType = ControlNetType.Canny;
         }
 
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
         public ObservableCollection<ValidationResult> ValidationResults { get; set; } = new ObservableCollection<ValidationResult>();
+
+        public List<string> ControlNetFilters { get; set; }
 
         public string ModelName
         {
@@ -69,25 +75,38 @@ namespace OnnxStack.UI.Dialogs
             }
         }
 
-        public ControlNetType SelectedControlNetType
+        public string ControlNetFilter
         {
-            get { return _selectedControlNetType; }
-            set { _selectedControlNetType = value; NotifyPropertyChanged(); CreateModelSet(); }
-
+            get { return _controlNetFilter; }
+            set { _controlNetFilter = value; NotifyPropertyChanged(); }
         }
 
-        private DiffuserPipelineType _selectedPipelineType;
-
-        public DiffuserPipelineType SelectedPipelineType
+        public int SampleSize
         {
-            get { return _selectedPipelineType; }
-            set { _selectedPipelineType = value; NotifyPropertyChanged(); CreateModelSet(); }
+            get { return _sampleSize; }
+            set { _sampleSize = value; NotifyPropertyChanged(); CreateModelSet(); }
         }
 
+        public bool Normalize
+        {
+            get { return _normalize; }
+            set { _normalize = value; NotifyPropertyChanged(); CreateModelSet(); }
+        }
 
-        public ControlNetModelSet ModelSetResult
+        public int Channels
+        {
+            get { return _channels; }
+            set { _channels = value; NotifyPropertyChanged(); CreateModelSet(); }
+        }
+
+        public FeatureExtractorModelSet ModelSetResult
         {
             get { return _modelSetResult; }
+        }
+
+        public ControlNetType? ControlNetType
+        {
+            get { return Enum.TryParse<ControlNetType>(_controlNetFilter, out var result) ? result : null; }
         }
 
 
@@ -104,11 +123,11 @@ namespace OnnxStack.UI.Dialogs
             if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            _modelSetResult = _modelFactory.CreateControlNetModelSet(ModelName.Trim(), _selectedControlNetType, _selectedPipelineType, _modelFile);
+            _modelSetResult = _modelFactory.CreateFeatureExtractorModelSet(ModelName.Trim(), _normalize, _sampleSize, _channels, _modelFile);
 
             // Validate
             ValidationResults.Add(new ValidationResult("Name", !_invalidOptions.Contains(_modelName, StringComparer.OrdinalIgnoreCase) && _modelName.Length > 2 && _modelName.Length < 50));
-            ValidationResults.Add(new ValidationResult("Model", File.Exists(_modelSetResult.ControlNetConfig.OnnxModelPath)));
+            ValidationResults.Add(new ValidationResult("Model", File.Exists(_modelSetResult.FeatureExtractorConfig.OnnxModelPath)));
         }
 
 

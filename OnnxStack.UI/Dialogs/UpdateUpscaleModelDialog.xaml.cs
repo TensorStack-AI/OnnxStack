@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,21 +18,21 @@ namespace OnnxStack.UI.Dialogs
     public partial class UpdateUpscaleModelDialog : Window, INotifyPropertyChanged
     {
         private List<string> _invalidOptions;
-        private OnnxStackUIConfig _uiSettings;
+        private OnnxStackUIConfig _settings;
         private UpscaleModelSet _modelSetResult;
         private UpdateUpscaleModelSetViewModel _updateModelSet;
         private string _validationError;
 
-        public UpdateUpscaleModelDialog(OnnxStackUIConfig uiSettings)
+        public UpdateUpscaleModelDialog(OnnxStackUIConfig settings)
         {
-            _uiSettings = uiSettings;
+            _settings = settings;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
-            _invalidOptions = uiSettings.GetModelNames();
+            _invalidOptions = _settings.UpscaleModelSets.Select(x => x.Name).ToList();
             InitializeComponent();
         }
 
-        public OnnxStackUIConfig UISettings => _uiSettings;
+        public OnnxStackUIConfig UISettings => _settings;
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
 

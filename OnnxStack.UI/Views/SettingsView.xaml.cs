@@ -25,6 +25,7 @@ namespace OnnxStack.UI.Views
         private StableDiffusionModelSetViewModel _selectedStableDiffusionModel;
         private UpscaleModelSetViewModel _selectedUpscaleModel;
         private ControlNetModelSetViewModel _selectedControlNetModel;
+        private FeatureExtractorModelSetViewModel _selectedFeatureExtractorModel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsView"/> class.
@@ -36,7 +37,7 @@ namespace OnnxStack.UI.Views
                 _logger = App.GetService<ILogger<SettingsView>>();
                 _dialogService = App.GetService<IDialogService>();
                 _deviceService = App.GetService<IDeviceService>();
-             
+
             }
 
             SaveCommand = new AsyncRelayCommand(SaveConfigurationFile);
@@ -50,8 +51,14 @@ namespace OnnxStack.UI.Views
             AddControlNetModelCommand = new AsyncRelayCommand(AddControlNetModel);
             UpdateControlNetModelCommand = new AsyncRelayCommand(UpdateControlNetModel, () => SelectedControlNetModel is not null);
             RemoveControlNetModelCommand = new AsyncRelayCommand(RemoveControlNetModel, () => SelectedControlNetModel is not null);
+
+            AddFeatureExtractorModelCommand = new AsyncRelayCommand(AddFeatureExtractorModel);
+            UpdateFeatureExtractorModelCommand = new AsyncRelayCommand(UpdateFeatureExtractorModel, () => SelectedFeatureExtractorModel is not null);
+            RemoveFeatureExtractorModelCommand = new AsyncRelayCommand(RemoveFeatureExtractorModel, () => SelectedFeatureExtractorModel is not null);
+
             InitializeComponent();
         }
+
 
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand AddUpscaleModelCommand { get; }
@@ -63,6 +70,10 @@ namespace OnnxStack.UI.Views
         public AsyncRelayCommand AddControlNetModelCommand { get; }
         public AsyncRelayCommand UpdateControlNetModelCommand { get; }
         public AsyncRelayCommand RemoveControlNetModelCommand { get; }
+        public AsyncRelayCommand AddFeatureExtractorModelCommand { get; }
+        public AsyncRelayCommand UpdateFeatureExtractorModelCommand { get; }
+        public AsyncRelayCommand RemoveFeatureExtractorModelCommand { get; }
+
 
         public OnnxStackUIConfig UISettings
         {
@@ -78,7 +89,7 @@ namespace OnnxStack.UI.Views
             get { return _selectedStableDiffusionModel; }
             set { _selectedStableDiffusionModel = value; NotifyPropertyChanged(); }
         }
-             
+
         public UpscaleModelSetViewModel SelectedUpscaleModel
         {
             get { return _selectedUpscaleModel; }
@@ -90,6 +101,15 @@ namespace OnnxStack.UI.Views
             get { return _selectedControlNetModel; }
             set { _selectedControlNetModel = value; NotifyPropertyChanged(); }
         }
+
+        public FeatureExtractorModelSetViewModel SelectedFeatureExtractorModel
+        {
+            get { return _selectedFeatureExtractorModel; }
+            set { _selectedFeatureExtractorModel = value; NotifyPropertyChanged(); }
+        }
+
+
+
 
         public Task NavigateAsync(ImageResult imageResult)
         {
@@ -270,6 +290,63 @@ namespace OnnxStack.UI.Views
 
             UISettings.ControlNetModelSets.Remove(SelectedControlNetModel);
             SelectedControlNetModel = UISettings.ControlNetModelSets.FirstOrDefault();
+            await SaveConfigurationFile();
+        }
+
+        #endregion
+
+
+        #region FeatureExtractor
+
+        private async Task AddFeatureExtractorModel()
+        {
+            var addModelDialog = _dialogService.GetDialog<AddFeatureExtractorModelDialog>();
+            if (addModelDialog.ShowDialog())
+            {
+                var model = new FeatureExtractorModelSetViewModel
+                {
+                    Name = addModelDialog.ModelSetResult.Name,
+                    ControlNetType = addModelDialog.ControlNetType,
+                    ModelSet = addModelDialog.ModelSetResult
+                };
+                UISettings.FeatureExtractorModelSets.Add(model);
+                SelectedFeatureExtractorModel = model;
+                await SaveConfigurationFile();
+            }
+        }
+
+
+        private async Task UpdateFeatureExtractorModel()
+        {
+            if (SelectedFeatureExtractorModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before updating", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var updateModelDialog = _dialogService.GetDialog<UpdateFeatureExtractorModelDialog>();
+            if (updateModelDialog.ShowDialog(SelectedFeatureExtractorModel.ModelSet, SelectedFeatureExtractorModel.ControlNetType))
+            {
+                var modelSet = updateModelDialog.ModelSetResult;
+                SelectedFeatureExtractorModel.ModelSet = modelSet;
+                SelectedFeatureExtractorModel.Name = modelSet.Name;
+                SelectedFeatureExtractorModel.ControlNetType = updateModelDialog.ControlNetType;
+                UISettings.FeatureExtractorModelSets.ForceNotifyCollectionChanged();
+                await SaveConfigurationFile();
+            }
+        }
+
+
+        private async Task RemoveFeatureExtractorModel()
+        {
+            if (SelectedFeatureExtractorModel.IsLoaded)
+            {
+                MessageBox.Show("Please unload model before uninstalling", "Model In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            UISettings.FeatureExtractorModelSets.Remove(SelectedFeatureExtractorModel);
+            SelectedFeatureExtractorModel = UISettings.FeatureExtractorModelSets.FirstOrDefault();
             await SaveConfigurationFile();
         }
 

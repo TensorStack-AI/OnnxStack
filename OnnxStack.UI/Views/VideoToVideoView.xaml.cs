@@ -195,7 +195,7 @@ namespace OnnxStack.UI.Views
         /// </summary>
         /// <param name="imageResult">The image result.</param>
         /// <returns></returns>
-        public async Task NavigateAsync(ImageResult imageResult)
+        public Task NavigateAsync(ImageResult imageResult)
         {
             throw new NotImplementedException();
         }

@@ -194,12 +194,12 @@ namespace OnnxStack.UI.Views
             IsGenerating = true;
             IsControlsEnabled = false;
             ResultImage = null;
-
+            _cancelationTokenSource = new CancellationTokenSource();
 
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var resultBytes = await _upscaleService.GenerateAsByteAsync(SelectedModel.ModelSet, new InputImage(InputImage.GetImageBytes()));
+                var resultBytes = await _upscaleService.GenerateAsByteAsync(SelectedModel.ModelSet, new InputImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
                 if (resultBytes != null)
                 {
                     var elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
