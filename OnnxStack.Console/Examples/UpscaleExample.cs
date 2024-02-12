@@ -1,18 +1,14 @@
 ﻿using OnnxStack.Core.Image;
 using OnnxStack.FeatureExtractor.Pipelines;
-using OnnxStack.ImageUpscaler.Config;
-using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner
 {
     public sealed class UpscaleExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly ImageUpscalerConfig _configuration;
 
-        public UpscaleExample(ImageUpscalerConfig configuration)
+        public UpscaleExample()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(UpscaleExample));
             Directory.CreateDirectory(_outputDirectory);
         }

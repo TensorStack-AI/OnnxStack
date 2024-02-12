@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
-using OnnxStack.ImageUpscaler.Services;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
 using System;
 using System.ComponentModel;
 using System.Linq;
