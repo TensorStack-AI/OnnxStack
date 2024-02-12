@@ -1,18 +1,13 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Config;
+using OnnxStack.FeatureExtractor.Common;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Models;
-using OnnxStack.UI.Views;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace OnnxStack.UI.Models
 {
-    public class UpdateControlNetModelSetViewModel : INotifyPropertyChanged
+    public class UpdateFeatureExtractorModelSetViewModel : INotifyPropertyChanged
     {
         private string _name;
         private int _deviceId;
@@ -21,9 +16,10 @@ namespace OnnxStack.UI.Models
         private ExecutionMode _executionMode;
         private ExecutionProvider _executionProvider;
         private string _modelFile;
-        private ControlNetType _controlNetType;
-        private DiffuserPipelineType _pipelineType;
-
+        private ControlNetType? _controlNetType;
+        private int _sampleSize;
+        private bool _normalize;
+        private int _channels;
 
         public string Name
         {
@@ -31,16 +27,28 @@ namespace OnnxStack.UI.Models
             set { _name = value; NotifyPropertyChanged(); }
         }
 
-        public ControlNetType ControlNetType
+        public ControlNetType? ControlNetType
         {
             get { return _controlNetType; }
             set { _controlNetType = value; NotifyPropertyChanged(); }
         }
 
-        public DiffuserPipelineType PipelineType
+        public int SampleSize
         {
-            get { return _pipelineType; }
-            set { _pipelineType = value; NotifyPropertyChanged(); }
+            get { return _sampleSize; }
+            set { _sampleSize = value; NotifyPropertyChanged(); }
+        }
+
+        public bool Normalize
+        {
+            get { return _normalize; }
+            set { _normalize = value; NotifyPropertyChanged(); }
+        }
+
+        public int Channels
+        {
+            get { return _channels; }
+            set { _channels = value; NotifyPropertyChanged(); }
         }
 
         public int DeviceId
@@ -80,37 +88,41 @@ namespace OnnxStack.UI.Models
         }
 
 
-        public static UpdateControlNetModelSetViewModel FromModelSet(ControlNetModelSet modelset)
+        public static UpdateFeatureExtractorModelSetViewModel FromModelSet(FeatureExtractorModelSet modelset, ControlNetType? controlNetType)
         {
-            return new UpdateControlNetModelSetViewModel
+            return new UpdateFeatureExtractorModelSetViewModel
             {
                 Name = modelset.Name,
-                ControlNetType = modelset.Type,
-                PipelineType = modelset.PipelineType,
                 DeviceId = modelset.DeviceId,
                 ExecutionMode = modelset.ExecutionMode,
                 ExecutionProvider = modelset.ExecutionProvider,
                 InterOpNumThreads = modelset.InterOpNumThreads,
                 IntraOpNumThreads = modelset.IntraOpNumThreads,
-                ModelFile = modelset.ControlNetConfig.OnnxModelPath
+
+                ControlNetType = controlNetType,
+                ModelFile = modelset.FeatureExtractorConfig.OnnxModelPath,
+                Normalize = modelset.FeatureExtractorConfig.Normalize,
+                SampleSize = modelset.FeatureExtractorConfig.SampleSize,
+                Channels = modelset.FeatureExtractorConfig.Channels,
             };
         }
 
-        public static ControlNetModelSet ToModelSet(UpdateControlNetModelSetViewModel modelset)
+        public static FeatureExtractorModelSet ToModelSet(UpdateFeatureExtractorModelSetViewModel modelset)
         {
-            return new ControlNetModelSet
+            return new FeatureExtractorModelSet
             {
                 IsEnabled = true,
                 Name = modelset.Name,
-                Type = modelset.ControlNetType,
-                PipelineType = modelset.PipelineType,
                 DeviceId = modelset.DeviceId,
                 ExecutionMode = modelset.ExecutionMode,
                 ExecutionProvider = modelset.ExecutionProvider,
                 InterOpNumThreads = modelset.InterOpNumThreads,
                 IntraOpNumThreads = modelset.IntraOpNumThreads,
-                ControlNetConfig = new ControlNetModelConfig
+                FeatureExtractorConfig = new FeatureExtractorModelConfig
                 {
+                    Channels = modelset.Channels,
+                    Normalize = modelset.Normalize,
+                    SampleSize = modelset.SampleSize,
                     OnnxModelPath = modelset.ModelFile
                 }
             };

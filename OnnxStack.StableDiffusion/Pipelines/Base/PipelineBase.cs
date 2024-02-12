@@ -105,7 +105,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public abstract IAsyncEnumerable<BatchResult> RunBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default);
+        public abstract IAsyncEnumerable<BatchResult> RunBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -164,7 +164,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                     if (promptOptions.DiffuserType == DiffuserType.ControlNetImage)
                         promptOptions.InputImage = new InputImage(videoFrame.Frame);
 
-                    promptOptions.InputContolImage = videoFrame.ControlImage;
+                    promptOptions.InputContolImage = videoFrame.ExtraFrame;
                 }
                 else
                 {

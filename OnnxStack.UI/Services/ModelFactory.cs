@@ -1,4 +1,5 @@
 ﻿using OnnxStack.Core.Config;
+using OnnxStack.FeatureExtractor.Common;
 using OnnxStack.ImageUpscaler.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -158,6 +159,28 @@ namespace OnnxStack.UI.Services
                 IntraOpNumThreads = _settings.DefaultIntraOpNumThreads,
                 ControlNetConfig = new ControlNetModelConfig
                 {
+                    OnnxModelPath = modelFilename
+                }
+            };
+        }
+
+
+        public FeatureExtractorModelSet CreateFeatureExtractorModelSet(string name, bool normalize, int sampleSize, int channels, string modelFilename)
+        {
+            return new FeatureExtractorModelSet
+            {
+                Name = name,
+                IsEnabled = true,
+                DeviceId = _settings.DefaultDeviceId,
+                ExecutionMode = _settings.DefaultExecutionMode,
+                ExecutionProvider = _settings.DefaultExecutionProvider,
+                InterOpNumThreads = _settings.DefaultInterOpNumThreads,
+                IntraOpNumThreads = _settings.DefaultIntraOpNumThreads,
+                FeatureExtractorConfig = new FeatureExtractorModelConfig
+                {
+                    Channels = channels,
+                    Normalize = normalize,
+                    SampleSize = sampleSize,
                     OnnxModelPath = modelFilename
                 }
             };

@@ -18,21 +18,21 @@ namespace OnnxStack.UI.Dialogs
     public partial class UpdateModelDialog : Window, INotifyPropertyChanged
     {
         private List<string> _invalidOptions;
-        private OnnxStackUIConfig _uiSettings;
+        private OnnxStackUIConfig _settings;
         private UpdateStableDiffusionModelSetViewModel _updateModelSet;
         private StableDiffusionModelSet _modelSetResult;
         private string _validationError;
 
-        public UpdateModelDialog(OnnxStackUIConfig uiSettings)
+        public UpdateModelDialog(OnnxStackUIConfig settings)
         {
-            _uiSettings = uiSettings;
+            _settings = settings;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
-            _invalidOptions = uiSettings.GetModelNames();
+            _invalidOptions = _settings.StableDiffusionModelSets.Select(x => x.Name).ToList();
             InitializeComponent();
         }
 
-        public OnnxStackUIConfig UISettings => _uiSettings;
+        public OnnxStackUIConfig UISettings => _settings;
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
 

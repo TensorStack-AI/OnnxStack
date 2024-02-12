@@ -42,6 +42,8 @@ namespace OnnxStack.UI
             builder.Services.AddTransient<UpdateUpscaleModelDialog>();
             builder.Services.AddTransient<AddControlNetModelDialog>();
             builder.Services.AddTransient<UpdateControlNetModelDialog>();
+            builder.Services.AddTransient<AddFeatureExtractorModelDialog>();
+            builder.Services.AddTransient<UpdateFeatureExtractorModelDialog>();
 
             builder.Services.AddSingleton<IModelFactory, ModelFactory>();
             builder.Services.AddSingleton<IDialogService, DialogService>();

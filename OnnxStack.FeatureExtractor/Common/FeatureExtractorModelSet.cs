@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OnnxStack.FeatureExtractor.Common
 {
-    public record AnnotationModelSet : IOnnxModelSetConfig
+    public record FeatureExtractorModelSet : IOnnxModelSetConfig
     {
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
@@ -15,14 +15,6 @@ namespace OnnxStack.FeatureExtractor.Common
         public ExecutionProvider ExecutionProvider { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public FeatureExtractorModelConfig CannyImageConfig { get; set; }
-
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public FeatureExtractorModelConfig HedImageConfig { get; set; }
-
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public FeatureExtractorModelConfig DepthImageConfig { get; set; }
+        public FeatureExtractorModelConfig FeatureExtractorConfig { get; set; }
     }
-
-
 }

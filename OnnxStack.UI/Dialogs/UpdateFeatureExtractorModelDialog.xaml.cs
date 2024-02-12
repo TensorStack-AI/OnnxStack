@@ -1,6 +1,8 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.FeatureExtractor.Common;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -13,33 +15,43 @@ using System.Windows;
 namespace OnnxStack.UI.Dialogs
 {
     /// <summary>
-    /// Interaction logic for UpdateControlNetModelDialog.xaml
+    /// Interaction logic for UpdateFeatureExtractorModelDialog.xaml
     /// </summary>
-    public partial class UpdateControlNetModelDialog : Window, INotifyPropertyChanged
+    public partial class UpdateFeatureExtractorModelDialog : Window, INotifyPropertyChanged
     {
         private List<string> _invalidOptions;
         private OnnxStackUIConfig _settings;
-        private ControlNetModelSet _modelSetResult;
-        private UpdateControlNetModelSetViewModel _updateModelSet;
+        private FeatureExtractorModelSet _modelSetResult;
+        private UpdateFeatureExtractorModelSetViewModel _updateModelSet;
         private string _validationError;
+        private string _controlNetFilter;
 
-        public UpdateControlNetModelDialog(OnnxStackUIConfig uiSettings)
+        public UpdateFeatureExtractorModelDialog(OnnxStackUIConfig settings)
         {
-            _settings = uiSettings;
+            _settings = settings;
             SaveCommand = new AsyncRelayCommand(Save, CanExecuteSave);
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
-            _invalidOptions = _settings.ControlNetModelSets.Select(x => x.Name).ToList();
+            _invalidOptions = _settings.FeatureExtractorModelSets.Select(x => x.Name).ToList();
+            ControlNetFilters = new List<string> { "N/A" };
+            ControlNetFilters.AddRange(Enum.GetNames<ControlNetType>());
             InitializeComponent();
         }
 
         public OnnxStackUIConfig UISettings => _settings;
         public AsyncRelayCommand SaveCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
+        public List<string> ControlNetFilters { get; set; }
 
-        public UpdateControlNetModelSetViewModel UpdateModelSet
+        public UpdateFeatureExtractorModelSetViewModel UpdateModelSet
         {
             get { return _updateModelSet; }
             set { _updateModelSet = value; NotifyPropertyChanged(); }
+        }
+
+        public string ControlNetFilter
+        {
+            get { return _controlNetFilter; }
+            set { _controlNetFilter = value; NotifyPropertyChanged(); }
         }
 
         public string ValidationError
@@ -48,16 +60,21 @@ namespace OnnxStack.UI.Dialogs
             set { _validationError = value; NotifyPropertyChanged(); }
         }
 
-        public ControlNetModelSet ModelSetResult
+        public FeatureExtractorModelSet ModelSetResult
         {
             get { return _modelSetResult; }
         }
 
+        public ControlNetType? ControlNetType
+        {
+            get { return Enum.TryParse<ControlNetType>(_controlNetFilter, out var result) ? result : null; }
+        }
 
-        public bool ShowDialog(ControlNetModelSet modelSet)
+        public bool ShowDialog(FeatureExtractorModelSet modelSet, ControlNetType? controlNetType)
         {
             _invalidOptions.Remove(modelSet.Name);
-            UpdateModelSet = UpdateControlNetModelSetViewModel.FromModelSet(modelSet);
+            UpdateModelSet = UpdateFeatureExtractorModelSetViewModel.FromModelSet(modelSet, controlNetType);
+            ControlNetFilter = controlNetType == null ? "N/A" : controlNetType.ToString();
             return base.ShowDialog() ?? false;
         }
 
@@ -66,7 +83,7 @@ namespace OnnxStack.UI.Dialogs
             if (_updateModelSet == null)
                 return false;
 
-            _modelSetResult = UpdateControlNetModelSetViewModel.ToModelSet(_updateModelSet);
+            _modelSetResult = UpdateFeatureExtractorModelSetViewModel.ToModelSet(_updateModelSet);
             if (_modelSetResult == null)
                 return false;
 
@@ -76,12 +93,12 @@ namespace OnnxStack.UI.Dialogs
                 return false;
             }
 
-            if (!File.Exists(_modelSetResult.ControlNetConfig.OnnxModelPath))
+            if (!File.Exists(_modelSetResult.FeatureExtractorConfig.OnnxModelPath))
             {
                 ValidationError = $"ContolNet model file not found";
                 return false;
             }
-            
+
             ValidationError = null;
             return true;
         }
