@@ -85,7 +85,6 @@ namespace OnnxStack.StableDiffusion.Config
         public float AestheticNegativeScore { get; set; } = 2.5f;
 
         public float ConditioningScale { get; set; } = 0.7f;
-        public bool IsControlImageProcessingEnabled { get; set; }
 
         public bool IsKarrasScheduler
         {
