@@ -200,7 +200,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
         /// <returns></returns>
         protected async Task<DenseTensor<float>> PrepareControlImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            return await promptOptions.InputContolImage.ToDenseTensorAsync(schedulerOptions.Height, schedulerOptions.Width , ImageNormalizeType.ZeroToOne);
+            return await promptOptions.InputContolImage.GetImageTensorAsync(schedulerOptions.Height, schedulerOptions.Width , ImageNormalizeType.ZeroToOne);
         }
     }
 }

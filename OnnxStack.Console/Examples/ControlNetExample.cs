@@ -32,7 +32,7 @@ namespace OnnxStack.Console.Runner
         public async Task RunAsync()
         {
             // Load Control Image
-            var controlImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\OpenPose.png");
+            var controlImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\OpenPose.png");
 
             // Create ControlNet
             var controlNet = ControlNetModel.Create("D:\\Repositories\\controlnet_onnx\\controlnet\\openpose.onnx");
@@ -54,11 +54,11 @@ namespace OnnxStack.Console.Runner
             var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet, progressCallback: OutputHelpers.ProgressCallback);
 
             // Create Image from Tensor result
-            var image = result.ToImage();
+            var image = new OnnxImage(result);
 
             // Save Image File
             var outputFilename = Path.Combine(_outputDirectory, $"Output.png");
-            await image.SaveAsPngAsync(outputFilename);
+            await image.SaveAsync(outputFilename);
 
             //Unload
             await controlNet.UnloadAsync();

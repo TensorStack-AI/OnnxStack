@@ -129,7 +129,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         private DenseTensor<float> PrepareMask(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            using (var imageMask = promptOptions.InputImageMask.ToImage())
+            using (var imageMask = promptOptions.InputImageMask.GetImage())
             {
                 var width = schedulerOptions.GetScaledWidth();
                 var height = schedulerOptions.GetScaledHeight();
@@ -173,8 +173,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <returns></returns>
         private async Task<DenseTensor<float>> PrepareImageMask(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            using (var image = await promptOptions.InputImage.ToImageAsync())
-            using (var mask = await promptOptions.InputImageMask.ToImageAsync())
+            using (var image = promptOptions.InputImage.GetImage())
+            using (var mask = promptOptions.InputImageMask.GetImage())
             {
                 int width = schedulerOptions.Width;
                 int height = schedulerOptions.Height;

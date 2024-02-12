@@ -26,7 +26,7 @@ namespace OnnxStack.Console.Runner
         public async Task RunAsync()
         {
             // Load Input Image
-            var inputImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
+            var inputImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
             // Create Pipeline
             var pipeline = ImageUpscalePipeline.CreatePipeline("D:\\Repositories\\upscaler\\SwinIR\\003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x4_GAN.onnx", 4);
@@ -35,11 +35,11 @@ namespace OnnxStack.Console.Runner
             var result = await pipeline.RunAsync(inputImage);
 
             // Create Image from Tensor result
-            var image = result.ToImage(ImageNormalizeType.ZeroToOne);
+            var image = new OnnxImage(result, ImageNormalizeType.ZeroToOne);
 
             // Save Image File
             var outputFilename = Path.Combine(_outputDirectory, $"Upscaled.png");
-            await image.SaveAsPngAsync(outputFilename);
+            await image.SaveAsync(outputFilename);
 
             // Unload
             await pipeline.UnloadAsync();

@@ -1,12 +1,11 @@
-﻿using Microsoft.ML.OnnxRuntime.Tensors;
+﻿using OnnxStack.Core.Image;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace OnnxStack.ImageUpscaler.Models
 {
     public record ImageTile
     {
-        public Image<Rgba32> Image { get; set; }
+        public OnnxImage Image { get; set; }
         public Rectangle Destination { get; set; }
     }
 }

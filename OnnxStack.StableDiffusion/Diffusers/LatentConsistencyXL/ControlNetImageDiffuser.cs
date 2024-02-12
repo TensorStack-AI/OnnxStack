@@ -60,7 +60,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <returns></returns>
         protected override async Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            var imageTensor = await prompt.InputImage.ToDenseTensorAsync(options.Height, options.Width);
+            var imageTensor = await prompt.InputImage.GetImageTensorAsync(options.Height, options.Width);
             var outputDimension = options.GetScaledDimension();
             var metadata = await _vaeEncoder.GetMetadataAsync();
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))

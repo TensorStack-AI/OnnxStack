@@ -199,7 +199,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var resultBytes = await _upscaleService.GenerateAsByteAsync(SelectedModel.ModelSet, new InputImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
+                var resultBytes = await _upscaleService.GenerateAsByteAsync(SelectedModel.ModelSet, new OnnxImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
                 if (resultBytes != null)
                 {
                     var elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds;

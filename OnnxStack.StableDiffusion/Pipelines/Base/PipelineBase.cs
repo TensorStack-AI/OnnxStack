@@ -162,13 +162,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 {
                     // ControlNetImage uses frame as input image
                     if (promptOptions.DiffuserType == DiffuserType.ControlNetImage)
-                        promptOptions.InputImage = new InputImage(videoFrame.Frame);
+                        promptOptions.InputImage = new OnnxImage(videoFrame.Frame);
 
                     promptOptions.InputContolImage = videoFrame.ExtraFrame;
                 }
                 else
                 {
-                    promptOptions.InputImage = new InputImage(videoFrame.Frame);
+                    promptOptions.InputImage = new OnnxImage(videoFrame.Frame);
                 }
 
                 var frameResultTensor = await diffuser.DiffuseAsync(promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerFrameCallback, cancellationToken);

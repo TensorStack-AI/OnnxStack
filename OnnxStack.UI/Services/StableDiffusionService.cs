@@ -129,62 +129,15 @@ namespace OnnxStack.UI.Services
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="DenseTensor<float>"/></returns>
-        public async Task<DenseTensor<float>> GenerateAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<OnnxImage> GenerateAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            return await DiffuseAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
-        }
-
-
-        /// <summary>
-        /// Generates the StableDiffusion image using the prompt and options provided.
-        /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The Scheduler options.</param>
-        /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The diffusion result as <see cref="SixLabors.ImageSharp.Image<Rgba32>"/></returns>
-        public async Task<Image<Rgba32>> GenerateAsImageAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            return await GenerateAsync(model, prompt, options, progressCallback, cancellationToken)
-                .ContinueWith(t => t.Result.ToImage(), cancellationToken)
+            return await DiffuseAsync(model, prompt, options, progressCallback, cancellationToken)
+                .ContinueWith(t => new OnnxImage(t.Result), cancellationToken)
                 .ConfigureAwait(false);
         }
 
 
-        /// <summary>
-        /// Generates the StableDiffusion image using the prompt and options provided.
-        /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The Scheduler options.</param>
-        /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The diffusion result as <see cref="byte[]"/></returns>
-        public async Task<byte[]> GenerateAsBytesAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            var generateResult = await GenerateAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
-            if (!prompt.HasInputVideo)
-                return generateResult.ToImageBytes();
 
-            return await GenerateVideoResultAsBytesAsync(generateResult, prompt.VideoOutputFPS, progressCallback, cancellationToken).ConfigureAwait(false);
-        }
-
-
-        /// <summary>
-        /// Generates the StableDiffusion image using the prompt and options provided.
-        /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The Scheduler options.</param>
-        /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The diffusion result as <see cref="System.IO.Stream"/></returns>
-        public async Task<Stream> GenerateAsStreamAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            var generateResult = await GenerateAsync(model, prompt, options, progressCallback, cancellationToken).ConfigureAwait(false);
-            if (!prompt.HasInputVideo)
-                return generateResult.ToImageStream();
-
-            return await GenerateVideoResultAsStreamAsync(generateResult, prompt.VideoOutputFPS, progressCallback, cancellationToken).ConfigureAwait(false);
-        }
 
 
         /// <summary>
@@ -203,65 +156,11 @@ namespace OnnxStack.UI.Services
         }
 
 
-        /// <summary>
-        /// Generates a batch of StableDiffusion image using the prompt and options provided.
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public async IAsyncEnumerable<Image<Rgba32>> GenerateBatchAsImageAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            await foreach (var result in GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progressCallback, cancellationToken))
-                yield return result.ImageResult.ToImage();
-        }
 
 
-        /// <summary>
-        /// Generates a batch of StableDiffusion image using the prompt and options provided.
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public async IAsyncEnumerable<byte[]> GenerateBatchAsBytesAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            await foreach (var result in GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progressCallback, cancellationToken))
-            {
-                if (!promptOptions.HasInputVideo)
-                    yield return result.ImageResult.ToImageBytes();
-
-                yield return await GenerateVideoResultAsBytesAsync(result.ImageResult, promptOptions.VideoOutputFPS, progressCallback, cancellationToken).ConfigureAwait(false);
-            }
-        }
 
 
-        /// <summary>
-        /// Generates a batch of StableDiffusion image using the prompt and options provided.
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public async IAsyncEnumerable<Stream> GenerateBatchAsStreamAsync(ModelOptions modelOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            await foreach (var result in GenerateBatchAsync(modelOptions, promptOptions, schedulerOptions, batchOptions, progressCallback, cancellationToken))
-            {
-                if (!promptOptions.HasInputVideo)
-                    yield return result.ImageResult.ToImageStream();
 
-                yield return await GenerateVideoResultAsStreamAsync(result.ImageResult, promptOptions.VideoOutputFPS, progressCallback, cancellationToken).ConfigureAwait(false);
-            }
-        }
 
 
         /// <summary>

@@ -30,7 +30,7 @@ namespace OnnxStack.Console.Runner
         public async Task RunAsync()
         {
             // Load Control Image
-            var inputImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
+            var inputImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
             var pipelines = new[]
             {
@@ -53,7 +53,7 @@ namespace OnnxStack.Console.Runner
                 OutputHelpers.WriteConsole($"Generating image", ConsoleColor.Cyan);
 
                 // Save Image
-                await imageFeature.Image.SaveAsPngAsync(Path.Combine(_outputDirectory, $"{pipeline.Name}.png"));
+                await imageFeature.SaveAsync(Path.Combine(_outputDirectory, $"{pipeline.Name}.png"));
 
 
                 OutputHelpers.WriteConsole($"Unload pipeline", ConsoleColor.Cyan);

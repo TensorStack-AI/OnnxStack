@@ -26,7 +26,7 @@ namespace OnnxStack.Core.Video
         {
             foreach (var frame in videoTensor.ToVideoFrames())
             {
-                yield return frame.ToImageBytes();
+                yield return new OnnxImage(frame).GetImageBytes();
             }
         }
 
@@ -34,16 +34,16 @@ namespace OnnxStack.Core.Video
         {
             foreach (var frame in videoTensor.ToVideoFrames())
             {
-                yield return await frame.ToImageBytesAsync();
+                yield return new OnnxImage(frame).GetImageBytes();
             }
         }
 
-        public static IEnumerable<Image<Rgba32>> ToVideoFramesAsImage(this DenseTensor<float> videoTensor)
-        {
-            foreach (var frame in videoTensor.ToVideoFrames())
-            {
-                yield return frame.ToImage();
-            }
-        }
+        //public static IEnumerable<Image<Rgba32>> ToVideoFramesAsImage(this DenseTensor<float> videoTensor)
+        //{
+        //    foreach (var frame in videoTensor.ToVideoFrames())
+        //    {
+        //        yield return frame.ToImage();
+        //    }
+        //}
     }
 }

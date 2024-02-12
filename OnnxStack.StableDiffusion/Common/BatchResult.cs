@@ -1,7 +1,7 @@
-﻿using Microsoft.ML.OnnxRuntime.Tensors;
+﻿using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Config;
 
 namespace OnnxStack.StableDiffusion.Common
 {
-    public record BatchResult(SchedulerOptions SchedulerOptions, DenseTensor<float> ImageResult);
+    public record BatchResult(SchedulerOptions SchedulerOptions, OnnxImage ImageResult);
 }

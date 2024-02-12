@@ -61,11 +61,11 @@ namespace OnnxStack.Console.Runner
                 await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions, progressCallback: OutputHelpers.BatchProgressCallback))
                 {
                     // Create Image from Tensor result
-                    var image = result.ImageResult.ToImage();
+                    var image = result.ImageResult;
 
                     // Save Image File
                     var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}_{result.SchedulerOptions.Seed}.png");
-                    await image.SaveAsPngAsync(outputFilename);
+                    await image.SaveAsync(outputFilename);
 
                     OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Green);
                     timestamp = Stopwatch.GetTimestamp();

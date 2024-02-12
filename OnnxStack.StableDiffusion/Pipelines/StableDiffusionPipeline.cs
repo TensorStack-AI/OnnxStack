@@ -2,6 +2,7 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -230,7 +231,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                      ? await DiffuseVideoAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, progressCallback, cancellationToken)
                      : await DiffuseImageAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, batchSchedulerCallback, cancellationToken);
 
-                yield return new BatchResult(batchSchedulerOption, tensorResult);
+                yield return new BatchResult(batchSchedulerOption, new OnnxImage(tensorResult));
                 batchIndex++;
             }
 

@@ -6,7 +6,6 @@ using OnnxStack.Core.Model;
 using OnnxStack.Core.Services;
 using OnnxStack.Core.Video;
 using OnnxStack.ImageUpscaler.Common;
-using OnnxStack.ImageUpscaler.Config;
 using OnnxStack.ImageUpscaler.Extensions;
 using OnnxStack.ImageUpscaler.Models;
 using SixLabors.ImageSharp;
@@ -86,7 +85,7 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        public async Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default)
+        public async Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             return await GenerateInternalAsync(modelOptions, inputImage, cancellationToken);
         }
@@ -98,10 +97,10 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        public async Task<Image<Rgba32>> GenerateAsImageAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default)
+        public async Task<OnnxImage> GenerateAsImageAsync(UpscaleModelSet modelOptions, OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             var imageTensor = await GenerateInternalAsync(modelOptions, inputImage, cancellationToken);
-            return imageTensor.ToImage(ImageNormalizeType.ZeroToOne);
+            return new OnnxImage(imageTensor, ImageNormalizeType.ZeroToOne);
         }
 
 
@@ -111,13 +110,13 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        public async Task<byte[]> GenerateAsByteAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default)
+        public async Task<byte[]> GenerateAsByteAsync(UpscaleModelSet modelOptions, OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             var imageTensor = await GenerateInternalAsync(modelOptions, inputImage, cancellationToken);
             using (var memoryStream = new MemoryStream())
-            using (var image = imageTensor.ToImage(ImageNormalizeType.ZeroToOne))
+            using (var image = new OnnxImage(imageTensor, ImageNormalizeType.ZeroToOne))
             {
-                await image.SaveAsPngAsync(memoryStream);
+                await image.SaveAsync(memoryStream);
                 return memoryStream.ToArray();
             }
         }
@@ -129,13 +128,13 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        public async Task<Stream> GenerateAsStreamAsync(UpscaleModelSet modelOptions, InputImage inputImage, CancellationToken cancellationToken = default)
+        public async Task<Stream> GenerateAsStreamAsync(UpscaleModelSet modelOptions, OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             var imageTensor = await GenerateInternalAsync(modelOptions, inputImage, cancellationToken);
-            using (var image = imageTensor.ToImage(ImageNormalizeType.ZeroToOne))
+            using (var image = new OnnxImage(imageTensor, ImageNormalizeType.ZeroToOne))
             {
                 var memoryStream = new MemoryStream();
-                await image.SaveAsPngAsync(memoryStream);
+                await image.SaveAsync(memoryStream);
                 return memoryStream;
             }
         }
@@ -180,9 +179,9 @@ namespace OnnxStack.ImageUpscaler.Services
                     cancellationToken.ThrowIfCancellationRequested();
 
                     using (var imageStream = new MemoryStream())
-                    using (var imageFrame = tensorFrame.ToImage(ImageNormalizeType.ZeroToOne))
+                    using (var imageFrame = new OnnxImage(tensorFrame, ImageNormalizeType.ZeroToOne))
                     {
-                        await imageFrame.SaveAsPngAsync(imageStream);
+                        await imageFrame.SaveAsync(imageStream);
                         return imageStream.ToArray();
                     }
                 }));
@@ -211,39 +210,36 @@ namespace OnnxStack.ImageUpscaler.Services
         /// </summary>
         /// <param name="modelOptions">The model options.</param>
         /// <param name="inputImage">The input image.</param>
-        private async Task<DenseTensor<float>> GenerateInternalAsync(UpscaleModelSet modelSet, InputImage inputImage, CancellationToken cancellationToken)
+        private async Task<DenseTensor<float>> GenerateInternalAsync(UpscaleModelSet modelSet, OnnxImage inputImage, CancellationToken cancellationToken)
         {
             if (!_modelSessions.TryGetValue(modelSet, out var modelSession))
                 throw new System.Exception("Model not loaded");
 
-            using (var image = await inputImage.ToImageAsync())
+            var upscaleInput = CreateInputParams(inputImage, modelSession.SampleSize, modelSession.ScaleFactor);
+            var metadata = await modelSession.GetMetadataAsync();
+
+            var outputTensor = new DenseTensor<float>(new[] { 1, modelSession.Channels, upscaleInput.OutputHeight, upscaleInput.OutputWidth });
+            foreach (var imageTile in upscaleInput.ImageTiles)
             {
+                cancellationToken.ThrowIfCancellationRequested();
 
-                var upscaleInput = CreateInputParams(image, modelSession.SampleSize, modelSession.ScaleFactor);
-                var metadata = await modelSession.GetMetadataAsync();
-
-                var outputTensor = new DenseTensor<float>(new[] { 1, modelSession.Channels, upscaleInput.OutputHeight, upscaleInput.OutputWidth });
-                foreach (var imageTile in upscaleInput.ImageTiles)
+                var outputDimension = new[] { 1, modelSession.Channels, imageTile.Destination.Height, imageTile.Destination.Width };
+                var inputTensor = imageTile.Image.GetImageTensor(ImageNormalizeType.ZeroToOne, modelSession.Channels);
+                using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    inferenceParameters.AddInputTensor(inputTensor);
+                    inferenceParameters.AddOutputBuffer(outputDimension);
 
-                    var outputDimension = new[] { 1, modelSession.Channels, imageTile.Destination.Height, imageTile.Destination.Width };
-                    var inputTensor = imageTile.Image.ToDenseTensor(ImageNormalizeType.ZeroToOne, modelSession.Channels);
-                    using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+                    var results = await modelSession.RunInferenceAsync(inferenceParameters);
+                    using (var result = results.First())
                     {
-                        inferenceParameters.AddInputTensor(inputTensor);
-                        inferenceParameters.AddOutputBuffer(outputDimension);
-
-                        var results = await modelSession.RunInferenceAsync(inferenceParameters);
-                        using (var result = results.First())
-                        {
-                            outputTensor.ApplyImageTile(result.ToDenseTensor(), imageTile.Destination);
-                        }
+                        outputTensor.ApplyImageTile(result.ToDenseTensor(), imageTile.Destination);
                     }
                 }
-
-                return outputTensor;
             }
+
+            return outputTensor;
+
         }
 
 
@@ -265,14 +261,14 @@ namespace OnnxStack.ImageUpscaler.Services
             var outputTensors = new List<DenseTensor<float>>();
             foreach (var frame in videoFrames.Frames)
             {
-                using (var imageFrame = Image.Load<Rgba32>(frame.Frame))
+                using (var imageFrame = new OnnxImage(frame.Frame))
                 {
                     var input = CreateInputParams(imageFrame, modelSession.SampleSize, modelSession.ScaleFactor);
                     var outputDimension = new[] { 1, modelSession.Channels, 0, 0 };
                     var outputTensor = new DenseTensor<float>(new[] { 1, modelSession.Channels, input.OutputHeight, input.OutputWidth });
                     foreach (var imageTile in input.ImageTiles)
                     {
-                        var inputTensor = imageTile.Image.ToDenseTensor(ImageNormalizeType.ZeroToOne, modelSession.Channels);
+                        var inputTensor = imageTile.Image.GetImageTensor(ImageNormalizeType.ZeroToOne, modelSession.Channels);
                         outputDimension[2] = imageTile.Destination.Height;
                         outputDimension[3] = imageTile.Destination.Width;
                         using (var inferenceParameters = new OnnxInferenceParameters(metadata))
@@ -301,7 +297,7 @@ namespace OnnxStack.ImageUpscaler.Services
         /// <param name="maxTileSize">Maximum size of the tile.</param>
         /// <param name="scaleFactor">The scale factor.</param>
         /// <returns></returns>
-        private static UpscaleInput CreateInputParams(Image<Rgba32> imageSource, int maxTileSize, int scaleFactor)
+        private static UpscaleInput CreateInputParams(OnnxImage imageSource, int maxTileSize, int scaleFactor)
         {
             var tiles = imageSource.GenerateTiles(maxTileSize, scaleFactor);
             var width = imageSource.Width * scaleFactor;

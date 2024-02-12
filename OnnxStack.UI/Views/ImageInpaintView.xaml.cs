@@ -220,7 +220,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(new ModelOptions(_selectedModel.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateAsync(new ModelOptions(_selectedModel.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultImage = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultImage != null)
                 {
@@ -330,14 +330,8 @@ namespace OnnxStack.UI.Views
                 DiffuserType = SelectedModel.ModelSet.Diffusers.Contains(DiffuserType.ImageInpaint)
                     ? DiffuserType.ImageInpaint
                     : DiffuserType.ImageInpaintLegacy,
-                InputImage = new InputImage
-                {
-                    ImageBytes = imageInput.Image.GetImageBytes()
-                },
-                InputImageMask = new InputImage
-                {
-                    ImageBytes = imageInputMask.Image.GetImageBytes()
-                }
+                InputImage = new OnnxImage(imageInput.Image.GetImageBytes()),
+                InputImageMask = new OnnxImage(imageInputMask.Image.GetImageBytes())
             };
         }
 
@@ -350,9 +344,9 @@ namespace OnnxStack.UI.Views
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="timestamp">The timestamp.</param>
         /// <returns></returns>
-        private Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        private Task<ImageResult> GenerateResultAsync(OnnxImage onnxImage, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
         {
-            var image = Utils.CreateBitmap(imageBytes);
+            var image = Utils.CreateBitmap(onnxImage.GetImageBytes());
 
             var imageResult = new ImageResult
             {

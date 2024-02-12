@@ -158,7 +158,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <returns></returns>
         protected override async Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
         {
-            var imageTensor = await prompt.InputImage.ToDenseTensorAsync(options.Height, options.Width);
+            var imageTensor = await prompt.InputImage.GetImageTensorAsync(options.Height, options.Width);
 
             //TODO: Model Config, Channels
             var outputDimensions = options.GetScaledDimension();
@@ -191,7 +191,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <returns></returns>
         private DenseTensor<float> PrepareMask(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
         {
-            using (var mask = promptOptions.InputImageMask.ToImage())
+            using (var mask = promptOptions.InputImageMask.GetImage())
             {
                 // Prepare the mask
                 int width = schedulerOptions.GetScaledWidth();
