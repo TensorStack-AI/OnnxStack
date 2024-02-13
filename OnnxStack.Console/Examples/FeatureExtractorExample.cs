@@ -1,4 +1,5 @@
 ﻿using OnnxStack.Core.Image;
+using OnnxStack.Core.Video;
 using OnnxStack.FeatureExtractor.Pipelines;
 using OnnxStack.StableDiffusion.Config;
 using SixLabors.ImageSharp;
@@ -47,14 +48,13 @@ namespace OnnxStack.Console.Runner
                 var timestamp = Stopwatch.GetTimestamp();
                 OutputHelpers.WriteConsole($"Load pipeline`{pipeline.Name}`", ConsoleColor.Cyan);
 
-                // Run Pipeline
+                // Run Image Pipeline
                 var imageFeature = await pipeline.RunAsync(inputImage);
 
                 OutputHelpers.WriteConsole($"Generating image", ConsoleColor.Cyan);
 
                 // Save Image
                 await imageFeature.SaveAsync(Path.Combine(_outputDirectory, $"{pipeline.Name}.png"));
-
 
                 OutputHelpers.WriteConsole($"Unload pipeline", ConsoleColor.Cyan);
 

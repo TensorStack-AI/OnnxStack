@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OnnxStack.Common.Config;
 using OnnxStack.Core.Config;
-using OnnxStack.Core.Services;
 
 namespace OnnxStack.Core
 {

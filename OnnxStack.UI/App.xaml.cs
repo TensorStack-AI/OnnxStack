@@ -2,9 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
-using OnnxStack.Core.Services;
-using OnnxStack.ImageUpscaler;
-using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
@@ -50,7 +47,6 @@ namespace OnnxStack.UI
             builder.Services.AddSingleton<IDeviceService, DeviceService>();
             builder.Services.AddSingleton<IStableDiffusionService, StableDiffusionService>();
             builder.Services.AddSingleton<IUpscaleService, UpscaleService>();
-            builder.Services.AddSingleton<IVideoService, VideoService>();
 
 
             // Build App

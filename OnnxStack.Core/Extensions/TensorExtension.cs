@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using System;
+using System.Collections.Generic;
 
 namespace OnnxStack.Core
 {
@@ -50,6 +51,26 @@ namespace OnnxStack.Core
             for (var i = 0; i < values.Length; i++)
             {
                 values[i] = (values[i] - min) / range;
+            }
+        }
+
+
+        /// <summary>
+        /// Splits the tensor across the batch dimension.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <returns></returns>
+        public static IEnumerable<DenseTensor<float>> SplitBatch(this DenseTensor<float> tensor)
+        {
+            var count = tensor.Dimensions[0];
+            var dimensions = tensor.Dimensions.ToArray();
+            dimensions[0] = 1;
+
+            var newLength = (int)tensor.Length / count;
+            for (int i = 0; i < count; i++)
+            {
+                var start = i * newLength;
+                yield return new DenseTensor<float>(tensor.Buffer.Slice(start, newLength), dimensions);
             }
         }
 

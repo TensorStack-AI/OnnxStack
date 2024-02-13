@@ -1,6 +1,4 @@
-﻿using OnnxStack.Core.Services;
-using OnnxStack.Core.Video;
-using OnnxStack.StableDiffusion.Common;
+﻿using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Pipelines;
@@ -11,12 +9,10 @@ namespace OnnxStack.Console.Runner
     {
         private readonly string _outputDirectory;
         private readonly StableDiffusionConfig _configuration;
-        private readonly IVideoService _videoService;
 
-        public VideoToVideoExample(StableDiffusionConfig configuration, IVideoService videoService)
+        public VideoToVideoExample(StableDiffusionConfig configuration)
         {
             _configuration = configuration;
-            _videoService = videoService;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(VideoToVideoExample));
             Directory.CreateDirectory(_outputDirectory);
         }
@@ -30,8 +26,7 @@ namespace OnnxStack.Console.Runner
         public async Task RunAsync()
         {
             // Load Video
-            var targetFPS = 15;
-            var videoInput = await VideoInput.FromFileAsync("C:\\Users\\Deven\\Pictures\\gidsgphy.gif", targetFPS);
+            var videoInput = await OnnxVideo.FromFileAsync("C:\\Users\\Deven\\Pictures\\gidsgphy.gif");
 
             // Loop though the appsettings.json model sets
             foreach (var modelSet in _configuration.ModelSets)
@@ -53,11 +48,10 @@ namespace OnnxStack.Console.Runner
                 };
 
                 // Run pipeline
-                var result = await pipeline.RunAsync(promptOptions, progressCallback: OutputHelpers.FrameProgressCallback);
+                var result = await pipeline.GenerateVideoAsync(promptOptions, progressCallback: OutputHelpers.FrameProgressCallback);
 
                 // Save Video File
-                var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}.mp4");
-                await VideoInput.SaveFileAsync(result, outputFilename, targetFPS);
+                await result.SaveAsync(Path.Combine(_outputDirectory, $"Result.mp4"));
             }
         }
     }

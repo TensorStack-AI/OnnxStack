@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace OnnxStack.Core.Model
 {
-    public record OnnxNamedMetadata(string Name, NodeMetadata Value)
+    public sealed record OnnxNamedMetadata(string Name, NodeMetadata Value)
     {
         internal static OnnxNamedMetadata Create(KeyValuePair<string, NodeMetadata> metadata)
         {

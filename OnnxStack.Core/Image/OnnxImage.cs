@@ -10,7 +10,7 @@ using ImageSharp = SixLabors.ImageSharp.Image;
 
 namespace OnnxStack.Core.Image
 {
-    public class OnnxImage : IDisposable
+    public sealed class OnnxImage : IDisposable
     {
         private readonly Image<Rgba32> _imageData;
 
@@ -222,6 +222,10 @@ namespace OnnxStack.Core.Image
             });
         }
 
+        public OnnxImage Clone()
+        {
+            return new OnnxImage(_imageData);
+        }
 
         /// <summary>
         /// Saves the specified image to file.

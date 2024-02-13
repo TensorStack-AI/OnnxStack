@@ -14,11 +14,11 @@ https://huggingface.co/julienkay/sentis-MiDaS
 ## OpenPose (TODO)
 https://huggingface.co/axodoxian/controlnet_onnx/resolve/main/annotators/openpose.onnx
 
-# Basic Example
+# Image Example
 ```csharp
 
 // Load Input Image
-var inputImage = await InputImage.FromFileAsync("Input.png");
+var inputImage = await OnnxImage.FromFileAsync("Input.png");
 
 // Load Pipeline
 var pipeline = FeatureExtractorPipeline.CreatePipeline("canny.onnx");
@@ -27,7 +27,26 @@ var pipeline = FeatureExtractorPipeline.CreatePipeline("canny.onnx");
 var imageFeature = await pipeline.RunAsync(inputImage);
 
 // Save Image
-await imageFeature.Image.SaveAsPngAsync("Result.png");
+await imageFeature.Image.SaveAsync("Result.png");
+
+//Unload
+await pipeline.UnloadAsync();
+ ```
+
+ # Video Example
+```csharp
+
+// Load Input Video
+var inputVideo = await OnnxVideo.FromFileAsync("Input.mp4");
+
+// Load Pipeline
+var pipeline = FeatureExtractorPipeline.CreatePipeline("canny.onnx");
+
+// Run Pipeline
+var videoFeature = await pipeline.RunAsync(inputVideo);
+
+// Save Video
+await videoFeature.SaveAsync("Result.mp4");
 
 //Unload
 await pipeline.UnloadAsync();

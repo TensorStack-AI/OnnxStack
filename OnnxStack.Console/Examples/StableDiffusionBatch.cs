@@ -61,7 +61,7 @@ namespace OnnxStack.Console.Runner
                 await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions, progressCallback: OutputHelpers.BatchProgressCallback))
                 {
                     // Create Image from Tensor result
-                    var image = result.ImageResult;
+                    var image = new OnnxImage(result.Result);
 
                     // Save Image File
                     var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}_{result.SchedulerOptions.Seed}.png");

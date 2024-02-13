@@ -2,7 +2,7 @@
 
 namespace OnnxStack.Core.Model
 {
-    public record OnnxMetadata
+    public sealed record OnnxMetadata
     {
         /// <summary>
         /// Gets or sets the inputs.

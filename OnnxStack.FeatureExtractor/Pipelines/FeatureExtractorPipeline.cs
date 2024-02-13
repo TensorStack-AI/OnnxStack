@@ -5,6 +5,7 @@ using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Video;
 using OnnxStack.FeatureExtractor.Common;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -88,16 +89,16 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// </summary>
         /// <param name="videoFrames">The input video.</param>
         /// <returns></returns>
-        public async Task<VideoFrames> RunAsync(VideoFrames videoFrames, CancellationToken cancellationToken = default)
+        public async Task<OnnxVideo> RunAsync(OnnxVideo video, CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Extracting video features...");
             var metadata = await _featureExtractorModel.GetMetadataAsync();
             cancellationToken.ThrowIfCancellationRequested();
 
-            foreach (var videoFrame in videoFrames.Frames)
+            var frames = new List<OnnxImage>();
+            foreach (var videoFrame in video.Frames)
             {
-                var image = new OnnxImage(videoFrame.Frame);
-                var controlImage = await image.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, ImageNormalizeType.ZeroToOne);
+                var controlImage = await videoFrame.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, ImageNormalizeType.ZeroToOne);
                 using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                 {
                     inferenceParameters.AddInputTensor(controlImage);
@@ -113,12 +114,12 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                             resultTensor.NormalizeMinMax();
 
                         var maskImage = resultTensor.ToImageMask();
-                        videoFrame.ExtraFrame = maskImage;
+                        frames.Add(maskImage);
                     }
                 }
             }
             _logger?.LogEnd("Extracting video features complete.", timestamp);
-            return videoFrames;
+            return new OnnxVideo(video.Info, frames);
         }
 
 

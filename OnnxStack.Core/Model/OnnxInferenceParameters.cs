@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace OnnxStack.Core.Model
 {
-    public class OnnxInferenceParameters : IDisposable
+    public sealed class OnnxInferenceParameters : IDisposable
     {
         private readonly RunOptions _runOptions;
         private readonly OnnxMetadata _metadata;

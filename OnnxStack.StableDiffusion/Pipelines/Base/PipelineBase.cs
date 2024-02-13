@@ -2,6 +2,7 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Image;
+using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
@@ -95,6 +96,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         public abstract Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
+
+
         /// <summary>
         /// Runs the pipeline batch.
         /// </summary>
@@ -106,6 +109,56 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         public abstract IAsyncEnumerable<BatchResult> RunBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+
+
+        /// <summary>
+        /// Runs the pipeline returning the result as an OnnxImage.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public abstract Task<OnnxImage> GenerateImageAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+
+
+        /// <summary>
+        /// Runs the batch pipeline returning the result as an OnnxImage.
+        /// </summary>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public abstract IAsyncEnumerable<OnnxImage> GenerateImageBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+
+
+        /// <summary>
+        /// Runs the pipeline returning the result as an OnnxVideo.
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public abstract Task<OnnxVideo> GenerateVideoAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+
+
+        /// <summary>
+        /// Runs the batch pipeline returning the result as an OnnxVideo.
+        /// </summary>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public abstract IAsyncEnumerable<OnnxVideo> GenerateVideoBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -146,42 +199,38 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> DiffuseVideoAsync(IDiffuser diffuser, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        protected async IAsyncEnumerable<DenseTensor<float>> DiffuseVideoAsync(IDiffuser diffuser, PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var diffuseTime = _logger?.LogBegin("Video Diffuser starting...");
 
             var frameIndex = 0;
-            DenseTensor<float> videoTensor = null;
-            var videoFrames = promptOptions.InputVideo.VideoFrames.Frames;
+            var videoFrames = promptOptions.InputVideo.Frames;
             var schedulerFrameCallback = CreateBatchCallback(progressCallback, videoFrames.Count, () => frameIndex);
             foreach (var videoFrame in videoFrames)
             {
-                frameIndex++;
-                //  byte[] videoFrame = videoFrames[i].Frame;
                 if (promptOptions.DiffuserType == DiffuserType.ControlNet || promptOptions.DiffuserType == DiffuserType.ControlNetImage)
                 {
                     // ControlNetImage uses frame as input image
                     if (promptOptions.DiffuserType == DiffuserType.ControlNetImage)
-                        promptOptions.InputImage = new OnnxImage(videoFrame.Frame);
+                        promptOptions.InputImage = videoFrame;
 
-                    promptOptions.InputContolImage = videoFrame.ExtraFrame;
+                    promptOptions.InputContolImage = promptOptions.InputContolVideo?.GetFrame(frameIndex);
                 }
                 else
                 {
-                    promptOptions.InputImage = new OnnxImage(videoFrame.Frame);
+                    promptOptions.InputImage = videoFrame;
                 }
 
                 var frameResultTensor = await diffuser.DiffuseAsync(promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerFrameCallback, cancellationToken);
 
                 // Frame Progress
-                ReportBatchProgress(progressCallback, frameIndex, videoFrames.Count, frameResultTensor);
+                ReportBatchProgress(progressCallback, ++frameIndex, videoFrames.Count, frameResultTensor);
 
                 // Concatenate frame
-                videoTensor = videoTensor.Concatenate(frameResultTensor);
+                yield return frameResultTensor;
             }
 
             _logger?.LogEnd($"Video Diffuser complete", diffuseTime);
-            return videoTensor;
         }
 
 
