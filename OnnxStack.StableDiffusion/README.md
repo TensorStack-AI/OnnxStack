@@ -53,11 +53,10 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
 var promptOptions = new PromptOptions { Prompt = "Photo of a cute dog." };
 
 // Run Pipleine
-var result = await pipeline.RunAsync(promptOptions);
+var result = await pipeline.GenerateImageAsync(promptOptions);
 
 // Save image result
-var image = result.ToImage();
-await image.SaveAsPngAsync("D:\\Results\\Image.png");
+await result.SaveAsync("D:\\Results\\Image.png");
 
 // Unload Pipleine
 await pipeline.UnloadAsync();
@@ -86,8 +85,8 @@ var batchOptions = new BatchOptions
 await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions))
 {
     // Save Image result
-   var image = result.ImageResult.ToImage();
-   await image.SaveAsPngAsync($"Output_Batch_{result.SchedulerOptions.Seed}.png");
+   var image = new OnnxImage(result.ImageResult);
+   await image.SaveAsync($"Output_Batch_{result.SchedulerOptions.Seed}.png");
 }
 
 // Unload Pipleine
@@ -107,7 +106,7 @@ Run Stable Diffusion process with an initial image as input
 var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-v1-5");
 
 // Load Input Image
-var inputImage = await InputImage.FromFileAsync("Input.png");
+var inputImage = await OnnxImage.FromFileAsync("Input.png");
 
 // Set Prompt Options
 var promptOptions = new PromptOptions
@@ -125,11 +124,10 @@ var schedulerOptions = pipeline.DefaultSchedulerOptions with
 };
 
 // Run Pipleine
-var result = await pipeline.RunAsync(promptOptions, schedulerOptions);
+var result = await pipeline.GenerateImageAsync(promptOptions, schedulerOptions);
 
 // Save image result
-var image = result.ToImage();
-await image.SaveAsPngAsync("Output_ImageToImage.png");
+await result.SaveAsync("Output_ImageToImage.png");
 
 // Unload Pipleine
 await pipeline.UnloadAsync();
@@ -153,7 +151,7 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable_diffusion_
 var controlNet = ControlNetModel.Create("models\\controlnet_onnx\\controlnet\\depth.onnx");
 
 // Load Control Image
-var controlImage = await InputImage.FromFileAsync("Input_Depth.png");
+var controlImage = await OnnxImage.FromFileAsync("Input_Depth.png");
 
 // Set Prompt Options
 var promptOptions = new PromptOptions
@@ -164,11 +162,10 @@ var promptOptions = new PromptOptions
 };
 
 // Run Pipleine
-var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet);
+var result = await pipeline.GenerateImageAsync(promptOptions, controlNet: controlNet);
 
 // Save image result
-var image = result.ToImage();
-await image.SaveAsPngAsync("Output_ControlNet.png");
+await result.SaveAsync("Output_ControlNet.png");
 
 // Unload Pipleine
 await pipeline.UnloadAsync();
@@ -194,7 +191,7 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
 
  // Load Video
  var targetFPS = 15;
- var videoInput = await VideoInput.FromFileAsync("Input.gif", targetFPS);
+ var videoInput = await OnnxVideo.FromFileAsync("Input.gif", targetFPS);
 
  // Add text and video to prompt
  var promptOptions = new PromptOptions
@@ -205,11 +202,10 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
  };
 
  // Run pipeline
- var result = await pipeline.RunAsync(promptOptions, progressCallback: OutputHelpers.FrameProgressCallback);
+ var result = await pipeline.GenerateVideoAsync(promptOptions);
 
  // Save Video File
- var outputFilename = Path.Combine(_outputDirectory, "Output_VideoToVideo.mp4");
- await VideoInput.SaveFileAsync(result, outputFilename, targetFPS);
+ await result.SaveAsync("Output_VideoToVideo.mp4");
 
 // Unload Pipleine
 await pipeline.UnloadAsync();
