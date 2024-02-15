@@ -43,14 +43,5 @@ namespace OnnxStack.UI.Services
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
         Task<OnnxImage> GenerateAsync(UpscaleModelSet modelOptions, OnnxImage inputImage, CancellationToken cancellationToken = default);
-
-
-        /// <summary>
-        /// Generates the upscaled video.
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="videoInput">The video input.</param>
-        /// <returns></returns>
-        Task<DenseTensor<float>> GenerateAsync(UpscaleModelSet modelOptions, OnnxVideo videoInput, CancellationToken cancellationToken = default);
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Win32;
-using OnnxStack.Core.Services;
+using OnnxStack.Core.Video;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
@@ -15,7 +15,6 @@ namespace OnnxStack.UI.UserControls
 {
     public partial class VideoInputControl : UserControl, INotifyPropertyChanged
     {
-        private readonly IVideoService _videoService;
         private bool _isPlaying = false;
 
         /// <summary>
@@ -23,9 +22,6 @@ namespace OnnxStack.UI.UserControls
         /// </summary>
         public VideoInputControl()
         {
-            if (!DesignerProperties.GetIsInDesignMode(this))
-                _videoService = App.GetService<IVideoService>();
-
             LoadVideoCommand = new AsyncRelayCommand(LoadVideo);
             ClearVideoCommand = new AsyncRelayCommand(ClearVideo);
             InitializeComponent();
@@ -119,7 +115,7 @@ namespace OnnxStack.UI.UserControls
             if (openFileDialog.ShowDialog() == true)
             {
                 var videoBytes = await File.ReadAllBytesAsync(openFileDialog.FileName);
-                var videoInfo = await _videoService.GetVideoInfoAsync(videoBytes);
+                var videoInfo = await VideoHelper.ReadVideoInfoAsync(videoBytes);
                 VideoResult = new VideoInputModel
                 {
                     FileName = openFileDialog.FileName,
@@ -127,8 +123,8 @@ namespace OnnxStack.UI.UserControls
                     VideoBytes = videoBytes
                 };
                 HasVideoResult = true;
-                PromptOptions.VideoInputFPS = videoInfo.FPS;
-                PromptOptions.VideoOutputFPS = videoInfo.FPS;
+                PromptOptions.VideoInputFPS = videoInfo.FrameRate;
+                PromptOptions.VideoOutputFPS = videoInfo.FrameRate;
             }
         }
 

@@ -208,7 +208,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateImageAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultImage = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultImage != null)
                 {

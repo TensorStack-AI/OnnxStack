@@ -63,6 +63,9 @@ namespace OnnxStack.Core.Video
         /// <param name="cancellationToken">The cancellation token.</param>
         private static async Task WriteVideoFramesAsync(IEnumerable<OnnxImage> onnxImages, string filename, float frameRate, double aspectRatio, CancellationToken cancellationToken = default)
         {
+            if (File.Exists(filename))
+                File.Delete(filename);
+
             using (var videoWriter = CreateWriter(filename, frameRate, aspectRatio))
             {
                 // Start FFMPEG
@@ -70,7 +73,6 @@ namespace OnnxStack.Core.Video
                 foreach (var image in onnxImages)
                 {
                     // Write each frame to the input stream of FFMPEG
-                    await Task.Yield();
                     await videoWriter.StandardInput.BaseStream.WriteAsync(image.GetImageBytes(), cancellationToken);
                 }
 
@@ -97,14 +99,42 @@ namespace OnnxStack.Core.Video
 
 
         /// <summary>
+        /// Reads the video information.
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        /// <returns></returns>
+        public static async Task<VideoInfo> ReadVideoInfoAsync(string filename)
+        {
+            var result = await FFProbe.AnalyseAsync(filename).ConfigureAwait(false);
+            return new VideoInfo(result.PrimaryVideoStream.Width, result.PrimaryVideoStream.Height, result.Duration, (int)result.PrimaryVideoStream.FrameRate);
+        }
+
+
+        /// <summary>
         /// Reads the video frames.
         /// </summary>
         /// <param name="videoBytes">The video bytes.</param>
-        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="frameRate">The target frame rate.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         public static async Task<List<OnnxImage>> ReadVideoFramesAsync(byte[] videoBytes, float frameRate = 15, CancellationToken cancellationToken = default)
         {
+            return await CreateFramesInternalAsync(videoBytes, frameRate, cancellationToken)
+                .Select(x => new OnnxImage(x))
+                .ToListAsync(cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Reads the video frames.
+        /// </summary>
+        /// <param name="filename">The video bytes.</param>
+        /// <param name="frameRate">The target frame rate.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public static async Task<List<OnnxImage>> ReadVideoFramesAsync(string filename, float frameRate = 15, CancellationToken cancellationToken = default)
+        {
+            var videoBytes = await File.ReadAllBytesAsync(filename, cancellationToken);
             return await CreateFramesInternalAsync(videoBytes, frameRate, cancellationToken)
                 .Select(x => new OnnxImage(x))
                 .ToListAsync(cancellationToken);

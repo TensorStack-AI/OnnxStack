@@ -1,9 +1,8 @@
-﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using OnnxStack.Core.Image;
+﻿using OnnxStack.Core.Image;
+using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -68,18 +67,18 @@ namespace OnnxStack.UI.Services
         /// <param name="progressCallback">The callback used to provide progess of the current InferenceSteps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The diffusion result as <see cref="DenseTensor<float>"/></returns>
-        Task<OnnxImage> GenerateAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<OnnxImage> GenerateImageAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+
 
         /// <summary>
-        /// Generates a batch of StableDiffusion image using the prompt and options provided.
+        /// Generates the StableDiffusion video using the prompt and options provided.
         /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="model">The model.</param>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<BatchResult> GenerateBatchAsync(ModelOptions model, PromptOptions promptOptions, SchedulerOptions schedulerOptions, BatchOptions batchOptions, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<OnnxVideo> GenerateVideoAsync(ModelOptions model, PromptOptions prompt, SchedulerOptions options, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
     }
 }
