@@ -29,7 +29,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="name">The name.</param>
         /// <param name="upscaleModel">The upscale model.</param>
         /// <param name="logger">The logger.</param>
-        public ImageUpscalePipeline(string name, UpscaleModel upscaleModel,  ILogger logger = default)
+        public ImageUpscalePipeline(string name, UpscaleModel upscaleModel, ILogger logger = default)
         {
             _name = name;
             _logger = logger;
@@ -69,39 +69,35 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="inputImage">The input image.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<DenseTensor<float>> RunAsync(InputImage inputImage, CancellationToken cancellationToken = default)
+        public async Task<DenseTensor<float>> RunAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
-            using (var image = await inputImage.ToImageAsync())
+            var upscaleInput = CreateInputParams(inputImage, _upscaleModel.SampleSize, _upscaleModel.ScaleFactor);
+            var metadata = await _upscaleModel.GetMetadataAsync();
+
+            var outputTensor = new DenseTensor<float>(new[] { 1, _upscaleModel.Channels, upscaleInput.OutputHeight, upscaleInput.OutputWidth });
+            foreach (var imageTile in upscaleInput.ImageTiles)
             {
-                var upscaleInput = CreateInputParams(image, _upscaleModel.SampleSize, _upscaleModel.ScaleFactor);
-                var metadata = await _upscaleModel.GetMetadataAsync();
+                cancellationToken.ThrowIfCancellationRequested();
 
-                var outputTensor = new DenseTensor<float>(new[] { 1, _upscaleModel.Channels, upscaleInput.OutputHeight, upscaleInput.OutputWidth });
-                foreach (var imageTile in upscaleInput.ImageTiles)
+                var outputDimension = new[] { 1, _upscaleModel.Channels, imageTile.Destination.Height, imageTile.Destination.Width };
+                var inputTensor = imageTile.Image.GetImageTensor(ImageNormalizeType.ZeroToOne, _upscaleModel.Channels);
+                using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    inferenceParameters.AddInputTensor(inputTensor);
+                    inferenceParameters.AddOutputBuffer(outputDimension);
 
-                    var outputDimension = new[] { 1, _upscaleModel.Channels, imageTile.Destination.Height, imageTile.Destination.Width };
-                    var inputTensor = imageTile.Image.ToDenseTensor(ImageNormalizeType.ZeroToOne, _upscaleModel.Channels);
-                    using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+                    var results = await _upscaleModel.RunInferenceAsync(inferenceParameters);
+                    using (var result = results.First())
                     {
-                        inferenceParameters.AddInputTensor(inputTensor);
-                        inferenceParameters.AddOutputBuffer(outputDimension);
-
-                        var results = await _upscaleModel.RunInferenceAsync(inferenceParameters);
-                        using (var result = results.First())
-                        {
-                            outputTensor.ApplyImageTile(result.ToDenseTensor(), imageTile.Destination);
-                        }
+                        outputTensor.ApplyImageTile(result.ToDenseTensor(), imageTile.Destination);
                     }
                 }
-
-                return outputTensor;
             }
+            return outputTensor;
         }
 
 
-        private static UpscaleInput CreateInputParams(Image<Rgba32> imageSource, int maxTileSize, int scaleFactor)
+        private static UpscaleInput CreateInputParams(OnnxImage imageSource, int maxTileSize, int scaleFactor)
         {
             var tiles = imageSource.GenerateTiles(maxTileSize, scaleFactor);
             var width = imageSource.Width * scaleFactor;

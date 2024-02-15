@@ -2,8 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
-using OnnxStack.ImageUpscaler;
-using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Dialogs;
 using OnnxStack.UI.Models;
 using OnnxStack.UI.Services;
@@ -28,7 +26,6 @@ namespace OnnxStack.UI
 
             // Add OnnxStackStableDiffusion
             builder.Services.AddOnnxStack();
-            builder.Services.AddOnnxStackImageUpscaler();
             builder.Services.AddOnnxStackConfig<OnnxStackUIConfig>();
 
             // Add Windows
@@ -49,6 +46,7 @@ namespace OnnxStack.UI
             builder.Services.AddSingleton<IDialogService, DialogService>();
             builder.Services.AddSingleton<IDeviceService, DeviceService>();
             builder.Services.AddSingleton<IStableDiffusionService, StableDiffusionService>();
+            builder.Services.AddSingleton<IUpscaleService, UpscaleService>();
 
 
             // Build App

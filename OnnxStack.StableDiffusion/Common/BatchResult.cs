@@ -3,5 +3,5 @@ using OnnxStack.StableDiffusion.Config;
 
 namespace OnnxStack.StableDiffusion.Common
 {
-    public record BatchResult(SchedulerOptions SchedulerOptions, DenseTensor<float> ImageResult);
+    public record BatchResult(SchedulerOptions SchedulerOptions, DenseTensor<float> Result);
 }

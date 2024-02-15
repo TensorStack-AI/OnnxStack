@@ -2,5 +2,14 @@
 
 namespace OnnxStack.Core.Video
 {
-    public record VideoInfo(int Width, int Height, TimeSpan Duration, float FPS);
+    public sealed record VideoInfo(TimeSpan Duration, float FrameRate)
+    {
+        public VideoInfo(int height, int width, TimeSpan duration, float frameRate) : this(duration, frameRate)
+        {
+            Height = height;
+            Width = width;
+        }
+        public int Height { get; set; }
+        public int Width { get; set; }
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core.Image;
 using OnnxStack.ImageUpscaler.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,7 +18,7 @@ namespace OnnxStack.ImageUpscaler.Extensions
         /// <param name="sampleSize">Maximum size of the tile.</param>
         /// <param name="scaleFactor">The scale factor.</param>
         /// <returns></returns>
-        public static List<ImageTile> GenerateTiles(this Image<Rgba32> imageSource, int sampleSize, int scaleFactor)
+        internal static List<ImageTile> GenerateTiles(this OnnxImage imageSource, int sampleSize, int scaleFactor)
         {
             var tiles = new List<ImageTile>();
             var tileSizeX = Math.Min(sampleSize, imageSource.Width);
@@ -47,11 +48,11 @@ namespace OnnxStack.ImageUpscaler.Extensions
         /// <param name="sourceImage">The source image.</param>
         /// <param name="sourceArea">The source area.</param>
         /// <returns></returns>
-        public static Image<Rgba32> ExtractTile(this Image<Rgba32> sourceImage, Rectangle sourceArea)
+        internal static OnnxImage ExtractTile(this OnnxImage sourceImage, Rectangle sourceArea)
         {
             var height = sourceArea.Height;
             var targetImage = new Image<Rgba32>(sourceArea.Width, sourceArea.Height);
-            sourceImage.ProcessPixelRows(targetImage, (sourceAccessor, targetAccessor) =>
+            sourceImage.GetImage().ProcessPixelRows(targetImage, (sourceAccessor, targetAccessor) =>
             {
                 for (int i = 0; i < height; i++)
                 {
@@ -60,11 +61,11 @@ namespace OnnxStack.ImageUpscaler.Extensions
                     sourceRow.Slice(sourceArea.X, sourceArea.Width).CopyTo(targetRow);
                 }
             });
-            return targetImage;
+            return new OnnxImage(targetImage);
         }
 
 
-        public static void ApplyImageTile(this DenseTensor<float> imageTensor, DenseTensor<float> tileTensor, Rectangle location)
+        internal static void ApplyImageTile(this DenseTensor<float> imageTensor, DenseTensor<float> tileTensor, Rectangle location)
         {
             var offsetY = location.Y;
             var offsetX = location.X;

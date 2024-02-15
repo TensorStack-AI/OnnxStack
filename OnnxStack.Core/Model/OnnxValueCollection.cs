@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace OnnxStack.Core.Model
 {
-    public class OnnxValueCollection : IDisposable
+    public sealed class OnnxValueCollection : IDisposable
     {
         private readonly List<OnnxNamedMetadata> _metaData;
         private readonly Dictionary<string, OrtValue> _values;

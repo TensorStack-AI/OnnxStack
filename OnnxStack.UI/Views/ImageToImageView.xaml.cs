@@ -208,7 +208,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateImageAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultImage = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultImage != null)
                 {
@@ -310,9 +310,9 @@ namespace OnnxStack.UI.Views
                      ? DiffuserType.ControlNet
                      : DiffuserType.ControlNetImage;
 
-                var inputImage = default(InputImage);
+                var inputImage = default(OnnxImage);
                 if (controlNetDiffuserType == DiffuserType.ControlNetImage)
-                    inputImage = new InputImage(imageBytes);
+                    inputImage = new OnnxImage(imageBytes);
 
                 return new PromptOptions
                 {
@@ -320,7 +320,7 @@ namespace OnnxStack.UI.Views
                     NegativePrompt = promptOptionsModel.NegativePrompt,
                     DiffuserType = controlNetDiffuserType,
                     InputImage = inputImage,
-                    InputContolImage = new InputImage(imageBytes)
+                    InputContolImage = new OnnxImage(imageBytes)
                 };
             }
 
@@ -329,7 +329,7 @@ namespace OnnxStack.UI.Views
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
                 DiffuserType = DiffuserType.ImageToImage,
-                InputImage = new InputImage(imageBytes)
+                InputImage = new OnnxImage(imageBytes)
             };
         }
 
@@ -342,9 +342,9 @@ namespace OnnxStack.UI.Views
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="timestamp">The timestamp.</param>
         /// <returns></returns>
-        private Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        private Task<ImageResult> GenerateResultAsync(OnnxImage onnxImage, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
         {
-            var image = Utils.CreateBitmap(imageBytes);
+            var image = Utils.CreateBitmap(onnxImage.GetImageBytes());
 
             var imageResult = new ImageResult
             {

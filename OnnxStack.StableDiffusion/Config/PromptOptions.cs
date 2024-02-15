@@ -16,16 +16,14 @@ namespace OnnxStack.StableDiffusion.Config
         [StringLength(512)]
         public string NegativePrompt { get; set; }
 
-        public InputImage InputImage { get; set; }
+        public OnnxImage InputImage { get; set; }
 
-        public InputImage InputImageMask { get; set; }
+        public OnnxImage InputImageMask { get; set; }
 
-        public InputImage InputContolImage { get; set; }
+        public OnnxImage InputContolImage { get; set; }
 
-        public VideoInput InputVideo { get; set; }
-
-        public float VideoInputFPS { get; set; }
-        public float VideoOutputFPS { get; set; }
+        public OnnxVideo InputVideo { get; set; }
+        public OnnxVideo InputContolVideo { get; set; }
 
         public bool HasInputVideo => InputVideo?.HasVideo ?? false;
         public bool HasInputImage => InputImage?.HasImage ?? false;

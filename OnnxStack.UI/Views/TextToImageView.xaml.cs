@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -180,7 +181,7 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(new ModelOptions(_selectedModel.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateImageAsync(new ModelOptions(_selectedModel.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultImage = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultImage != null)
                 {
@@ -292,9 +293,9 @@ namespace OnnxStack.UI.Views
             };
         }
 
-        private Task<ImageResult> GenerateResultAsync(byte[] imageBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        private Task<ImageResult> GenerateResultAsync(OnnxImage onnxImage, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
         {
-            var image = Utils.CreateBitmap(imageBytes);
+            var image = Utils.CreateBitmap(onnxImage.GetImageBytes());
 
             var imageResult = new ImageResult
             {

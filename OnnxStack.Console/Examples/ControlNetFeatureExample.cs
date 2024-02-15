@@ -32,7 +32,7 @@ namespace OnnxStack.Console.Runner
         public async Task RunAsync()
         {
             // Load Control Image
-            var inputImage = await InputImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
+            var inputImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
             // Create Annotation pipeline
             var annotationPipeline = FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\depth.onnx", true);
@@ -41,7 +41,7 @@ namespace OnnxStack.Console.Runner
             var controlImage = await annotationPipeline.RunAsync(inputImage);
 
             // Save Depth Image (Debug Only)
-            await controlImage.Image.SaveAsPngAsync(Path.Combine(_outputDirectory, $"Depth.png"));
+            await controlImage.SaveAsync(Path.Combine(_outputDirectory, $"Depth.png"));
 
             // Create ControlNet
             var controlNet = ControlNetModel.Create("D:\\Repositories\\controlnet_onnx\\controlnet\\depth.onnx");
@@ -61,11 +61,11 @@ namespace OnnxStack.Console.Runner
             var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet, progressCallback: OutputHelpers.ProgressCallback);
 
             // Create Image from Tensor result
-            var image = result.ToImage();
+            var image = new OnnxImage(result);
 
             // Save Image File
             var outputFilename = Path.Combine(_outputDirectory, $"Output.png");
-            await image.SaveAsPngAsync(outputFilename);
+            await image.SaveAsync(outputFilename);
 
             //Unload
             await annotationPipeline.UnloadAsync();

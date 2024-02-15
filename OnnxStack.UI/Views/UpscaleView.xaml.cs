@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core.Image;
-using OnnxStack.ImageUpscaler.Services;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
+using OnnxStack.UI.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -199,11 +199,11 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-                var resultBytes = await _upscaleService.GenerateAsByteAsync(SelectedModel.ModelSet, new InputImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
+                var resultBytes = await _upscaleService.GenerateAsync(SelectedModel.ModelSet, new OnnxImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
                 if (resultBytes != null)
                 {
                     var elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
-                    var imageResult = new UpscaleResult(Utils.CreateBitmap(resultBytes), UpscaleInfo with { }, elapsed);
+                    var imageResult = new UpscaleResult(Utils.CreateBitmap(resultBytes.GetImageBytes()), UpscaleInfo with { }, elapsed);
                     ResultImage = imageResult;
                     HasResult = true;
 

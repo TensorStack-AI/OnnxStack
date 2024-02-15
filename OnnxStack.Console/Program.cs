@@ -19,7 +19,6 @@ namespace OnnxStack.Console
             // Add OnnxStack
             builder.Services.AddOnnxStack();
             builder.Services.AddOnnxStackConfig<StableDiffusionConfig>();
-            builder.Services.AddOnnxStackImageUpscaler();
 
             // Add AppService
             builder.Services.AddHostedService<AppService>();

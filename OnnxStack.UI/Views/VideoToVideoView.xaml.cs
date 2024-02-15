@@ -1,15 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core.Image;
-using OnnxStack.Core.Services;
 using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
+using OnnxStack.UI.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -23,7 +20,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using OnnxStack.UI.Services;
 
 namespace OnnxStack.UI.Views
 {
@@ -34,7 +30,7 @@ namespace OnnxStack.UI.Views
     {
         private readonly ILogger<VideoToVideoView> _logger;
         private readonly IStableDiffusionService _stableDiffusionService;
-        private readonly IVideoService _videoService;
+
 
         private bool _hasResult;
         private int _progressMax;
@@ -51,7 +47,7 @@ namespace OnnxStack.UI.Views
         private PromptOptionsModel _promptOptionsModel;
         private SchedulerOptionsModel _schedulerOptions;
         private CancellationTokenSource _cancelationTokenSource;
-        private VideoFrames _videoFrames;
+        private OnnxVideo _videoFrames;
         private BitmapImage _previewSource;
         private BitmapImage _previewResult;
 
@@ -63,7 +59,6 @@ namespace OnnxStack.UI.Views
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
                 _logger = App.GetService<ILogger<VideoToVideoView>>();
-                _videoService = App.GetService<IVideoService>();
                 _stableDiffusionService = App.GetService<IStableDiffusionService>();
             }
 
@@ -217,15 +212,16 @@ namespace OnnxStack.UI.Views
             try
             {
                 var schedulerOptions = SchedulerOptions.ToSchedulerOptions();
-                if (_videoFrames is null || _videoFrames.Info.FPS != PromptOptions.VideoInputFPS)
+                if (_videoFrames is null || _videoFrames.Info.FrameRate != PromptOptions.VideoInputFPS)
                 {
                     ProgressText = $"Generating video frames @ {PromptOptions.VideoInputFPS}fps";
-                    _videoFrames = await _videoService.CreateFramesAsync(_inputVideo.VideoBytes, PromptOptions.VideoInputFPS, _cancelationTokenSource.Token);
+                    var frames = await VideoHelper.ReadVideoFramesAsync(_inputVideo.VideoBytes, PromptOptions.VideoInputFPS, _cancelationTokenSource.Token);
+                    _videoFrames = new OnnxVideo(_inputVideo.VideoInfo with { FrameRate = PromptOptions.VideoInputFPS }, frames);
                 }
                 var promptOptions = GetPromptOptions(PromptOptions, _videoFrames);
 
                 var timestamp = Stopwatch.GetTimestamp();
-                var result = await _stableDiffusionService.GenerateAsBytesAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
+                var result = await _stableDiffusionService.GenerateVideoAsync(new ModelOptions(_selectedModel.ModelSet, _selectedControlNetModel?.ModelSet), promptOptions, schedulerOptions, ProgressCallback(), _cancelationTokenSource.Token);
                 var resultVideo = await GenerateResultAsync(result, promptOptions, schedulerOptions, timestamp);
                 if (resultVideo != null)
                 {
@@ -324,7 +320,7 @@ namespace OnnxStack.UI.Views
         }
 
 
-        private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, VideoFrames videoFrames)
+        private PromptOptions GetPromptOptions(PromptOptionsModel promptOptionsModel, OnnxVideo videoFrames)
         {
             var diffuserType = DiffuserType.ImageToImage;
             if (_selectedModel.IsControlNet)
@@ -339,9 +335,7 @@ namespace OnnxStack.UI.Views
                 Prompt = promptOptionsModel.Prompt,
                 NegativePrompt = promptOptionsModel.NegativePrompt,
                 DiffuserType = diffuserType,
-                InputVideo = new VideoInput(videoFrames),
-                VideoInputFPS = promptOptionsModel.VideoInputFPS,
-                VideoOutputFPS = promptOptionsModel.VideoOutputFPS,
+                InputVideo = videoFrames
             };
         }
 
@@ -354,15 +348,15 @@ namespace OnnxStack.UI.Views
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <param name="timestamp">The timestamp.</param>
         /// <returns></returns>
-        private async Task<VideoInputModel> GenerateResultAsync(byte[] videoBytes, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
+        private async Task<VideoInputModel> GenerateResultAsync(OnnxVideo onnxVideo, PromptOptions promptOptions, SchedulerOptions schedulerOptions, long timestamp)
         {
-            var tempVideoFile = Path.Combine(".temp", $"VideoToVideo.mp4");
-            await File.WriteAllBytesAsync(tempVideoFile, videoBytes);
-            var videoInfo = await _videoService.GetVideoInfoAsync(videoBytes);
+           var tempVideoFile = Path.Combine(".temp", $"VideoToVideo.mp4");
+            await onnxVideo.SaveAsync(tempVideoFile);
+            var videoBytes = await File.ReadAllBytesAsync(tempVideoFile);
             var videoResult = new VideoInputModel
             {
                 FileName = tempVideoFile,
-                VideoInfo = videoInfo,
+                VideoInfo = onnxVideo.Info,
                 VideoBytes = videoBytes
             };
             return videoResult;
@@ -387,7 +381,7 @@ namespace OnnxStack.UI.Views
 
                     if (progress.BatchTensor is not null)
                     {
-                        PreviewResult = Utils.CreateBitmap(progress.BatchTensor.ToImageBytes());
+                        PreviewResult = Utils.CreateBitmap(new OnnxImage(progress.BatchTensor).GetImageBytes());
                         PreviewSource = UpdatePreviewFrame(progress.BatchValue - 1);
                         ProgressText = $"Video Frame {progress.BatchValue} of {_videoFrames.Frames.Count} complete";
                     }
@@ -409,10 +403,10 @@ namespace OnnxStack.UI.Views
         {
             var frame = _videoFrames.Frames[index];
             using (var memoryStream = new MemoryStream())
-            using (var frameImage = SixLabors.ImageSharp.Image.Load<Rgba32>(frame.Frame))
             {
+                var frameImage = frame.Clone();
                 frameImage.Resize(_schedulerOptions.Height, _schedulerOptions.Width);
-                frameImage.SaveAsPng(memoryStream);
+                frameImage.Save(memoryStream);
                 var image = new BitmapImage();
                 image.BeginInit();
                 image.CacheOption = BitmapCacheOption.OnLoad;

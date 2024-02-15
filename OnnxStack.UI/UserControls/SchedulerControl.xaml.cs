@@ -4,6 +4,7 @@ using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.UI.Commands;
 using OnnxStack.UI.Models;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -24,7 +25,7 @@ namespace OnnxStack.UI.UserControls
         /// <summary>Initializes a new instance of the <see cref="SchedulerControl" /> class.</summary>
         public SchedulerControl()
         {
-            ValidSizes = new ObservableCollection<int>(Constants.ValidSizes);
+            ValidSizes = new ObservableCollection<int>(new [] { 64, 128, 192, 256, 320, 384, 448, 512, 576, 640, 704, 768, 832, 896, 960, 1024 });
             NewSeedCommand = new RelayCommand(NewSeed);
             RandomSeedCommand = new RelayCommand(RandomSeed);
             ResetParametersCommand = new RelayCommand(ResetParameters);
