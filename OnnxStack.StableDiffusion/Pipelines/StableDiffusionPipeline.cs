@@ -291,7 +291,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override async IAsyncEnumerable<OnnxImage> GenerateImageBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public override async IAsyncEnumerable<BatchImageResult> GenerateImageBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
             var options = GetSchedulerOptionsOrDefault(schedulerOptions);
@@ -316,7 +316,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
                 var tensorResult = await DiffuseImageAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
-                yield return new OnnxImage(tensorResult);
+                yield return new BatchImageResult(batchSchedulerOption, new OnnxImage(tensorResult));
                 batchIndex++;
             }
 
@@ -367,7 +367,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public override async IAsyncEnumerable<OnnxVideo> GenerateVideoBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public override async IAsyncEnumerable<BatchVideoResult> GenerateVideoBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
             var options = GetSchedulerOptionsOrDefault(schedulerOptions);
@@ -392,11 +392,11 @@ namespace OnnxStack.StableDiffusion.Pipelines
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
                 var frames = new List<OnnxImage>();
-                await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, options, promptEmbeddings, performGuidance, progressCallback, cancellationToken))
+                await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, progressCallback, cancellationToken))
                 {
                     frames.Add(new OnnxImage(frameTensor));
                 }
-                yield return new OnnxVideo(promptOptions.InputVideo.Info, frames);
+                yield return new BatchVideoResult(batchSchedulerOption, new OnnxVideo(promptOptions.InputVideo.Info, frames));
                 batchIndex++;
             }
 
