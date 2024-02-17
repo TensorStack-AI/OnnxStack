@@ -42,6 +42,20 @@ namespace OnnxStack.Core.Video
 
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="OnnxVideo"/> class.
+        /// </summary>
+        /// <param name="info">The information.</param>
+        /// <param name="videoTensors">The video tensors.</param>
+        public OnnxVideo(VideoInfo info, IEnumerable<DenseTensor<float>> videoTensors)
+        {
+            _info = info;
+            _frames = videoTensors
+                .Select(x => new OnnxImage(x))
+                .ToList();
+        }
+
+
+        /// <summary>
         /// Gets the height.
         /// </summary>
         public int Height => _info.Height;

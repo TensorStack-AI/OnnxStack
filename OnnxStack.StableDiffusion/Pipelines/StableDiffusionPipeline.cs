@@ -34,6 +34,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         protected IReadOnlyList<SchedulerType> _supportedSchedulers;
         protected SchedulerOptions _defaultSchedulerOptions;
 
+        protected sealed record BatchResultInternal(SchedulerOptions SchedulerOptions, List<DenseTensor<float>> Result);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionPipeline"/> class.
         /// </summary>
@@ -165,35 +167,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public override async Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            var diffuseTime = _logger?.LogBegin("Diffuser starting...");
-            var options = GetSchedulerOptionsOrDefault(schedulerOptions);
-            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
-
-            // Check guidance
-            var performGuidance = ShouldPerformGuidance(options);
-
-            // Process prompts
-            var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
-
-            // Create Diffuser
-            var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
-
-            // Diffuse
-            var tensorResult = default(DenseTensor<float>);
-            if (promptOptions.HasInputVideo)
-            {
-                await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken))
-                {
-                    tensorResult = tensorResult.Concatenate(frameTensor);
-                }
-            }
-            else
-            {
-                tensorResult = await DiffuseImageAsync(diffuser, promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
-            }
-
-            _logger?.LogEnd($"Diffuser complete", diffuseTime);
-            return tensorResult;
+            var tensors = await RunInternalAsync(promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
+            return tensors.Count == 1
+                ? tensors.First() // ImageTensor
+                : tensors.Join(); // VideoTensor
         }
 
 
@@ -209,45 +186,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public override async IAsyncEnumerable<BatchResult> RunBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
-            var options = GetSchedulerOptionsOrDefault(schedulerOptions);
-            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
-            _logger?.Log($"BatchType: {batchOptions.BatchType}, ValueFrom: {batchOptions.ValueFrom}, ValueTo: {batchOptions.ValueTo}, Increment: {batchOptions.Increment}");
-
-            // Check guidance
-            var performGuidance = ShouldPerformGuidance(options);
-
-            // Process prompts
-            var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
-
-            // Generate batch options
-            var batchSchedulerOptions = BatchGenerator.GenerateBatch(this, batchOptions, options);
-
-            // Create Diffuser
-            var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
-
-            // Diffuse
-            var batchIndex = 1;
-            var batchSchedulerCallback = CreateBatchCallback(progressCallback, batchSchedulerOptions.Count, () => batchIndex);
-            foreach (var batchSchedulerOption in batchSchedulerOptions)
+            await foreach (var batchResult in RunBatchInternalAsync(batchOptions, promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken))
             {
-                var tensorResult = default(DenseTensor<float>);
-                if (promptOptions.HasInputVideo)
-                {
-                    await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, progressCallback, cancellationToken))
-                    {
-                        tensorResult = tensorResult.Concatenate(frameTensor);
-                    }
-                }
-                else
-                {
-                    tensorResult = await DiffuseImageAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
-                }
-                yield return new BatchResult(batchSchedulerOption, tensorResult);
-                batchIndex++;
+                var tensor = batchResult.Result.Count == 1
+                    ? batchResult.Result.First() // ImageTensor
+                    : batchResult.Result.Join(); // VideoTensor
+                yield return new BatchResult(batchResult.SchedulerOptions, tensor);
             }
-
-            _logger?.LogEnd($"Batch Diffuser complete", diffuseBatchTime);
         }
 
 
@@ -262,22 +207,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public override async Task<OnnxImage> GenerateImageAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            var diffuseTime = _logger?.LogBegin("Diffuser starting...");
-            var options = GetSchedulerOptionsOrDefault(schedulerOptions);
-            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
-
-            // Check guidance
-            var performGuidance = ShouldPerformGuidance(options);
-
-            // Process prompts
-            var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
-
-            // Create Diffuser
-            var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
-
-            var imageResult = await DiffuseImageAsync(diffuser, promptOptions, options, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
-
-            return new OnnxImage(imageResult);
+            var tensors = await RunInternalAsync(promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
+            return new OnnxImage(tensors.First());
         }
 
 
@@ -293,34 +224,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public override async IAsyncEnumerable<BatchImageResult> GenerateImageBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
-            var options = GetSchedulerOptionsOrDefault(schedulerOptions);
-            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
-            _logger?.Log($"BatchType: {batchOptions.BatchType}, ValueFrom: {batchOptions.ValueFrom}, ValueTo: {batchOptions.ValueTo}, Increment: {batchOptions.Increment}");
-
-            // Check guidance
-            var performGuidance = ShouldPerformGuidance(options);
-
-            // Process prompts
-            var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
-
-            // Generate batch options
-            var batchSchedulerOptions = BatchGenerator.GenerateBatch(this, batchOptions, options);
-
-            // Create Diffuser
-            var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
-
-            // Diffuse
-            var batchIndex = 1;
-            var batchSchedulerCallback = CreateBatchCallback(progressCallback, batchSchedulerOptions.Count, () => batchIndex);
-            foreach (var batchSchedulerOption in batchSchedulerOptions)
+            await foreach (var batchResult in RunBatchInternalAsync(batchOptions, promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken))
             {
-                var tensorResult = await DiffuseImageAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
-                yield return new BatchImageResult(batchSchedulerOption, new OnnxImage(tensorResult));
-                batchIndex++;
+                yield return new BatchImageResult(batchResult.SchedulerOptions, new OnnxImage(batchResult.Result.First()));
             }
-
-            _logger?.LogEnd($"Batch Diffuser complete", diffuseBatchTime);
         }
 
 
@@ -335,25 +242,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public override async Task<OnnxVideo> GenerateVideoAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            var diffuseTime = _logger?.LogBegin("Diffuser starting...");
-            var options = GetSchedulerOptionsOrDefault(schedulerOptions);
-            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
-
-            // Check guidance
-            var performGuidance = ShouldPerformGuidance(options);
-
-            // Process prompts
-            var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
-
-            // Create Diffuser
-            var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
-
-            var frames = new List<OnnxImage>();
-            await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, options, promptEmbeddings, performGuidance, progressCallback, cancellationToken))
-            {
-                frames.Add(new OnnxImage(frameTensor));
-            }
-            return new OnnxVideo(promptOptions.InputVideo.Info, frames);
+            var tensors = await RunInternalAsync(promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
+            return new OnnxVideo(promptOptions.InputVideo.Info, tensors);
         }
 
 
@@ -369,6 +259,71 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public override async IAsyncEnumerable<BatchVideoResult> GenerateVideoBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            await foreach (var batchResult in RunBatchInternalAsync(batchOptions, promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken))
+            {
+                yield return new BatchVideoResult(batchResult.SchedulerOptions, new OnnxVideo(promptOptions.InputVideo.Info, batchResult.Result));
+            }
+        }
+
+
+        /// <summary>
+        /// Runs the pipeline
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        protected virtual async Task<List<DenseTensor<float>>> RunInternalAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        {
+            var diffuseTime = _logger?.LogBegin("Diffuser starting...");
+            var options = GetSchedulerOptionsOrDefault(schedulerOptions);
+            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
+
+            // Check guidance
+            var performGuidance = ShouldPerformGuidance(options);
+
+            // Process prompts
+            var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
+
+            // Create Diffuser
+            var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
+
+            // Diffuse
+            var tensorResult = new List<DenseTensor<float>>();
+            if (promptOptions.HasInputVideo)
+            {
+                var frameIndex = 1;
+                var frameSchedulerCallback = CreateBatchCallback(progressCallback, promptOptions.InputVideo.Frames.Count, () => frameIndex);
+                await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, options, promptEmbeddings, performGuidance, frameSchedulerCallback, cancellationToken))
+                {
+                    frameIndex++;
+                    tensorResult.Add(frameTensor);
+                }
+            }
+            else
+            {
+                tensorResult.Add(await DiffuseImageAsync(diffuser, promptOptions, options, promptEmbeddings, performGuidance, progressCallback, cancellationToken));
+            }
+
+            _logger?.LogEnd($"Diffuser complete", diffuseTime);
+            return tensorResult;
+        }
+
+
+        /// <summary>
+        /// Runs the pipeline batch.
+        /// </summary>
+        /// <param name="batchOptions">The batch options.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        protected virtual async IAsyncEnumerable<BatchResultInternal> RunBatchInternalAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
             var diffuseBatchTime = _logger?.LogBegin("Batch Diffuser starting...");
             var options = GetSchedulerOptionsOrDefault(schedulerOptions);
             _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
@@ -387,19 +342,26 @@ namespace OnnxStack.StableDiffusion.Pipelines
             var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
 
             // Diffuse
-            var batchIndex = 1;
+            var batchIndex = 1;// TODO: Video batch callback shoud be (BatchIndex + FrameIndex), not (BatchIndex + StepIndex)
             var batchSchedulerCallback = CreateBatchCallback(progressCallback, batchSchedulerOptions.Count, () => batchIndex);
             foreach (var batchSchedulerOption in batchSchedulerOptions)
             {
-                var frames = new List<OnnxImage>();
-                await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, progressCallback, cancellationToken))
+                var tensorResult = new List<DenseTensor<float>>();
+                if (promptOptions.HasInputVideo)
                 {
-                    frames.Add(new OnnxImage(frameTensor));
+                    await foreach (var frameTensor in DiffuseVideoAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, batchSchedulerCallback, cancellationToken))
+                    {
+                        tensorResult.Add(frameTensor);
+                    }
                 }
-                yield return new BatchVideoResult(batchSchedulerOption, new OnnxVideo(promptOptions.InputVideo.Info, frames));
-                batchIndex++;
-            }
+                else
+                {
+                    tensorResult.Add(await DiffuseImageAsync(diffuser, promptOptions, batchSchedulerOption, promptEmbeddings, performGuidance, batchSchedulerCallback, cancellationToken));
+                }
 
+                batchIndex++;
+                yield return new BatchResultInternal(batchSchedulerOption, tensorResult);
+            }
             _logger?.LogEnd($"Batch Diffuser complete", diffuseBatchTime);
         }
 
@@ -623,5 +585,4 @@ namespace OnnxStack.StableDiffusion.Pipelines
             return CreatePipeline(ModelFactory.CreateModelSet(modelFolder, DiffuserPipelineType.StableDiffusion, modelType, deviceId, executionProvider, memoryMode), logger);
         }
     }
-
 }
