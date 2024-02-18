@@ -103,7 +103,7 @@ namespace OnnxStack.Core.Video
                 await foreach (var frame in videoStream)
                 {
                     // Write each frame to the input stream of FFMPEG
-                    await videoWriter.StandardInput.BaseStream.WriteAsync(frame.GetImageBytes(), cancellationToken);
+                    await frame.CopyToStreamAsync(videoWriter.StandardInput.BaseStream);
                 }
 
                 // Done close stream and wait for app to process

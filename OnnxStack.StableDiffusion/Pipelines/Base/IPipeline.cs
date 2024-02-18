@@ -14,6 +14,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
 {
     public interface IPipeline
     {
+
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
+        string Name { get; }
+
+
         /// <summary>
         /// Gets the pipelines supported diffusers.
         /// </summary>
@@ -127,5 +134,17 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         IAsyncEnumerable<BatchVideoResult> GenerateVideoBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Runs the video stream pipeline returning each frame as an OnnxImage.
+        /// </summary>
+        /// <param name="videoFrames">The video frames.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        IAsyncEnumerable<OnnxImage> GenerateVideoStreamAsync(IAsyncEnumerable<OnnxImage> videoFrames, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
     }
 }

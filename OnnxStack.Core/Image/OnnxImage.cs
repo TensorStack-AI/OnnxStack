@@ -183,6 +183,28 @@ namespace OnnxStack.Core.Image
 
 
         /// <summary>
+        /// Copies the image to stream.
+        /// </summary>
+        /// <param name="destination">The destination.</param>
+        /// <returns></returns>
+        public void CopyToStream(Stream destination)
+        {
+            _imageData.SaveAsPng(destination);
+        }
+
+
+        /// <summary>
+        /// Copies the image to stream.
+        /// </summary>
+        /// <param name="destination">The destination.</param>
+        /// <returns></returns>
+        public Task CopyToStreamAsync(Stream destination)
+        {
+            return _imageData.SaveAsPngAsync(destination);
+        }
+
+
+        /// <summary>
         /// Gets the image as tensor.
         /// </summary>
         /// <param name="normalizeType">Type of the normalize.</param>
