@@ -1,6 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OnnxStack.Core
 {
@@ -72,6 +73,33 @@ namespace OnnxStack.Core
                 var start = i * newLength;
                 yield return new DenseTensor<float>(tensor.Buffer.Slice(start, newLength), dimensions);
             }
+        }
+
+
+        /// <summary>
+        /// Joins the tensors across the 0 axis.
+        /// </summary>
+        /// <param name="tensors">The tensors.</param>
+        /// <param name="axis">The axis.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException">Only axis 0 is supported</exception>
+        public static DenseTensor<float> Join(this IList<DenseTensor<float>> tensors, int axis = 0)
+        {
+            if (axis != 0)
+                throw new NotImplementedException("Only axis 0 is supported");
+
+            var tensor = tensors.First();
+            var dimensions = tensor.Dimensions.ToArray();
+            dimensions[0] *= tensors.Count;
+
+            var newLength = (int)tensor.Length;
+            var buffer = new float[newLength * tensors.Count].AsMemory();
+            for (int i = 0; i < tensors.Count(); i++)
+            {
+                var start = i * newLength;
+                tensors[i].Buffer.CopyTo(buffer[start..]);
+            }
+            return new DenseTensor<float>(buffer, dimensions);
         }
 
 

@@ -11,5 +11,7 @@ namespace OnnxStack.Core.Video
         }
         public int Height { get; set; }
         public int Width { get; set; }
+
+        public double AspectRatio => (double)Height / Width;
     }
 }
