@@ -29,13 +29,10 @@ namespace OnnxStack.Console.Runner
 
             // Run pipeline
             var result = await pipeline.RunAsync(inputImage);
-
-            // Create Image from Tensor result
-            var image = new OnnxImage(result, ImageNormalizeType.ZeroToOne);
-
+         
             // Save Image File
             var outputFilename = Path.Combine(_outputDirectory, $"Upscaled.png");
-            await image.SaveAsync(outputFilename);
+            await result.SaveAsync(outputFilename);
 
             // Unload
             await pipeline.UnloadAsync();

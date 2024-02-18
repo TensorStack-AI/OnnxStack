@@ -145,6 +145,20 @@ namespace OnnxStack.Core.Image
 
 
         /// <summary>
+        /// Gets the image as bytes.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<byte[]> GetImageBytesAsync()
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                await _imageData.SaveAsPngAsync(memoryStream);
+                return memoryStream.ToArray();
+            }
+        }
+
+
+        /// <summary>
         /// Gets the image as stream.
         /// </summary>
         /// <returns></returns>
@@ -152,6 +166,18 @@ namespace OnnxStack.Core.Image
         {
             var memoryStream = new MemoryStream();
             _imageData.SaveAsPng(memoryStream);
+            return memoryStream;
+        }
+
+
+        /// <summary>
+        /// Gets the image as stream.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<Stream> GetImageStreamAsync()
+        {
+            var memoryStream = new MemoryStream();
+            await _imageData.SaveAsPngAsync(memoryStream);
             return memoryStream;
         }
 
