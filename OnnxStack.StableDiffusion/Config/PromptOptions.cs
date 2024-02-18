@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace OnnxStack.StableDiffusion.Config
 {
-    public class PromptOptions
+    public record PromptOptions
     {
         public DiffuserType DiffuserType { get; set; }
 

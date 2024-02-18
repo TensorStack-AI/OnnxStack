@@ -88,7 +88,7 @@ namespace OnnxStack.Core.Video
         /// <summary>
         /// Gets the aspect ratio.
         /// </summary>
-        public double AspectRatio => (double)_info.Width / _info.Height;
+        public double AspectRatio => _info.AspectRatio;
 
         /// <summary>
         /// Gets a value indicating whether this instance has video.

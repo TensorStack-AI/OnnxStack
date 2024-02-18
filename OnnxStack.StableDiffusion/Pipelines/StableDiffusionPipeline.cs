@@ -267,6 +267,49 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Runs the video stream pipeline returning each frame as an OnnxImage.
+        /// </summary>
+        /// <param name="videoFrames">The video frames.</param>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="controlNet">The control net.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public override async IAsyncEnumerable<OnnxImage> GenerateVideoStreamAsync(IAsyncEnumerable<OnnxImage> videoFrames, PromptOptions promptOptions, SchedulerOptions schedulerOptions = null, ControlNetModel controlNet = null, Action<DiffusionProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var diffuseTime = _logger?.LogBegin("Diffuser starting...");
+            var options = GetSchedulerOptionsOrDefault(schedulerOptions);
+            _logger?.Log($"Model: {Name}, Pipeline: {PipelineType}, Diffuser: {promptOptions.DiffuserType}, Scheduler: {options.SchedulerType}");
+
+            // Check guidance
+            var performGuidance = ShouldPerformGuidance(options);
+
+            // Process prompts
+            var promptEmbeddings = await CreatePromptEmbedsAsync(promptOptions, performGuidance);
+
+            // Create Diffuser
+            var diffuser = CreateDiffuser(promptOptions.DiffuserType, controlNet);
+
+            // Diffuse
+            await foreach (var videoFrame in videoFrames)
+            {
+                var frameOptions = promptOptions with
+                {
+                    InputImage = promptOptions.DiffuserType == DiffuserType.ImageToImage || promptOptions.DiffuserType == DiffuserType.ControlNetImage
+                        ? videoFrame : default,
+                    InputContolImage = promptOptions.DiffuserType == DiffuserType.ControlNet || promptOptions.DiffuserType == DiffuserType.ControlNetImage
+                        ? videoFrame : default,
+                };
+
+                yield return new OnnxImage(await DiffuseImageAsync(diffuser, frameOptions, options, promptEmbeddings, performGuidance, progressCallback, cancellationToken));
+            }
+
+            _logger?.LogEnd($"Diffuser complete", diffuseTime);
+        }
+
+
+        /// <summary>
         /// Runs the pipeline
         /// </summary>
         /// <param name="promptOptions">The prompt options.</param>

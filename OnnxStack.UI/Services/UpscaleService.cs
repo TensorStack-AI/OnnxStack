@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
+using OnnxStack.Core.Video;
 using OnnxStack.FeatureExtractor.Pipelines;
 using OnnxStack.ImageUpscaler.Common;
 using System;
@@ -13,7 +13,7 @@ namespace OnnxStack.UI.Services
 {
     public class UpscaleService : IUpscaleService
     {
-        private readonly ILogger<StableDiffusionService> _logger;
+        private readonly ILogger<UpscaleService> _logger;
         private readonly Dictionary<IOnnxModel, ImageUpscalePipeline> _pipelines;
 
         /// <summary>
@@ -22,8 +22,9 @@ namespace OnnxStack.UI.Services
         /// <param name="configuration">The configuration.</param>
         /// <param name="modelService">The model service.</param>
         /// <param name="imageService">The image service.</param>
-        public UpscaleService()
+        public UpscaleService(ILogger<UpscaleService> logger)
         {
+            _logger = logger;
             _pipelines = new Dictionary<IOnnxModel, ImageUpscalePipeline>();
         }
 
@@ -76,21 +77,10 @@ namespace OnnxStack.UI.Services
         /// <summary>
         /// Generates the upscaled image.
         /// </summary>
-        /// <param name="modelOptions">The model options.</param>
+        /// <param name="modelSet">The model options.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        public async Task<OnnxImage> GenerateAsync(UpscaleModelSet modelOptions, OnnxImage inputImage, CancellationToken cancellationToken = default)
-        {
-            return new OnnxImage(await GenerateInternalAsync(modelOptions, inputImage, cancellationToken), ImageNormalizeType.ZeroToOne);
-        }
-
-
-        /// <summary>
-        /// Generates an upscaled image of the source provided.
-        /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="inputImage">The input image.</param>
-        private async Task<DenseTensor<float>> GenerateInternalAsync(UpscaleModelSet modelSet, OnnxImage inputImage, CancellationToken cancellationToken)
+        public async Task<OnnxImage> GenerateAsync(UpscaleModelSet modelSet, OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             if (!_pipelines.TryGetValue(modelSet, out var pipeline))
                 throw new Exception("Pipeline not found or is unsupported");
@@ -99,10 +89,31 @@ namespace OnnxStack.UI.Services
         }
 
 
+        /// <summary>
+        /// Generates the upscaled video.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <param name="inputVideo">The input video.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.Exception">Pipeline not found or is unsupported</exception>
+        public async Task<OnnxVideo> GenerateAsync(UpscaleModelSet modelSet, OnnxVideo inputVideo, CancellationToken cancellationToken = default)
+        {
+            if (!_pipelines.TryGetValue(modelSet, out var pipeline))
+                throw new Exception("Pipeline not found or is unsupported");
+
+            return await pipeline.RunAsync(inputVideo, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Creates the pipeline.
+        /// </summary>
+        /// <param name="modelSet">The model set.</param>
+        /// <returns></returns>
         private ImageUpscalePipeline CreatePipeline(UpscaleModelSet modelSet)
         {
             return ImageUpscalePipeline.CreatePipeline(modelSet, _logger);
         }
-
     }
 }

@@ -4,13 +4,16 @@ using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
+using OnnxStack.Core.Video;
 using OnnxStack.ImageUpscaler.Common;
 using OnnxStack.ImageUpscaler.Extensions;
 using OnnxStack.ImageUpscaler.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -69,7 +72,60 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="inputImage">The input image.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<DenseTensor<float>> RunAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
+        public async Task<OnnxImage> RunAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Upscale image..");
+            var result = await RunInternalAsync(inputImage, cancellationToken);
+            _logger?.LogEnd("Upscale image complete.", timestamp);
+            return result;
+        }
+
+
+        /// <summary>
+        /// Runs the pipline on a buffered video.
+        /// </summary>
+        /// <param name="inputVideo">The input video.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<OnnxVideo> RunAsync(OnnxVideo inputVideo, CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Upscale video..");
+            var upscaledFrames = new List<OnnxImage>();
+            foreach (var videoFrame in inputVideo.Frames)
+            {
+                upscaledFrames.Add(await RunInternalAsync(videoFrame, cancellationToken));
+            }
+
+            var firstFrame = upscaledFrames.First();
+            var videoInfo = inputVideo.Info with
+            {
+                Width = firstFrame.Width,
+                Height = firstFrame.Height,
+            };
+
+            _logger?.LogEnd("Upscale video complete.", timestamp);
+            return new OnnxVideo(videoInfo, upscaledFrames);
+        }
+
+
+        /// <summary>
+        /// Runs the pipline on a video stream.
+        /// </summary>
+        /// <param name="imageFrames">The image frames.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async IAsyncEnumerable<OnnxImage> RunAsync(IAsyncEnumerable<OnnxImage> imageFrames, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Upscale video stream..");
+            await foreach (var imageFrame in imageFrames)
+            {
+                yield return await RunInternalAsync(imageFrame, cancellationToken);
+            }
+            _logger?.LogEnd("Upscale video stream complete.", timestamp);
+        }
+
+
+        private async Task<OnnxImage> RunInternalAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             var upscaleInput = CreateInputParams(inputImage, _upscaleModel.SampleSize, _upscaleModel.ScaleFactor);
             var metadata = await _upscaleModel.GetMetadataAsync();
@@ -93,10 +149,16 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                     }
                 }
             }
-            return outputTensor;
+            return new OnnxImage(outputTensor, ImageNormalizeType.ZeroToOne);
         }
 
-
+        /// <summary>
+        /// Creates the input parameters.
+        /// </summary>
+        /// <param name="imageSource">The image source.</param>
+        /// <param name="maxTileSize">Maximum size of the tile.</param>
+        /// <param name="scaleFactor">The scale factor.</param>
+        /// <returns></returns>
         private static UpscaleInput CreateInputParams(OnnxImage imageSource, int maxTileSize, int scaleFactor)
         {
             var tiles = imageSource.GenerateTiles(maxTileSize, scaleFactor);

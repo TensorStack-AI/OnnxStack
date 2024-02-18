@@ -84,6 +84,36 @@ namespace OnnxStack.Core.Video
 
 
         /// <summary>
+        /// Writes the video stream to file.
+        /// </summary>
+        /// <param name="onnxImages">The onnx image stream.</param>
+        /// <param name="filename">The filename.</param>
+        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="aspectRatio">The aspect ratio.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        public static async Task WriteVideoStreamAsync(VideoInfo videoInfo, IAsyncEnumerable<OnnxImage> videoStream, string filename, CancellationToken cancellationToken = default)
+        {
+            if (File.Exists(filename))
+                File.Delete(filename);
+
+            using (var videoWriter = CreateWriter(filename, videoInfo.FrameRate, videoInfo.AspectRatio))
+            {
+                // Start FFMPEG
+                videoWriter.Start();
+                await foreach (var frame in videoStream)
+                {
+                    // Write each frame to the input stream of FFMPEG
+                    await frame.CopyToStreamAsync(videoWriter.StandardInput.BaseStream);
+                }
+
+                // Done close stream and wait for app to process
+                videoWriter.StandardInput.BaseStream.Close();
+                await videoWriter.WaitForExitAsync(cancellationToken);
+            }
+        }
+
+
+        /// <summary>
         /// Reads the video information.
         /// </summary>
         /// <param name="videoBytes">The video bytes.</param>
@@ -119,9 +149,16 @@ namespace OnnxStack.Core.Video
         /// <returns></returns>
         public static async Task<List<OnnxImage>> ReadVideoFramesAsync(byte[] videoBytes, float frameRate = 15, CancellationToken cancellationToken = default)
         {
-            return await CreateFramesInternalAsync(videoBytes, frameRate, cancellationToken)
-                .Select(x => new OnnxImage(x))
-                .ToListAsync(cancellationToken);
+            string tempVideoPath = GetTempFilename();
+            try
+            {
+                await File.WriteAllBytesAsync(tempVideoPath, videoBytes, cancellationToken);
+                return await ReadVideoStreamAsync(tempVideoPath, frameRate, cancellationToken).ToListAsync(cancellationToken);
+            }
+            finally
+            {
+                DeleteTempFile(tempVideoPath);
+            }
         }
 
 
@@ -134,10 +171,23 @@ namespace OnnxStack.Core.Video
         /// <returns></returns>
         public static async Task<List<OnnxImage>> ReadVideoFramesAsync(string filename, float frameRate = 15, CancellationToken cancellationToken = default)
         {
-            var videoBytes = await File.ReadAllBytesAsync(filename, cancellationToken);
-            return await CreateFramesInternalAsync(videoBytes, frameRate, cancellationToken)
-                .Select(x => new OnnxImage(x))
-                .ToListAsync(cancellationToken);
+            return await ReadVideoStreamAsync(filename, frameRate, cancellationToken).ToListAsync(cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Reads the video frames as a stream.
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public static async IAsyncEnumerable<OnnxImage> ReadVideoStreamAsync(string filename, float frameRate = 15, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await foreach (var frameBytes in CreateFramesInternalAsync(filename, frameRate, cancellationToken))
+            {
+                yield return new OnnxImage(frameBytes);
+            }
         }
 
 
@@ -152,76 +202,67 @@ namespace OnnxStack.Core.Video
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Invalid PNG header</exception>
-        private static async IAsyncEnumerable<byte[]> CreateFramesInternalAsync(byte[] videoData, float fps = 15, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        private static async IAsyncEnumerable<byte[]> CreateFramesInternalAsync(string fileName, float fps = 15, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            string tempVideoPath = GetTempFilename();
-            try
+            using (var ffmpegProcess = CreateReader(fileName, fps))
             {
-                await File.WriteAllBytesAsync(tempVideoPath, videoData, cancellationToken);
-                using (var ffmpegProcess = CreateReader(tempVideoPath, fps))
+                // Start FFMPEG
+                ffmpegProcess.Start();
+
+                // FFMPEG output stream
+                var processOutputStream = ffmpegProcess.StandardOutput.BaseStream;
+
+                // Buffer to hold the current image
+                var buffer = new byte[20480000];
+
+                var currentIndex = 0;
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    // Start FFMPEG
-                    ffmpegProcess.Start();
+                    // Reset the index new PNG
+                    currentIndex = 0;
 
-                    // FFMPEG output stream
-                    var processOutputStream = ffmpegProcess.StandardOutput.BaseStream;
+                    // Read the PNG Header
+                    if (await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 8), cancellationToken) <= 0)
+                        break;
 
-                    // Buffer to hold the current image
-                    var buffer = new byte[20480000];
+                    currentIndex += 8;// header length
 
-                    var currentIndex = 0;
-                    while (!cancellationToken.IsCancellationRequested)
+                    if (!IsImageHeader(buffer))
+                        throw new Exception("Invalid PNG header");
+
+                    // loop through each chunk
+                    while (true)
                     {
-                        // Reset the index new PNG
-                        currentIndex = 0;
+                        // Read the chunk header
+                        await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 12), cancellationToken);
 
-                        // Read the PNG Header
-                        if (await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 8), cancellationToken) <= 0)
-                            break;
+                        var chunkIndex = currentIndex;
+                        currentIndex += 12; // Chunk header length
 
-                        currentIndex += 8;// header length
-
-                        if (!IsImageHeader(buffer))
-                            throw new Exception("Invalid PNG header");
-
-                        // loop through each chunk
-                        while (true)
+                        // Get the chunk's content size in bytes from the header we just read
+                        var totalSize = buffer[chunkIndex] << 24 | buffer[chunkIndex + 1] << 16 | buffer[chunkIndex + 2] << 8 | buffer[chunkIndex + 3];
+                        if (totalSize > 0)
                         {
-                            // Read the chunk header
-                            await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 12), cancellationToken);
-
-                            var chunkIndex = currentIndex;
-                            currentIndex += 12; // Chunk header length
-
-                            // Get the chunk's content size in bytes from the header we just read
-                            var totalSize = buffer[chunkIndex] << 24 | buffer[chunkIndex + 1] << 16 | buffer[chunkIndex + 2] << 8 | buffer[chunkIndex + 3];
-                            if (totalSize > 0)
+                            var totalRead = 0;
+                            while (totalRead < totalSize)
                             {
-                                var totalRead = 0;
-                                while (totalRead < totalSize)
-                                {
-                                    int read = await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, totalSize - totalRead), cancellationToken);
-                                    currentIndex += read;
-                                    totalRead += read;
-                                }
-                                continue;
+                                int read = await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, totalSize - totalRead), cancellationToken);
+                                currentIndex += read;
+                                totalRead += read;
                             }
-
-                            // If the size is 0 and is the end of the image
-                            if (totalSize == 0 && IsImageEnd(buffer, chunkIndex))
-                                break;
+                            continue;
                         }
 
-                        yield return buffer[..currentIndex];
+                        // If the size is 0 and is the end of the image
+                        if (totalSize == 0 && IsImageEnd(buffer, chunkIndex))
+                            break;
                     }
 
-                    if (cancellationToken.IsCancellationRequested)
-                        ffmpegProcess.Kill();
+                    yield return buffer[..currentIndex];
                 }
-            }
-            finally
-            {
-                DeleteTempFile(tempVideoPath);
+
+                if (cancellationToken.IsCancellationRequested)
+                    ffmpegProcess.Kill();
             }
         }
 

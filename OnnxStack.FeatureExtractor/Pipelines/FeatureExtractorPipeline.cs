@@ -8,6 +8,7 @@ using OnnxStack.FeatureExtractor.Common;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -58,6 +59,55 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         public async Task<OnnxImage> RunAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Extracting image feature...");
+            var result = await RunInternalAsync(inputImage, cancellationToken);
+            _logger?.LogEnd("Extracting image feature complete.", timestamp);
+            return result;
+        }
+
+
+        /// <summary>
+        /// Generates the feature extractor video
+        /// </summary>
+        /// <param name="videoFrames">The input video.</param>
+        /// <returns></returns>
+        public async Task<OnnxVideo> RunAsync(OnnxVideo video, CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Extracting video features...");
+            var featureFrames = new List<OnnxImage>();
+            foreach (var videoFrame in video.Frames)
+            {
+                featureFrames.Add(await RunAsync(videoFrame, cancellationToken));
+            }
+            _logger?.LogEnd("Extracting video features complete.", timestamp);
+            return new OnnxVideo(video.Info, featureFrames);
+        }
+
+
+        /// <summary>
+        /// Generates the feature extractor video stream
+        /// </summary>
+        /// <param name="imageFrames">The image frames.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async IAsyncEnumerable<OnnxImage> RunAsync(IAsyncEnumerable<OnnxImage> imageFrames, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Extracting video stream features...");
+            await foreach (var imageFrame in imageFrames)
+            {
+                yield return await RunInternalAsync(imageFrame, cancellationToken);
+            }
+            _logger?.LogEnd("Extracting video stream features complete.", timestamp);
+        }
+
+
+        /// <summary>
+        /// Runs the pipeline
+        /// </summary>
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<OnnxImage> RunInternalAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
+        {
             var controlImage = await inputImage.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, ImageNormalizeType.ZeroToOne);
             var metadata = await _featureExtractorModel.GetMetadataAsync();
             cancellationToken.ThrowIfCancellationRequested();
@@ -75,51 +125,9 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                     if (_featureExtractorModel.Normalize)
                         resultTensor.NormalizeMinMax();
 
-                    var maskImage = resultTensor.ToImageMask();
-                    //await maskImage.SaveAsPngAsync("D:\\Mask.png");
-                    _logger?.LogEnd("Extracting image feature complete.", timestamp);
-                    return maskImage;
+                    return resultTensor.ToImageMask();
                 }
             }
-        }
-
-
-        /// <summary>
-        /// Generates the feature extractor video
-        /// </summary>
-        /// <param name="videoFrames">The input video.</param>
-        /// <returns></returns>
-        public async Task<OnnxVideo> RunAsync(OnnxVideo video, CancellationToken cancellationToken = default)
-        {
-            var timestamp = _logger?.LogBegin("Extracting video features...");
-            var metadata = await _featureExtractorModel.GetMetadataAsync();
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var frames = new List<OnnxImage>();
-            foreach (var videoFrame in video.Frames)
-            {
-                var controlImage = await videoFrame.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, ImageNormalizeType.ZeroToOne);
-                using (var inferenceParameters = new OnnxInferenceParameters(metadata))
-                {
-                    inferenceParameters.AddInputTensor(controlImage);
-                    inferenceParameters.AddOutputBuffer(new[] { 1, _featureExtractorModel.Channels, _featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize });
-
-                    var results = await _featureExtractorModel.RunInferenceAsync(inferenceParameters);
-                    using (var result = results.First())
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        var resultTensor = result.ToDenseTensor();
-                        if (_featureExtractorModel.Normalize)
-                            resultTensor.NormalizeMinMax();
-
-                        var maskImage = resultTensor.ToImageMask();
-                        frames.Add(maskImage);
-                    }
-                }
-            }
-            _logger?.LogEnd("Extracting video features complete.", timestamp);
-            return new OnnxVideo(video.Info, frames);
         }
 
 
