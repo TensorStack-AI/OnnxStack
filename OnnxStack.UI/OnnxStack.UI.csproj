@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.21.0</Version>
+    <Version>0.22.0</Version>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net7.0-windows</TargetFramework>
     <Nullable>disable</Nullable>
@@ -51,9 +51,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.21.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
-    <PackageReference Include="OnnxStack.ImageUpscaler" Version="0.21.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
-    <PackageReference Include="OnnxStack.FeatureExtractor" Version="0.21.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
+    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
+    <PackageReference Include="OnnxStack.ImageUpscaler" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
+    <PackageReference Include="OnnxStack.FeatureExtractor" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
     <ProjectReference Include="..\OnnxStack.FeatureExtractor\OnnxStack.FeatureExtractor.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
     <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
     <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
