@@ -60,13 +60,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Release' " />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.17.1" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Release' " />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug-TensorRT' OR '$(Configuration)' == 'Release-TensorRT'" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Release-Cuda'" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.1" />
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.6.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
   </ItemGroup>
