@@ -24,6 +24,7 @@ namespace OnnxStack.UI.Views
     public partial class FeatureExtractorView : UserControl, INavigatable, INotifyPropertyChanged
     {
         private readonly ILogger<FeatureExtractorView> _logger;
+        private readonly IFeatureExtractorService _featureExtractorService;
 
         private bool _hasResult;
         private int _progressMax;
@@ -36,7 +37,6 @@ namespace OnnxStack.UI.Views
         private CancellationTokenSource _cancelationTokenSource;
         private BitmapSource _inputImage;
         private string _imageFile;
-        private FeatureExtractorPipeline _pipeline;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FeatureExtractorView"/> class.
@@ -46,6 +46,7 @@ namespace OnnxStack.UI.Views
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
                 _logger = App.GetService<ILogger<FeatureExtractorView>>();
+                _featureExtractorService = App.GetService<IFeatureExtractorService>();
             }
 
             CancelCommand = new AsyncRelayCommand(Cancel, CanExecuteCancel);
@@ -93,7 +94,6 @@ namespace OnnxStack.UI.Views
             set { _imageFile = value; NotifyPropertyChanged(); LoadImage(); }
         }
 
-
         public int ProgressValue
         {
             get { return _progressValue; }
@@ -130,31 +130,6 @@ namespace OnnxStack.UI.Views
             set { _isControlsEnabled = value; NotifyPropertyChanged(); }
         }
 
-        private ScrollBarVisibility _scrollBarVisibility;
-
-        public ScrollBarVisibility ScrollBarVisibility
-        {
-            get { return _scrollBarVisibility; }
-            set { _scrollBarVisibility = value; NotifyPropertyChanged(); }
-        }
-
-        private bool _showFullImage;
-
-        public bool ShowFullImage
-        {
-            get { return _showFullImage; }
-            set { _showFullImage = value; NotifyPropertyChanged(); UpdateScrollBar(); }
-        }
-
-        private void UpdateScrollBar()
-        {
-            ScrollBarVisibility = _showFullImage
-                ? ScrollBarVisibility.Auto
-                : ScrollBarVisibility.Disabled;
-        }
-
-
-
 
         /// <summary>
         /// Called on Navigate
@@ -170,7 +145,6 @@ namespace OnnxStack.UI.Views
             HasResult = false;
             ResultImage = null;
             InputImage = imageResult.Image;
-           // UpdateInfo();
             SelectedTabIndex = 0;
         }
 
@@ -189,17 +163,13 @@ namespace OnnxStack.UI.Views
             try
             {
                 var timestamp = Stopwatch.GetTimestamp();
-
-                var result = await _pipeline.RunAsync(new OnnxImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
-
-              //  var resultBytes = await _upscaleService.GenerateAsync(SelectedModel.ModelSet, new OnnxImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
-                if (result != null)
+                var resultBytes = await _featureExtractorService.GenerateAsync(SelectedModel.ModelSet, new OnnxImage(InputImage.GetImageBytes()), _cancelationTokenSource.Token);
+                if (resultBytes != null)
                 {
                     var elapsed = Stopwatch.GetElapsedTime(timestamp).TotalSeconds;
-                    var imageResult = new FeatureExtractorResult(await result.ToBitmapAsync(), elapsed);
+                    var imageResult = new FeatureExtractorResult(Utils.CreateBitmap(resultBytes.GetImageBytes()), elapsed);
                     ResultImage = imageResult;
                     HasResult = true;
-
 
                     ImageResults.Add(imageResult);
                 }
@@ -291,32 +261,7 @@ namespace OnnxStack.UI.Views
             InputImage = string.IsNullOrEmpty(_imageFile)
                 ? null
                 : new BitmapImage(new Uri(_imageFile));
-           // UpdateInfo();
         }
-
-
-        /// <summary>
-        /// StableDiffusion progress callback.
-        /// </summary>
-        /// <returns></returns>
-        private Action<int, int> ProgressCallback()
-        {
-            return (value, maximum) =>
-            {
-                App.UIInvoke(() =>
-                {
-                    if (_cancelationTokenSource.IsCancellationRequested)
-                        return;
-
-                    if (ProgressMax != maximum)
-                        ProgressMax = maximum;
-
-                    ProgressValue = value;
-                });
-            };
-        }
-
-
 
 
         #region INotifyPropertyChanged

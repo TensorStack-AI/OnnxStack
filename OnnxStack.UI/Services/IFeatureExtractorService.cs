@@ -1,12 +1,12 @@
 ﻿using OnnxStack.Core.Image;
 using OnnxStack.Core.Video;
-using OnnxStack.ImageUpscaler.Common;
+using OnnxStack.FeatureExtractor.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace OnnxStack.UI.Services
 {
-    public interface IUpscaleService
+    public interface IFeatureExtractorService
     {
 
         /// <summary>
@@ -14,38 +14,38 @@ namespace OnnxStack.UI.Services
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        Task<bool> LoadModelAsync(UpscaleModelSet model);
+        Task<bool> LoadModelAsync(FeatureExtractorModelSet model);
 
         /// <summary>
         /// Unloads the model.
         /// </summary>
         /// <param name="model">The model.</param>
         /// <returns></returns>
-        Task<bool> UnloadModelAsync(UpscaleModelSet model);
+        Task<bool> UnloadModelAsync(FeatureExtractorModelSet model);
 
         /// <summary>
         /// Determines whether [is model loaded] [the specified model options].
         /// </summary>
-        /// <param name="model">The model.</param>
+        /// <param name="model">The modelset.</param>
         /// <returns>
         ///   <c>true</c> if [is model loaded] [the specified model options]; otherwise, <c>false</c>.
         /// </returns>
-        bool IsModelLoaded(UpscaleModelSet model);
+        bool IsModelLoaded(FeatureExtractorModelSet model);
 
         /// <summary>
-        /// Generates the upscaled image.
+        /// Generates the feature image.
         /// </summary>
         /// <param name="model">The model.</param>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
-        Task<OnnxImage> GenerateAsync(UpscaleModelSet model, OnnxImage inputImage, CancellationToken cancellationToken = default);
+        Task<OnnxImage> GenerateAsync(FeatureExtractorModelSet model, OnnxImage inputImage, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Generates the upscaled image.
+        /// Generates the feature video.
         /// </summary>
         /// <param name="model">The model.</param>
-        /// <param name="inputImage">The input image.</param>
+        /// <param name="inputVideo">The input video.</param>
         /// <returns></returns>
-        Task<OnnxVideo> GenerateAsync(UpscaleModelSet model, OnnxVideo inputVideo, CancellationToken cancellationToken = default);
+        Task<OnnxVideo> GenerateAsync(FeatureExtractorModelSet model, OnnxVideo inputVideo, CancellationToken cancellationToken = default);
     }
 }

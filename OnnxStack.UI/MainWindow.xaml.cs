@@ -27,6 +27,7 @@ namespace OnnxStack.UI
             UISettings = uiSettings;
             SaveImageCommand = new AsyncRelayCommand<UpscaleResult>(SaveUpscaleImageFile);
             SaveImageResultCommand = new AsyncRelayCommand<ImageResult>(SaveImageResultFile);
+            SaveFeatureImageCommand = new AsyncRelayCommand<FeatureExtractorResult>(SaveFeatureImageFile);
             SaveBlueprintCommand = new AsyncRelayCommand<ImageResult>(SaveBlueprintFile);
             NavigateTextToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateTextToImage);
             NavigateImageToImageCommand = new AsyncRelayCommand<ImageResult>(NavigateImageToImage);
@@ -39,14 +40,13 @@ namespace OnnxStack.UI
             InitializeComponent();
         }
 
-
-
         public AsyncRelayCommand WindowMinimizeCommand { get; }
         public AsyncRelayCommand WindowRestoreCommand { get; }
         public AsyncRelayCommand WindowMaximizeCommand { get; }
         public AsyncRelayCommand WindowCloseCommand { get; }
         public AsyncRelayCommand<UpscaleResult> SaveImageCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveImageResultCommand { get; }
+        public AsyncRelayCommand<FeatureExtractorResult> SaveFeatureImageCommand { get; }
         public AsyncRelayCommand<ImageResult> SaveBlueprintCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateTextToImageCommand { get; }
         public AsyncRelayCommand<ImageResult> NavigateImageToImageCommand { get; }
@@ -136,6 +136,26 @@ namespace OnnxStack.UI
             try
             {
                 var filename = GetSaveFilename($"image-{imageResult.Info.OutputWidth}x{imageResult.Info.OutputHeight}");
+                if (string.IsNullOrEmpty(filename))
+                    return;
+
+                var result = await imageResult.Image.SaveImageFileAsync(filename);
+                if (!result)
+                    _logger.LogError("Error saving image");
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving image");
+            }
+        }
+
+
+        private async Task SaveFeatureImageFile(FeatureExtractorResult imageResult)
+        {
+            try
+            {
+                var filename = GetSaveFilename($"feature-{Random.Shared.Next()}");
                 if (string.IsNullOrEmpty(filename))
                     return;
 

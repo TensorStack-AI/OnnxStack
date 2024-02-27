@@ -20,35 +20,27 @@
                 <Button Content="Generate" Command="{Binding GenerateCommand}" IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}" IsDefault="True" Margin="1,0,0,0"/>
             </UniformGrid>
             <DockPanel >
-                <userControls:UpscalePickerControl DockPanel.Dock="Top"
-                   UISettings="{Binding UISettings}"
+                <userControls:FeaturePickerControl DockPanel.Dock="Top"
+                   Settings="{Binding UISettings}"
                    IsEnabled="{Binding IsGenerating, Converter={StaticResource InverseBoolConverter}}"
                    SelectedModel="{Binding SelectedModel, Mode=TwoWay}"/>
                 <DockPanel IsEnabled="{Binding SelectedModel.IsLoaded, FallbackValue=False, TargetNullValue=False}">
 
                     <UniformGrid DockPanel.Dock="Top" Columns="1" Margin="5" >
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Scale Factor:" Margin="0,0,5,0" FontStyle="Italic" Opacity=".6"/>
-                            <TextBlock Text="{Binding UpscaleInfo.ScaleFactor}" />
-                        </StackPanel>
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Sample Size:" Margin="0,0,5,0" FontStyle="Italic" Opacity=".6"/>
-                            <TextBlock Text="{Binding UpscaleInfo.SampleSize}" />
+                            <TextBlock Text="{Binding SelectedModel.ModelSet.FeatureExtractorConfig.SampleSize}" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Input Size:" Margin="0,0,5,0" FontStyle="Italic" Opacity=".6"/>
-                            <TextBlock Text="{Binding UpscaleInfo.InputWidth}" />
-                            <TextBlock Text="x" Margin="5,0,5,0"/>
-                            <TextBlock Text="{Binding UpscaleInfo.InputHeight}" />
+                            <TextBlock Text="Normalize:" Margin="0,0,5,0" FontStyle="Italic" Opacity=".6"/>
+                            <TextBlock Text="{Binding SelectedModel.ModelSet.FeatureExtractorConfig.Normalize}" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Output Size:" Margin="0,0,5,0" FontStyle="Italic" Opacity=".6"/>
-                            <TextBlock Text="{Binding UpscaleInfo.OutputWidth}" />
-                            <TextBlock Text="x" Margin="5,0,5,0"/>
-                            <TextBlock Text="{Binding UpscaleInfo.OutputHeight}" />
+                            <TextBlock Text="ControlNet:" Margin="0,0,5,0" FontStyle="Italic" Opacity=".6"/>
+                            <TextBlock Text="{Binding SelectedModel.ControlNetType}" />
                         </StackPanel>
 
                     </UniformGrid>
@@ -104,27 +96,16 @@
                                         <ProgressBar IsIndeterminate="{Binding IsGenerating}" Height="22" />
                                     </StackPanel>
                                     <StackPanel Visibility="{Binding HasResult, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,4">
-                                        <UniformGrid Columns="4" Margin="0,3">
+                                        <UniformGrid Columns="2" Margin="0,3">
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="Input:" Margin="0,0,5,0" FontStyle="Italic" FontSize="10" Opacity=".6" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding ResultImage.Info.InputWidth}" />
+                                                    <TextBlock Text="{Binding ResultImage.Image.PixelWidth}" />
                                                     <TextBlock Text="x" Margin="2,0,2,0"/>
-                                                    <TextBlock Text="{Binding ResultImage.Info.InputHeight}" />
+                                                    <TextBlock Text="{Binding ResultImage.Image.PixelHeight}" />
                                                 </StackPanel>
                                             </StackPanel>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="Output:" Margin="0,0,5,0" FontStyle="Italic" FontSize="10" Opacity=".6" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding ResultImage.Info.OutputWidth}" />
-                                                    <TextBlock Text="x" Margin="2,0,2,0"/>
-                                                    <TextBlock Text="{Binding ResultImage.Info.OutputHeight}" />
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <TextBlock Text="Scale Factor:" Margin="0,0,5,0" FontStyle="Italic"  FontSize="10" Opacity=".6" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding ResultImage.Info.ScaleFactor}" />
-                                            </StackPanel>
+                    
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                 <TextBlock Text="Elapsed:" Margin="5,0,0,0"  FontSize="10" Opacity=".6" VerticalAlignment="Center" FontStyle="Italic"/>
                                                 <TextBlock Text="{Binding ResultImage.Elapsed, StringFormat={}{0:F1}s}" Margin="5,0,0,0"/>
@@ -132,19 +113,19 @@
                                         </UniformGrid>
                                     </StackPanel>
                                     <UniformGrid Columns="3" Height="30" IsEnabled="{Binding HasResult}">
-                                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveImageCommand}" CommandParameter="{Binding ResultImage}" ToolTip="Save Image File">
+                                        <Button Command="{Binding RelativeSource={RelativeSource FindAncestor,AncestorType={x:Type Window}}, Path=SaveFeatureImageCommand}" CommandParameter="{Binding ResultImage}" ToolTip="Save Image File">
                                             <StackPanel Orientation="Horizontal">
                                                 <userControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light"  Size="13" />
                                                 <TextBlock Text="Save Image" Margin="5,0,0,0"/>
                                             </StackPanel>
                                         </Button>
                                         <TextBlock />
-                                        <CheckBox IsChecked="{Binding ShowFullImage}" Content="Show Full Image"  BorderThickness="0,1,1,1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <TextBlock />
                                     </UniformGrid>
                                 </StackPanel>
 
 
-                                <ScrollViewer HorizontalScrollBarVisibility="{Binding ScrollBarVisibility}" VerticalScrollBarVisibility="{Binding ScrollBarVisibility}" >
+                               
                                     <Viewbox>
                                         <Image  Source="{Binding ResultImage.Image, FallbackValue={StaticResource PlaceholderImage}, TargetNullValue={StaticResource PlaceholderImage}}" >
                                             <Image.ContextMenu>
@@ -154,7 +135,7 @@
                                             </Image.ContextMenu>
                                         </Image>
                                     </Viewbox>
-                                </ScrollViewer>
+                    
 
 
                             </DockPanel>

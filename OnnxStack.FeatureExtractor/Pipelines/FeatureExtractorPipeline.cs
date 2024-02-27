@@ -42,6 +42,16 @@ namespace OnnxStack.FeatureExtractor.Pipelines
 
 
         /// <summary>
+        /// Loads the model.
+        /// </summary>
+        /// <returns></returns>
+        public Task LoadAsync()
+        {
+            return _featureExtractorModel.LoadAsync();
+        }
+
+
+        /// <summary>
         /// Unloads the models.
         /// </summary>
         public async Task UnloadAsync()

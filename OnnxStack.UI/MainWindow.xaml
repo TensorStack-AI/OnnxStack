@@ -92,7 +92,7 @@
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <StackPanel Orientation="Horizontal">
-                            <userControls:FontAwesome Icon="&#xf424;" IconStyle="Light"/>
+                            <userControls:FontAwesome Icon="&#xf87c;" IconStyle="Light"/>
                         </StackPanel>
                         <TextBlock Text="Feature Extractor" Margin="5,0,0,0"/>
                     </StackPanel>
