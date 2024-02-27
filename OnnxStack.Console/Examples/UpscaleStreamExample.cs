@@ -15,7 +15,7 @@ namespace OnnxStack.Console.Runner
 
         public int Index => 10;
 
-        public string Name => "Streaming Video Upscale Demo";
+        public string Name => "Upscale Video Streaming Demo";
 
         public string Description => "Upscales a video stream";
 

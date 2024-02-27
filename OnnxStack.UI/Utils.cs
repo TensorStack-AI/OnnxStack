@@ -1,4 +1,5 @@
-﻿using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.Core.Image;
+using OnnxStack.StableDiffusion.Config;
 using OnnxStack.UI.Models;
 using System;
 using System.Collections.ObjectModel;
@@ -16,6 +17,21 @@ namespace OnnxStack.UI
         public static string RandomString()
         {
             return Path.GetFileNameWithoutExtension(Path.GetRandomFileName());
+        }
+
+        public static async Task<BitmapImage> ToBitmapAsync(this OnnxImage onnxImage)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                await onnxImage.SaveAsync(memoryStream);
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.StreamSource = memoryStream;
+                image.EndInit();
+                image.Freeze();
+                return image;
+            }
         }
 
         public static BitmapImage CreateBitmap(byte[] imageBytes)

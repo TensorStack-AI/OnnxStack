@@ -47,7 +47,7 @@ namespace OnnxStack.UI
             builder.Services.AddSingleton<IDeviceService, DeviceService>();
             builder.Services.AddSingleton<IStableDiffusionService, StableDiffusionService>();
             builder.Services.AddSingleton<IUpscaleService, UpscaleService>();
-
+            builder.Services.AddSingleton<IFeatureExtractorService, FeatureExtractorService>();
 
             // Build App
             _applicationHost = builder.Build();

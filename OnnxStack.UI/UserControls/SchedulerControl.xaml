@@ -32,9 +32,7 @@
                             <Label>Scheduler</Label>
                             <ComboBox ItemsSource="{Binding SchedulerTypes}" SelectedItem="{Binding SchedulerOptions.SchedulerType}"/>
                         </StackPanel>
-                        <StackPanel Margin="5,0,0,0" VerticalAlignment="Bottom" Visibility="{Binding SelectedModel.IsControlNet, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
-                            <CheckBox IsChecked="{Binding SchedulerOptions.IsControlImageProcessingEnabled}" Content="Process Input Image" Margin="0,0,0,3"/>
-                        </StackPanel>
+
                     </UniformGrid>
 
 

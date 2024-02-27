@@ -87,6 +87,19 @@
                 <views:UpscaleView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
             </TabItem>
 
+            <!--Feature Extractor-->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <userControls:FontAwesome Icon="&#xf87c;" IconStyle="Light"/>
+                        </StackPanel>
+                        <TextBlock Text="Feature Extractor" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:FeatureExtractorView UISettings="{Binding UISettings}" Margin="0,6,0,0"/>
+            </TabItem>
+
             <!--Log Window-->
             <TabItem DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TabItem.Header>
