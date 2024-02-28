@@ -23,6 +23,7 @@
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PackageIcon>OnnxStack - 128x128.png</PackageIcon>
+    <Configurations>Debug;Release</Configurations>
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
@@ -34,8 +35,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.Core" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' " />
-    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' " />
+    <PackageReference Include="OnnxStack.Core" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
+    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)'=='Debug-Nvidia'" />
   </ItemGroup>
 
   <ItemGroup>

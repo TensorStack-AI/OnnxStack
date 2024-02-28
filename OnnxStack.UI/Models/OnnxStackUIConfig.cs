@@ -27,10 +27,8 @@ namespace OnnxStack.UI.Models
 
         public ExecutionProvider GetSupportedExecutionProvider()
         {
-#if DEBUG_CUDA || RELEASE_CUDA
+#if DEBUG_NVIDIA || RELEASE_NVIDIA
             return ExecutionProvider.Cuda;
-#elif DEBUG_TENSORRT || RELEASE_TENSORRT
-            return ExecutionProvider.TensorRT;
 #else
             return ExecutionProvider.DirectML;
 #endif
