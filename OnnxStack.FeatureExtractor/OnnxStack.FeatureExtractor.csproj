@@ -35,8 +35,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.Core" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' " />
-    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' " />
+    <PackageReference Include="OnnxStack.Core" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
+    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)'=='Debug-Nvidia'" />
   </ItemGroup>
 
   <ItemGroup>

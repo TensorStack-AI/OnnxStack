@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
-    <Configurations>Debug;Release;Debug-Cuda;Debug-TensorRT;Release-Cuda;Release-TensorRT</Configurations>
+    <Configurations>Debug;Release;Debug-Nvidia;Release-Nvidia</Configurations>
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
@@ -16,18 +16,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.19.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
-    <PackageReference Include="OnnxStack.ImageUpscaler" Version="0.19.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
-    <PackageReference Include="OnnxStack.FeatureExtractor" Version="0.19.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Cuda' OR '$(Configuration)' == 'Release-TensorRT'" />
-    <ProjectReference Include="..\OnnxStack.FeatureExtractor\OnnxStack.FeatureExtractor.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
-    <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
-    <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Debug-TensorRT'" />
+    <PackageReference Include="OnnxStack.StableDiffusion" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
+    <PackageReference Include="OnnxStack.ImageUpscaler" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
+    <PackageReference Include="OnnxStack.FeatureExtractor" Version="0.22.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
+    <ProjectReference Include="..\OnnxStack.FeatureExtractor\OnnxStack.FeatureExtractor.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Nvidia'" />
+    <ProjectReference Include="..\OnnxStack.StableDiffusion\OnnxStack.StableDiffusion.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Nvidia'" />
+    <ProjectReference Include="..\OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Debug-Nvidia'" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.17.1" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Release' " />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug-TensorRT' OR '$(Configuration)' == 'Release-TensorRT'" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.16.3" Condition=" '$(Configuration)' == 'Debug-Cuda' OR '$(Configuration)' == 'Release-Cuda'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.17.1" Condition=" '$(Configuration)' == 'Debug-Nvidia' OR '$(Configuration)' == 'Release-Nvidia'" />
   </ItemGroup>
 
   <ItemGroup>
