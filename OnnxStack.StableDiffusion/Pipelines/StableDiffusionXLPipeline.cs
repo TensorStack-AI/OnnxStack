@@ -283,11 +283,11 @@ namespace OnnxStack.StableDiffusion.Pipelines
             }
 
             var embeddingsDim = new[] { 1, embeddings.Count / _tokenizer2.TokenizerLength, _tokenizer2.TokenizerLength };
-            var promptTensor = TensorHelper.CreateTensor(embeddings.ToArray(), embeddingsDim);
+            var promptTensor = new DenseTensor<float>(embeddings.ToArray(), embeddingsDim);
 
             //TODO: Pooled embeds do not support more than 77 tokens, just grab first set
             var pooledDim = new[] { 1, _tokenizer2.TokenizerLength };
-            var pooledTensor = TensorHelper.CreateTensor(pooledEmbeds.Take(_tokenizer2.TokenizerLength).ToArray(), pooledDim);
+            var pooledTensor = new DenseTensor<float>(pooledEmbeds.Take(_tokenizer2.TokenizerLength).ToArray(), pooledDim);
             return new EmbedsResult(promptTensor, pooledTensor);
         }
 

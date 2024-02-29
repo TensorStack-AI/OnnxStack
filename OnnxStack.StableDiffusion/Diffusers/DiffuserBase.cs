@@ -1,12 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using System;
 using System.Collections.Generic;
@@ -158,7 +156,7 @@ namespace OnnxStack.StableDiffusion.Diffusers
         /// <returns></returns>
         protected static DenseTensor<float> CreateTimestepTensor(int timestep)
         {
-            return TensorHelper.CreateTensor(new float[] { timestep }, new int[] { 1 });
+            return new DenseTensor<float>(new float[] { timestep }, new int[] { 1 });
         }
 
 

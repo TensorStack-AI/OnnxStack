@@ -2,6 +2,7 @@
 using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.UI.Models;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

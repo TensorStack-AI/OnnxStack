@@ -1,52 +1,10 @@
-﻿using Microsoft.ML.OnnxRuntime;
-using OnnxStack.StableDiffusion.Config;
-using OnnxStack.StableDiffusion.Enums;
-
+﻿using OnnxStack.StableDiffusion.Config;
 using System;
-using System.Linq;
 
 namespace OnnxStack.StableDiffusion
 {
     public static class Extensions
     {
-        /// <summary>
-        /// Gets the first element and casts it to the specified type.
-        /// </summary>
-        /// <typeparam name="T">Desired return type</typeparam>
-        /// <param name="collection">The collection.</param>
-        /// <returns>Firts element in the collection cast as <see cref="T"/></returns>
-        internal static T FirstElementAs<T>(this IDisposableReadOnlyCollection<DisposableNamedOnnxValue> collection)
-        {
-            if (collection is null || collection.Count == 0)
-                return default;
-
-            var element = collection.FirstOrDefault();
-            if (element.Value is not T value)
-                return default;
-
-            return value;
-        }
-
-
-        /// <summary>
-        /// Gets the last element and casts it to the specified type.
-        /// </summary>
-        /// <typeparam name="T">Desired return type</typeparam>
-        /// <param name="collection">The collection.</param>
-        /// <returns>Last element in the collection cast as <see cref="T"/></returns>
-        internal static T LastElementAs<T>(this IDisposableReadOnlyCollection<DisposableNamedOnnxValue> collection)
-        {
-            if (collection is null || collection.Count == 0)
-                return default;
-
-            var element = collection.LastOrDefault();
-            if (element.Value is not T value)
-                return default;
-
-            return value;
-        }
-
-
         /// <summary>
         /// Helper to get the scaled width for the latent dimension
         /// </summary>
