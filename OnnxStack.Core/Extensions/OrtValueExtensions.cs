@@ -105,7 +105,19 @@ namespace OnnxStack.Core
         public static DenseTensor<float> ToDenseTensor(this OrtValue ortValue)
         {
             var typeInfo = ortValue.GetTensorTypeAndShape();
-            var dimensions = typeInfo.Shape.ToInt();
+            return ortValue.ToDenseTensor(typeInfo.Shape.ToInt());
+        }
+
+
+        /// <summary>
+        /// Converts to DenseTensor<float>.
+        /// TODO: Optimization
+        /// </summary>
+        /// <param name="ortValue">The ort value.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> ToDenseTensor(this OrtValue ortValue, ReadOnlySpan<int> dimensions)
+        {
+            var typeInfo = ortValue.GetTensorTypeAndShape();
             return typeInfo.ElementDataType switch
             {
                 TensorElementType.Float16 => new DenseTensor<float>(ortValue.GetTensorDataAsSpan<Float16>().ToFloat(), dimensions),

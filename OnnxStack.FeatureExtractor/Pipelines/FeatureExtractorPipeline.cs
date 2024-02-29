@@ -121,17 +121,19 @@ namespace OnnxStack.FeatureExtractor.Pipelines
             var controlImage = await inputImage.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, ImageNormalizeType.ZeroToOne);
             var metadata = await _featureExtractorModel.GetMetadataAsync();
             cancellationToken.ThrowIfCancellationRequested();
+            var outputShape = new[] { 1, _featureExtractorModel.Channels, _featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize };
+            var outputBuffer = metadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
                 inferenceParameters.AddInputTensor(controlImage);
-                inferenceParameters.AddOutputBuffer(new[] { 1, _featureExtractorModel.Channels, _featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize });
+                inferenceParameters.AddOutputBuffer(outputBuffer);
 
                 var results = await _featureExtractorModel.RunInferenceAsync(inferenceParameters);
                 using (var result = results.First())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var resultTensor = result.ToDenseTensor();
+                    var resultTensor = result.ToDenseTensor(outputShape);
                     if (_featureExtractorModel.Normalize)
                         resultTensor.NormalizeMinMax();
 
