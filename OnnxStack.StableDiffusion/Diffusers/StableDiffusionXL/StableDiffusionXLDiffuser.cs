@@ -5,7 +5,6 @@ using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Schedulers.StableDiffusion;
 using System;
@@ -127,7 +126,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
             float[] result = _unet.ModelType == ModelType.Refiner
                 ? new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.AestheticScore }
                 : new float[] { schedulerOptions.Height, schedulerOptions.Width, 0, 0, schedulerOptions.Height, schedulerOptions.Width };
-            return TensorHelper.CreateTensor(result, new[] { 1, result.Length });
+            return new DenseTensor<float>(result, new[] { 1, result.Length });
         }
 
 

@@ -6,7 +6,6 @@ using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
 using System;
 using System.Collections.Generic;
@@ -192,7 +191,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <returns></returns>
         protected static DenseTensor<double> CreateConditioningScaleTensor(float conditioningScale)
         {
-            return TensorHelper.CreateTensor(new double[] { conditioningScale }, new int[] { 1 });
+            return new DenseTensor<double>(new double[] { conditioningScale }, new int[] { 1 });
         }
 
 

@@ -421,7 +421,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 return _defaultSchedulerOptions with { Seed = Random.Shared.Next() };
 
             if (schedulerOptions.Seed <= 0)
-                return schedulerOptions with { Seed = Random.Shared.Next() };
+                schedulerOptions.Seed = Random.Shared.Next();
 
             return schedulerOptions;
         }
@@ -577,7 +577,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             }
 
             var dim = new[] { 1, embeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength };
-            return TensorHelper.CreateTensor(embeddings.ToArray(), dim);
+            return new DenseTensor<float>(embeddings.ToArray(), dim);
         }
 
 

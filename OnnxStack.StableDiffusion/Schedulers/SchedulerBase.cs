@@ -97,7 +97,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <returns></returns>
         public virtual DenseTensor<float> CreateRandomSample(ReadOnlySpan<int> dimensions, float initialNoiseSigma = 1f)
         {
-            return TensorHelper.GetRandomTensor(Random, dimensions, initialNoiseSigma);
+            return Random.NextTensor(dimensions, initialNoiseSigma);
         }
 
 
