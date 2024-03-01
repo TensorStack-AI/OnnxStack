@@ -379,11 +379,13 @@ namespace OnnxStack.UI.Views
                     if (_cancelationTokenSource.IsCancellationRequested)
                         return;
 
+                    if (progress.BatchTensor is null)
+                        ProgressText = $"Frame: {progress.BatchValue:D2}/{_videoFrames.Frames.Count}  |  Step: {progress.StepValue:D2}/{progress.StepMax:D2}";
+
                     if (progress.BatchTensor is not null)
                     {
                         PreviewResult = Utils.CreateBitmap(new OnnxImage(progress.BatchTensor).GetImageBytes());
                         PreviewSource = UpdatePreviewFrame(progress.BatchValue - 1);
-                        ProgressText = $"Video Frame {progress.BatchValue} of {_videoFrames.Frames.Count} complete";
                     }
 
                     if (ProgressText != progress.Message && progress.BatchMax == 0)

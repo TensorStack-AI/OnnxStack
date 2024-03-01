@@ -218,7 +218,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
             var frameIndex = 0;
             var videoFrames = promptOptions.InputVideo.Frames;
-            var schedulerFrameCallback = CreateBatchCallback(progressCallback, videoFrames.Count, () => frameIndex);
             foreach (var videoFrame in videoFrames)
             {
                 if (promptOptions.DiffuserType == DiffuserType.ControlNet || promptOptions.DiffuserType == DiffuserType.ControlNetImage)
@@ -234,7 +233,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                     promptOptions.InputImage = videoFrame;
                 }
 
-                var frameResultTensor = await diffuser.DiffuseAsync(promptOptions, schedulerOptions, promptEmbeddings, performGuidance, schedulerFrameCallback, cancellationToken);
+                var frameResultTensor = await diffuser.DiffuseAsync(promptOptions, schedulerOptions, promptEmbeddings, performGuidance, progressCallback, cancellationToken);
 
                 // Frame Progress
                 ReportBatchProgress(progressCallback, ++frameIndex, videoFrames.Count, frameResultTensor);
@@ -296,7 +295,9 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 StepValue = progress.StepValue,
                 StepTensor = progress.StepTensor,
                 BatchMax = batchCount,
-                BatchValue = batchIndex()
+                BatchValue = batchIndex(),
+                BatchTensor = progress.BatchTensor,
+                Message = progress.Message
             });
         }
 
