@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -243,7 +244,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
         public override async Task<OnnxVideo> GenerateVideoAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var tensors = await RunInternalAsync(promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
-            return new OnnxVideo(promptOptions.InputVideo.Info, tensors);
+            var videoInfo = promptOptions.InputVideo.Info with
+            {
+                Width = schedulerOptions.Width,
+                Height = schedulerOptions.Height
+            };
+            progressCallback?.Invoke(new DiffusionProgress("Generating Video Result..."));
+            return new OnnxVideo(videoInfo, tensors);
         }
 
 
@@ -261,7 +268,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
         {
             await foreach (var batchResult in RunBatchInternalAsync(batchOptions, promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken))
             {
-                yield return new BatchVideoResult(batchResult.SchedulerOptions, new OnnxVideo(promptOptions.InputVideo.Info, batchResult.Result));
+                var videoInfo = promptOptions.InputVideo.Info with
+                {
+                    Width = batchResult.SchedulerOptions.Width,
+                    Height = batchResult.SchedulerOptions.Height
+                };
+                progressCallback?.Invoke(new DiffusionProgress("Generating Video Result..."));
+                yield return new BatchVideoResult(batchResult.SchedulerOptions, new OnnxVideo(videoInfo, batchResult.Result));
             }
         }
 
