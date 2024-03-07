@@ -6,6 +6,7 @@ Below is a small list of known/tested upscale models
 * https://huggingface.co/rocca/swin-ir-onnx
 * https://huggingface.co/Xenova/swin2SR-classical-sr-x2-64
 * https://huggingface.co/Xenova/swin2SR-classical-sr-x4-64
+* https://huggingface.co/Neus/GFPGANv1.4
 
 
 # Image Example
