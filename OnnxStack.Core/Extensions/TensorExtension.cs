@@ -8,7 +8,7 @@ using OnnxStack.Core.Model;
 
 namespace OnnxStack.Core
 {
-    public static partial class TensorExtension
+    public static class TensorExtension
     {
         /// <summary>
         /// Divides the tensor by float.
