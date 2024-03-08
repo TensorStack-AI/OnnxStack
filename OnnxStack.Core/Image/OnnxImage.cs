@@ -64,6 +64,7 @@ namespace OnnxStack.Core.Image
         {
             var height = imageTensor.Dimensions[2];
             var width = imageTensor.Dimensions[3];
+            var hasTransparency = imageTensor.Dimensions[1] == 4;
             _imageData = new Image<Rgba32>(width, height);
             for (var y = 0; y < height; y++)
             {
@@ -74,14 +75,16 @@ namespace OnnxStack.Core.Image
                         _imageData[x, y] = new Rgba32(
                             DenormalizeZeroToOneToByte(imageTensor, 0, y, x),
                             DenormalizeZeroToOneToByte(imageTensor, 1, y, x),
-                            DenormalizeZeroToOneToByte(imageTensor, 2, y, x));
+                            DenormalizeZeroToOneToByte(imageTensor, 2, y, x),
+                            hasTransparency ? DenormalizeZeroToOneToByte(imageTensor, 3, y, x) : byte.MaxValue);
                     }
                     else
                     {
                         _imageData[x, y] = new Rgba32(
                             DenormalizeOneToOneToByte(imageTensor, 0, y, x),
                             DenormalizeOneToOneToByte(imageTensor, 1, y, x),
-                            DenormalizeOneToOneToByte(imageTensor, 2, y, x));
+                            DenormalizeOneToOneToByte(imageTensor, 2, y, x),
+                            hasTransparency ? DenormalizeOneToOneToByte(imageTensor, 3, y, x) : byte.MaxValue);
                     }
                 }
             }
@@ -337,6 +340,7 @@ namespace OnnxStack.Core.Image
             var width = dimensions[3];
             var height = dimensions[2];
             var channels = dimensions[1];
+            var hasTransparency = channels == 4;
             var imageArray = new DenseTensor<float>(new[] { 1, channels, height, width });
             _imageData.ProcessPixelRows(img =>
             {
@@ -348,6 +352,8 @@ namespace OnnxStack.Core.Image
                         imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f);
                         imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f);
                         imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f);
+                        if (hasTransparency)
+                            imageArray[0, 3, y, x] = (pixelSpan[x].A / 255.0f);
                     }
                 }
             });
@@ -366,6 +372,7 @@ namespace OnnxStack.Core.Image
             var width = dimensions[3];
             var height = dimensions[2];
             var channels = dimensions[1];
+            var hasTransparency = channels == 4;
             var imageArray = new DenseTensor<float>(new[] { 1, channels, height, width });
             _imageData.ProcessPixelRows(img =>
             {
@@ -377,6 +384,8 @@ namespace OnnxStack.Core.Image
                         imageArray[0, 0, y, x] = (pixelSpan[x].R / 255.0f) * 2.0f - 1.0f;
                         imageArray[0, 1, y, x] = (pixelSpan[x].G / 255.0f) * 2.0f - 1.0f;
                         imageArray[0, 2, y, x] = (pixelSpan[x].B / 255.0f) * 2.0f - 1.0f;
+                        if (hasTransparency)
+                            imageArray[0, 3, y, x] = (pixelSpan[x].A / 255.0f) * 2.0f - 1.0f;
                     }
                 }
             });

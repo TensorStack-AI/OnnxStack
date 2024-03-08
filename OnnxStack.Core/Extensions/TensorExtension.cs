@@ -397,7 +397,7 @@ namespace OnnxStack.Core
 
             // Copy data from the second tensor
             for (int i = 0; i < dimensions[0]; i++)
-                for (int j = 0; j < tensor1.Dimensions[1]; j++)
+                for (int j = 0; j < tensor2.Dimensions[1]; j++)
                     concatenatedTensor[i, j + tensor1.Dimensions[1]] = tensor2[i, j];
 
             return concatenatedTensor;
