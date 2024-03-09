@@ -32,9 +32,9 @@ namespace OnnxStack.Core.Video
         /// <param name="onnxVideo">The onnx video.</param>
         /// <param name="filename">The filename.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public static async Task WriteVideoFramesAsync(OnnxVideo onnxVideo, string filename, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoFramesAsync(OnnxVideo onnxVideo, string filename, bool preserveTransparency = false, CancellationToken cancellationToken = default)
         {
-            await WriteVideoFramesAsync(onnxVideo.Frames, filename, onnxVideo.FrameRate, onnxVideo.AspectRatio, cancellationToken);
+            await WriteVideoFramesAsync(onnxVideo.Frames, filename, onnxVideo.FrameRate, onnxVideo.AspectRatio, preserveTransparency, cancellationToken);
         }
 
 
@@ -45,11 +45,11 @@ namespace OnnxStack.Core.Video
         /// <param name="filename">The filename.</param>
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public static async Task WriteVideoFramesAsync(IEnumerable<OnnxImage> onnxImages, string filename, float frameRate = 15, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoFramesAsync(IEnumerable<OnnxImage> onnxImages, string filename, float frameRate = 15, bool preserveTransparency = false, CancellationToken cancellationToken = default)
         {
             var firstImage = onnxImages.First();
             var aspectRatio = (double)firstImage.Width / firstImage.Height;
-            await WriteVideoFramesAsync(onnxImages, filename, frameRate, aspectRatio, cancellationToken);
+            await WriteVideoFramesAsync(onnxImages, filename, frameRate, aspectRatio, preserveTransparency, cancellationToken);
         }
 
 
@@ -61,12 +61,12 @@ namespace OnnxStack.Core.Video
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="aspectRatio">The aspect ratio.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private static async Task WriteVideoFramesAsync(IEnumerable<OnnxImage> onnxImages, string filename, float frameRate, double aspectRatio, CancellationToken cancellationToken = default)
+        private static async Task WriteVideoFramesAsync(IEnumerable<OnnxImage> onnxImages, string filename, float frameRate, double aspectRatio, bool preserveTransparency, CancellationToken cancellationToken = default)
         {
             if (File.Exists(filename))
                 File.Delete(filename);
 
-            using (var videoWriter = CreateWriter(filename, frameRate, aspectRatio))
+            using (var videoWriter = CreateWriter(filename, frameRate, aspectRatio, preserveTransparency))
             {
                 // Start FFMPEG
                 videoWriter.Start();
@@ -91,12 +91,12 @@ namespace OnnxStack.Core.Video
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="aspectRatio">The aspect ratio.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public static async Task WriteVideoStreamAsync(VideoInfo videoInfo, IAsyncEnumerable<OnnxImage> videoStream, string filename, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoStreamAsync(VideoInfo videoInfo, IAsyncEnumerable<OnnxImage> videoStream, string filename, bool preserveTransparency = false, CancellationToken cancellationToken = default)
         {
             if (File.Exists(filename))
                 File.Delete(filename);
 
-            using (var videoWriter = CreateWriter(filename, videoInfo.FrameRate, videoInfo.AspectRatio))
+            using (var videoWriter = CreateWriter(filename, videoInfo.FrameRate, videoInfo.AspectRatio, preserveTransparency))
             {
                 // Start FFMPEG
                 videoWriter.Start();
@@ -323,11 +323,13 @@ namespace OnnxStack.Core.Video
         /// <param name="fps">The FPS.</param>
         /// <param name="aspectRatio">The aspect ratio.</param>
         /// <returns></returns>
-        private static Process CreateWriter(string outputFile, float fps, double aspectRatio)
+        private static Process CreateWriter(string outputFile, float fps, double aspectRatio, bool preserveTransparency)
         {
             var ffmpegProcess = new Process();
+            var codec = preserveTransparency ? "png" : "libx264";
+            var format = preserveTransparency ? "yuva420p" : "yuv420p";
             ffmpegProcess.StartInfo.FileName = _configuration.FFmpegPath;
-            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -framerate {fps:F4} -i - -c:v libx264 -movflags +faststart -vf format=yuv420p -aspect {aspectRatio} {outputFile}";
+            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -framerate {fps:F4} -i - -c:v {codec} -movflags +faststart -vf format={format} -aspect {aspectRatio} {outputFile}";
             ffmpegProcess.StartInfo.RedirectStandardInput = true;
             ffmpegProcess.StartInfo.UseShellExecute = false;
             ffmpegProcess.StartInfo.CreateNoWindow = true;

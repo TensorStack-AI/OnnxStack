@@ -137,9 +137,9 @@ namespace OnnxStack.Core.Video
         /// <param name="filename">The filename.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public Task SaveAsync(string filename, CancellationToken cancellationToken = default)
+        public Task SaveAsync(string filename, bool preserveTransparency = false, CancellationToken cancellationToken = default)
         {
-            return VideoHelper.WriteVideoFramesAsync(this, filename, cancellationToken);
+            return VideoHelper.WriteVideoFramesAsync(this, filename, preserveTransparency, cancellationToken);
         }
 
 
