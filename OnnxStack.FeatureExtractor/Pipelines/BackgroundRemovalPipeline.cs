@@ -88,7 +88,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
             var videoFrames = new List<OnnxImage>();
             foreach (var videoFrame in video.Frames)
             {
-                videoFrames.Add(await RunAsync(videoFrame, cancellationToken));
+                videoFrames.Add(await RunInternalAsync(videoFrame, cancellationToken));
             }
             _logger?.LogEnd("Removing video background complete.", timestamp);
             return new OnnxVideo(video.Info with
@@ -138,10 +138,6 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                 using (var result = results.First())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-
-                    var resultTensor = result.ToDenseTensor(outputShape);
-                    if (_model.Normalize)
-                        resultTensor.NormalizeMinMax();
 
                     var imageTensor = AddAlphaChannel(souceImageTenssor, result.GetTensorDataAsSpan<float>());
                     return new OnnxImage(imageTensor, ImageNormalizeType.ZeroToOne);
