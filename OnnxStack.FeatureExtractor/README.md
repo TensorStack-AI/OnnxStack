@@ -14,6 +14,10 @@
 ### OpenPose (TODO)
 * https://huggingface.co/axodoxian/controlnet_onnx/resolve/main/annotators/openpose.onnx
 
+### Background Removal
+* https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model.onnx
+
+
 # Image Example
 ```csharp
 // Load Input Image
