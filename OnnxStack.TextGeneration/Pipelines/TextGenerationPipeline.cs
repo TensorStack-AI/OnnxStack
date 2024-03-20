@@ -77,7 +77,7 @@ namespace OnnxStack.TextGeneration.Pipelines
         private async IAsyncEnumerable<TokenModel> RunInternalAsync(PromptOptionsModel promptOptions, SearchOptionsModel searchOptions, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Run text generation pipeline stream...");
-            var sequences = await EncodePrompt(promptOptions);
+            var sequences = await EncodePrompt(promptOptions, cancellationToken);
 
             using (var generatorParams = new GeneratorParams(_model.Model))
             {
