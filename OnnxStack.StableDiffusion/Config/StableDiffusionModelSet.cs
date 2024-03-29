@@ -20,7 +20,7 @@ namespace OnnxStack.StableDiffusion.Config
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
-
+        public OnnxModelPrecision Precision { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TokenizerModelConfig TokenizerConfig { get; set; }
@@ -45,5 +45,7 @@ namespace OnnxStack.StableDiffusion.Config
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public SchedulerOptions SchedulerOptions { get; set; }
+
+      
     }
 }

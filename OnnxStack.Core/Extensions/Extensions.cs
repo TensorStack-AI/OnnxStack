@@ -65,6 +65,7 @@ namespace OnnxStack.Core
             config.ExecutionProvider ??= defaults.ExecutionProvider;
             config.InterOpNumThreads ??= defaults.InterOpNumThreads;
             config.IntraOpNumThreads ??= defaults.IntraOpNumThreads;
+            config.Precision ??= defaults.Precision;
             return config;
         }
 

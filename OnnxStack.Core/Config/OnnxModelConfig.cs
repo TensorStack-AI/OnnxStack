@@ -22,6 +22,9 @@ namespace OnnxStack.Core.Config
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ExecutionProvider? ExecutionProvider { get; set; }
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public OnnxModelPrecision? Precision { get; set; }
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int RequiredMemory { get; set; }
     }

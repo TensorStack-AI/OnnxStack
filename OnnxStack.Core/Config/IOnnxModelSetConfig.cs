@@ -10,5 +10,6 @@ namespace OnnxStack.Core.Config
         int IntraOpNumThreads { get; set; }
         ExecutionMode ExecutionMode { get; set; }
         ExecutionProvider ExecutionProvider { get; set; }
+        OnnxModelPrecision Precision { get; set; }
     }
 }

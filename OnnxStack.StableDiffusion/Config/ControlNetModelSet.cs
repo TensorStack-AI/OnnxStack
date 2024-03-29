@@ -17,7 +17,7 @@ namespace OnnxStack.StableDiffusion.Config
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
-
+        public OnnxModelPrecision Precision { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ControlNetModelConfig ControlNetConfig { get; set; }
