@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using System;
 using System.Collections.Concurrent;
@@ -243,6 +244,27 @@ namespace OnnxStack.Core
         public static long[] ToLong(this int[] array)
         {
             return Array.ConvertAll(array, Convert.ToInt64);
+        }
+
+
+        /// <summary>
+        /// Normalize the data using Min-Max scaling to ensure all values are in the range [0, 1].
+        /// </summary>
+        /// <param name="values">The values.</param>
+        public static void NormalizeMinMax(this Span<float> values)
+        {
+            float min = float.PositiveInfinity, max = float.NegativeInfinity;
+            foreach (var val in values)
+            {
+                if (min > val) min = val;
+                if (max < val) max = val;
+            }
+
+            var range = max - min;
+            for (var i = 0; i < values.Length; i++)
+            {
+                values[i] = (values[i] - min) / range;
+            }
         }
     }
 }
