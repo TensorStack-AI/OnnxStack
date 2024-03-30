@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using Newtonsoft.Json.Linq;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
@@ -10,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,7 +74,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         public async Task<DenseTensor<float>> RunAsync(DenseTensor<float> inputImage, CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Upscale image..");
-            var result = await RunInternalAsync(inputImage, cancellationToken);
+            var result = await UpscaleTensorAsync(inputImage, cancellationToken);
             _logger?.LogEnd("Upscale image complete.", timestamp);
             return result;
         }
@@ -87,7 +89,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         public async Task<OnnxImage> RunAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Upscale image..");
-            var result = await RunInternalAsync(inputImage, cancellationToken);
+            var result = await UpscaleImageAsync(inputImage, cancellationToken);
             _logger?.LogEnd("Upscale image complete.", timestamp);
             return result;
         }
@@ -105,7 +107,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
             var upscaledFrames = new List<OnnxImage>();
             foreach (var videoFrame in inputVideo.Frames)
             {
-                upscaledFrames.Add(await RunInternalAsync(videoFrame, cancellationToken));
+                upscaledFrames.Add(await UpscaleImageAsync(videoFrame, cancellationToken));
             }
 
             var firstFrame = upscaledFrames.First();
@@ -131,23 +133,44 @@ namespace OnnxStack.FeatureExtractor.Pipelines
             var timestamp = _logger?.LogBegin("Upscale video stream..");
             await foreach (var imageFrame in imageFrames)
             {
-                yield return await RunInternalAsync(imageFrame, cancellationToken);
+                yield return await UpscaleImageAsync(imageFrame, cancellationToken);
             }
             _logger?.LogEnd("Upscale video stream complete.", timestamp);
         }
 
 
+
         /// <summary>
-        /// Runs the upscale pipeline
+        /// Upscales the OnnxImage.
         /// </summary>
         /// <param name="inputImage">The input image.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<OnnxImage> RunInternalAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
+        private async Task<OnnxImage> UpscaleImageAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
-            var inputTensor = inputImage.GetImageTensor(ImageNormalizeType.ZeroToOne, _upscaleModel.Channels);
+            var inputTensor = inputImage.GetImageTensor(_upscaleModel.NormalizeType, _upscaleModel.Channels);
             var outputTensor = await RunInternalAsync(inputTensor, cancellationToken);
-            return new OnnxImage(outputTensor, ImageNormalizeType.ZeroToOne);
+            return new OnnxImage(outputTensor, _upscaleModel.NormalizeType);
+        }
+
+
+        /// <summary>
+        /// Upscales the DenseTensor
+        /// </summary>
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<DenseTensor<float>> UpscaleTensorAsync(DenseTensor<float> inputImage, CancellationToken cancellationToken = default)
+        {
+            if (_upscaleModel.NormalizeInput && _upscaleModel.NormalizeType == ImageNormalizeType.ZeroToOne)
+                inputImage.NormalizeOneOneToZeroOne();
+
+            var result = await RunInternalAsync(inputImage, cancellationToken);
+
+            if (_upscaleModel.NormalizeInput && _upscaleModel.NormalizeType == ImageNormalizeType.ZeroToOne)
+                result.NormalizeZeroOneToOneOne();
+
+            return result;
         }
 
 
@@ -233,7 +256,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public static ImageUpscalePipeline CreatePipeline(string modelFile, int scaleFactor, int sampleSize, int tileSize = 0, int tileOverlap = 20, int channels = 3, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
+        public static ImageUpscalePipeline CreatePipeline(string modelFile, int scaleFactor, int sampleSize, ImageNormalizeType normalizeType = ImageNormalizeType.ZeroToOne, bool normalizeInput = true, int tileSize = 0, int tileOverlap = 20, int channels = 3, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
         {
             var name = Path.GetFileNameWithoutExtension(modelFile);
             var configuration = new UpscaleModelSet
@@ -249,10 +272,13 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                     ScaleFactor = scaleFactor,
                     TileOverlap = tileOverlap,
                     TileSize = Math.Min(sampleSize, tileSize > 0 ? tileSize : sampleSize),
-                    OnnxModelPath = modelFile
+                    NormalizeType = normalizeType,
+                    NormalizeInput = normalizeInput,
+                    OnnxModelPath = modelFile,
                 }
             };
             return CreatePipeline(configuration, logger);
         }
     }
+
 }

@@ -413,5 +413,25 @@ namespace OnnxStack.Core
 
             return concatenatedTensor;
         }
+
+
+        /// <summary>
+        /// Normalizes the tensor values from range -1 to 1 to 0 to 1.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        public static void NormalizeOneOneToZeroOne(this DenseTensor<float> imageTensor)
+        {
+            Parallel.For(0, (int)imageTensor.Length, (i) => imageTensor.SetValue(i, imageTensor.GetValue(i) / 2f + 0.5f));
+        }
+
+
+        /// <summary>
+        /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        public static void NormalizeZeroOneToOneOne(this DenseTensor<float> imageTensor)
+        {
+            Parallel.For(0, (int)imageTensor.Length, (i) => imageTensor.SetValue(i, 2f * imageTensor.GetValue(i) - 1f));
+        }
     }
 }
