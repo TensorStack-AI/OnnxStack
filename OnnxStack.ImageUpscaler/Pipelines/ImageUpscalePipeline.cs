@@ -6,10 +6,7 @@ using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Video;
 using OnnxStack.ImageUpscaler.Common;
-using OnnxStack.ImageUpscaler.Extensions;
-using OnnxStack.ImageUpscaler.Models;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -72,6 +69,21 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="inputImage">The input image.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
+        public async Task<DenseTensor<float>> RunAsync(DenseTensor<float> inputImage, CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Upscale image..");
+            var result = await RunInternalAsync(inputImage, cancellationToken);
+            _logger?.LogEnd("Upscale image complete.", timestamp);
+            return result;
+        }
+
+
+        /// <summary>
+        /// Runs the upscale pipeline.
+        /// </summary>
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         public async Task<OnnxImage> RunAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Upscale image..");
@@ -125,46 +137,78 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         }
 
 
+        /// <summary>
+        /// Runs the upscale pipeline
+        /// </summary>
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         private async Task<OnnxImage> RunInternalAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
-            var upscaleInput = CreateInputParams(inputImage, _upscaleModel.SampleSize, _upscaleModel.ScaleFactor);
-            var metadata = await _upscaleModel.GetMetadataAsync();
-
-            var outputTensor = new DenseTensor<float>(new[] { 1, _upscaleModel.Channels, upscaleInput.OutputHeight, upscaleInput.OutputWidth });
-            foreach (var imageTile in upscaleInput.ImageTiles)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var outputDimension = new[] { 1, _upscaleModel.Channels, imageTile.Destination.Height, imageTile.Destination.Width };
-                var inputTensor = imageTile.Image.GetImageTensor(ImageNormalizeType.ZeroToOne, _upscaleModel.Channels);
-                using (var inferenceParameters = new OnnxInferenceParameters(metadata))
-                {
-                    inferenceParameters.AddInputTensor(inputTensor);
-                    inferenceParameters.AddOutputBuffer(outputDimension);
-
-                    var results = await _upscaleModel.RunInferenceAsync(inferenceParameters);
-                    using (var result = results.First())
-                    {
-                        outputTensor.ApplyImageTile(result.ToDenseTensor(), imageTile.Destination);
-                    }
-                }
-            }
+            var inputTensor = inputImage.GetImageTensor(ImageNormalizeType.ZeroToOne, _upscaleModel.Channels);
+            var outputTensor = await RunInternalAsync(inputTensor, cancellationToken);
             return new OnnxImage(outputTensor, ImageNormalizeType.ZeroToOne);
         }
 
+
         /// <summary>
-        /// Creates the input parameters.
+        /// Runs the upscale pipeline
         /// </summary>
-        /// <param name="imageSource">The image source.</param>
-        /// <param name="maxTileSize">Maximum size of the tile.</param>
-        /// <param name="scaleFactor">The scale factor.</param>
+        /// <param name="inputTensor">The input tensor.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private static UpscaleInput CreateInputParams(OnnxImage imageSource, int maxTileSize, int scaleFactor)
+        private async Task<DenseTensor<float>> RunInternalAsync(DenseTensor<float> inputTensor, CancellationToken cancellationToken = default)
         {
-            var tiles = imageSource.GenerateTiles(maxTileSize, scaleFactor);
-            var width = imageSource.Width * scaleFactor;
-            var height = imageSource.Height * scaleFactor;
-            return new UpscaleInput(tiles, width, height);
+            if (inputTensor.Dimensions[2] <= _upscaleModel.TileSize && inputTensor.Dimensions[3] <= _upscaleModel.TileSize)
+            {
+                return await RunInferenceAsync(inputTensor, cancellationToken);
+            }
+
+            var inputTiles = inputTensor.SplitImageTiles(_upscaleModel.TileOverlap);
+            var outputTiles = new ImageTiles
+            (
+                inputTiles.Width * _upscaleModel.ScaleFactor,
+                inputTiles.Height * _upscaleModel.ScaleFactor,
+                inputTiles.Overlap * _upscaleModel.ScaleFactor,
+                await RunInternalAsync(inputTiles.Tile1, cancellationToken),
+                await RunInternalAsync(inputTiles.Tile2, cancellationToken),
+                await RunInternalAsync(inputTiles.Tile3, cancellationToken),
+                await RunInternalAsync(inputTiles.Tile4, cancellationToken)
+            );
+            return outputTiles.JoinImageTiles();
+        }
+
+
+        /// <summary>
+        /// Runs the model inference.
+        /// </summary>
+        /// <param name="inputTensor">The input tensor.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<DenseTensor<float>> RunInferenceAsync(DenseTensor<float> inputTensor, CancellationToken cancellationToken = default)
+        {
+            var metadata = await _upscaleModel.GetMetadataAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var outputDimension = new[]
+            {
+               1,
+               _upscaleModel.Channels,
+               inputTensor.Dimensions[2] * _upscaleModel.ScaleFactor,
+               inputTensor.Dimensions[3] * _upscaleModel.ScaleFactor
+            };
+
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+            {
+                inferenceParameters.AddInputTensor(inputTensor);
+                inferenceParameters.AddOutputBuffer(outputDimension);
+
+                var results = await _upscaleModel.RunInferenceAsync(inferenceParameters);
+                using (var result = results.First())
+                {
+                    return result.ToDenseTensor();
+                }
+            }
         }
 
 
@@ -189,7 +233,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public static ImageUpscalePipeline CreatePipeline(string modelFile, int scaleFactor, int sampleSize = 512, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
+        public static ImageUpscalePipeline CreatePipeline(string modelFile, int scaleFactor, int sampleSize, int tileSize = 0, int tileOverlap = 20, int channels = 3, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
         {
             var name = Path.GetFileNameWithoutExtension(modelFile);
             var configuration = new UpscaleModelSet
@@ -200,9 +244,11 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                 ExecutionProvider = executionProvider,
                 UpscaleModelConfig = new UpscaleModelConfig
                 {
-                    Channels = 3,
+                    Channels = channels,
                     SampleSize = sampleSize,
                     ScaleFactor = scaleFactor,
+                    TileOverlap = tileOverlap,
+                    TileSize = Math.Min(sampleSize, tileSize > 0 ? tileSize : sampleSize),
                     OnnxModelPath = modelFile
                 }
             };

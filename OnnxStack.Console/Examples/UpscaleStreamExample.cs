@@ -26,7 +26,7 @@ namespace OnnxStack.Console.Runner
             var videoInfo = await VideoHelper.ReadVideoInfoAsync(videoFile);
 
             // Create pipeline
-            var pipeline = ImageUpscalePipeline.CreatePipeline("D:\\Repositories\\upscaler\\SwinIR\\003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x4_GAN.onnx", 4);
+            var pipeline = ImageUpscalePipeline.CreatePipeline("D:\\Repositories\\upscaler\\SwinIR\\003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x4_GAN.onnx", 4, 512);
 
             // Load pipeline
             await pipeline.LoadAsync();
