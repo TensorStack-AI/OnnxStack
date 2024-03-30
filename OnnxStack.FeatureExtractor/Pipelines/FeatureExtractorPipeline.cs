@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
@@ -118,28 +119,58 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <returns></returns>
         private async Task<OnnxImage> RunInternalAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
-            var controlImage = await inputImage.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, ImageNormalizeType.ZeroToOne);
+            var originalWidth = inputImage.Width;
+            var originalHeight = inputImage.Height;
+            var inputTensor = _featureExtractorModel.SampleSize <= 0
+                ? await inputImage.GetImageTensorAsync(_featureExtractorModel.InputNormalization)
+                : await inputImage.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, _featureExtractorModel.InputNormalization, resizeMode: _featureExtractorModel.InputResizeMode);
             var metadata = await _featureExtractorModel.GetMetadataAsync();
             cancellationToken.ThrowIfCancellationRequested();
-            var outputShape = new[] { 1, _featureExtractorModel.Channels, _featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize };
+            var outputShape = new[] { 1, _featureExtractorModel.OutputChannels, inputTensor.Dimensions[2], inputTensor.Dimensions[3] };
             var outputBuffer = metadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
-                inferenceParameters.AddInputTensor(controlImage);
+                inferenceParameters.AddInputTensor(inputTensor);
                 inferenceParameters.AddOutputBuffer(outputBuffer);
 
-                var results = await _featureExtractorModel.RunInferenceAsync(inferenceParameters);
-                using (var result = results.First())
+                var inferenceResults = await _featureExtractorModel.RunInferenceAsync(inferenceParameters);
+                using (var inferenceResult = inferenceResults.First())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var resultTensor = result.ToDenseTensor(outputShape);
-                    if (_featureExtractorModel.Normalize)
-                        resultTensor.NormalizeMinMax();
+                    var outputTensor = inferenceResult.ToDenseTensor(outputShape);
+                    if (_featureExtractorModel.NormalizeOutputTensor)
+                        outputTensor.NormalizeMinMax();
 
-                    return resultTensor.ToImageMask();
+                    var imageResult = default(OnnxImage);
+                    if (_featureExtractorModel.SetOutputToInputAlpha)
+                        imageResult = new OnnxImage(AddAlphaChannel(inputTensor, outputTensor), _featureExtractorModel.InputNormalization);
+                    else if (_featureExtractorModel.OutputChannels >= 3)
+                        imageResult = new OnnxImage(outputTensor, _featureExtractorModel.InputNormalization);
+                    else
+                        imageResult = outputTensor.ToImageMask();
+
+                    if (_featureExtractorModel.InputResizeMode == ImageResizeMode.Stretch && (imageResult.Width != originalWidth || imageResult.Height != originalHeight))
+                        imageResult.Resize(originalHeight, originalWidth, _featureExtractorModel.InputResizeMode);
+
+                    return imageResult;
                 }
             }
+        }
+
+
+        /// <summary>
+        /// Adds an alpha channel to the RGB tensor.
+        /// </summary>
+        /// <param name="sourceImage">The source image.</param>
+        /// <param name="alphaChannel">The alpha channel.</param>
+        /// <returns></returns>
+        private static DenseTensor<float> AddAlphaChannel(DenseTensor<float> sourceImage, DenseTensor<float> alphaChannel)
+        {
+            var resultTensor = new DenseTensor<float>(new int[] { 1, 4, sourceImage.Dimensions[2], sourceImage.Dimensions[3] });
+            sourceImage.Buffer.Span.CopyTo(resultTensor.Buffer[..(int)sourceImage.Length].Span);
+            alphaChannel.Buffer.Span.CopyTo(resultTensor.Buffer[(int)sourceImage.Length..].Span);
+            return resultTensor;
         }
 
 
@@ -157,14 +188,19 @@ namespace OnnxStack.FeatureExtractor.Pipelines
 
 
         /// <summary>
-        /// Creates the pipeline from the specified file.
+        /// Creates the pipeline from the specified arguments.
         /// </summary>
         /// <param name="modelFile">The model file.</param>
+        /// <param name="sampleSize">Size of the sample.</param>
+        /// <param name="channels">The channels.</param>
+        /// <param name="normalizeOutputTensor">if set to <c>true</c> [normalize output tensor].</param>
+        /// <param name="normalizeInputTensor">The normalize input tensor.</param>
+        /// <param name="setOutputToInputAlpha">if set to <c>true</c> [set output to input alpha].</param>
         /// <param name="deviceId">The device identifier.</param>
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public static FeatureExtractorPipeline CreatePipeline(string modelFile, bool normalize = false, int sampleSize = 512, int channels = 1, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
+        public static FeatureExtractorPipeline CreatePipeline(string modelFile, int sampleSize = 0, int outputChannels = 1, bool normalizeOutputTensor = false, ImageNormalizeType normalizeInputTensor = ImageNormalizeType.ZeroToOne, ImageResizeMode inputResizeMode = ImageResizeMode.Crop, bool setOutputToInputAlpha = false, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
         {
             var name = Path.GetFileNameWithoutExtension(modelFile);
             var configuration = new FeatureExtractorModelSet
@@ -177,8 +213,11 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                 {
                     OnnxModelPath = modelFile,
                     SampleSize = sampleSize,
-                    Normalize = normalize,
-                    Channels = channels
+                    OutputChannels = outputChannels,
+                    NormalizeOutputTensor = normalizeOutputTensor,
+                    SetOutputToInputAlpha = setOutputToInputAlpha,
+                    NormalizeInputTensor = normalizeInputTensor,
+                    InputResizeMode = inputResizeMode
                 }
             };
             return CreatePipeline(configuration, logger);

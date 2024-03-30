@@ -230,12 +230,24 @@ namespace OnnxStack.Core.Image
         /// <param name="normalizeType">Type of the normalize.</param>
         /// <param name="channels">The channels.</param>
         /// <returns></returns>
-        public DenseTensor<float> GetImageTensor(int height, int width, ImageNormalizeType normalizeType = ImageNormalizeType.OneToOne, int channels = 3)
+        public DenseTensor<float> GetImageTensor(int height, int width, ImageNormalizeType normalizeType = ImageNormalizeType.OneToOne, int channels = 3, ImageResizeMode resizeMode = ImageResizeMode.Crop)
         {
             if (height > 0 && width > 0)
-                Resize(height, width);
+                Resize(height, width, resizeMode);
 
             return GetImageTensor(normalizeType, channels);
+        }
+
+
+        /// <summary>
+        /// Gets the image as tensor asynchronously.
+        /// </summary>
+        /// <param name="normalizeType">Type of the normalize.</param>
+        /// <param name="channels">The channels.</param>
+        /// <returns></returns>
+        public Task<DenseTensor<float>> GetImageTensorAsync(ImageNormalizeType normalizeType = ImageNormalizeType.OneToOne, int channels = 3)
+        {
+            return Task.Run(() => GetImageTensor(normalizeType, channels));
         }
 
 
@@ -247,9 +259,9 @@ namespace OnnxStack.Core.Image
         /// <param name="normalizeType">Type of the normalize.</param>
         /// <param name="channels">The channels.</param>
         /// <returns></returns>
-        public Task<DenseTensor<float>> GetImageTensorAsync(int height, int width, ImageNormalizeType normalizeType = ImageNormalizeType.OneToOne, int channels = 3)
+        public Task<DenseTensor<float>> GetImageTensorAsync(int height, int width, ImageNormalizeType normalizeType = ImageNormalizeType.OneToOne, int channels = 3, ImageResizeMode resizeMode = ImageResizeMode.Crop)
         {
-            return Task.Run(() => GetImageTensor(height, width, normalizeType, channels));
+            return Task.Run(() => GetImageTensor(height, width, normalizeType, channels, resizeMode));
         }
 
 
@@ -259,20 +271,21 @@ namespace OnnxStack.Core.Image
         /// <param name="height">The height.</param>
         /// <param name="width">The width.</param>
         /// <param name="resizeMode">The resize mode.</param>
-        public void Resize(int height, int width, ResizeMode resizeMode = ResizeMode.Crop)
+        public void Resize(int height, int width, ImageResizeMode resizeMode = ImageResizeMode.Crop)
         {
             _imageData.Mutate(x =>
             {
                 x.Resize(new ResizeOptions
                 {
                     Size = new Size(width, height),
-                    Mode = resizeMode,
+                    Mode = resizeMode.ToResizeMode(),
                     Sampler = KnownResamplers.Lanczos8,
                     Compand = true
                 });
             });
         }
 
+  
         public OnnxImage Clone()
         {
             return new OnnxImage(_imageData);

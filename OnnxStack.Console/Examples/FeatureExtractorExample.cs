@@ -37,10 +37,8 @@ namespace OnnxStack.Console.Runner
             {
                 FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\canny.onnx"),
                 FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\hed.onnx"),
-                FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\depth.onnx", true),
-
-               // FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\depth-anything-large-hf\\onnx\\model.onnx", normalize: true, sampleSize: 504),
-               // FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\sentis-MiDaS\\dpt_beit_large_512.onnx", normalize: true, sampleSize: 384),
+                FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\depth.onnx", sampleSize: 512, normalizeOutputTensor: true, inputResizeMode: ImageResizeMode.Stretch),
+                FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\RMBG-1.4\\onnx\\model.onnx", sampleSize: 1024, setOutputToInputAlpha: true, inputResizeMode: ImageResizeMode.Stretch)
             };
 
             foreach (var pipeline in pipelines)
@@ -49,7 +47,7 @@ namespace OnnxStack.Console.Runner
                 OutputHelpers.WriteConsole($"Load pipeline`{pipeline.Name}`", ConsoleColor.Cyan);
 
                 // Run Image Pipeline
-                var imageFeature = await pipeline.RunAsync(inputImage);
+                var imageFeature = await pipeline.RunAsync(inputImage.Clone());
 
                 OutputHelpers.WriteConsole($"Generating image", ConsoleColor.Cyan);
 

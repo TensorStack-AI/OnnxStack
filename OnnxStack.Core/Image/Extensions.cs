@@ -1,6 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace OnnxStack.Core.Image
 {
@@ -29,11 +30,27 @@ namespace OnnxStack.Core.Image
             }
         }
 
+
+        public static ResizeMode ToResizeMode(this ImageResizeMode resizeMode)
+        {
+            return resizeMode switch
+            {
+                ImageResizeMode.Stretch => ResizeMode.Stretch,
+                _ => ResizeMode.Crop
+            };
+        }
+
     }
 
     public enum ImageNormalizeType
     {
         ZeroToOne = 0,
-        OneToOne = 1,
+        OneToOne = 1
+    }
+
+    public enum ImageResizeMode
+    {
+        Crop = 0,
+        Stretch = 1
     }
 }
