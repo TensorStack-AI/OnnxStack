@@ -178,8 +178,8 @@ namespace OnnxStack.UI.Services
                 IntraOpNumThreads = _settings.DefaultIntraOpNumThreads,
                 FeatureExtractorConfig = new FeatureExtractorModelConfig
                 {
-                    Channels = channels,
-                    Normalize = normalize,
+                    OutputChannels = channels,
+                    NormalizeOutput = normalize,
                     SampleSize = sampleSize,
                     OnnxModelPath = modelFilename
                 }

@@ -101,9 +101,9 @@ namespace OnnxStack.UI.Models
 
                 ControlNetType = controlNetType,
                 ModelFile = modelset.FeatureExtractorConfig.OnnxModelPath,
-                Normalize = modelset.FeatureExtractorConfig.Normalize,
+                Normalize = modelset.FeatureExtractorConfig.NormalizeOutput,
                 SampleSize = modelset.FeatureExtractorConfig.SampleSize,
-                Channels = modelset.FeatureExtractorConfig.Channels,
+                Channels = modelset.FeatureExtractorConfig.OutputChannels,
             };
         }
 
@@ -120,8 +120,8 @@ namespace OnnxStack.UI.Models
                 IntraOpNumThreads = modelset.IntraOpNumThreads,
                 FeatureExtractorConfig = new FeatureExtractorModelConfig
                 {
-                    Channels = modelset.Channels,
-                    Normalize = modelset.Normalize,
+                    OutputChannels = modelset.Channels,
+                    NormalizeOutput = modelset.Normalize,
                     SampleSize = modelset.SampleSize,
                     OnnxModelPath = modelset.ModelFile
                 }

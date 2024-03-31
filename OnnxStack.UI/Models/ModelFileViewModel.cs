@@ -13,6 +13,8 @@ namespace OnnxStack.UI.Views
         private int? _intraOpNumThreads;
         private ExecutionMode? _executionMode;
         private ExecutionProvider? _executionProvider;
+        private OnnxModelPrecision? _precision;
+        private int _requiredMemory;
         private bool _isOverrideEnabled;
         private bool _hasChanged;
 
@@ -50,6 +52,18 @@ namespace OnnxStack.UI.Views
         {
             get { return _executionProvider; }
             set { _executionProvider = value; NotifyPropertyChanged(); }
+        }
+
+        public OnnxModelPrecision? Precision
+        {
+            get { return _precision; }
+            set { _precision = value; NotifyPropertyChanged(); }
+        }
+
+        public int RequiredMemory
+        {
+            get { return _requiredMemory; }
+            set { _requiredMemory = value; NotifyPropertyChanged(); }
         }
 
         public bool IsOverrideEnabled
