@@ -1,4 +1,5 @@
-﻿using Microsoft.ML.OnnxRuntime;
+﻿using MathNet.Numerics;
+using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -25,8 +26,10 @@ namespace OnnxStack.UI.Models
         private bool _enableControlNet;
         private bool _enableControlNetImage;
         private DiffuserPipelineType _pipelineType;
-
         private int _sampleSize;
+        private MemoryModeType _memoryMode;
+        private ModelType _modelType;
+        private OnnxModelPrecision _precision;
 
         private ModelFileViewModel _unetModel;
         private ModelFileViewModel _vaeEncoderModel;
@@ -55,6 +58,7 @@ namespace OnnxStack.UI.Models
             get { return _padTokenId; }
             set { _padTokenId = value; NotifyPropertyChanged(); }
         }
+
         public int BlankTokenId
         {
             get { return _blankTokenId; }
@@ -78,7 +82,6 @@ namespace OnnxStack.UI.Models
             get { return _tokenizerLimit; }
             set { _tokenizerLimit = value; NotifyPropertyChanged(); }
         }
-
 
         public int Tokenizer2Length
         {
@@ -165,16 +168,11 @@ namespace OnnxStack.UI.Models
             set { _pipelineType = value; NotifyPropertyChanged(); }
         }
 
-        private MemoryModeType _memoryMode;
-
         public MemoryModeType MemoryMode
         {
             get { return _memoryMode; }
             set { _memoryMode = value; NotifyPropertyChanged(); }
         }
-
-
-        private ModelType _modelType;
 
         public ModelType ModelType
         {
@@ -182,6 +180,11 @@ namespace OnnxStack.UI.Models
             set { _modelType = value; NotifyPropertyChanged(); }
         }
 
+        public OnnxModelPrecision Precision
+        {
+            get { return _precision; }
+            set { _precision = value; NotifyPropertyChanged(); }
+        }
 
         public ModelFileViewModel UnetModel
         {
@@ -272,125 +275,151 @@ namespace OnnxStack.UI.Models
                 Tokenizer2Length = modelset.Tokenizer2Config?.TokenizerLength ?? 1280,
                 ModelType = modelset.UnetConfig.ModelType,
                 ScaleFactor = modelset.VaeDecoderConfig.ScaleFactor,
-
+                Precision = modelset.Precision,
 
                 UnetModel = new ModelFileViewModel
                 {
                     OnnxModelPath = modelset.UnetConfig.OnnxModelPath,
+                    RequiredMemory = modelset.UnetConfig.RequiredMemory,
 
                     DeviceId = modelset.UnetConfig.DeviceId ?? modelset.DeviceId,
                     ExecutionMode = modelset.UnetConfig.ExecutionMode ?? modelset.ExecutionMode,
                     ExecutionProvider = modelset.UnetConfig.ExecutionProvider ?? modelset.ExecutionProvider,
                     InterOpNumThreads = modelset.UnetConfig.InterOpNumThreads ?? modelset.InterOpNumThreads,
                     IntraOpNumThreads = modelset.UnetConfig.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    Precision = modelset.UnetConfig.Precision ?? modelset.Precision,
                     IsOverrideEnabled =
                                modelset.UnetConfig.DeviceId.HasValue
                             || modelset.UnetConfig.ExecutionMode.HasValue
                             || modelset.UnetConfig.ExecutionProvider.HasValue
                             || modelset.UnetConfig.IntraOpNumThreads.HasValue
                             || modelset.UnetConfig.InterOpNumThreads.HasValue
+                            || modelset.UnetConfig.Precision.HasValue
                 },
 
                 TokenizerModel = new ModelFileViewModel
                 {
                     OnnxModelPath = modelset.TokenizerConfig.OnnxModelPath,
+                    RequiredMemory = modelset.TokenizerConfig.RequiredMemory,
 
                     DeviceId = modelset.TokenizerConfig.DeviceId ?? modelset.DeviceId,
                     ExecutionMode = modelset.TokenizerConfig.ExecutionMode ?? modelset.ExecutionMode,
                     ExecutionProvider = modelset.TokenizerConfig.ExecutionProvider ?? modelset.ExecutionProvider,
                     InterOpNumThreads = modelset.TokenizerConfig.InterOpNumThreads ?? modelset.InterOpNumThreads,
                     IntraOpNumThreads = modelset.TokenizerConfig.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    Precision = modelset.TokenizerConfig.Precision ?? modelset.Precision,
+                   
                     IsOverrideEnabled =
                                modelset.TokenizerConfig.DeviceId.HasValue
                             || modelset.TokenizerConfig.ExecutionMode.HasValue
                             || modelset.TokenizerConfig.ExecutionProvider.HasValue
                             || modelset.TokenizerConfig.IntraOpNumThreads.HasValue
                             || modelset.TokenizerConfig.InterOpNumThreads.HasValue
+                            || modelset.TokenizerConfig.Precision.HasValue
                 },
 
                 Tokenizer2Model = modelset.Tokenizer2Config is null ? default : new ModelFileViewModel
                 {
                     OnnxModelPath = modelset.Tokenizer2Config.OnnxModelPath,
+                    RequiredMemory = modelset.Tokenizer2Config.RequiredMemory,
 
                     DeviceId = modelset.Tokenizer2Config.DeviceId ?? modelset.DeviceId,
                     ExecutionMode = modelset.Tokenizer2Config.ExecutionMode ?? modelset.ExecutionMode,
                     ExecutionProvider = modelset.Tokenizer2Config.ExecutionProvider ?? modelset.ExecutionProvider,
                     InterOpNumThreads = modelset.Tokenizer2Config.InterOpNumThreads ?? modelset.InterOpNumThreads,
                     IntraOpNumThreads = modelset.Tokenizer2Config.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    Precision = modelset.Tokenizer2Config.Precision ?? modelset.Precision,
+
                     IsOverrideEnabled =
                                modelset.Tokenizer2Config.DeviceId.HasValue
                             || modelset.Tokenizer2Config.ExecutionMode.HasValue
                             || modelset.Tokenizer2Config.ExecutionProvider.HasValue
                             || modelset.Tokenizer2Config.IntraOpNumThreads.HasValue
                             || modelset.Tokenizer2Config.InterOpNumThreads.HasValue
+                            || modelset.Tokenizer2Config.Precision.HasValue
                 },
 
                 TextEncoderModel = new ModelFileViewModel
                 {
                     OnnxModelPath = modelset.TextEncoderConfig.OnnxModelPath,
+                    RequiredMemory = modelset.TextEncoderConfig.RequiredMemory,
 
                     DeviceId = modelset.TextEncoderConfig.DeviceId ?? modelset.DeviceId,
                     ExecutionMode = modelset.TextEncoderConfig.ExecutionMode ?? modelset.ExecutionMode,
                     ExecutionProvider = modelset.TextEncoderConfig.ExecutionProvider ?? modelset.ExecutionProvider,
                     InterOpNumThreads = modelset.TextEncoderConfig.InterOpNumThreads ?? modelset.InterOpNumThreads,
                     IntraOpNumThreads = modelset.TextEncoderConfig.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    Precision = modelset.TextEncoderConfig.Precision ?? modelset.Precision,
+
                     IsOverrideEnabled =
                                modelset.TextEncoderConfig.DeviceId.HasValue
                             || modelset.TextEncoderConfig.ExecutionMode.HasValue
                             || modelset.TextEncoderConfig.ExecutionProvider.HasValue
                             || modelset.TextEncoderConfig.IntraOpNumThreads.HasValue
                             || modelset.TextEncoderConfig.InterOpNumThreads.HasValue
+                            || modelset.TextEncoderConfig.Precision.HasValue
                 },
 
                 TextEncoder2Model = modelset.TextEncoder2Config is null ? default : new ModelFileViewModel
                 {
                     OnnxModelPath = modelset.TextEncoder2Config.OnnxModelPath,
+                    RequiredMemory = modelset.TextEncoder2Config.RequiredMemory,
 
                     DeviceId = modelset.TextEncoder2Config.DeviceId ?? modelset.DeviceId,
                     ExecutionMode = modelset.TextEncoder2Config.ExecutionMode ?? modelset.ExecutionMode,
                     ExecutionProvider = modelset.TextEncoder2Config.ExecutionProvider ?? modelset.ExecutionProvider,
                     InterOpNumThreads = modelset.TextEncoder2Config.InterOpNumThreads ?? modelset.InterOpNumThreads,
                     IntraOpNumThreads = modelset.TextEncoder2Config.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    Precision = modelset.TextEncoder2Config.Precision ?? modelset.Precision,
+
                     IsOverrideEnabled =
                                modelset.TextEncoder2Config.DeviceId.HasValue
                             || modelset.TextEncoder2Config.ExecutionMode.HasValue
                             || modelset.TextEncoder2Config.ExecutionProvider.HasValue
                             || modelset.TextEncoder2Config.IntraOpNumThreads.HasValue
                             || modelset.TextEncoder2Config.InterOpNumThreads.HasValue
+                            || modelset.TextEncoder2Config.Precision.HasValue
                 },
 
                 VaeDecoderModel = new ModelFileViewModel
                 {
                     OnnxModelPath = modelset.VaeDecoderConfig.OnnxModelPath,
+                    RequiredMemory = modelset.VaeDecoderConfig.RequiredMemory,
 
                     DeviceId = modelset.VaeDecoderConfig.DeviceId ?? modelset.DeviceId,
                     ExecutionMode = modelset.VaeDecoderConfig.ExecutionMode ?? modelset.ExecutionMode,
                     ExecutionProvider = modelset.VaeDecoderConfig.ExecutionProvider ?? modelset.ExecutionProvider,
                     InterOpNumThreads = modelset.VaeDecoderConfig.InterOpNumThreads ?? modelset.InterOpNumThreads,
                     IntraOpNumThreads = modelset.VaeDecoderConfig.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+
                     IsOverrideEnabled =
                                modelset.VaeDecoderConfig.DeviceId.HasValue
                             || modelset.VaeDecoderConfig.ExecutionMode.HasValue
                             || modelset.VaeDecoderConfig.ExecutionProvider.HasValue
                             || modelset.VaeDecoderConfig.IntraOpNumThreads.HasValue
                             || modelset.VaeDecoderConfig.InterOpNumThreads.HasValue
+                            || modelset.VaeDecoderConfig.Precision.HasValue
                 },
 
                 VaeEncoderModel = new ModelFileViewModel
                 {
                     OnnxModelPath = modelset.VaeEncoderConfig.OnnxModelPath,
+                    RequiredMemory = modelset.VaeEncoderConfig.RequiredMemory,
 
                     DeviceId = modelset.VaeEncoderConfig.DeviceId ?? modelset.DeviceId,
                     ExecutionMode = modelset.VaeEncoderConfig.ExecutionMode ?? modelset.ExecutionMode,
                     ExecutionProvider = modelset.VaeEncoderConfig.ExecutionProvider ?? modelset.ExecutionProvider,
                     InterOpNumThreads = modelset.VaeEncoderConfig.InterOpNumThreads ?? modelset.InterOpNumThreads,
                     IntraOpNumThreads = modelset.VaeEncoderConfig.IntraOpNumThreads ?? modelset.IntraOpNumThreads,
+                    Precision = modelset.VaeEncoderConfig.Precision ?? modelset.Precision,
+
                     IsOverrideEnabled =
                                modelset.VaeEncoderConfig.DeviceId.HasValue
                             || modelset.VaeEncoderConfig.ExecutionMode.HasValue
                             || modelset.VaeEncoderConfig.ExecutionProvider.HasValue
                             || modelset.VaeEncoderConfig.IntraOpNumThreads.HasValue
                             || modelset.VaeEncoderConfig.InterOpNumThreads.HasValue
+                            || modelset.VaeEncoderConfig.Precision.HasValue
                 }
 
             };
@@ -411,18 +440,20 @@ namespace OnnxStack.UI.Models
                 ExecutionProvider = modelset.ExecutionProvider,
                 InterOpNumThreads = modelset.InterOpNumThreads,
                 IntraOpNumThreads = modelset.IntraOpNumThreads,
-
+                Precision = modelset.Precision,
                 MemoryMode = modelset.MemoryMode,
 
                 UnetConfig = new UNetConditionModelConfig
                 {
                     ModelType = modelset.ModelType,
                     OnnxModelPath = modelset.UnetModel.OnnxModelPath,
+                    RequiredMemory = modelset.UnetModel.RequiredMemory,
                     DeviceId = modelset.UnetModel.IsOverrideEnabled && modelset.DeviceId != modelset.UnetModel.DeviceId ? modelset.UnetModel.DeviceId : default,
                     ExecutionMode = modelset.UnetModel.IsOverrideEnabled && modelset.ExecutionMode != modelset.UnetModel.ExecutionMode ? modelset.UnetModel.ExecutionMode : default,
                     ExecutionProvider = modelset.UnetModel.IsOverrideEnabled && modelset.ExecutionProvider != modelset.UnetModel.ExecutionProvider ? modelset.UnetModel.ExecutionProvider : default,
                     IntraOpNumThreads = modelset.UnetModel.IsOverrideEnabled && modelset.IntraOpNumThreads != modelset.UnetModel.IntraOpNumThreads ? modelset.UnetModel.IntraOpNumThreads : default,
                     InterOpNumThreads = modelset.UnetModel.IsOverrideEnabled && modelset.InterOpNumThreads != modelset.UnetModel.InterOpNumThreads ? modelset.UnetModel.InterOpNumThreads : default,
+                    Precision = modelset.UnetModel.IsOverrideEnabled && modelset.Precision != modelset.UnetModel.Precision ? modelset.UnetModel.Precision : default,
                 },
 
                 TokenizerConfig = new TokenizerModelConfig
@@ -432,11 +463,13 @@ namespace OnnxStack.UI.Models
                     TokenizerLimit = modelset.TokenizerLimit,
                     TokenizerLength = modelset.TokenizerLength,
                     OnnxModelPath = modelset.TokenizerModel.OnnxModelPath,
+                    RequiredMemory = modelset.TokenizerModel.RequiredMemory,
                     DeviceId = modelset.TokenizerModel.IsOverrideEnabled && modelset.DeviceId != modelset.TokenizerModel.DeviceId ? modelset.TokenizerModel.DeviceId : default,
                     ExecutionMode = modelset.TokenizerModel.IsOverrideEnabled && modelset.ExecutionMode != modelset.TokenizerModel.ExecutionMode ? modelset.TokenizerModel.ExecutionMode : default,
                     ExecutionProvider = modelset.TokenizerModel.IsOverrideEnabled && modelset.ExecutionProvider != modelset.TokenizerModel.ExecutionProvider ? modelset.TokenizerModel.ExecutionProvider : default,
                     IntraOpNumThreads = modelset.TokenizerModel.IsOverrideEnabled && modelset.IntraOpNumThreads != modelset.TokenizerModel.IntraOpNumThreads ? modelset.TokenizerModel.IntraOpNumThreads : default,
                     InterOpNumThreads = modelset.TokenizerModel.IsOverrideEnabled && modelset.InterOpNumThreads != modelset.TokenizerModel.InterOpNumThreads ? modelset.TokenizerModel.InterOpNumThreads : default,
+                    Precision = modelset.TokenizerModel.IsOverrideEnabled && modelset.Precision != modelset.TokenizerModel.Precision ? modelset.TokenizerModel.Precision : default,
                 },
 
                 Tokenizer2Config = modelset.Tokenizer2Model is null ? default : new TokenizerModelConfig
@@ -446,53 +479,63 @@ namespace OnnxStack.UI.Models
                     TokenizerLimit = modelset.TokenizerLimit,
                     TokenizerLength = modelset.Tokenizer2Length,
                     OnnxModelPath = modelset.Tokenizer2Model.OnnxModelPath,
+                    RequiredMemory = modelset.Tokenizer2Model.RequiredMemory,
                     DeviceId = modelset.Tokenizer2Model.IsOverrideEnabled && modelset.DeviceId != modelset.Tokenizer2Model.DeviceId ? modelset.Tokenizer2Model.DeviceId : default,
                     ExecutionMode = modelset.Tokenizer2Model.IsOverrideEnabled && modelset.ExecutionMode != modelset.Tokenizer2Model.ExecutionMode ? modelset.Tokenizer2Model.ExecutionMode : default,
                     ExecutionProvider = modelset.Tokenizer2Model.IsOverrideEnabled && modelset.ExecutionProvider != modelset.Tokenizer2Model.ExecutionProvider ? modelset.Tokenizer2Model.ExecutionProvider : default,
                     IntraOpNumThreads = modelset.Tokenizer2Model.IsOverrideEnabled && modelset.IntraOpNumThreads != modelset.Tokenizer2Model.IntraOpNumThreads ? modelset.Tokenizer2Model.IntraOpNumThreads : default,
                     InterOpNumThreads = modelset.Tokenizer2Model.IsOverrideEnabled && modelset.InterOpNumThreads != modelset.Tokenizer2Model.InterOpNumThreads ? modelset.Tokenizer2Model.InterOpNumThreads : default,
+                    Precision = modelset.Tokenizer2Model.IsOverrideEnabled && modelset.Precision != modelset.Tokenizer2Model.Precision ? modelset.Tokenizer2Model.Precision : default,
                 },
 
                 TextEncoderConfig = new TextEncoderModelConfig
                 {
                     OnnxModelPath = modelset.TextEncoderModel.OnnxModelPath,
+                    RequiredMemory = modelset.TextEncoderModel.RequiredMemory,
                     DeviceId = modelset.TextEncoderModel.IsOverrideEnabled && modelset.DeviceId != modelset.TextEncoderModel.DeviceId ? modelset.TextEncoderModel.DeviceId : default,
                     ExecutionMode = modelset.TextEncoderModel.IsOverrideEnabled && modelset.ExecutionMode != modelset.TextEncoderModel.ExecutionMode ? modelset.TextEncoderModel.ExecutionMode : default,
                     ExecutionProvider = modelset.TextEncoderModel.IsOverrideEnabled && modelset.ExecutionProvider != modelset.TextEncoderModel.ExecutionProvider ? modelset.TextEncoderModel.ExecutionProvider : default,
                     IntraOpNumThreads = modelset.TextEncoderModel.IsOverrideEnabled && modelset.IntraOpNumThreads != modelset.TextEncoderModel.IntraOpNumThreads ? modelset.TextEncoderModel.IntraOpNumThreads : default,
                     InterOpNumThreads = modelset.TextEncoderModel.IsOverrideEnabled && modelset.InterOpNumThreads != modelset.TextEncoderModel.InterOpNumThreads ? modelset.TextEncoderModel.InterOpNumThreads : default,
+                    Precision = modelset.TextEncoderModel.IsOverrideEnabled && modelset.Precision != modelset.TextEncoderModel.Precision ? modelset.TextEncoderModel.Precision : default,
                 },
 
                 TextEncoder2Config = modelset.TextEncoder2Model is null ? default : new TextEncoderModelConfig
                 {
                     OnnxModelPath = modelset.TextEncoder2Model.OnnxModelPath,
+                    RequiredMemory = modelset.TextEncoder2Model.RequiredMemory,
                     DeviceId = modelset.TextEncoder2Model.IsOverrideEnabled && modelset.DeviceId != modelset.TextEncoder2Model.DeviceId ? modelset.TextEncoder2Model.DeviceId : default,
                     ExecutionMode = modelset.TextEncoder2Model.IsOverrideEnabled && modelset.ExecutionMode != modelset.TextEncoder2Model.ExecutionMode ? modelset.TextEncoder2Model.ExecutionMode : default,
                     ExecutionProvider = modelset.TextEncoder2Model.IsOverrideEnabled && modelset.ExecutionProvider != modelset.TextEncoder2Model.ExecutionProvider ? modelset.TextEncoder2Model.ExecutionProvider : default,
                     IntraOpNumThreads = modelset.TextEncoder2Model.IsOverrideEnabled && modelset.IntraOpNumThreads != modelset.TextEncoder2Model.IntraOpNumThreads ? modelset.TextEncoder2Model.IntraOpNumThreads : default,
                     InterOpNumThreads = modelset.TextEncoder2Model.IsOverrideEnabled && modelset.InterOpNumThreads != modelset.TextEncoder2Model.InterOpNumThreads ? modelset.TextEncoder2Model.InterOpNumThreads : default,
+                    Precision = modelset.TextEncoder2Model.IsOverrideEnabled && modelset.Precision != modelset.TextEncoder2Model.Precision ? modelset.TextEncoder2Model.Precision : default,
                 },
 
                 VaeDecoderConfig = new AutoEncoderModelConfig
                 {
                     ScaleFactor = modelset.ScaleFactor,
                     OnnxModelPath = modelset.VaeDecoderModel.OnnxModelPath,
+                    RequiredMemory = modelset.VaeDecoderModel.RequiredMemory,
                     DeviceId = modelset.VaeDecoderModel.IsOverrideEnabled && modelset.DeviceId != modelset.VaeDecoderModel.DeviceId ? modelset.VaeDecoderModel.DeviceId : default,
                     ExecutionMode = modelset.VaeDecoderModel.IsOverrideEnabled && modelset.ExecutionMode != modelset.VaeDecoderModel.ExecutionMode ? modelset.VaeDecoderModel.ExecutionMode : default,
                     ExecutionProvider = modelset.VaeDecoderModel.IsOverrideEnabled && modelset.ExecutionProvider != modelset.VaeDecoderModel.ExecutionProvider ? modelset.VaeDecoderModel.ExecutionProvider : default,
                     IntraOpNumThreads = modelset.VaeDecoderModel.IsOverrideEnabled && modelset.IntraOpNumThreads != modelset.VaeDecoderModel.IntraOpNumThreads ? modelset.VaeDecoderModel.IntraOpNumThreads : default,
                     InterOpNumThreads = modelset.VaeDecoderModel.IsOverrideEnabled && modelset.InterOpNumThreads != modelset.VaeDecoderModel.InterOpNumThreads ? modelset.VaeDecoderModel.InterOpNumThreads : default,
+                    Precision = modelset.VaeDecoderModel.IsOverrideEnabled && modelset.Precision != modelset.VaeDecoderModel.Precision ? modelset.VaeDecoderModel.Precision : default,
                 },
 
                 VaeEncoderConfig = new AutoEncoderModelConfig
                 {
                     ScaleFactor = modelset.ScaleFactor,
                     OnnxModelPath = modelset.VaeEncoderModel.OnnxModelPath,
+                    RequiredMemory = modelset.VaeEncoderModel.RequiredMemory,
                     DeviceId = modelset.VaeEncoderModel.IsOverrideEnabled && modelset.DeviceId != modelset.VaeEncoderModel.DeviceId ? modelset.VaeEncoderModel.DeviceId : default,
                     ExecutionMode = modelset.VaeEncoderModel.IsOverrideEnabled && modelset.ExecutionMode != modelset.VaeEncoderModel.ExecutionMode ? modelset.VaeEncoderModel.ExecutionMode : default,
                     ExecutionProvider = modelset.VaeEncoderModel.IsOverrideEnabled && modelset.ExecutionProvider != modelset.VaeEncoderModel.ExecutionProvider ? modelset.VaeEncoderModel.ExecutionProvider : default,
                     IntraOpNumThreads = modelset.VaeEncoderModel.IsOverrideEnabled && modelset.IntraOpNumThreads != modelset.VaeEncoderModel.IntraOpNumThreads ? modelset.VaeEncoderModel.IntraOpNumThreads : default,
                     InterOpNumThreads = modelset.VaeEncoderModel.IsOverrideEnabled && modelset.InterOpNumThreads != modelset.VaeEncoderModel.InterOpNumThreads ? modelset.VaeEncoderModel.InterOpNumThreads : default,
+                    Precision = modelset.VaeEncoderModel.IsOverrideEnabled && modelset.Precision != modelset.VaeEncoderModel.Precision ? modelset.VaeEncoderModel.Precision : default,
                 }
 
             };

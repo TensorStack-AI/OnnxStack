@@ -17,17 +17,18 @@ namespace OnnxStack.FeatureExtractor.Common
 
         public int OutputChannels => _configuration.OutputChannels;
         public int SampleSize => _configuration.SampleSize;
-        public bool NormalizeOutputTensor => _configuration.NormalizeOutputTensor;
+        public bool NormalizeOutput => _configuration.NormalizeOutput;
         public bool SetOutputToInputAlpha => _configuration.SetOutputToInputAlpha;
         public ImageResizeMode InputResizeMode => _configuration.InputResizeMode;
-        public ImageNormalizeType InputNormalization => _configuration.NormalizeInputTensor;
+        public ImageNormalizeType NormalizeType => _configuration.NormalizeType;
+        public bool NormalizeInput => _configuration.NormalizeInput;
 
         public static FeatureExtractorModel Create(FeatureExtractorModelConfig configuration)
         {
             return new FeatureExtractorModel(configuration);
         }
 
-        public static FeatureExtractorModel Create(string modelFile, int sampleSize = 0, int outputChannels = 1, bool normalizeOutputTensor = false, ImageNormalizeType normalizeInputTensor = ImageNormalizeType.ZeroToOne, ImageResizeMode inputResizeMode = ImageResizeMode.Crop, bool setOutputToInputAlpha = false, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML)
+        public static FeatureExtractorModel Create(string modelFile, int sampleSize = 0, int outputChannels = 1, ImageNormalizeType normalizeType = ImageNormalizeType.ZeroToOne, bool normalizeInput = true, bool normalizeOutput = false, ImageResizeMode inputResizeMode = ImageResizeMode.Crop, bool setOutputToInputAlpha = false, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML)
         {
             var configuration = new FeatureExtractorModelConfig
             {
@@ -38,12 +39,12 @@ namespace OnnxStack.FeatureExtractor.Common
                 IntraOpNumThreads = 0,
                 OnnxModelPath = modelFile,
 
-            
                 SampleSize = sampleSize,
                 OutputChannels = outputChannels,
-                NormalizeOutputTensor = normalizeOutputTensor,
+                NormalizeType = normalizeType,
+                NormalizeInput = normalizeInput,
+                NormalizeOutput = normalizeOutput,
                 SetOutputToInputAlpha = setOutputToInputAlpha,
-                NormalizeInputTensor = normalizeInputTensor,
                 InputResizeMode = inputResizeMode
             };
             return new FeatureExtractorModel(configuration);
