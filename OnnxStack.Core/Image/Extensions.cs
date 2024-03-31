@@ -17,6 +17,17 @@ namespace OnnxStack.Core.Image
         /// <returns></returns>
         public static OnnxImage ToImageMask(this DenseTensor<float> imageTensor)
         {
+            return new OnnxImage(imageTensor.FromMaskTensor());
+        }
+
+
+        /// <summary>
+        /// Convert from single channle mask tensor to Rgba32 (Greyscale)
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <returns></returns>
+        public static Image<Rgba32> FromMaskTensor(this DenseTensor<float> imageTensor)
+        {
             var width = imageTensor.Dimensions[3];
             var height = imageTensor.Dimensions[2];
             using (var result = new Image<L8>(width, height))
@@ -28,7 +39,7 @@ namespace OnnxStack.Core.Image
                         result[x, y] = new L8((byte)(imageTensor[0, 0, y, x] * 255.0f));
                     }
                 }
-                return new OnnxImage(result.CloneAs<Rgba32>());
+                return result.CloneAs<Rgba32>();
             }
         }
 

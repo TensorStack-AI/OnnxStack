@@ -64,27 +64,35 @@ namespace OnnxStack.Core.Image
         {
             var height = imageTensor.Dimensions[2];
             var width = imageTensor.Dimensions[3];
-            var hasTransparency = imageTensor.Dimensions[1] == 4;
-            _imageData = new Image<Rgba32>(width, height);
-            for (var y = 0; y < height; y++)
+            var channels = imageTensor.Dimensions[1];
+            if (channels == 1)
             {
-                for (var x = 0; x < width; x++)
+                _imageData = imageTensor.FromMaskTensor();
+            }
+            else
+            {
+                var hasTransparency = channels == 4;
+                _imageData = new Image<Rgba32>(width, height);
+                for (var y = 0; y < height; y++)
                 {
-                    if (normalizeType == ImageNormalizeType.ZeroToOne)
+                    for (var x = 0; x < width; x++)
                     {
-                        _imageData[x, y] = new Rgba32(
-                            DenormalizeZeroToOneToByte(imageTensor, 0, y, x),
-                            DenormalizeZeroToOneToByte(imageTensor, 1, y, x),
-                            DenormalizeZeroToOneToByte(imageTensor, 2, y, x),
-                            hasTransparency ? DenormalizeZeroToOneToByte(imageTensor, 3, y, x) : byte.MaxValue);
-                    }
-                    else
-                    {
-                        _imageData[x, y] = new Rgba32(
-                            DenormalizeOneToOneToByte(imageTensor, 0, y, x),
-                            DenormalizeOneToOneToByte(imageTensor, 1, y, x),
-                            DenormalizeOneToOneToByte(imageTensor, 2, y, x),
-                            hasTransparency ? DenormalizeOneToOneToByte(imageTensor, 3, y, x) : byte.MaxValue);
+                        if (normalizeType == ImageNormalizeType.ZeroToOne)
+                        {
+                            _imageData[x, y] = new Rgba32(
+                                DenormalizeZeroToOneToByte(imageTensor, 0, y, x),
+                                DenormalizeZeroToOneToByte(imageTensor, 1, y, x),
+                                DenormalizeZeroToOneToByte(imageTensor, 2, y, x),
+                                hasTransparency ? DenormalizeZeroToOneToByte(imageTensor, 3, y, x) : byte.MaxValue);
+                        }
+                        else
+                        {
+                            _imageData[x, y] = new Rgba32(
+                                DenormalizeOneToOneToByte(imageTensor, 0, y, x),
+                                DenormalizeOneToOneToByte(imageTensor, 1, y, x),
+                                DenormalizeOneToOneToByte(imageTensor, 2, y, x),
+                                hasTransparency ? DenormalizeOneToOneToByte(imageTensor, 3, y, x) : byte.MaxValue);
+                        }
                     }
                 }
             }
