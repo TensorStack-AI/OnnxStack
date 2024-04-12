@@ -5,13 +5,14 @@ namespace OnnxStack.StableDiffusion.Models
 {
     public class AutoEncoderModel : OnnxModelSession
     {
-        private readonly float _scaleFactor;
+        private readonly AutoEncoderModelConfig _configuration;
+
         public AutoEncoderModel(AutoEncoderModelConfig configuration) : base(configuration)
         {
-            _scaleFactor = configuration.ScaleFactor;
+            _configuration = configuration;
         }
 
-        public float ScaleFactor => _scaleFactor;
+        public float ScaleFactor => _configuration.ScaleFactor;
     }
 
     public record AutoEncoderModelConfig : OnnxModelConfig

@@ -6,13 +6,14 @@ namespace OnnxStack.StableDiffusion.Models
 {
     public class UNetConditionModel : OnnxModelSession
     {
-        private readonly ModelType _modelType;
+        private readonly UNetConditionModelConfig _configuration;
+
         public UNetConditionModel(UNetConditionModelConfig configuration) : base(configuration)
         {
-            _modelType = configuration.ModelType;
+            _configuration = configuration;
         }
 
-        public ModelType ModelType => _modelType;
+        public ModelType ModelType => _configuration.ModelType;
     }
 
 

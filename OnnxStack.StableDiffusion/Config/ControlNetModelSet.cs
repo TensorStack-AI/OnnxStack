@@ -8,8 +8,6 @@ namespace OnnxStack.StableDiffusion.Config
 {
     public record ControlNetModelSet : IOnnxModelSetConfig
     {
-        public ControlNetType Type { get; set; }
-        public DiffuserPipelineType PipelineType { get; set; }
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
         public int DeviceId { get; set; }

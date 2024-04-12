@@ -5,23 +5,17 @@ namespace OnnxStack.StableDiffusion.Models
 {
     public class TokenizerModel : OnnxModelSession
     {
-        private readonly int _padTokenId;
-        private readonly int _blankTokenId;
-        private readonly int _tokenizerLimit;
-        private readonly int _tokenizerLength;
+        private readonly TokenizerModelConfig _configuration;
 
         public TokenizerModel(TokenizerModelConfig configuration) : base(configuration)
         {
-            _padTokenId = configuration.PadTokenId;
-            _blankTokenId = configuration.BlankTokenId;
-            _tokenizerLimit = configuration.TokenizerLimit;
-            _tokenizerLength = configuration.TokenizerLength;
+            _configuration = configuration;
         }
 
-        public int TokenizerLimit => _tokenizerLimit;
-        public int TokenizerLength => _tokenizerLength;
-        public int PadTokenId => _padTokenId;
-        public int BlankTokenId => _blankTokenId;
+        public int TokenizerLimit => _configuration.TokenizerLimit;
+        public int TokenizerLength => _configuration.TokenizerLength;
+        public int PadTokenId => _configuration.PadTokenId;
+        public int BlankTokenId => _configuration.BlankTokenId;
     }
 
     public record TokenizerModelConfig : OnnxModelConfig
