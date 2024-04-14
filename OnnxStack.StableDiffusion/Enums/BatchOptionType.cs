@@ -6,6 +6,7 @@
         Step = 1,
         Guidance = 2,
         Strength = 3,
-        Scheduler = 4
+        Scheduler = 4,
+        ConditioningScale = 5
     }
 }
