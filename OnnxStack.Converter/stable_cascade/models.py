@@ -6,7 +6,7 @@ import config
 import torch
 from typing import Union, Optional, Tuple
 from diffusers import AutoencoderKL, StableCascadeUNet
-from transformers.models.clip.modeling_clip import CLIPTextModelWithProjection
+from transformers.models.clip.modeling_clip import CLIPTextModelWithProjection, CLIPVisionModelWithProjection
 from dataclasses import dataclass
 
 # Helper latency-only dataloader that creates random tensors with no label
@@ -112,3 +112,30 @@ def prior_conversion_inputs(model=None):
 
 def prior_data_loader(data_dir, batchsize, *args, **kwargs):
     return RandomDataLoader(prior_inputs, batchsize, torch.float16)
+
+
+
+
+    
+# -----------------------------------------------------------------------------
+# image_encoder
+# -----------------------------------------------------------------------------
+
+def image_encoder_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
+    inputs = {
+        "sample": torch.rand((batchsize, 3, 224, 224), dtype=torch_dtype)
+    }
+    return inputs
+
+
+def image_encoder_load(model_name):
+    model = CLIPVisionModelWithProjection.from_pretrained(model_name, subfolder="image_encoder")
+    return model
+
+
+def image_encoder_conversion_inputs(model=None):
+    return tuple(image_encoder_inputs(1, torch.float32, True).values())
+
+
+def image_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
+    return RandomDataLoader(image_encoder_inputs, batchsize, torch.float16)

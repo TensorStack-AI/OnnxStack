@@ -121,7 +121,7 @@ def optimize(
 
     model_info = {}
 
-    submodel_names = [ "text_encoder", "decoder", "prior"]
+    submodel_names = [ "text_encoder", "decoder", "prior", "image_encoder"]
 
     has_safety_checker = getattr(pipeline, "safety_checker", None) is not None
 
