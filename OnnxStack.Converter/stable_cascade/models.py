@@ -5,9 +5,7 @@
 import config
 import torch
 from typing import Union, Optional, Tuple
-from diffusers import AutoencoderKL, StableCascadeUNet, ControlNetModel
-from diffusers.models.controlnet import ControlNetOutput, BaseOutput as ControlNetBaseOutput
-from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
+from diffusers import AutoencoderKL, StableCascadeUNet
 from transformers.models.clip.modeling_clip import CLIPTextModelWithProjection
 from dataclasses import dataclass
 
@@ -89,10 +87,10 @@ def decoder_data_loader(data_dir, batchsize, *args, **kwargs):
 def prior_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
     inputs = {
         "sample": torch.rand((batchsize, 16, 24, 24), dtype=torch_dtype),
-        "timestep_ratio": torch.rand(((batchsize *2),), dtype=torch_dtype),
-        "clip_text_pooled": torch.rand(((batchsize *2) , 1,  1280), dtype=torch_dtype),
-        "clip_text": torch.rand(((batchsize *2) , 77,  1280), dtype=torch_dtype),
-        "clip_img": torch.rand(((batchsize *2) , 1,  768), dtype=torch_dtype)
+        "timestep_ratio": torch.rand((batchsize,), dtype=torch_dtype),
+        "clip_text_pooled": torch.rand((batchsize  , 1,  1280), dtype=torch_dtype),
+        "clip_text": torch.rand((batchsize  , 77,  1280), dtype=torch_dtype),
+        "clip_img": torch.rand((batchsize , 1,  768), dtype=torch_dtype)
     }
 
     # use as kwargs since they won't be in the correct position if passed along with the tuple of inputs
