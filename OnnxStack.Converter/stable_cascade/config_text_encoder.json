@@ -48,15 +48,7 @@
         "convert": {
             "type": "OnnxConversion",
             "config": {
-                "target_opset": 14
-            }
-        },
-        "ov_convert": {
-            "type": "OpenVINOConversion",
-            "config": {
-                "user_script": "models.py",
-                "example_input_func": "text_encoder_conversion_inputs",
-                "output_model": "text_encoder"
+                "target_opset": 16
             }
         },
         "optimize": {
@@ -66,7 +58,7 @@
                 "opt_level": 0,
                 "float16": true,
                 "use_gpu": true,
-                "keep_io_types": false,
+                "keep_io_types": true,
                 "optimization_options": {
                     "enable_gelu": true,
                     "enable_layer_norm": true,

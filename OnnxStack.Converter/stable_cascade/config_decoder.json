@@ -53,7 +53,7 @@
         "convert": {
             "type": "OnnxConversion",
             "config": {
-                "target_opset": 14,
+                "target_opset": 16,
                 "save_as_external_data": true,
                 "all_tensors_to_one_file": true,
                 "external_data_name": "weights.pb"
@@ -66,7 +66,7 @@
                 "opt_level": 0,
                 "float16": true,
                 "use_gpu": true,
-                "keep_io_types": false,
+                "keep_io_types": true,
                 "optimization_options": {
                     "enable_gelu": true,
                     "enable_layer_norm": true,
