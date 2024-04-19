@@ -149,8 +149,7 @@ namespace OnnxStack.UI.Services
             return new ControlNetModelSet
             {
                 Name = name,
-                Type = controlNetType,
-                PipelineType = pipelineType,
+              
                 IsEnabled = true,
                 DeviceId = _settings.DefaultDeviceId,
                 ExecutionMode = _settings.DefaultExecutionMode,
@@ -159,6 +158,8 @@ namespace OnnxStack.UI.Services
                 IntraOpNumThreads = _settings.DefaultIntraOpNumThreads,
                 ControlNetConfig = new ControlNetModelConfig
                 {
+                    Type = controlNetType,
+                    PipelineType = pipelineType,
                     OnnxModelPath = modelFilename
                 }
             };
