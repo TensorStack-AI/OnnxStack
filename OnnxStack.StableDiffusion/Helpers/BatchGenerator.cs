@@ -51,6 +51,13 @@ namespace OnnxStack.StableDiffusion.Helpers
                   .Select(x => schedulerOptions with { SchedulerType = x })
                   .ToList();
             }
+            else if (batchOptions.BatchType == BatchOptionType.ConditioningScale)
+            {
+                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
+                return Enumerable.Range(0, totalIncrements)
+                  .Select(x => schedulerOptions with { ConditioningScale = batchOptions.ValueFrom + (batchOptions.Increment * x) })
+                  .ToList();
+            }
             return new List<SchedulerOptions>();
         }
     }

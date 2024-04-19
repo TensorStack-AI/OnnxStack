@@ -85,8 +85,8 @@ namespace OnnxStack.UI.Models
             return new UpdateControlNetModelSetViewModel
             {
                 Name = modelset.Name,
-                ControlNetType = modelset.Type,
-                PipelineType = modelset.PipelineType,
+                ControlNetType = modelset.ControlNetConfig.Type,
+                PipelineType = modelset.ControlNetConfig.PipelineType,
                 DeviceId = modelset.DeviceId,
                 ExecutionMode = modelset.ExecutionMode,
                 ExecutionProvider = modelset.ExecutionProvider,
@@ -102,8 +102,7 @@ namespace OnnxStack.UI.Models
             {
                 IsEnabled = true,
                 Name = modelset.Name,
-                Type = modelset.ControlNetType,
-                PipelineType = modelset.PipelineType,
+               
                 DeviceId = modelset.DeviceId,
                 ExecutionMode = modelset.ExecutionMode,
                 ExecutionProvider = modelset.ExecutionProvider,
@@ -111,6 +110,8 @@ namespace OnnxStack.UI.Models
                 IntraOpNumThreads = modelset.IntraOpNumThreads,
                 ControlNetConfig = new ControlNetModelConfig
                 {
+                    Type = modelset.ControlNetType,
+                    PipelineType = modelset.PipelineType,
                     OnnxModelPath = modelset.ModelFile
                 }
             };

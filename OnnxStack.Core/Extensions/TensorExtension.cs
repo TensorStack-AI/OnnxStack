@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics.Tensors;
 using System.Numerics;
 using OnnxStack.Core.Model;
+using System.Threading.Tasks;
 
 namespace OnnxStack.Core
 {
@@ -415,75 +416,22 @@ namespace OnnxStack.Core
 
 
         /// <summary>
-        /// Splits the Tensor into 4 equal tiles.
+        /// Normalizes the tensor values from range -1 to 1 to 0 to 1.
         /// </summary>
-        /// <param name="sourceTensor">The source tensor.</param>
-        /// <returns>TODO: Optimize</returns>
-        public static ImageTiles SplitTiles(this DenseTensor<float> sourceTensor)
+        /// <param name="imageTensor">The image tensor.</param>
+        public static void NormalizeOneOneToZeroOne(this DenseTensor<float> imageTensor)
         {
-            int tileWidth = sourceTensor.Dimensions[3] / 2;
-            int tileHeight = sourceTensor.Dimensions[2] / 2;
-
-            return new ImageTiles(
-                SplitTile(sourceTensor, 0, 0, tileHeight, tileWidth),
-                SplitTile(sourceTensor, 0, tileWidth, tileHeight, tileWidth * 2),
-                SplitTile(sourceTensor, tileHeight, 0, tileHeight * 2, tileWidth),
-                SplitTile(sourceTensor, tileHeight, tileWidth, tileHeight * 2, tileWidth * 2));
-        }
-
-        private static DenseTensor<float> SplitTile(DenseTensor<float> tensor, int startRow, int startCol, int endRow, int endCol)
-        {
-            int height = endRow - startRow;
-            int width = endCol - startCol;
-            int channels = tensor.Dimensions[1];
-            var slicedData = new DenseTensor<float>(new[] { 1, channels, height, width });
-            for (int c = 0; c < channels; c++)
-            {
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width; j++)
-                    {
-                        slicedData[0, c, i, j] = tensor[0, c, startRow + i, startCol + j];
-                    }
-                }
-            }
-            return slicedData;
+            Parallel.For(0, (int)imageTensor.Length, (i) => imageTensor.SetValue(i, imageTensor.GetValue(i) / 2f + 0.5f));
         }
 
 
         /// <summary>
-        /// Rejoins the tiles into a single Tensor.
+        /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
         /// </summary>
-        /// <param name="tiles">The tiles.</param>
-        /// <returns>TODO: Optimize</returns>
-        public static DenseTensor<float> RejoinTiles(this ImageTiles tiles)
+        /// <param name="imageTensor">The image tensor.</param>
+        public static void NormalizeZeroOneToOneOne(this DenseTensor<float> imageTensor)
         {
-            int totalHeight = tiles.Tile1.Dimensions[2] + tiles.Tile3.Dimensions[2];
-            int totalWidth = tiles.Tile1.Dimensions[3] + tiles.Tile2.Dimensions[3];
-            int channels = tiles.Tile1.Dimensions[1];
-            var destination = new DenseTensor<float>(new[] { 1, channels, totalHeight, totalWidth });
-            RejoinTile(destination, tiles.Tile1, 0, 0);
-            RejoinTile(destination, tiles.Tile2, 0, tiles.Tile1.Dimensions[3]);
-            RejoinTile(destination, tiles.Tile3, tiles.Tile1.Dimensions[2], 0);
-            RejoinTile(destination, tiles.Tile4, tiles.Tile1.Dimensions[2], tiles.Tile1.Dimensions[3]);
-            return destination;
-        }
-
-        private static void RejoinTile(DenseTensor<float> destination, DenseTensor<float> tile, int startRow, int startCol)
-        {
-            int channels = tile.Dimensions[1];
-            int height = tile.Dimensions[2];
-            int width = tile.Dimensions[3];
-            for (int c = 0; c < channels; c++)
-            {
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width; j++)
-                    {
-                        destination[0, c, startRow + i, startCol + j] = tile[0, c, i, j];
-                    }
-                }
-            }
+            Parallel.For(0, (int)imageTensor.Length, (i) => imageTensor.SetValue(i, 2f * imageTensor.GetValue(i) - 1f));
         }
     }
 }

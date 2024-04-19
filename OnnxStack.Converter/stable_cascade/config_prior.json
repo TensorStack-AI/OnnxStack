@@ -1,0 +1,121 @@
+{
+    "input_model": {
+        "type": "PyTorchModel",
+        "config": {
+            "model_path": "stabilityai/stable-cascade",
+            "model_loader": "prior_load",
+            "model_script": "models.py",
+            "io_config": {
+                "input_names": [ "sample", "timestep_ratio", "clip_text_pooled", "clip_text", "clip_img", "return_dict" ],
+                "output_names": [ "out_sample" ],
+                "dynamic_axes": {
+                    "sample": {"0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width"},
+                    "timestep_ratio": {"0": "unet_timestep_ratio"},
+                    "clip_text_pooled": {"0": "unet_clip_text_pooled_batch", "1": "unet_clip_text_pooled_size", "2": "unet_clip_text_pooled_length"},
+					"clip_text": {"0": "unet_clip_text_batch", "1": "unet_clip_text_size", "2": "unet_clip_text_length"},
+					"clip_img": {"0": "unet_clip_img_batch", "1": "unet_clip_img_size", "2": "unet_clip_img_length"}
+                }
+            },
+            "dummy_inputs_func": "prior_conversion_inputs"
+        }
+    },
+    "systems": {
+        "local_system": {
+            "type": "LocalSystem",
+            "config": {
+                "accelerators": [
+                    {
+                        "device": "gpu",
+                        "execution_providers": [
+                            "DmlExecutionProvider"
+                        ]
+                    }
+                ]
+            }
+        }
+    },
+    "evaluators": {
+        "common_evaluator": {
+            "metrics": [
+                {
+                    "name": "latency",
+                    "type": "latency",
+                    "sub_types": [{"name": "avg"}],
+                    "user_config": {
+                        "user_script": "models.py",
+                        "dataloader_func": "prior_data_loader",
+                        "batch_size": 2
+                    }
+                }
+            ]
+        }
+    },
+    "passes": {
+        "convert": {
+            "type": "OnnxConversion",
+            "config": {
+                "target_opset": 16,
+                "save_as_external_data": true,
+                "all_tensors_to_one_file": true
+            }
+        },
+        "optimize": {
+            "type": "OrtTransformersOptimization",
+            "config": {
+                "model_type": "unet",
+                "opt_level": 0,
+                "float16": true,
+                "use_gpu": true,
+                "keep_io_types": true,
+                "optimization_options": {
+                    "enable_gelu": true,
+                    "enable_layer_norm": true,
+                    "enable_attention": true,
+                    "use_multi_head_attention": true,
+                    "enable_skip_layer_norm": false,
+                    "enable_embed_layer_norm": true,
+                    "enable_bias_skip_layer_norm": false,
+                    "enable_bias_gelu": true,
+                    "enable_gelu_approximation": false,
+                    "enable_qordered_matmul": false,
+                    "enable_shape_inference": true,
+                    "enable_gemm_fast_gelu": false,
+                    "enable_nhwc_conv": false,
+                    "enable_group_norm": true,
+                    "enable_bias_splitgelu": false,
+                    "enable_packed_qkv": true,
+                    "enable_packed_kv": true,
+                    "enable_bias_add": false,
+                    "group_norm_channels_last": false
+                },
+                "force_fp32_ops": ["RandomNormalLike"],
+                "force_fp16_inputs": {
+                    "GroupNorm": [0, 1, 2]
+                }
+            }
+        },
+        "optimize_cuda": {
+            "type": "OrtTransformersOptimization",
+            "config": {
+                "model_type": "unet",
+                "opt_level": 0,
+                "float16": true,
+                "use_gpu": true,
+                "keep_io_types": false
+            }
+        }
+    },
+    "pass_flows": [
+        ["convert", "optimize"]
+    ],
+    "engine": {
+        "log_severity_level": 0,
+        "evaluator": "common_evaluator",
+        "evaluate_input_model": false,
+        "host": "local_system",
+        "target": "local_system",
+        "cache_dir": "cache",
+        "output_name": "prior",
+        "output_dir": "footprints"
+    }
+}

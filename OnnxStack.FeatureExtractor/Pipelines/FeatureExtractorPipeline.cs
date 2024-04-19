@@ -67,11 +67,25 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// </summary>
         /// <param name="inputImage">The input image.</param>
         /// <returns></returns>
+        public async Task<DenseTensor<float>> RunAsync(DenseTensor<float> inputTensor, CancellationToken cancellationToken = default)
+        {
+            var timestamp = _logger?.LogBegin("Extracting DenseTensor feature...");
+            var result = await ExtractTensorAsync(inputTensor, cancellationToken);
+            _logger?.LogEnd("Extracting DenseTensor feature complete.", timestamp);
+            return result;
+        }
+
+
+        /// <summary>
+        /// Generates the feature extractor image
+        /// </summary>
+        /// <param name="inputImage">The input image.</param>
+        /// <returns></returns>
         public async Task<OnnxImage> RunAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
         {
-            var timestamp = _logger?.LogBegin("Extracting image feature...");
-            var result = await RunInternalAsync(inputImage, cancellationToken);
-            _logger?.LogEnd("Extracting image feature complete.", timestamp);
+            var timestamp = _logger?.LogBegin("Extracting OnnxImage feature...");
+            var result = await ExtractImageAsync(inputImage, cancellationToken);
+            _logger?.LogEnd("Extracting OnnxImage feature complete.", timestamp);
             return result;
         }
 
@@ -83,13 +97,13 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <returns></returns>
         public async Task<OnnxVideo> RunAsync(OnnxVideo video, CancellationToken cancellationToken = default)
         {
-            var timestamp = _logger?.LogBegin("Extracting video features...");
+            var timestamp = _logger?.LogBegin("Extracting OnnxVideo features...");
             var featureFrames = new List<OnnxImage>();
             foreach (var videoFrame in video.Frames)
             {
                 featureFrames.Add(await RunAsync(videoFrame, cancellationToken));
             }
-            _logger?.LogEnd("Extracting video features complete.", timestamp);
+            _logger?.LogEnd("Extracting OnnxVideo features complete.", timestamp);
             return new OnnxVideo(video.Info, featureFrames);
         }
 
@@ -102,28 +116,62 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <returns></returns>
         public async IAsyncEnumerable<OnnxImage> RunAsync(IAsyncEnumerable<OnnxImage> imageFrames, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var timestamp = _logger?.LogBegin("Extracting video stream features...");
+            var timestamp = _logger?.LogBegin("Extracting OnnxImage stream features...");
             await foreach (var imageFrame in imageFrames)
             {
-                yield return await RunInternalAsync(imageFrame, cancellationToken);
+                yield return await ExtractImageAsync(imageFrame, cancellationToken);
             }
-            _logger?.LogEnd("Extracting video stream features complete.", timestamp);
+            _logger?.LogEnd("Extracting OnnxImage stream features complete.", timestamp);
+        }
+
+
+        /// <summary>
+        /// Extracts the feature to OnnxImage.
+        /// </summary>
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<OnnxImage> ExtractImageAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
+        {
+            var originalWidth = inputImage.Width;
+            var originalHeight = inputImage.Height;
+            var inputTensor = _featureExtractorModel.SampleSize <= 0
+                ? await inputImage.GetImageTensorAsync(_featureExtractorModel.NormalizeType)
+                : await inputImage.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, _featureExtractorModel.NormalizeType, resizeMode: _featureExtractorModel.InputResizeMode);
+
+            var outputTensor = await RunInternalAsync(inputTensor, cancellationToken);
+            var imageResult = new OnnxImage(outputTensor, _featureExtractorModel.NormalizeType);
+
+            if (_featureExtractorModel.InputResizeMode == ImageResizeMode.Stretch && (imageResult.Width != originalWidth || imageResult.Height != originalHeight))
+                imageResult.Resize(originalHeight, originalWidth, _featureExtractorModel.InputResizeMode);
+
+            return imageResult;
+        }
+
+
+        /// <summary>
+        /// Extracts the feature to DenseTensor.
+        /// </summary>
+        /// <param name="inputTensor">The input tensor.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<DenseTensor<float>> ExtractTensorAsync(DenseTensor<float> inputTensor, CancellationToken cancellationToken = default)
+        {
+            if (_featureExtractorModel.NormalizeInput && _featureExtractorModel.NormalizeType == ImageNormalizeType.ZeroToOne)
+                inputTensor.NormalizeOneOneToZeroOne();
+
+            return await RunInternalAsync(inputTensor, cancellationToken); 
         }
 
 
         /// <summary>
         /// Runs the pipeline
         /// </summary>
-        /// <param name="inputImage">The input image.</param>
+        /// <param name="inputTensor">The input tensor.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        private async Task<OnnxImage> RunInternalAsync(OnnxImage inputImage, CancellationToken cancellationToken = default)
+        private async Task<DenseTensor<float>> RunInternalAsync(DenseTensor<float> inputTensor, CancellationToken cancellationToken = default)
         {
-            var originalWidth = inputImage.Width;
-            var originalHeight = inputImage.Height;
-            var inputTensor = _featureExtractorModel.SampleSize <= 0
-                ? await inputImage.GetImageTensorAsync(_featureExtractorModel.InputNormalization)
-                : await inputImage.GetImageTensorAsync(_featureExtractorModel.SampleSize, _featureExtractorModel.SampleSize, _featureExtractorModel.InputNormalization, resizeMode: _featureExtractorModel.InputResizeMode);
             var metadata = await _featureExtractorModel.GetMetadataAsync();
             cancellationToken.ThrowIfCancellationRequested();
             var outputShape = new[] { 1, _featureExtractorModel.OutputChannels, inputTensor.Dimensions[2], inputTensor.Dimensions[3] };
@@ -139,21 +187,13 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                     cancellationToken.ThrowIfCancellationRequested();
 
                     var outputTensor = inferenceResult.ToDenseTensor(outputShape);
-                    if (_featureExtractorModel.NormalizeOutputTensor)
+                    if (_featureExtractorModel.NormalizeOutput)
                         outputTensor.NormalizeMinMax();
 
-                    var imageResult = default(OnnxImage);
                     if (_featureExtractorModel.SetOutputToInputAlpha)
-                        imageResult = new OnnxImage(AddAlphaChannel(inputTensor, outputTensor), _featureExtractorModel.InputNormalization);
-                    else if (_featureExtractorModel.OutputChannels >= 3)
-                        imageResult = new OnnxImage(outputTensor, _featureExtractorModel.InputNormalization);
-                    else
-                        imageResult = outputTensor.ToImageMask();
+                        return AddAlphaChannel(inputTensor, outputTensor);
 
-                    if (_featureExtractorModel.InputResizeMode == ImageResizeMode.Stretch && (imageResult.Width != originalWidth || imageResult.Height != originalHeight))
-                        imageResult.Resize(originalHeight, originalWidth, _featureExtractorModel.InputResizeMode);
-
-                    return imageResult;
+                    return outputTensor;
                 }
             }
         }
@@ -200,7 +240,7 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public static FeatureExtractorPipeline CreatePipeline(string modelFile, int sampleSize = 0, int outputChannels = 1, bool normalizeOutputTensor = false, ImageNormalizeType normalizeInputTensor = ImageNormalizeType.ZeroToOne, ImageResizeMode inputResizeMode = ImageResizeMode.Crop, bool setOutputToInputAlpha = false, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
+        public static FeatureExtractorPipeline CreatePipeline(string modelFile, int sampleSize = 0, int outputChannels = 1, ImageNormalizeType normalizeType = ImageNormalizeType.ZeroToOne, bool normalizeInput = true, bool normalizeOutput = false, ImageResizeMode inputResizeMode = ImageResizeMode.Crop, bool setOutputToInputAlpha = false, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, ILogger logger = default)
         {
             var name = Path.GetFileNameWithoutExtension(modelFile);
             var configuration = new FeatureExtractorModelSet
@@ -214,9 +254,10 @@ namespace OnnxStack.FeatureExtractor.Pipelines
                     OnnxModelPath = modelFile,
                     SampleSize = sampleSize,
                     OutputChannels = outputChannels,
-                    NormalizeOutputTensor = normalizeOutputTensor,
+                    NormalizeOutput = normalizeOutput,
+                    NormalizeInput = normalizeInput,
+                    NormalizeType = normalizeType,
                     SetOutputToInputAlpha = setOutputToInputAlpha,
-                    NormalizeInputTensor = normalizeInputTensor,
                     InputResizeMode = inputResizeMode
                 }
             };
