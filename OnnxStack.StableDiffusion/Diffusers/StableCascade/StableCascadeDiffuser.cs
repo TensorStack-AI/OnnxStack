@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
+using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -17,16 +18,22 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
 {
     public abstract class StableCascadeDiffuser : DiffuserBase
     {
+        private readonly UNetConditionModel _decoderUnet;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableCascadeDiffuser"/> class.
         /// </summary>
-        /// <param name="unet">The unet.</param>
-        /// <param name="vaeDecoder">The vae decoder.</param>
-        /// <param name="vaeEncoder">The vae encoder.</param>
+        /// <param name="priorUnet">The prior unet.</param>
+        /// <param name="decoderUnet">The decoder unet.</param>
+        /// <param name="decoderVqgan">The decoder vqgan.</param>
+        /// <param name="imageEncoder">The image encoder.</param>
+        /// <param name="memoryMode">The memory mode.</param>
         /// <param name="logger">The logger.</param>
-        public StableCascadeDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
-            : base(unet, vaeDecoder, vaeEncoder, memoryMode, logger) { }
+        public StableCascadeDiffuser(UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel decoderVqgan, AutoEncoderModel imageEncoder, MemoryModeType memoryMode, ILogger logger = default)
+            : base(priorUnet, decoderVqgan, imageEncoder, memoryMode, logger)
+        {
+            _decoderUnet = decoderUnet;
+        }
 
         /// <summary>
         /// Gets the type of the pipeline.
@@ -47,40 +54,45 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         public override async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             // Get Scheduler
-            using (var scheduler = GetScheduler(schedulerOptions))
+            using (var schedulerPrior = GetScheduler(schedulerOptions))
+            using (var schedulerDecoder = GetScheduler(schedulerOptions))
             {
+                //----------------------------------------------------
+                // Prior Unet
+                //====================================================
+
                 // Get timesteps
-                var timesteps = GetTimesteps(schedulerOptions, scheduler);
+                var timestepsPrior = GetTimesteps(schedulerOptions, schedulerPrior);
 
                 // Create latent sample
-                var latents = await PrepareLatentsAsync(promptOptions, schedulerOptions, scheduler, timesteps);
+                var latentsPrior = schedulerPrior.CreateRandomSample(new[] { 1, 16, (int)Math.Ceiling(schedulerOptions.Height / 42.67f), (int)Math.Ceiling(schedulerOptions.Width / 42.67f) }, schedulerPrior.InitNoiseSigma);
 
                 // Get Model metadata
-                var metadata = await _unet.GetMetadataAsync();
-
-                // Get the distilled Timestep
-                var distilledTimestep = 1.0f / timesteps.Count;
+                var metadataPrior = await _unet.GetMetadataAsync();
 
                 // Loop though the timesteps
-                var step = 0;
-                foreach (var timestep in timesteps)
+                var stepPrior = 0;
+                foreach (var timestep in timestepsPrior)
                 {
-                    step++;
+                    stepPrior++;
                     var stepTime = Stopwatch.GetTimestamp();
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputLatent = performGuidance ? latents.Repeat(2) : latents;
-                    var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
-                    var timestepTensor = CreateTimestepTensor(inputLatent, timestep);
+                    var inputLatent = performGuidance ? latentsPrior.Repeat(2) : latentsPrior;
+                    var inputTensor = schedulerPrior.ScaleInput(inputLatent, timestep);
+                    var timestepTensor =  CreateTimestepTensor(inputLatent, timestep);
+                    var imageEmbeds = new DenseTensor<float>(performGuidance ? new[] { 2, 1, 768 } : new[] { 1, 1, 768 });
 
                     var outputChannels = performGuidance ? 2 : 1;
-                    var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
-                    using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+                    var outputDimension = inputTensor.Dimensions.ToArray(); //schedulerOptions.GetScaledDimension(outputChannels);
+                    using (var inferenceParameters = new OnnxInferenceParameters(metadataPrior))
                     {
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
+                        inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
+                        inferenceParameters.AddInputTensor(imageEmbeds);
                         inferenceParameters.AddOutputBuffer(outputDimension);
 
                         var results = await _unet.RunInferenceAsync(inferenceParameters);
@@ -93,24 +105,113 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                                 noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
 
                             // Scheduler Step
-                            latents = scheduler.Step(noisePred, timestep, latents).Result;
-
-                            latents = noisePred
-                                .MultiplyTensorByFloat(distilledTimestep)
-                                .AddTensors(latents);
+                            latentsPrior = schedulerPrior.Step(noisePred, timestep, latentsPrior).Result;
                         }
                     }
 
-                    ReportProgress(progressCallback, step, timesteps.Count, latents);
-                    _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
+                    ReportProgress(progressCallback, stepPrior, timestepsPrior.Count, latentsPrior);
+                    _logger?.LogEnd(LogLevel.Debug, $"Step {stepPrior}/{timestepsPrior.Count}", stepTime);
                 }
 
                 // Unload if required
                 if (_memoryMode == MemoryModeType.Minimum)
                     await _unet.UnloadAsync();
 
+
+
+
+
+                //----------------------------------------------------
+                // Decoder Unet
+                //====================================================
+
+                // Get timesteps
+                var timestepsDecoder = GetTimesteps(schedulerOptions, schedulerDecoder);
+
+                // Create latent sample
+
+                var latentsDecoder = schedulerDecoder.CreateRandomSample(new[] { 1, 4, (int)(latentsPrior.Dimensions[2] * 10.67f), (int)(latentsPrior.Dimensions[3] * 10.67f) }, schedulerDecoder.InitNoiseSigma);
+
+                // Get Model metadata
+                var metadataDecoder = await _decoderUnet.GetMetadataAsync();
+
+                var effnet = performGuidance
+                    ? latentsPrior
+                    : latentsPrior.Concatenate(new DenseTensor<float>(latentsPrior.Dimensions));
+
+
+                // Loop though the timesteps
+                var stepDecoder = 0;
+                foreach (var timestep in timestepsDecoder)
+                {
+                    stepDecoder++;
+                    var stepTime = Stopwatch.GetTimestamp();
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Create input tensor.
+                    var inputLatent = performGuidance ? latentsDecoder.Repeat(2) : latentsDecoder;
+                    var inputTensor = schedulerDecoder.ScaleInput(inputLatent, timestep);
+                    var timestepTensor = CreateTimestepTensor(inputLatent, timestep);
+
+
+                    var outputChannels = performGuidance ? 2 : 1;
+                    var outputDimension = inputTensor.Dimensions.ToArray(); //schedulerOptions.GetScaledDimension(outputChannels);
+                    using (var inferenceParameters = new OnnxInferenceParameters(metadataDecoder))
+                    {
+                        inferenceParameters.AddInputTensor(inputTensor);
+                        inferenceParameters.AddInputTensor(timestepTensor);
+                        inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
+                     //   inferenceParameters.AddInputTensor(effnet);
+                        inferenceParameters.AddOutputBuffer();
+
+                        var results = _decoderUnet.RunInference(inferenceParameters);
+                        using (var result = results.First())
+                        {
+                            var noisePred = result.ToDenseTensor();
+
+                            // Perform guidance
+                            if (performGuidance)
+                                noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
+
+                            // Scheduler Step
+                            latentsDecoder = schedulerDecoder.Step(noisePred, timestep, latentsDecoder).Result;
+                        }
+                    }
+
+                }
+
+                var testlatentsPrior = new OnnxImage(latentsPrior);
+                var testlatentsDecoder = new OnnxImage(latentsDecoder);
+                await testlatentsPrior.SaveAsync("D:\\testlatentsPrior.png");
+                await testlatentsDecoder.SaveAsync("D:\\latentsDecoder.png");
+
+
                 // Decode Latents
-                return await DecodeLatentsAsync(promptOptions, schedulerOptions, latents);
+                return await DecodeLatentsAsync(promptOptions, schedulerOptions, latentsDecoder);
+            }
+        }
+
+
+        protected override async Task<DenseTensor<float>> DecodeLatentsAsync(PromptOptions prompt, SchedulerOptions options, DenseTensor<float> latents)
+        {
+            latents = latents.MultiplyBy(_vaeDecoder.ScaleFactor);
+
+            var outputDim = new[] { 1, 4, 256, 256 };
+            var metadata = await _vaeDecoder.GetMetadataAsync();
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+            {
+                inferenceParameters.AddInputTensor(latents);
+                inferenceParameters.AddOutputBuffer();
+
+                var results = _vaeDecoder.RunInference(inferenceParameters);
+                using (var imageResult = results.First())
+                {
+                    // Unload if required
+                    if (_memoryMode == MemoryModeType.Minimum)
+                        await _vaeDecoder.UnloadAsync();
+
+                    return imageResult.ToDenseTensor();
+                }
             }
         }
 
@@ -124,7 +225,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         private DenseTensor<float> CreateTimestepTensor(DenseTensor<float> latents, int timestep)
         {
             var timestepTensor = new DenseTensor<float>(new[] { latents.Dimensions[0] });
-            timestepTensor.Fill(timestep);
+            timestepTensor.Fill(timestep / 1000f);
             return timestepTensor;
         }
 
@@ -138,7 +239,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         {
             return options.SchedulerType switch
             {
-                SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
+                SchedulerType.DDPM => new DDPMScheduler(options),
                 _ => default
             };
         }

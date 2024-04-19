@@ -15,12 +15,14 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         /// <summary>
         /// Initializes a new instance of the <see cref="TextDiffuser"/> class.
         /// </summary>
-        /// <param name="unet">The unet.</param>
-        /// <param name="vaeDecoder">The vae decoder.</param>
-        /// <param name="vaeEncoder">The vae encoder.</param>
+        /// <param name="priorUnet">The prior unet.</param>
+        /// <param name="decoderUnet">The decoder unet.</param>
+        /// <param name="decoderVqgan">The decoder vqgan.</param>
+        /// <param name="imageEncoder">The image encoder.</param>
+        /// <param name="memoryMode">The memory mode.</param>
         /// <param name="logger">The logger.</param>
-        public TextDiffuser(UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
-            : base(unet, vaeDecoder, vaeEncoder, memoryMode, logger) { }
+        public TextDiffuser(UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel decoderVqgan, MemoryModeType memoryMode, ILogger logger = default)
+            : base(priorUnet, decoderUnet, decoderVqgan, default, memoryMode, logger) { }
 
 
         /// <summary>
