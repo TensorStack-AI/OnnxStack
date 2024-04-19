@@ -49,26 +49,33 @@ def text_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
 # -----------------------------------------------------------------------------
 # DECODER UNET
 # -----------------------------------------------------------------------------
+class DecoderStableCascadeUNet(StableCascadeUNet):
+    def forward(
+        self,
+        sample: torch.FloatTensor,
+        timestep_ratio: torch.Tensor,
+        clip_text_pooled: torch.Tensor,
+        effnet: torch.Tensor,
+    ) -> Union[StableCascadeUNet, Tuple]:
+        return super().forward(
+            sample = sample,
+            timestep_ratio = timestep_ratio,
+            clip_text_pooled = clip_text_pooled,
+            effnet = effnet
+        )
 
 def decoder_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
-    # TODO(jstoecker): Rename onnx::Concat_4 to text_embeds and onnx::Shape_5 to time_ids
     inputs = {
         "sample": torch.rand((batchsize, 4, 256, 256), dtype=torch_dtype),
         "timestep_ratio": torch.rand((batchsize,), dtype=torch_dtype),
         "clip_text_pooled": torch.rand((batchsize , 1,  1280), dtype=torch_dtype),
         "effnet": torch.rand((batchsize, 16, 24, 24), dtype=torch_dtype)
     }
-
-    # use as kwargs since they won't be in the correct position if passed along with the tuple of inputs
-    kwargs = {
-        "return_dict": False,
-    }
-   
     return inputs
 
 
 def decoder_load(model_name):
-    model = StableCascadeUNet.from_pretrained(model_name, subfolder="decoder")
+    model = DecoderStableCascadeUNet.from_pretrained(model_name, subfolder="decoder")
     return model
 
 
@@ -92,14 +99,8 @@ def prior_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
         "timestep_ratio": torch.rand((batchsize,), dtype=torch_dtype),
         "clip_text_pooled": torch.rand((batchsize  , 1,  1280), dtype=torch_dtype),
         "clip_text": torch.rand((batchsize  , 77,  1280), dtype=torch_dtype),
-        "clip_img": torch.rand((batchsize , 1,  768), dtype=torch_dtype)
+        "clip_img": torch.rand((batchsize , 1,  768), dtype=torch_dtype),
     }
-
-    # use as kwargs since they won't be in the correct position if passed along with the tuple of inputs
-    kwargs = {
-        "return_dict": False,
-    }
-   
     return inputs
 
 
@@ -147,16 +148,26 @@ def image_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
 # -----------------------------------------------------------------------------
 # VQGAN
 # -----------------------------------------------------------------------------
+class DecodePaellaVQModel(PaellaVQModel):
+    def forward(
+        self,
+        sample: torch.FloatTensor, 
+    ) -> Union[PaellaVQModel, Tuple]:
+        return super().decode(
+            h = sample,
+            force_not_quantize = True,
+            return_dict = True,
+        )
 
 def vqgan_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
     inputs = {
-        "sample": torch.rand((batchsize, 3, 256, 256), dtype=torch_dtype)
+        "sample": torch.rand((batchsize, 4, 256, 256), dtype=torch_dtype)
     }
     return inputs
 
 
 def vqgan_load(model_name):
-    model = PaellaVQModel.from_pretrained(model_name, subfolder="vqgan", use_safetensors=True)
+    model = DecodePaellaVQModel.from_pretrained(model_name, subfolder="vqgan", use_safetensors=True)
     return model
 
 

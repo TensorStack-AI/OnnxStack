@@ -6,7 +6,7 @@
             "model_loader": "prior_load",
             "model_script": "models.py",
             "io_config": {
-                "input_names": [ "sample", "timestep_ratio", "clip_text_pooled", "clip_text", "clip_img", "return_dict" ],
+                "input_names": [ "sample", "timestep_ratio", "clip_text_pooled", "clip_text", "clip_img" ],
                 "output_names": [ "out_sample" ],
                 "dynamic_axes": {
                     "sample": {"0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width"},
