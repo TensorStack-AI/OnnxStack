@@ -27,7 +27,6 @@ class RandomDataLoader:
 # TEXT ENCODER
 # -----------------------------------------------------------------------------
 
-
 def text_encoder_inputs(batchsize, torch_dtype):
     return torch.zeros((batchsize, 77), dtype=torch_dtype)
 
@@ -45,10 +44,11 @@ def text_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
     return RandomDataLoader(text_encoder_inputs, batchsize, torch.int32)
 
 
-# -----------------------------------------------------------------------------
-# decoder
-# -----------------------------------------------------------------------------
 
+
+# -----------------------------------------------------------------------------
+# DECODER UNET
+# -----------------------------------------------------------------------------
 
 def decoder_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
     # TODO(jstoecker): Rename onnx::Concat_4 to text_embeds and onnx::Shape_5 to time_ids
@@ -81,8 +81,9 @@ def decoder_data_loader(data_dir, batchsize, *args, **kwargs):
 
 
 
+
 # -----------------------------------------------------------------------------
-# prior
+# PRIOR UNET
 # -----------------------------------------------------------------------------
 
 def prior_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
@@ -116,10 +117,9 @@ def prior_data_loader(data_dir, batchsize, *args, **kwargs):
 
 
 
-
     
 # -----------------------------------------------------------------------------
-# image_encoder
+# IMAGE ENCODER
 # -----------------------------------------------------------------------------
 
 def image_encoder_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
@@ -142,8 +142,10 @@ def image_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
     return RandomDataLoader(image_encoder_inputs, batchsize, torch.float16)
 
 
+
+
 # -----------------------------------------------------------------------------
-# vqgan
+# VQGAN
 # -----------------------------------------------------------------------------
 
 def vqgan_inputs(batchsize, torch_dtype, is_conversion_inputs=False):

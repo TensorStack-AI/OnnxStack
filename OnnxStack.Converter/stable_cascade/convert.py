@@ -93,7 +93,7 @@ def optimize(
     model_input: str,
     model_output: Path,
     provider: str,
-    controlnet: bool
+    image_encoder: bool
 ):
     from google.protobuf import __version__ as protobuf_version
 
@@ -109,7 +109,6 @@ def optimize(
     shutil.rmtree(script_dir / "footprints", ignore_errors=True)
     shutil.rmtree(model_output, ignore_errors=True)
 
-
     # Load the entire PyTorch pipeline to ensure all models and their configurations are downloaded and cached.
     # This avoids an issue where the non-ONNX components (tokenizer, scheduler, and feature extractor) are not
     # automatically cached correctly if individual models are fetched one at a time.
@@ -121,15 +120,10 @@ def optimize(
 
     model_info = {}
 
-    submodel_names = [ "text_encoder", "decoder", "prior", "image_encoder"]
+    submodel_names = [ "text_encoder", "decoder", "prior", "vqgan"]
 
-    has_safety_checker = getattr(pipeline, "safety_checker", None) is not None
-
-    if has_safety_checker:
-        submodel_names.append("safety_checker")
-
-    if controlnet:
-        submodel_names.append("controlnet")
+    if image_encoder:
+        submodel_names.append("image_encoder")
 
     for submodel_name in submodel_names:
         print(f"\nOptimizing {submodel_name}")
@@ -138,14 +132,7 @@ def optimize(
         with (script_dir / f"config_{submodel_name}.json").open() as fin:
             olive_config = json.load(fin)
         olive_config = update_config_with_provider(olive_config, provider)
-
-        if submodel_name in ("unet", "controlnet", "text_encoder"):
-            olive_config["input_model"]["config"]["model_path"] = model_dir
-        else:
-            # Only the unet & text encoder are affected by LoRA, so it's better to use the base model ID for
-            # other models: the Olive cache is based on the JSON config, and two LoRA variants with the same
-            # base model ID should be able to reuse previously optimized copies.
-            olive_config["input_model"]["config"]["model_path"] = model_dir
+        olive_config["input_model"]["config"]["model_path"] = model_dir
 
         run_res = olive_run(olive_config)
 
@@ -156,7 +143,7 @@ def optimize(
     from sd_utils.ort import save_onnx_pipeline
 
     save_onnx_pipeline(
-        has_safety_checker, model_info, model_output, pipeline, submodel_names
+        model_info, model_output, pipeline, submodel_names
     )
 
     return model_info
@@ -164,44 +151,14 @@ def optimize(
 
 def parse_common_args(raw_args):
     parser = argparse.ArgumentParser("Common arguments")
-
     parser.add_argument("--model_input", default="stable-diffusion-v1-5", type=str)
     parser.add_argument("--model_output", default="stable-diffusion-v1-5", type=Path)
-    parser.add_argument("--controlnet",action="store_true", help="Create ControlNet Unet Model")
-    parser.add_argument(
-        "--provider", default="dml", type=str, choices=["dml", "cuda"], help="Execution provider to use"
-    )
+    parser.add_argument("--image_encoder",action="store_true", help="Create image encoder model")
+    parser.add_argument("--provider", default="dml", type=str, choices=["dml", "cuda"], help="Execution provider to use")
     parser.add_argument("--optimize", action="store_true", help="Runs the optimization step")
     parser.add_argument("--clean_cache", action="store_true", help="Deletes the Olive cache")
     parser.add_argument("--test_unoptimized", action="store_true", help="Use unoptimized model for inference")
-    parser.add_argument("--batch_size", default=1, type=int, help="Number of images to generate per batch")
-    parser.add_argument(
-        "--prompt",
-        default=(
-            "castle surrounded by water and nature, village, volumetric lighting, photorealistic, "
-            "detailed and intricate, fantasy, epic cinematic shot, mountains, 8k ultra hd"
-        ),
-        type=str,
-    )
-    parser.add_argument(
-        "--guidance_scale",
-        default=7.5,
-        type=float,
-        help="Guidance scale as defined in Classifier-Free Diffusion Guidance",
-    )
-    parser.add_argument("--num_images", default=1, type=int, help="Number of images to generate")
-    parser.add_argument("--num_inference_steps", default=50, type=int, help="Number of steps in diffusion process")
     parser.add_argument("--tempdir", default=None, type=str, help="Root directory for tempfile directories and files")
-    parser.add_argument(
-        "--strength",
-        default=1.0,
-        type=float,
-        help="Value between 0.0 and 1.0, that controls the amount of noise that is added to the input image. "
-        "Values that approach 1.0 enable lots of variations but will also produce images "
-        "that are not semantically consistent with the input.",
-    )
-    parser.add_argument("--image_size", default=512, type=int, help="Width and height of the images to generate")
-
     return parser.parse_known_args(raw_args)
 
 
@@ -231,8 +188,6 @@ def main(raw_args=None):
     if common_args.clean_cache:
         shutil.rmtree(script_dir / "cache", ignore_errors=True)
 
-    guidance_scale = common_args.guidance_scale
-
     ort_args = None, None
     ort_args, extra_args = parse_ort_args(extra_args)
 
@@ -246,27 +201,10 @@ def main(raw_args=None):
             from sd_utils.ort import validate_args
 
             validate_args(ort_args, common_args.provider)
-            optimize(common_args.model_input, common_args.model_output, common_args.provider, common_args.controlnet)
+            optimize(common_args.model_input, common_args.model_output, common_args.provider, common_args.image_encoder)
 
     if not common_args.optimize:
-        model_dir = model_output / "F32" if common_args.test_unoptimized else model_output / "F16"
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-      
-            from sd_utils.ort import get_ort_pipeline
-
-            pipeline = get_ort_pipeline(model_dir, common_args, ort_args, guidance_scale)
-            run_inference_loop(
-                pipeline,
-                common_args.prompt,
-                common_args.num_images,
-                common_args.batch_size,
-                common_args.image_size,
-                common_args.num_inference_steps,
-                guidance_scale,
-                common_args.strength,
-                provider=provider,
-            )
+        print("TODO: Create OnnxStableCascadePipeline")
 
 
 if __name__ == "__main__":

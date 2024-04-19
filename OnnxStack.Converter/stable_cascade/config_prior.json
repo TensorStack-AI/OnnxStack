@@ -56,8 +56,7 @@
             "config": {
                 "target_opset": 16,
                 "save_as_external_data": true,
-                "all_tensors_to_one_file": true,
-                "external_data_name": "weights.pb"
+                "all_tensors_to_one_file": true
             }
         },
         "optimize": {

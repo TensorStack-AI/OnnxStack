@@ -9,7 +9,7 @@ python -m pip install -r requirements.txt
 
 ## Usage
 ```bash
-convert.py --optimize --model_input '..\stable-diffusion-v1-5' --model_output '..\converted' --controlnet
+convert.py --optimize --model_input '..\stable-cascade' --model_output '..\converted' 
 ```
 `--optimize`  - Run the model optimization
 
@@ -17,4 +17,4 @@ convert.py --optimize --model_input '..\stable-diffusion-v1-5' --model_output '.
 
 `--model_output`  - Output for converted ONNX model (NOTE: This folder is deleted before each run)
 
-`--controlnet`  - Create a ControlNet enabled Unet model
+`--image_encoder`  - Convert the optional image encoder

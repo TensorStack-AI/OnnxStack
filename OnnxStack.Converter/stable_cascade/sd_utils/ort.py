@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict
 
 import onnxruntime as ort
-from diffusers import OnnxRuntimeModel, OnnxStableDiffusionPipeline
+from diffusers import OnnxRuntimeModel, StableCascadePriorPipeline
 from onnxruntime import __version__ as OrtVersion
 from packaging import version
 
@@ -77,9 +77,11 @@ def save_optimized_onnx_submodel(submodel_name, provider, model_info):
         model_info[submodel_name] = {
             "unoptimized": {
                 "path": Path(unoptimized_olive_model.model_path),
+                "data": Path(unoptimized_olive_model.model_path + ".data"),
             },
             "optimized": {
                 "path": Path(optimized_olive_model.model_path),
+                "data": Path(optimized_olive_model.model_path + ".data"),
             },
         }
 
@@ -88,76 +90,28 @@ def save_optimized_onnx_submodel(submodel_name, provider, model_info):
 
 
 def save_onnx_pipeline(
-    has_safety_checker, model_info, model_output, pipeline, submodel_names
+    model_info, model_output, pipeline, submodel_names
 ):
     # Save the unoptimized models in a directory structure that the diffusers library can load and run.
     # This is optional, and the optimized models can be used directly in a custom pipeline if desired.
-    print("\nCreating ONNX pipeline...")
-
-    optimized_model_dir = model_output / "Optimized"
-    unoptimized_model_dir = model_output / "Default"
-    has_controlnet = 'controlnet' in submodel_names
-    if has_safety_checker:
-        safety_checker = OnnxRuntimeModel.from_pretrained(model_info["safety_checker"]["unoptimized"]["path"].parent)
-    else:
-        safety_checker = None
-
-    text_encoder=OnnxRuntimeModel.from_pretrained(model_info["text_encoder"]["unoptimized"]["path"].parent)
-    decoder=OnnxRuntimeModel.from_pretrained(model_info["text_encoder"]["unoptimized"]["path"].parent)
-    prior=OnnxRuntimeModel.from_pretrained(model_info["text_encoder"]["unoptimized"]["path"].parent)
-
+    # print("\nCreating ONNX pipeline...")
    
+    # TODO: Create OnnxStableCascadePipeline
 
-    print("Saving unoptimized models...")
-    text_encoder.save_pretrained(unoptimized_model_dir / "text_encoder")
-    decoder.save_pretrained(unoptimized_model_dir/ "decoder")
-    prior.save_pretrained(unoptimized_model_dir/ "prior")
-   
     # Create a copy of the unoptimized model directory, then overwrite with optimized models from the olive cache.
     print("Copying optimized models...")
-    shutil.copytree(unoptimized_model_dir, optimized_model_dir, ignore=shutil.ignore_patterns("weights.pb"))
-    for submodel_name in submodel_names:
-        src_path = model_info[submodel_name]["optimized"]["path"]
-        dst_path = optimized_model_dir / submodel_name / "model.onnx"
-        exists = os.path.exists(dst_path)
-        if not exists:
-            os.mkdir(optimized_model_dir / submodel_name)
-        shutil.copyfile(src_path, dst_path)
+    for passType in ["optimized", "unoptimized"]:
+        model_dir = model_output / passType
+        for submodel_name in submodel_names:
+            src_path = model_info[submodel_name][passType]["path"] # model.onnx
+            src_data_path = model_info[submodel_name][passType]["data"]# model.onnx.data
 
-    print(f"The default pipeline is located here: {unoptimized_model_dir}")
-    print(f"The optimized pipeline is located here: {optimized_model_dir}")
+            dst_path = model_dir / submodel_name
+            if not os.path.exists(dst_path):
+                os.makedirs(dst_path, exist_ok=True)
 
-
-def get_ort_pipeline(model_dir, common_args, ort_args, guidance_scale):
-    ort.set_default_logger_severity(3)
-
-    print("Loading models into ORT session...")
-    sess_options = ort.SessionOptions()
-    sess_options.enable_mem_pattern = False
-
-    static_dims = not ort_args.dynamic_dims
-    batch_size = common_args.batch_size
-    image_size = common_args.image_size
-    provider = common_args.provider
-
-    if static_dims:
-        hidden_batch_size = batch_size if (guidance_scale == 0.0) else batch_size * 2
-        # Not necessary, but helps DML EP further optimize runtime performance.
-        # batch_size is doubled for sample & hidden state because of classifier free guidance:
-        # https://github.com/huggingface/diffusers/blob/46c52f9b9607e6ecb29c782c052aea313e6487b7/src/diffusers/pipelines/stable_diffusion/pipeline_stable_diffusion.py#L672
-        sess_options.add_free_dimension_override_by_name("unet_sample_batch", hidden_batch_size)
-        sess_options.add_free_dimension_override_by_name("unet_sample_channels", 4)
-        sess_options.add_free_dimension_override_by_name("unet_sample_height", image_size // 8)
-        sess_options.add_free_dimension_override_by_name("unet_sample_width", image_size // 8)
-        sess_options.add_free_dimension_override_by_name("unet_time_batch", 1)
-        sess_options.add_free_dimension_override_by_name("unet_hidden_batch", hidden_batch_size)
-        sess_options.add_free_dimension_override_by_name("unet_hidden_sequence", 77)
-
-    provider_map = {
-        "dml": "DmlExecutionProvider",
-        "cuda": "CUDAExecutionProvider",
-    }
-    assert provider in provider_map, f"Unsupported provider: {provider}"
-    return OnnxStableDiffusionPipeline.from_pretrained(
-        model_dir, provider=provider_map[provider], sess_options=sess_options
-    )
+            shutil.copyfile(src_path, dst_path / "model.onnx")
+            if os.path.exists(src_data_path):
+                shutil.copyfile(src_data_path, dst_path / "model.onnx.data")
+        
+    print(f"The converted model is located here: {model_output}")
