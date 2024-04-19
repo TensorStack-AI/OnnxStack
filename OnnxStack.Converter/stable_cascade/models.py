@@ -6,6 +6,7 @@ import config
 import torch
 from typing import Union, Optional, Tuple
 from diffusers import AutoencoderKL, StableCascadeUNet
+from diffusers.pipelines.wuerstchen import PaellaVQModel
 from transformers.models.clip.modeling_clip import CLIPTextModelWithProjection, CLIPVisionModelWithProjection
 from dataclasses import dataclass
 
@@ -129,7 +130,7 @@ def image_encoder_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
 
 
 def image_encoder_load(model_name):
-    model = CLIPVisionModelWithProjection.from_pretrained(model_name, subfolder="image_encoder")
+    model = CLIPVisionModelWithProjection.from_pretrained(model_name, subfolder="image_encoder", use_safetensors=True)
     return model
 
 
@@ -139,3 +140,27 @@ def image_encoder_conversion_inputs(model=None):
 
 def image_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
     return RandomDataLoader(image_encoder_inputs, batchsize, torch.float16)
+
+
+# -----------------------------------------------------------------------------
+# vqgan
+# -----------------------------------------------------------------------------
+
+def vqgan_inputs(batchsize, torch_dtype, is_conversion_inputs=False):
+    inputs = {
+        "sample": torch.rand((batchsize, 3, 256, 256), dtype=torch_dtype)
+    }
+    return inputs
+
+
+def vqgan_load(model_name):
+    model = PaellaVQModel.from_pretrained(model_name, subfolder="vqgan", use_safetensors=True)
+    return model
+
+
+def vqgan_conversion_inputs(model=None):
+    return tuple(vqgan_inputs(1, torch.float32, True).values())
+
+
+def vqgan_data_loader(data_dir, batchsize, *args, **kwargs):
+    return RandomDataLoader(vqgan_inputs, batchsize, torch.float16)
