@@ -6,13 +6,13 @@
             "model_loader": "decoder_load",
             "model_script": "models.py",
             "io_config": {
-                "input_names": [ "sample", "timestep_ratio", "clip_text_pooled", "effnet", "return_dict" ],
+                "input_names": [ "sample", "timestep_ratio", "clip_text_pooled", "effnet" ],
                 "output_names": [ "out_sample" ],
                 "dynamic_axes": {
                     "sample": {"0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width"},
                     "timestep_ratio": {"0": "unet_timestep_ratio"},
                     "clip_text_pooled": {"0": "unet_clip_text_pooled_batch", "1": "unet_clip_text_pooled_size"},
-					"effnet": {"0": "unet_hidden_batch", "1": "unet_hidden_size"}
+					"effnet": {"0": "effnet_sample_batch", "1": "effnet_sample_channels", "2": "effnet_sample_height", "3": "effnet_sample_width"}
                 }
             },
             "dummy_inputs_func": "decoder_conversion_inputs"
