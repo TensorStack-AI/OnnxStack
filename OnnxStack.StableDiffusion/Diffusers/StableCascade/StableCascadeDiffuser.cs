@@ -161,7 +161,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
-                     //   inferenceParameters.AddInputTensor(effnet);
+                        inferenceParameters.AddInputTensor(effnet);
                         inferenceParameters.AddOutputBuffer();
 
                         var results = _decoderUnet.RunInference(inferenceParameters);
