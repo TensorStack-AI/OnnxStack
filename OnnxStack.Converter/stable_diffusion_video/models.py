@@ -5,7 +5,7 @@
 import config
 import torch
 from typing import Union, Optional, Tuple
-from diffusers import UNetSpatioTemporalConditionModel
+from diffusers import UNetSpatioTemporalConditionModel, AutoencoderKLTemporalDecoder
 from transformers.models.clip.modeling_clip import CLIPVisionModelWithProjection
 from dataclasses import dataclass
 
@@ -47,3 +47,55 @@ def unet_conversion_inputs(model=None):
 
 def unet_data_loader(data_dir, batchsize, *args, **kwargs):
     return RandomDataLoader(unet_inputs, batchsize, torch.float16)
+
+
+
+# -----------------------------------------------------------------------------
+# VAE ENCODER
+# -----------------------------------------------------------------------------
+
+
+def vae_encoder_inputs(batchsize, torch_dtype):
+    return {"sample": torch.rand((batchsize, 3, 72, 128), dtype=torch_dtype)}
+
+
+def vae_encoder_load(model_name):
+    model = AutoencoderKLTemporalDecoder.from_pretrained(model_name, subfolder="vae", use_safetensors=True)
+    model.forward = lambda sample: model.encode(sample)[0].sample()
+    return model
+
+
+def vae_encoder_conversion_inputs(model=None):
+    return tuple(vae_encoder_inputs(1, torch.float32).values())
+
+
+def vae_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
+    return RandomDataLoader(vae_encoder_inputs, batchsize, torch.float16)
+
+
+
+
+# -----------------------------------------------------------------------------
+# VAE DECODER
+# -----------------------------------------------------------------------------
+
+
+def vae_decoder_inputs(batchsize, torch_dtype):
+    return {
+        "latent_sample": torch.rand((batchsize, 4, 72, 128), dtype=torch_dtype),
+        "num_frames": 1,
+    }
+
+
+def vae_decoder_load(model_name):
+    model = AutoencoderKLTemporalDecoder.from_pretrained(model_name, subfolder="vae", use_safetensors=True)
+    model.forward = model.decode
+    return model
+
+
+def vae_decoder_conversion_inputs(model=None):
+    return tuple(vae_decoder_inputs(1, torch.float32).values())
+
+
+def vae_decoder_data_loader(data_dir, batchsize, *args, **kwargs):
+    return RandomDataLoader(vae_decoder_inputs, batchsize, torch.float16)

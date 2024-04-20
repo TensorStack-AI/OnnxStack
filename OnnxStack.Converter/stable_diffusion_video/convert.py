@@ -120,7 +120,7 @@ def optimize(
 
     model_info = {}
 
-    submodel_names = [ "unet" ]
+    submodel_names = [ "vae_encoder", "vae_decoder" ]
 
     if image_encoder:
         submodel_names.append("image_encoder")
