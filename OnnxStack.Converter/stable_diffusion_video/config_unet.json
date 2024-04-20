@@ -1,0 +1,85 @@
+{
+    "input_model": {
+        "type": "PyTorchModel",
+        "config": {
+            "model_path": "stabilityai/stable-video-diffusion-img2vid-xt",
+            "model_loader": "unet_load",
+            "model_script": "models.py",
+            "io_config": {
+                "input_names": [ "sample", "timestep", "encoder_hidden_states", "added_time_ids" ],
+                "output_names": [ "out_sample" ],
+                "dynamic_axes": {
+                    "sample": {"0": "batch", "1": "frames", "2": "channel", "3": "height", "4": "width"},
+                    "timestep": {"0": "timestep"},
+                    "encoder_hidden_states": {"0": "batch", "1": "sequence_length", "2": "cross_attention_dim"},
+					"added_time_ids": {"0": "batch", "1": "num_additional_ids" }
+                }
+            },
+            "dummy_inputs_func": "unet_conversion_inputs"
+        }
+    },
+    "systems": {
+        "local_system": {
+            "type": "LocalSystem",
+            "config": {
+                "accelerators": [
+                    {
+                        "device": "gpu",
+                        "execution_providers": [
+                            "DmlExecutionProvider"
+                        ]
+                    }
+                ]
+            }
+        }
+    },
+    "evaluators": {
+        "common_evaluator": {
+            "metrics": [
+                {
+                    "name": "latency",
+                    "type": "latency",
+                    "sub_types": [{"name": "avg"}],
+                    "user_config": {
+                        "user_script": "models.py",
+                        "dataloader_func": "unet_data_loader",
+                        "batch_size": 2
+                    }
+                }
+            ]
+        }
+    },
+    "passes": {
+        "convert": {
+            "type": "OnnxConversion",
+            "config": {
+                "target_opset": 16,
+                "save_as_external_data": true,
+                "all_tensors_to_one_file": true
+            }
+        },
+        "optimize": {
+            "type": "OrtTransformersOptimization",
+            "config": {
+                "model_type": "unet",
+                "opt_level": 0,
+                "float16": true,
+                "use_gpu": true,
+                "keep_io_types": true
+            }
+        }
+    },
+    "pass_flows": [
+        ["convert", "optimize"]
+    ],
+    "engine": {
+        "log_severity_level": 0,
+        "evaluator": "common_evaluator",
+        "evaluate_input_model": false,
+        "host": "local_system",
+        "target": "local_system",
+        "cache_dir": "cache",
+        "output_name": "unet",
+        "output_dir": "footprints"
+    }
+}
