@@ -6,7 +6,7 @@
           "model_loader": "controlnet_unet_load",
           "model_script": "models.py",
           "io_config": {
-              "input_names": [ "sample", "timestep", "encoder_hidden_states", "down_block_0_additional_residual", "down_block_1_additional_residual", "down_block_2_additional_residual", "down_block_3_additional_residual", "down_block_4_additional_residual", "down_block_5_additional_residual", "down_block_6_additional_residual", "down_block_7_additional_residual", "down_block_8_additional_residual", "down_block_9_additional_residual", "down_block_10_additional_residual", "down_block_11_additional_residual", "mid_block_additional_residual", "return_dict" ],
+              "input_names": [ "sample", "timestep", "encoder_hidden_states", "down_block_0_additional_residual", "down_block_1_additional_residual", "down_block_2_additional_residual", "down_block_3_additional_residual", "down_block_4_additional_residual", "down_block_5_additional_residual", "down_block_6_additional_residual", "down_block_7_additional_residual", "down_block_8_additional_residual", "down_block_9_additional_residual", "down_block_10_additional_residual", "down_block_11_additional_residual", "mid_block_additional_residual" ],
               "output_names": [ "out_sample" ],
               "dynamic_axes": {
                   "sample": {"0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width"},
@@ -65,10 +65,9 @@
       "convert": {
           "type": "OnnxConversion",
           "config": {
-              "target_opset": 14,
+              "target_opset": 16,
               "save_as_external_data": true,
-              "all_tensors_to_one_file": true,
-              "external_data_name": "weights.pb"
+              "all_tensors_to_one_file": true
           }
       },
       "optimize": {

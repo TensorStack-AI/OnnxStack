@@ -6,7 +6,7 @@
             "model_loader": "unet_load",
             "model_script": "models.py",
             "io_config": {
-                "input_names": [ "sample", "timestep", "encoder_hidden_states", "return_dict" ],
+                "input_names": [ "sample", "timestep", "encoder_hidden_states" ],
                 "output_names": [ "out_sample" ],
                 "dynamic_axes": {
                     "sample": {"0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width"},
@@ -52,18 +52,9 @@
         "convert": {
             "type": "OnnxConversion",
             "config": {
-                "target_opset": 14,
+                "target_opset": 16,
                 "save_as_external_data": true,
-                "all_tensors_to_one_file": true,
-                "external_data_name": "weights.pb"
-            }
-        },
-        "ov_convert": {
-            "type": "OpenVINOConversion",
-            "config": {
-                "user_script": "models.py",
-                "example_input_func": "get_unet_ov_example_input",
-                "output_model": "unet"
+                "all_tensors_to_one_file": true
             }
         },
         "optimize": {
@@ -99,16 +90,6 @@
                 "force_fp16_inputs": {
                     "GroupNorm": [0, 1, 2]
                 }
-            }
-        },
-        "optimize_cuda": {
-            "type": "OrtTransformersOptimization",
-            "config": {
-                "model_type": "unet",
-                "opt_level": 0,
-                "float16": true,
-                "use_gpu": true,
-                "keep_io_types": false
             }
         }
     },

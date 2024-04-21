@@ -51,15 +51,7 @@
         "convert": {
             "type": "OnnxConversion",
             "config": {
-                "target_opset": 14
-            }
-        },
-        "ov_convert": {
-            "type": "OpenVINOConversion",
-            "config": {
-                "user_script": "models.py",
-                "example_input_func": "safety_checker_conversion_inputs",
-                "output_model": "safety_checker"
+                "target_opset": 16
             }
         },
         "optimize": {
@@ -95,16 +87,6 @@
                 "force_fp16_inputs": {
                     "GroupNorm": [0, 1, 2]
                 }
-            }
-        },
-        "optimize_cuda": {
-            "type": "OrtTransformersOptimization",
-            "config": {
-                "model_type": "unet",
-                "opt_level": 0,
-                "float16": true,
-                "use_gpu": true,
-                "keep_io_types": false
             }
         }
     },
