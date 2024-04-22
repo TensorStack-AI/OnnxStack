@@ -22,6 +22,7 @@ python convert.py --model_input "D:\Models\stable-diffusion-xl-base-1.0" --contr
 
 `--tempDir`  - Directory for temp Olive files
 
+`--only_unet`  - Only convert UNET model
 
 ## Extra Requirements
 To successfully optimize SDXL models you will need the patched `vae` from repository below otherwise you may get black image results

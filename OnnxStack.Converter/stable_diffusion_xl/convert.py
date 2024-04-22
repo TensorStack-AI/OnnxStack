@@ -27,7 +27,7 @@ def optimize(
     model_input: str,
     model_output: Path,
     provider: str,
-    controlnet: bool
+    submodel_names: list[str]
 ):
     from google.protobuf import __version__ as protobuf_version
 
@@ -51,10 +51,6 @@ def optimize(
     config.unet_sample_size = pipeline.unet.config.sample_size
 
     model_info = {}
-    submodel_names = ["tokenizer", "tokenizer_2", "vae_encoder", "vae_decoder", "unet", "text_encoder", "text_encoder_2"]
-
-    if controlnet:
-        submodel_names.append("controlnet")
 
     for submodel_name in submodel_names:
         if submodel_name == "tokenizer" or submodel_name == "tokenizer_2":
@@ -81,16 +77,18 @@ def save_onnx_Models(model_dir, model_info, model_output, submodel_names):
         conversion_dir = model_output / conversion_type
         conversion_dir.mkdir(parents=True, exist_ok=True)
 
+        only_unet  = "unet" in submodel_names and len(submodel_names) <= 2
         # Copy the config and other files required by some applications
-        model_index_path = model_dir / "model_index.json"
-        if os.path.exists(model_index_path):
-            shutil.copy(model_index_path, conversion_dir)
-        if os.path.exists(model_dir / "tokenizer"):
-            shutil.copytree(model_dir / "tokenizer", conversion_dir / "tokenizer")
-        if os.path.exists(model_dir / "tokenizer_2"):
-            shutil.copytree(model_dir / "tokenizer_2", conversion_dir / "tokenizer_2")
-        if os.path.exists(model_dir / "scheduler"):
-            shutil.copytree(model_dir / "scheduler", conversion_dir / "scheduler")
+        if only_unet is False:
+            model_index_path = model_dir / "model_index.json"
+            if os.path.exists(model_index_path):
+                shutil.copy(model_index_path, conversion_dir)
+            if os.path.exists(model_dir / "tokenizer"):
+                shutil.copytree(model_dir / "tokenizer", conversion_dir / "tokenizer")
+            if os.path.exists(model_dir / "tokenizer_2"):
+                shutil.copytree(model_dir / "tokenizer_2", conversion_dir / "tokenizer_2")
+            if os.path.exists(model_dir / "scheduler"):
+                shutil.copytree(model_dir / "scheduler", conversion_dir / "scheduler")
 
         # Save models files
         for submodel_name in submodel_names:
@@ -212,6 +210,8 @@ def parse_common_args(raw_args):
     parser.add_argument("--controlnet", action="store_true", help="Create ControlNet Unet Model")
     parser.add_argument("--clean", action="store_true", help="Deletes the Olive cache")
     parser.add_argument("--tempdir", default=None, type=str, help="Root directory for tempfile directories and files")
+    parser.add_argument("--only_unet", action="store_true", help="Only convert UNET model")
+    
     return parser.parse_known_args(raw_args)
 
 
@@ -237,10 +237,17 @@ def main(raw_args=None):
   
     set_tempdir(common_args.tempdir)
 
+    submodel_names = ["tokenizer", "tokenizer_2", "vae_encoder", "vae_decoder", "unet", "text_encoder", "text_encoder_2"]
+
+    if common_args.only_unet:
+        submodel_names = ["unet"]
+
+    if common_args.controlnet:
+        submodel_names.append("controlnet")
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        optimize(script_dir, common_args.model_input,
-                 model_output, provider, common_args.controlnet)
+        optimize(script_dir, common_args.model_input, model_output, provider, submodel_names)
 
 
 if __name__ == "__main__":
