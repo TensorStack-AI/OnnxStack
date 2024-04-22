@@ -28,7 +28,12 @@ class RandomDataLoader:
 # -----------------------------------------------------------------------------
 
 def text_encoder_inputs(batchsize, torch_dtype):
-    return torch.zeros((batchsize, 77), dtype=torch_dtype)
+    inputs = {
+        "input_ids": torch.zeros((batchsize, 77), dtype=torch_dtype),
+        "attention_mask": torch.zeros((batchsize, 77), dtype=torch_dtype),
+        "output_hidden_states": True
+    }
+    return inputs
 
 
 def text_encoder_load(model_name):
@@ -37,11 +42,11 @@ def text_encoder_load(model_name):
 
 
 def text_encoder_conversion_inputs(model=None):
-    return text_encoder_inputs(1, torch.int32)
+    return text_encoder_inputs(1, torch.int64)
 
 
 def text_encoder_data_loader(data_dir, batchsize, *args, **kwargs):
-    return RandomDataLoader(text_encoder_inputs, batchsize, torch.int32)
+    return RandomDataLoader(text_encoder_inputs, batchsize, torch.int64)
 
 
 
