@@ -2,17 +2,18 @@
   "input_model": {
       "type": "PyTorchModel",
       "config": {
-          "model_path": "SimianLuo/LCM_Dreamshaper_v7",
+          "model_path": "stabilityai/stable-diffusion-xl-base-1.0",
           "model_loader": "controlnet_unet_load",
           "model_script": "models.py",
           "io_config": {
-              "input_names": [ "sample", "timestep", "encoder_hidden_states", "timestep_cond", "down_block_0_additional_residual", "down_block_1_additional_residual", "down_block_2_additional_residual", "down_block_3_additional_residual", "down_block_4_additional_residual", "down_block_5_additional_residual", "down_block_6_additional_residual", "down_block_7_additional_residual", "down_block_8_additional_residual", "down_block_9_additional_residual", "down_block_10_additional_residual", "down_block_11_additional_residual", "mid_block_additional_residual" ],
+              "input_names": [ "sample", "timestep", "encoder_hidden_states", "text_embeds", "time_ids", "down_block_0_additional_residual", "down_block_1_additional_residual", "down_block_2_additional_residual", "down_block_3_additional_residual", "down_block_4_additional_residual", "down_block_5_additional_residual", "down_block_6_additional_residual", "down_block_7_additional_residual", "down_block_8_additional_residual", "mid_block_additional_residual" ],
               "output_names": [ "out_sample" ],
               "dynamic_axes": {
                   "sample": {"0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width"},
                   "timestep": {"0": "unet_time_batch"},
                   "encoder_hidden_states": {"0": "unet_hidden_batch", "1": "unet_hidden_sequence"},
-				  "timestep_cond": { "0": "batch_size"  },
+				  "text_embeds": {"0": "unet_text_embeds_batch", "1": "unet_text_embeds_size"},
+                  "time_ids": {"0": "unet_time_ids_batch", "1": "unet_time_ids_size"},
                   "down_block_0_additional_residual": {"0": "cnet_db0_batch", "1": "cnet_db0_channels", "2": "cnet_db0_height", "3": "cnet_db0_width"},
                   "down_block_1_additional_residual": {"0": "cnet_db1_batch", "1": "cnet_db1_channels", "2": "cnet_db1_height", "3": "cnet_db1_width"},
                   "down_block_2_additional_residual": {"0": "cnet_db2_batch", "1": "cnet_db2_channels", "2": "cnet_db2_height", "3": "cnet_db2_width"},
@@ -22,9 +23,6 @@
                   "down_block_6_additional_residual": {"0": "cnet_db6_batch", "1": "cnet_db6_channels", "2": "cnet_db6_height4", "3": "cnet_db6_width4"},
                   "down_block_7_additional_residual": {"0": "cnet_db7_batch", "1": "cnet_db7_channels", "2": "cnet_db7_height4", "3": "cnet_db7_width4"},
                   "down_block_8_additional_residual": {"0": "cnet_db8_batch", "1": "cnet_db8_channels", "2": "cnet_db8_height4", "3": "cnet_db8_width4"},
-                  "down_block_9_additional_residual": {"0": "cnet_db9_batch", "1": "cnet_db9_channels", "2": "cnet_db9_height8", "3": "cnet_db9_width8"},
-                  "down_block_10_additional_residual": {"0": "cnet_db10_batch", "1": "cnet_db10_channels", "2": "cnet_db10_height8", "3": "cnet_db10_width8"},
-                  "down_block_11_additional_residual": {"0": "cnet_db11_batch", "1": "cnet_db11_channels", "2": "cnet_db11_height8", "3": "cnet_db11_width8"},
                   "mid_block_additional_residual": {"0": "cnet_mbar_batch", "1": "cnet_mbar_channels", "2": "cnet_mbar_height8", "3": "cnet_mbar_width8"}
               }
           },

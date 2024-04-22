@@ -2,18 +2,15 @@
     "input_model": {
         "type": "PyTorchModel",
         "config": {
-            "model_path": "SimianLuo/LCM_Dreamshaper_v7",
-            "model_loader": "safety_checker_load",
+            "model_path": "stabilityai/stable-diffusion-xl-base-1.0",
+            "model_loader": "vae_encoder_load",
             "model_script": "models.py",
             "io_config": {
-                "input_names": [ "clip_input", "images" ],
-                "output_names": [ "out_images", "has_nsfw_concepts" ],
-                "dynamic_axes": {
-                    "clip_input": { "0": "batch", "1": "channels", "2": "height", "3": "width" },
-                    "images": { "0": "batch", "1": "height", "2": "width", "3": "channels" }
-                }
+                "input_names": [ "sample" ],
+                "output_names": [ "latent_sample" ],
+                "dynamic_axes": { "sample": { "0": "batch", "1": "channels", "2": "height", "3": "width" } }
             },
-            "dummy_inputs_func": "safety_checker_conversion_inputs"
+            "dummy_inputs_func": "vae_encoder_conversion_inputs"
         }
     },
     "systems": {
@@ -40,7 +37,7 @@
                     "sub_types": [{"name": "avg"}],
                     "user_config": {
                         "user_script": "models.py",
-                        "dataloader_func": "safety_checker_data_loader",
+                        "dataloader_func": "vae_encoder_data_loader",
                         "batch_size": 1
                     }
                 }
@@ -57,7 +54,7 @@
         "optimize": {
             "type": "OrtTransformersOptimization",
             "config": {
-                "model_type": "unet",
+                "model_type": "vae",
                 "opt_level": 0,
                 "float16": true,
                 "use_gpu": true,
@@ -100,7 +97,7 @@
         "host": "local_system",
         "target": "local_system",
         "cache_dir": "cache",
-        "output_name": "safety_checker",
+        "output_name": "vae_encoder",
         "output_dir": "footprints"
     }
 }

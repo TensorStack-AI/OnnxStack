@@ -105,7 +105,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistency
                             controlNetParameters.AddInputTensor(inputTensor);
                             controlNetParameters.AddInputTensor(timestepTensor);
                             controlNetParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                            controlNetParameters.AddInputTensor(guidanceEmbeddings);
                             controlNetParameters.AddInputTensor(controlImageTensor);
                             if (controlNetMetadata.Inputs.Count == 5)
                                 controlNetParameters.AddInputTensor(conditioningScale);

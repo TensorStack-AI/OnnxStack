@@ -2,18 +2,21 @@
     "input_model": {
         "type": "PyTorchModel",
         "config": {
-            "model_path": "SimianLuo/LCM_Dreamshaper_v7",
-            "model_loader": "safety_checker_load",
+            "model_path": "stabilityai/stable-diffusion-xl-base-1.0",
+            "model_loader": "unet_load",
             "model_script": "models.py",
             "io_config": {
-                "input_names": [ "clip_input", "images" ],
-                "output_names": [ "out_images", "has_nsfw_concepts" ],
+                "input_names": [ "sample", "timestep", "encoder_hidden_states", "text_embeds" , "time_ids"],
+                "output_names": [ "out_sample" ],
                 "dynamic_axes": {
-                    "clip_input": { "0": "batch", "1": "channels", "2": "height", "3": "width" },
-                    "images": { "0": "batch", "1": "height", "2": "width", "3": "channels" }
+                    "sample": {"0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width"},
+                    "timestep": {"0": "unet_time_batch"},
+                    "encoder_hidden_states": {"0": "unet_hidden_batch", "1": "unet_hidden_sequence"},
+					"text_embeds": {"0": "unet_text_embeds_batch", "1": "unet_text_embeds_size"},
+                    "time_ids": {"0": "unet_time_ids_batch", "1": "unet_time_ids_size"}
                 }
             },
-            "dummy_inputs_func": "safety_checker_conversion_inputs"
+            "dummy_inputs_func": "unet_conversion_inputs"
         }
     },
     "systems": {
@@ -40,8 +43,8 @@
                     "sub_types": [{"name": "avg"}],
                     "user_config": {
                         "user_script": "models.py",
-                        "dataloader_func": "safety_checker_data_loader",
-                        "batch_size": 1
+                        "dataloader_func": "unet_data_loader",
+                        "batch_size": 2
                     }
                 }
             ]
@@ -51,7 +54,9 @@
         "convert": {
             "type": "OnnxConversion",
             "config": {
-                "target_opset": 16
+                "target_opset": 16,
+                "save_as_external_data": true,
+                "all_tensors_to_one_file": true
             }
         },
         "optimize": {
@@ -100,7 +105,7 @@
         "host": "local_system",
         "target": "local_system",
         "cache_dir": "cache",
-        "output_name": "safety_checker",
+        "output_name": "unet",
         "output_dir": "footprints"
     }
 }

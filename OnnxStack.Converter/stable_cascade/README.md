@@ -9,7 +9,7 @@ python -m pip install -r requirements.txt
 
 ## Usage
 ```bash
-convert.py --optimize --model_input '..\stable-cascade' --model_output '..\converted' 
+convert.py --optimize --model_input '..\stable-cascade' --image_encoder
 ```
 `--optimize`  - Run the model optimization
 

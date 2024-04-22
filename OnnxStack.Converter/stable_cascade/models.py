@@ -4,11 +4,10 @@
 # --------------------------------------------------------------------------
 import config
 import torch
-from typing import Union, Optional, Tuple
-from diffusers import AutoencoderKL, StableCascadeUNet
+from typing import Union, Tuple
+from diffusers import StableCascadeUNet
 from diffusers.pipelines.wuerstchen import PaellaVQModel
 from transformers.models.clip.modeling_clip import CLIPTextModelWithProjection, CLIPVisionModelWithProjection
-from dataclasses import dataclass
 
 # Helper latency-only dataloader that creates random tensors with no label
 class RandomDataLoader:
