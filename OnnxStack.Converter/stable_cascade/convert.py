@@ -27,7 +27,7 @@ def optimize(
     model_input: str,
     model_output: Path,
     provider: str,
-    controlnet: bool
+    submodel_names: list[str]
 ):
     from google.protobuf import __version__ as protobuf_version
 
@@ -51,18 +51,10 @@ def optimize(
     # config.unet_sample_size = pipeline.unet.config.sample_size
 
     model_info = {}
-    submodel_names = [ "tokenizer", "text_encoder", "decoder", "prior", "vqgan" ]
-    has_safety_checker = getattr(pipeline, "safety_checker", None) is not None
-
-    if has_safety_checker:
-        submodel_names.append("safety_checker")
-
-    if controlnet:
-        submodel_names.append("controlnet")
 
     for submodel_name in submodel_names:
-        if submodel_name == "tokenizer":
-            save_onnx_tokenizer_model(script_dir, model_input, model_info)
+        if submodel_name == "tokenizer" or submodel_name == "tokenizer_2":
+            save_onnx_tokenizer_model(script_dir, model_input, submodel_name, model_info)
             continue
 
         print(f"\nOptimizing {submodel_name}")
@@ -85,16 +77,18 @@ def save_onnx_Models(model_dir, model_info, model_output, submodel_names):
         conversion_dir = model_output / conversion_type
         conversion_dir.mkdir(parents=True, exist_ok=True)
 
+        only_unet  = "prior" in submodel_names and len(submodel_names) <= 2
         # Copy the config and other files required by some applications
-        model_index_path = model_dir / "model_index.json"
-        if os.path.exists(model_index_path):
-            shutil.copy(model_index_path, conversion_dir)
-        if os.path.exists(model_dir / "tokenizer"):
-            shutil.copytree(model_dir / "tokenizer",
-                            conversion_dir / "tokenizer")
-        if os.path.exists(model_dir / "scheduler"):
-            shutil.copytree(model_dir / "scheduler",
-                            conversion_dir / "scheduler")
+        if only_unet is False:
+            model_index_path = model_dir / "model_index.json"
+            if os.path.exists(model_index_path):
+                shutil.copy(model_index_path, conversion_dir)
+            if os.path.exists(model_dir / "tokenizer"):
+                shutil.copytree(model_dir / "tokenizer", conversion_dir / "tokenizer")
+            if os.path.exists(model_dir / "tokenizer_2"):
+                shutil.copytree(model_dir / "tokenizer_2", conversion_dir / "tokenizer_2")
+            if os.path.exists(model_dir / "scheduler"):
+                shutil.copytree(model_dir / "scheduler", conversion_dir / "scheduler")
 
         # Save models files
         for submodel_name in submodel_names:
@@ -159,10 +153,10 @@ def save_onnx_submodel(script_dir, submodel_name, model_info, provider):
         print(f"Unoptimized Model : {model_info[submodel_name]['unoptimized']['path']}")
 
 
-def save_onnx_tokenizer_model(script_dir, model_dir, model_info, max_length=-1, attention_mask=True, offset_map=False):
+def save_onnx_tokenizer_model(script_dir, model_dir, submodel_name, model_info, max_length=-1, attention_mask=True, offset_map=False):
     model_dir = Path(model_dir)
-    vocab_file = model_dir / "tokenizer" / "vocab.json"
-    merges_file = model_dir / "tokenizer" / "merges.txt"
+    vocab_file = model_dir / submodel_name / "vocab.json"
+    merges_file = model_dir / submodel_name / "merges.txt"
 
     input1 = helper.make_tensor_value_info('string_input', onnx_proto.TensorProto.STRING, [None])
     output1 = helper.make_tensor_value_info('input_ids', onnx_proto.TensorProto.INT64, ["batch_size", "num_input_ids"])
@@ -194,11 +188,11 @@ def save_onnx_tokenizer_model(script_dir, model_dir, model_info, max_length=-1, 
     graph = helper.make_graph(node, 'main_graph', inputs, outputs)
     model = make_onnx_model(graph)
 
-    output_dir = script_dir / "cache" / "tokenizer"
+    output_dir = script_dir / "cache" / submodel_name
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / 'model.onnx'
     onnx.save(model, output_path)
-    model_info["tokenizer"] = {
+    model_info[submodel_name] = {
         "optimized": {"path": output_path},
         "unoptimized": {"path": output_path}
     }
@@ -213,9 +207,11 @@ def parse_common_args(raw_args):
     parser = argparse.ArgumentParser("Common arguments")
     parser.add_argument("--model_input", default="stable-diffusion-v1-5", type=str)
     parser.add_argument("--model_output", default=None, type=Path)
-    parser.add_argument("--controlnet", action="store_true", help="Create ControlNet Unet Model")
+    parser.add_argument("--image_encoder", action="store_true", help="Create image_encoder Model")
     parser.add_argument("--clean", action="store_true", help="Deletes the Olive cache")
     parser.add_argument("--tempdir", default=None, type=str, help="Root directory for tempfile directories and files")
+    parser.add_argument("--only_unet", action="store_true", help="Only convert UNET model")
+    
     return parser.parse_known_args(raw_args)
 
 
@@ -241,10 +237,17 @@ def main(raw_args=None):
   
     set_tempdir(common_args.tempdir)
 
+    submodel_names = ["tokenizer", "text_encoder", "prior", "decoder", "vqgan"]
+
+    if common_args.image_encoder:
+        submodel_names.append("image_encoder")
+
+    if common_args.only_unet:
+        submodel_names = ["prior", "decoder"]
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        optimize(script_dir, common_args.model_input,
-                 model_output, provider, common_args.controlnet)
+        optimize(script_dir, common_args.model_input, model_output, provider, submodel_names)
 
 
 if __name__ == "__main__":
