@@ -143,6 +143,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
+            if (!options.Timesteps.IsNullOrEmpty())
+                return options.Timesteps;
+
             var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
             var start = Math.Max(options.InferenceSteps - inittimestep, 0);
             return scheduler.Timesteps.Skip(start).ToList();

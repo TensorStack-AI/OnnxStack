@@ -45,6 +45,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
+            if (!options.Timesteps.IsNullOrEmpty())
+                return options.Timesteps;
+
             // Image2Image we narrow step the range by the Strength
             var inittimestep = Math.Min((int)(options.InferenceSteps * options.Strength), options.InferenceSteps);
             var start = Math.Max(options.InferenceSteps - inittimestep, 0);

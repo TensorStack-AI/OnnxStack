@@ -166,6 +166,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.LatentConsistencyXL
         /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
+            if (!options.Timesteps.IsNullOrEmpty())
+                return options.Timesteps;
+
             return scheduler.Timesteps;
         }
 
