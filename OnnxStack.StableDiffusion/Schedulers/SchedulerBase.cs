@@ -174,7 +174,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
             {
-                var stepRatio = Options.TrainTimesteps / (Options.InferenceSteps - 1);
+                var stepRatio = Options.TrainTimesteps / Math.Max(1, (Options.InferenceSteps - 1));
                 return Enumerable.Range(0, Options.TrainTimesteps)
                     .Where((number, index) => index % stepRatio == 0)
                     .Select(x => (float)x)
