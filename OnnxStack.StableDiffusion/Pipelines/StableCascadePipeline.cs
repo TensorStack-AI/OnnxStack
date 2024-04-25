@@ -48,8 +48,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
             };
             _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions
             {
-                InferenceSteps = 1,
-                GuidanceScale = 0f,
+                Width = 1024,
+                Height = 1024,
+                InferenceSteps = 20,
+                GuidanceScale = 4f,
                 SchedulerType = SchedulerType.DDPM
             };
         }
