@@ -78,6 +78,7 @@ namespace OnnxStack.StableDiffusion.Config
         public PredictionType PredictionType { get; set; } = PredictionType.Epsilon;
         public AlphaTransformType AlphaTransformType { get; set; } = AlphaTransformType.Cosine;
         public float MaximumBeta { get; set; } = 0.999f;
+        public List<int> Timesteps { get; set; }
 
         public int OriginalInferenceSteps { get; set; } = 50;
 
