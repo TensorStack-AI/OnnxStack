@@ -44,13 +44,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
             };
             _supportedSchedulers = new List<SchedulerType>
             {
-                SchedulerType.EulerAncestral
+                SchedulerType.DDPM
             };
             _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions
             {
                 InferenceSteps = 1,
                 GuidanceScale = 0f,
-                SchedulerType = SchedulerType.EulerAncestral
+                SchedulerType = SchedulerType.DDPM
             };
         }
 
@@ -76,12 +76,19 @@ namespace OnnxStack.StableDiffusion.Pipelines
             };
         }
 
+
+        /// <summary>
+        /// Creates the embeds using Tokenizer2 and TextEncoder2
+        /// </summary>
+        /// <param name="promptOptions">The prompt options.</param>
+        /// <param name="isGuidanceEnabled">if set to <c>true</c> [is guidance enabled].</param>
+        /// <returns></returns>
         protected override async Task<PromptEmbeddingsResult> CreatePromptEmbedsAsync(PromptOptions promptOptions, bool isGuidanceEnabled)
         {
             /// Tokenize Prompt and NegativePrompt with Tokenizer2
-            var promptTokens = await DecodePromptTextAsync(promptOptions.Prompt);
-            var negativePromptTokens = await DecodePromptTextAsync(promptOptions.NegativePrompt);
-            var maxPromptTokenCount = Math.Max(promptTokens.Length, negativePromptTokens.Length);
+            var promptTokens = await DecodeTextAsLongAsync(promptOptions.Prompt);
+            var negativePromptTokens = await DecodeTextAsLongAsync(promptOptions.NegativePrompt);
+            var maxPromptTokenCount = Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
 
             // Generate embeds for tokens
             var promptEmbeddings = await GenerateEmbedsAsync(promptTokens, maxPromptTokenCount);
@@ -103,50 +110,109 @@ namespace OnnxStack.StableDiffusion.Pipelines
         }
 
 
-        private async Task<EncoderResult> EncodeTokensAsync(int[] tokenizedInput)
+        /// <summary>
+        /// Decodes the text as tokens
+        /// </summary>
+        /// <param name="inputText">The input text.</param>
+        /// <returns></returns>
+        private async Task<TokenizerResult> DecodeTextAsLongAsync(string inputText)
         {
-            var inputDim = new[] { 1, tokenizedInput.Length };
-            var promptOutputDim = new[] { 1, tokenizedInput.Length, _tokenizer.TokenizerLength };
-            var pooledOutputDim = new[] { 1, _tokenizer.TokenizerLength };
-            var metadata = await _textEncoder.GetMetadataAsync();
-            var inputTensor = new DenseTensor<int>(tokenizedInput, inputDim);
+            if (string.IsNullOrEmpty(inputText))
+                return new TokenizerResult(Array.Empty<long>(), Array.Empty<long>());
+
+            var metadata = await _tokenizer.GetMetadataAsync();
+            var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
                 inferenceParameters.AddInputTensor(inputTensor);
-                inferenceParameters.AddOutputBuffer(pooledOutputDim);
-                inferenceParameters.AddOutputBuffer(promptOutputDim);
+                inferenceParameters.AddOutputBuffer();
+                inferenceParameters.AddOutputBuffer();
 
-                var results = await _textEncoder.RunInferenceAsync(inferenceParameters);
-                return new EncoderResult(results.Last().ToArray(), results.First().ToArray());
+                using (var results = _tokenizer.RunInference(inferenceParameters))
+                {
+                    return new TokenizerResult(results[0].ToArray<long>(), results[1].ToArray<long>());
+                }
             }
         }
 
 
-        private async Task<EmbedsResult> GenerateEmbedsAsync(int[] inputTokens, int minimumLength)
+        /// <summary>
+        /// Encodes the tokens.
+        /// </summary>
+        /// <param name="tokenizedInput">The tokenized input.</param>
+        /// <returns></returns>
+        private async Task<EncoderResult> EncodeTokensAsync(TokenizerResult tokenizedInput)
+        {
+            var metadata = await _textEncoder.GetMetadataAsync();
+            var inputTensor = new DenseTensor<long>(tokenizedInput.InputIds, new[] { 1, tokenizedInput.InputIds.Length });
+            var attentionTensor = new DenseTensor<long>(tokenizedInput.AttentionMask, new[] { 1, tokenizedInput.AttentionMask.Length });
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+            {
+                inferenceParameters.AddInputTensor(inputTensor);
+                inferenceParameters.AddInputTensor(attentionTensor);
+
+                // text_embeds + hidden_states.32
+                inferenceParameters.AddOutputBuffer(new[] { 1, _tokenizer.TokenizerLength });
+                inferenceParameters.AddOutputBuffer(metadata.Outputs.Count - 1, new[] { 1, tokenizedInput.InputIds.Length, _tokenizer.TokenizerLength });
+
+                var results = await _textEncoder.RunInferenceAsync(inferenceParameters);
+                var promptEmbeds = results.Last().ToDenseTensor();
+                var promptEmbedsPooled = results.First().ToDenseTensor();
+                return new EncoderResult(promptEmbeds, promptEmbedsPooled);
+            }
+        }
+
+
+        /// <summary>
+        /// Generates the embeds.
+        /// </summary>
+        /// <param name="inputTokens">The input tokens.</param>
+        /// <param name="minimumLength">The minimum length.</param>
+        /// <returns></returns>
+        private async Task<PromptEmbeddingsResult> GenerateEmbedsAsync(TokenizerResult inputTokens, int minimumLength)
         {
             // If less than minimumLength pad with blank tokens
-            if (inputTokens.Length < minimumLength)
-                inputTokens = PadWithBlankTokens(inputTokens, minimumLength).ToArray();
-
-            // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate1
-            var embeddings = new List<float>();
-            var pooledEmbeds = new List<float>();
-            foreach (var tokenBatch in inputTokens.Batch(_tokenizer.TokenizerLimit))
+            if (inputTokens.InputIds.Length < minimumLength)
             {
-                var tokens = PadWithBlankTokens(tokenBatch, _tokenizer.TokenizerLimit);
-                var result = await EncodeTokensAsync(tokens.ToArray());
-
-                embeddings.AddRange(result.PromptEmbeds);
-                pooledEmbeds.AddRange(result.PooledPromptEmbeds);
+                inputTokens.InputIds = PadWithBlankTokens(inputTokens.InputIds, minimumLength, _tokenizer.PadTokenId).ToArray();
+                inputTokens.AttentionMask = PadWithBlankTokens(inputTokens.AttentionMask, minimumLength, 1).ToArray();
             }
 
-            var embeddingsDim = new[] { 1, embeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength };
-            var promptTensor = new DenseTensor<float>(embeddings.ToArray(), embeddingsDim);
+            // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
+            var tokenBatches = new List<long[]>();
+            var attentionBatches = new List<long[]>();
+            foreach (var tokenBatch in inputTokens.InputIds.Batch(_tokenizer.TokenizerLimit))
+                tokenBatches.Add(PadWithBlankTokens(tokenBatch, _tokenizer.TokenizerLimit, _tokenizer.PadTokenId).ToArray());
+            foreach (var attentionBatch in inputTokens.AttentionMask.Batch(_tokenizer.TokenizerLimit))
+                attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 1).ToArray());
 
-            //TODO: Pooled embeds do not support more than 77 tokens, just grab first set
-            var pooledDim = new[] { 1, 1, _tokenizer.TokenizerLength };
-            var pooledTensor = new DenseTensor<float>(pooledEmbeds.Take(_tokenizer.TokenizerLength).ToArray(), pooledDim);
-            return new EmbedsResult(promptTensor, pooledTensor);
+            var promptEmbeddings = new List<float>();
+            var pooledPromptEmbeddings = new List<float>();
+            for (int i = 0; i < tokenBatches.Count; i++)
+            {
+                var result = await EncodeTokensAsync(new TokenizerResult(tokenBatches[i], attentionBatches[i]));
+                promptEmbeddings.AddRange(result.PromptEmbeds);
+                pooledPromptEmbeddings.AddRange(result.PooledPromptEmbeds);
+            }
+
+            var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), new[] { 1, promptEmbeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength });
+            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1, tokenBatches.Count, 1280 });
+            return new PromptEmbeddingsResult(promptTensor, pooledTensor);
+        }
+
+
+        /// <summary>
+        /// Pads the input array with blank tokens.
+        /// </summary>
+        /// <param name="inputs">The inputs.</param>
+        /// <param name="requiredLength">Length of the required.</param>
+        /// <returns></returns>
+        private IEnumerable<long> PadWithBlankTokens(IEnumerable<long> inputs, int requiredLength, int padTokenId)
+        {
+            var count = inputs.Count();
+            if (requiredLength > count)
+                return inputs.Concat(Enumerable.Repeat((long)padTokenId, requiredLength - count));
+            return inputs;
         }
 
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -39,6 +40,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         /// <returns></returns>
         protected override IReadOnlyList<int> GetTimesteps(SchedulerOptions options, IScheduler scheduler)
         {
+            if (!options.Timesteps.IsNullOrEmpty())
+                return options.Timesteps;
+
             return scheduler.Timesteps;
         }
 

@@ -240,20 +240,19 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         private async Task<EncoderResult> EncodeTokensAsync(long[] tokenizedInput)
         {
-            var inputDim = new[] { 1, tokenizedInput.Length };
-            var promptOutputDim = new[] { 1, tokenizedInput.Length, _tokenizer2.TokenizerLength };
-            var pooledOutputDim = new[] { 1, _tokenizer2.TokenizerLength };
             var metadata = await _textEncoder2.GetMetadataAsync();
-            var inputTensor = new DenseTensor<long>(tokenizedInput, inputDim);
+            var inputTensor = new DenseTensor<long>(tokenizedInput, new[] { 1, tokenizedInput.Length });
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
                 int hiddenStateIndex = metadata.Outputs.Count - 2;
                 inferenceParameters.AddInputTensor(inputTensor);
-                inferenceParameters.AddOutputBuffer(pooledOutputDim);
-                inferenceParameters.AddOutputBuffer(hiddenStateIndex, promptOutputDim);
+                inferenceParameters.AddOutputBuffer(new[] { 1, _tokenizer2.TokenizerLength });
+                inferenceParameters.AddOutputBuffer(hiddenStateIndex, new[] { 1, tokenizedInput.Length, _tokenizer2.TokenizerLength });
 
                 var results = await _textEncoder2.RunInferenceAsync(inferenceParameters);
-                return new EncoderResult(results.Last().ToArray(), results.First().ToArray());
+                var promptEmbeds = results.Last().ToDenseTensor();
+                var promptEmbedsPooled = results.First().ToDenseTensor();
+                return new EncoderResult(promptEmbeds, promptEmbedsPooled);
             }
         }
 
@@ -264,7 +263,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="inputTokens">The input tokens.</param>
         /// <param name="minimumLength">The minimum length.</param>
         /// <returns></returns>
-        private async Task<EmbedsResult> GenerateEmbedsAsync(long[] inputTokens, int minimumLength)
+        private async Task<PromptEmbeddingsResult> GenerateEmbedsAsync(long[] inputTokens, int minimumLength)
         {
             // If less than minimumLength pad with blank tokens
             if (inputTokens.Length < minimumLength)
@@ -288,7 +287,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             //TODO: Pooled embeds do not support more than 77 tokens, just grab first set
             var pooledDim = new[] { 1, _tokenizer2.TokenizerLength };
             var pooledTensor = new DenseTensor<float>(pooledEmbeds.Take(_tokenizer2.TokenizerLength).ToArray(), pooledDim);
-            return new EmbedsResult(promptTensor, pooledTensor);
+            return new PromptEmbeddingsResult(promptTensor, pooledTensor);
         }
 
 

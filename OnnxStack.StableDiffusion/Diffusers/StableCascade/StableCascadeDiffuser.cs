@@ -55,7 +55,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         {
             // Get Scheduler
             using (var schedulerPrior = GetScheduler(schedulerOptions))
-            using (var schedulerDecoder = GetScheduler(schedulerOptions))
+            using (var schedulerDecoder = GetScheduler(schedulerOptions with{ InferenceSteps = 10, GuidanceScale = 0}))
             {
                 //----------------------------------------------------
                 // Prior Unet
