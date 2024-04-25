@@ -16,7 +16,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -561,8 +560,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 inferenceParameters.AddOutputBuffer(new int[] { 1, _tokenizer.TokenizerLength });
 
                 var results = await _textEncoder.RunInferenceAsync(inferenceParameters);
-                using (var promptEmbeds = results.Last())
-                using (var promptEmbedsPooled = results.First())
+                using (var promptEmbeds = results.First())
+                using (var promptEmbedsPooled = results.Last())
                 {
                     return new EncoderResult(promptEmbeds.ToDenseTensor(), promptEmbedsPooled.ToDenseTensor());
                 }
@@ -593,7 +592,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
             foreach (var attentionBatch in inputTokens.AttentionMask.Batch(_tokenizer.TokenizerLimit))
                 attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 1).ToArray());
 
-
             var promptEmbeddings = new List<float>();
             var pooledPromptEmbeddings = new List<float>();
             for (int i = 0; i < tokenBatches.Count; i++)
@@ -603,16 +601,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 pooledPromptEmbeddings.AddRange(result.PooledPromptEmbeds);
             }
 
-
-            //var embeddingsDim = new[] { 1, promptEmbeddings.Count / _tokenizer2.TokenizerLength, _tokenizer2.TokenizerLength };
-            //var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), embeddingsDim);
-
-            ////TODO: Pooled embeds do not support more than 77 tokens, just grab first set
-            //var pooledDim = new[] { 1, _tokenizer2.TokenizerLength };
-            //var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.Take(_tokenizer2.TokenizerLength).ToArray(), pooledDim);
-
             var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), new[] { 1, promptEmbeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength });
-            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1, _tokenizer.TokenizerLimit, _tokenizer.TokenizerLength });
+            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1,  tokenBatches.Count, _tokenizer.TokenizerLength });
             return new PromptEmbeddingsResult(promptTensor, pooledTensor);
         }
 

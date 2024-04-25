@@ -245,13 +245,17 @@ namespace OnnxStack.StableDiffusion.Pipelines
             {
                 int hiddenStateIndex = metadata.Outputs.Count - 2;
                 inferenceParameters.AddInputTensor(inputTensor);
+
+                // text_embeds + hidden_states.31 ("31" because SDXL always indexes from the penultimate layer.)
                 inferenceParameters.AddOutputBuffer(new[] { 1, _tokenizer2.TokenizerLength });
                 inferenceParameters.AddOutputBuffer(hiddenStateIndex, new[] { 1, tokenizedInput.InputIds.Length, _tokenizer2.TokenizerLength });
 
                 var results = await _textEncoder2.RunInferenceAsync(inferenceParameters);
-                var promptEmbeds = results.Last().ToDenseTensor();
-                var promptEmbedsPooled = results.First().ToDenseTensor();
-                return new EncoderResult(promptEmbeds, promptEmbedsPooled);
+                using (var promptEmbeds = results.Last())
+                using (var promptEmbedsPooled = results.First())
+                {
+                    return new EncoderResult(promptEmbeds.ToDenseTensor(), promptEmbedsPooled.ToDenseTensor());
+                }
             }
         }
 
@@ -279,7 +283,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
             foreach (var attentionBatch in inputTokens.AttentionMask.Batch(_tokenizer.TokenizerLimit))
                 attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 1).ToArray());
 
-
             var promptEmbeddings = new List<float>();
             var pooledPromptEmbeddings = new List<float>();
             for (int i = 0; i < tokenBatches.Count; i++)
@@ -288,33 +291,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 promptEmbeddings.AddRange(result.PromptEmbeds);
                 pooledPromptEmbeddings.AddRange(result.PooledPromptEmbeds);
             }
-          
-
-            //var embeddingsDim = new[] { 1, promptEmbeddings.Count / _tokenizer2.TokenizerLength, _tokenizer2.TokenizerLength };
-            //var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), embeddingsDim);
-
-            ////TODO: Pooled embeds do not support more than 77 tokens, just grab first set
-            //var pooledDim = new[] { 1, _tokenizer2.TokenizerLength };
-            //var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.Take(_tokenizer2.TokenizerLength).ToArray(), pooledDim);
 
             var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), new[] { 1, promptEmbeddings.Count / _tokenizer2.TokenizerLength, _tokenizer2.TokenizerLength });
             var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1, pooledPromptEmbeddings.Count });
             return new PromptEmbeddingsResult(promptTensor, pooledTensor);
-        }
-
-
-        /// <summary>
-        /// Pads the input array with blank tokens.
-        /// </summary>
-        /// <param name="inputs">The inputs.</param>
-        /// <param name="requiredLength">Length of the required.</param>
-        /// <returns></returns>
-        private IEnumerable<long> PadWithBlankTokens(IEnumerable<long> inputs, int requiredLength, int padTokenId)
-        {
-            var count = inputs.Count();
-            if (requiredLength > count)
-                return inputs.Concat(Enumerable.Repeat((long)padTokenId, requiredLength - count));
-            return inputs;
         }
 
 

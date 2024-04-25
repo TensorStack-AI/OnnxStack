@@ -196,23 +196,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
             }
 
             var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), new[] { 1, promptEmbeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength });
-            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1, tokenBatches.Count, 1280 });
+            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1, tokenBatches.Count, _tokenizer.TokenizerLength });
             return new PromptEmbeddingsResult(promptTensor, pooledTensor);
-        }
-
-
-        /// <summary>
-        /// Pads the input array with blank tokens.
-        /// </summary>
-        /// <param name="inputs">The inputs.</param>
-        /// <param name="requiredLength">Length of the required.</param>
-        /// <returns></returns>
-        private IEnumerable<long> PadWithBlankTokens(IEnumerable<long> inputs, int requiredLength, int padTokenId)
-        {
-            var count = inputs.Count();
-            if (requiredLength > count)
-                return inputs.Concat(Enumerable.Repeat((long)padTokenId, requiredLength - count));
-            return inputs;
         }
 
 
