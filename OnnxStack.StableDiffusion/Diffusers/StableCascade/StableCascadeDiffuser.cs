@@ -196,21 +196,24 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         {
             latents = latents.MultiplyBy(_vaeDecoder.ScaleFactor);
 
-            var outputDim = new[] { 1, 4, 256, 256 };
+            var outputDim = new[] { 1, 3, options.Height, options.Width };
             var metadata = await _vaeDecoder.GetMetadataAsync();
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
                 inferenceParameters.AddInputTensor(latents);
-                inferenceParameters.AddOutputBuffer();
+                inferenceParameters.AddOutputBuffer(outputDim);
 
-                var results = _vaeDecoder.RunInference(inferenceParameters);
+                var results = await _vaeDecoder.RunInferenceAsync(inferenceParameters);
                 using (var imageResult = results.First())
                 {
                     // Unload if required
                     if (_memoryMode == MemoryModeType.Minimum)
                         await _vaeDecoder.UnloadAsync();
 
-                    return imageResult.ToDenseTensor();
+                    return imageResult
+                        .GetTensorMutableDataAsSpan<float>()
+                        .NormalizeOneToOne()
+                        .ToDenseTensor(outputDim);
                 }
             }
         }

@@ -128,6 +128,18 @@ namespace OnnxStack.Core
 
 
         /// <summary>
+        /// Converts Span<float> to DenseTensor<float>.
+        /// </summary>
+        /// <param name="ortSpanValue">The ort span value.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns></returns>
+        public static DenseTensor<float> ToDenseTensor(this Span<float> ortSpanValue, ReadOnlySpan<int> dimensions)
+        {
+            return new DenseTensor<float>(ortSpanValue.ToArray(), dimensions);
+        }
+
+
+        /// <summary>
         /// Converts to array.
         /// TODO: Optimization
         /// </summary>

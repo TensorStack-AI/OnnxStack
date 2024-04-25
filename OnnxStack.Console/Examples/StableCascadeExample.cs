@@ -49,7 +49,7 @@ namespace OnnxStack.Console.Runner
             {
                 SchedulerType = StableDiffusion.Enums.SchedulerType.DDPM,
                 GuidanceScale =4f,
-                InferenceSteps = 60,
+                InferenceSteps = 20,
                 Width = 1024,
                 Height = 1024
             };
@@ -60,7 +60,7 @@ namespace OnnxStack.Console.Runner
             // Run pipeline
             var result = await pipeline.RunAsync(promptOptions, schedulerOptions, progressCallback: OutputHelpers.ProgressCallback);
 
-            var image = new OnnxImage(result, ImageNormalizeType.ZeroToOne);
+            var image = new OnnxImage(result);
 
             // Save Image File
             await image.SaveAsync(Path.Combine(_outputDirectory, $"output.png"));
