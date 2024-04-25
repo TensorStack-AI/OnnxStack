@@ -293,7 +293,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             }
 
             var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), new[] { 1, promptEmbeddings.Count / _tokenizer2.TokenizerLength, _tokenizer2.TokenizerLength });
-            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1, pooledPromptEmbeddings.Count });
+            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.Take(_tokenizer2.TokenizerLength).ToArray(), new[] { 1, _tokenizer2.TokenizerLength });
             return new PromptEmbeddingsResult(promptTensor, pooledTensor);
         }
 
