@@ -216,7 +216,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                         await _vaeDecoder.UnloadAsync();
 
                     return imageResult
-                        .GetTensorMutableDataAsSpan<float>()
+                        .ToArray()
+                        .AsSpan()
                         .NormalizeOneToOne()
                         .ToDenseTensor(outputDim);
                 }

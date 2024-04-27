@@ -63,6 +63,30 @@ namespace OnnxStack.StableDiffusion.Pipelines
         public override DiffuserPipelineType PipelineType => DiffuserPipelineType.StableCascade;
 
 
+        public override Task LoadAsync()
+        {
+            if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
+                return base.LoadAsync();
+
+            // Preload all models into VRAM
+            return Task.WhenAll
+            (
+                _decoderUnet.LoadAsync(),
+                base.LoadAsync()
+            );
+        }
+
+
+        /// <summary>
+        /// Unloads the pipeline.
+        /// </summary>
+        /// <returns></returns>
+        public override Task UnloadAsync()
+        {
+            _decoderUnet?.Dispose();
+            return base.UnloadAsync();
+        }
+
         /// <summary>
         /// Creates the diffuser.
         /// </summary>
