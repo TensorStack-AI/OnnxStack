@@ -228,7 +228,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected int GetPreviousTimestep(int timestep)
+        protected virtual int GetPreviousTimestep(int timestep)
         {
             return timestep - _options.TrainTimesteps / _options.InferenceSteps;
         }

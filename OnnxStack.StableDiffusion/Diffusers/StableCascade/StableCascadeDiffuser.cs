@@ -249,6 +249,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
             return options.SchedulerType switch
             {
                 SchedulerType.DDPM => new DDPMScheduler(options),
+                SchedulerType.DDPMWuerstchen => new DDPMWuerstchenScheduler(options),
                 _ => default
             };
         }

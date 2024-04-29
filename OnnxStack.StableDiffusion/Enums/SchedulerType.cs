@@ -22,6 +22,9 @@ namespace OnnxStack.StableDiffusion.Enums
         [Display(Name = "KDPM2")]
         KDPM2 = 5,
 
+        [Display(Name = "DDPMWuerstchen")]
+        DDPMWuerstchen = 6,
+
         [Display(Name = "LCM")]
         LCM = 20,
 

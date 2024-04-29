@@ -44,7 +44,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
             };
             _supportedSchedulers = new List<SchedulerType>
             {
-                SchedulerType.DDPM
+                SchedulerType.DDPM,
+                SchedulerType.DDPMWuerstchen
             };
             _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions
             {
@@ -52,7 +53,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 Height = 1024,
                 InferenceSteps = 20,
                 GuidanceScale = 4f,
-                SchedulerType = SchedulerType.DDPM
+                SchedulerType = SchedulerType.DDPMWuerstchen
             };
         }
 
