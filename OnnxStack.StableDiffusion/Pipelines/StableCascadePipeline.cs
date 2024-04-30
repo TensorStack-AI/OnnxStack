@@ -54,6 +54,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 Height = 1024,
                 InferenceSteps = 20,
                 GuidanceScale = 4f,
+                GuidanceScale2 = 0f,
+                InferenceSteps2 = 10,
                 SchedulerType = SchedulerType.DDPMWuerstchen
             };
         }

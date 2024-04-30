@@ -1,5 +1,6 @@
 ﻿using OnnxStack.Core.Image;
 using OnnxStack.StableDiffusion.Config;
+using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Pipelines;
 using SixLabors.ImageSharp;
 using System.Diagnostics;
@@ -15,6 +16,7 @@ namespace OnnxStack.Console.Runner
         {
             _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableCascadeExample));
+            Directory.CreateDirectory(_outputDirectory);
         }
 
         public int Index => 20;
@@ -28,46 +30,25 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
-            Directory.CreateDirectory(_outputDirectory);
-
-
-            var prompt = "photo of a cat";
+            // Prompt
             var promptOptions = new PromptOptions
             {
-                Prompt = prompt
+                Prompt = "an image of a cat, donning a spacesuit and helmet",
+                DiffuserType = DiffuserType.TextToImage,
+                //InputImage = await OnnxImage.FromFileAsync("Input.png"),
             };
 
             // Create Pipeline
-            var pipeline = StableCascadePipeline.CreatePipeline("D:\\Repositories\\stable-cascade-onnx", memoryMode: StableDiffusion.Enums.MemoryModeType.Minimum);
-
-            // Preload Models (optional)
-            await pipeline.LoadAsync();
-
-
-            // Loop through schedulers
-            var schedulerOptions = pipeline.DefaultSchedulerOptions with
-            {
-                SchedulerType = StableDiffusion.Enums.SchedulerType.DDPM,
-                GuidanceScale =4f,
-                InferenceSteps = 20,
-                Width = 1024,
-                Height = 1024
-            };
-
-            var timestamp = Stopwatch.GetTimestamp();
-
+            var pipeline = StableCascadePipeline.CreatePipeline("D:\\Models\\stable-cascade-onnx", memoryMode: MemoryModeType.Minimum);
 
             // Run pipeline
-            var result = await pipeline.RunAsync(promptOptions, schedulerOptions, progressCallback: OutputHelpers.ProgressCallback);
-
-            var image = new OnnxImage(result);
+            var result = await pipeline.GenerateImageAsync(promptOptions, progressCallback: OutputHelpers.ProgressCallback);
 
             // Save Image File
-            await image.SaveAsync(Path.Combine(_outputDirectory, $"output.png"));
+            await result.SaveAsync(Path.Combine(_outputDirectory, $"output.png"));
 
+            // Unload
             await pipeline.UnloadAsync();
-
-
         }
     }
 }
