@@ -55,6 +55,7 @@ __________________________
 * StableDiffusion 1.5
 * StableDiffusion Inpaint
 * StableDiffusion ControlNet
+* Stable-Cascade
 * SDXL
 * SDXL Inpaint
 * SDXL-Turbo

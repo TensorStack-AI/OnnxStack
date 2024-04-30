@@ -251,7 +251,7 @@ namespace OnnxStack.Core
         /// Normalize the data using Min-Max scaling to ensure all values are in the range [0, 1].
         /// </summary>
         /// <param name="values">The values.</param>
-        public static void NormalizeMinMax(this Span<float> values)
+        public static Span<float> NormalizeZeroToOne(this Span<float> values)
         {
             float min = float.PositiveInfinity, max = float.NegativeInfinity;
             foreach (var val in values)
@@ -265,6 +265,23 @@ namespace OnnxStack.Core
             {
                 values[i] = (values[i] - min) / range;
             }
+            return values;
+        }
+
+
+        public static Span<float> NormalizeOneToOne(this Span<float> values)
+        {
+            float max = values[0];
+            foreach (var val in values)
+            {
+                if (max < val) max = val;
+            }
+
+            for (var i = 0; i < values.Length; i++)
+            {
+                values[i] = (values[i] * 2) - 1;
+            }
+            return values;
         }
     }
 }

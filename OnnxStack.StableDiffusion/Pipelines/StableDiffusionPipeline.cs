@@ -16,7 +16,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -498,7 +497,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             // Tokenize Prompt and NegativePrompt
             var promptTokens = await DecodePromptTextAsync(promptOptions.Prompt);
             var negativePromptTokens = await DecodePromptTextAsync(promptOptions.NegativePrompt);
-            var maxPromptTokenCount = Math.Max(promptTokens.Length, negativePromptTokens.Length);
+            var maxPromptTokenCount = Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
 
             // Generate embeds for tokens
             var promptEmbeddings = await GeneratePromptEmbedsAsync(promptTokens, maxPromptTokenCount);
@@ -512,9 +511,11 @@ namespace OnnxStack.StableDiffusion.Pipelines
             }
 
             if (isGuidanceEnabled)
-                return new PromptEmbeddingsResult(negativePromptEmbeddings.Concatenate(promptEmbeddings));
+                return new PromptEmbeddingsResult(
+                    negativePromptEmbeddings.PromptEmbeds.Concatenate(promptEmbeddings.PromptEmbeds),
+                    negativePromptEmbeddings.PooledPromptEmbeds.Concatenate(promptEmbeddings.PooledPromptEmbeds));
 
-            return new PromptEmbeddingsResult(promptEmbeddings);
+            return new PromptEmbeddingsResult(promptEmbeddings.PromptEmbeds, promptEmbeddings.PooledPromptEmbeds);
         }
 
 
@@ -523,10 +524,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         /// <param name="inputText">The input text.</param>
         /// <returns></returns>
-        protected async Task<int[]> DecodePromptTextAsync(string inputText)
+        protected async Task<TokenizerResult> DecodePromptTextAsync(string inputText)
         {
             if (string.IsNullOrEmpty(inputText))
-                return Array.Empty<int>();
+                return new TokenizerResult(Array.Empty<long>(), Array.Empty<long>());
 
             var metadata = await _tokenizer.GetMetadataAsync();
             var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
@@ -534,11 +535,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
             {
                 inferenceParameters.AddInputTensor(inputTensor);
                 inferenceParameters.AddOutputBuffer();
-
+                inferenceParameters.AddOutputBuffer();
                 using (var results = _tokenizer.RunInference(inferenceParameters))
                 {
-                    var resultData = results.First().ToArray<long>();
-                    return Array.ConvertAll(resultData, Convert.ToInt32);
+                    return new TokenizerResult(results[0].ToArray<long>(), results[1].ToArray<long>());
                 }
             }
         }
@@ -549,21 +549,21 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         /// <param name="tokenizedInput">The tokenized input.</param>
         /// <returns></returns>
-        protected async Task<float[]> EncodePromptTokensAsync(int[] tokenizedInput)
+        protected async Task<EncoderResult> EncodePromptTokensAsync(TokenizerResult tokenizedInput)
         {
-            var inputDim = new[] { 1, tokenizedInput.Length };
-            var outputDim = new[] { 1, tokenizedInput.Length, _tokenizer.TokenizerLength };
             var metadata = await _textEncoder.GetMetadataAsync();
-            var inputTensor = new DenseTensor<int>(tokenizedInput, inputDim);
+            var inputTensor = new DenseTensor<int>(tokenizedInput.InputIds.ToInt(), new[] { 1, tokenizedInput.InputIds.Length });
             using (var inferenceParameters = new OnnxInferenceParameters(metadata))
             {
                 inferenceParameters.AddInputTensor(inputTensor);
-                inferenceParameters.AddOutputBuffer(outputDim);
+                inferenceParameters.AddOutputBuffer(new[] { 1, tokenizedInput.InputIds.Length, _tokenizer.TokenizerLength });
+                inferenceParameters.AddOutputBuffer(new int[] { 1, _tokenizer.TokenizerLength });
 
                 var results = await _textEncoder.RunInferenceAsync(inferenceParameters);
-                using (var result = results.First())
+                using (var promptEmbeds = results.First())
+                using (var promptEmbedsPooled = results.Last())
                 {
-                    return result.ToArray();
+                    return new EncoderResult(promptEmbeds.ToDenseTensor(), promptEmbedsPooled.ToDenseTensor());
                 }
             }
         }
@@ -575,22 +575,35 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="inputTokens">The input tokens.</param>
         /// <param name="minimumLength">The minimum length.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> GeneratePromptEmbedsAsync(int[] inputTokens, int minimumLength)
+        protected async Task<PromptEmbeddingsResult> GeneratePromptEmbedsAsync(TokenizerResult inputTokens, int minimumLength)
         {
             // If less than minimumLength pad with blank tokens
-            if (inputTokens.Length < minimumLength)
-                inputTokens = PadWithBlankTokens(inputTokens, minimumLength).ToArray();
-
-            // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
-            var embeddings = new List<float>();
-            foreach (var tokenBatch in inputTokens.Batch(_tokenizer.TokenizerLimit))
+            if (inputTokens.InputIds.Length < minimumLength)
             {
-                var tokens = PadWithBlankTokens(tokenBatch, _tokenizer.TokenizerLimit);
-                embeddings.AddRange(await EncodePromptTokensAsync(tokens.ToArray()));
+                inputTokens.InputIds = PadWithBlankTokens(inputTokens.InputIds, minimumLength, _tokenizer.PadTokenId).ToArray();
+                inputTokens.AttentionMask = PadWithBlankTokens(inputTokens.AttentionMask, minimumLength, 1).ToArray();
             }
 
-            var dim = new[] { 1, embeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength };
-            return new DenseTensor<float>(embeddings.ToArray(), dim);
+            // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate1
+            var tokenBatches = new List<long[]>();
+            var attentionBatches = new List<long[]>();
+            foreach (var tokenBatch in inputTokens.InputIds.Batch(_tokenizer.TokenizerLimit))
+                tokenBatches.Add(PadWithBlankTokens(tokenBatch, _tokenizer.TokenizerLimit, _tokenizer.PadTokenId).ToArray());
+            foreach (var attentionBatch in inputTokens.AttentionMask.Batch(_tokenizer.TokenizerLimit))
+                attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 1).ToArray());
+
+            var promptEmbeddings = new List<float>();
+            var pooledPromptEmbeddings = new List<float>();
+            for (int i = 0; i < tokenBatches.Count; i++)
+            {
+                var result = await EncodePromptTokensAsync(new TokenizerResult(tokenBatches[i], attentionBatches[i]));
+                promptEmbeddings.AddRange(result.PromptEmbeds);
+                pooledPromptEmbeddings.AddRange(result.PooledPromptEmbeds);
+            }
+
+            var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), new[] { 1, promptEmbeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength });
+            var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1,  tokenBatches.Count, _tokenizer.TokenizerLength });
+            return new PromptEmbeddingsResult(promptTensor, pooledTensor);
         }
 
 
@@ -600,11 +613,11 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="inputs">The inputs.</param>
         /// <param name="requiredLength">The the required length of the returned array.</param>
         /// <returns></returns>
-        protected IEnumerable<int> PadWithBlankTokens(IEnumerable<int> inputs, int requiredLength)
+        protected IEnumerable<long> PadWithBlankTokens(IEnumerable<long> inputs, int requiredLength, int padTokenId)
         {
             var count = inputs.Count();
             if (requiredLength > count)
-                return inputs.Concat(Enumerable.Repeat(_tokenizer.PadTokenId, requiredLength - count));
+                return inputs.Concat(Enumerable.Repeat((long)padTokenId, requiredLength - count));
             return inputs;
         }
 

@@ -24,6 +24,9 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <returns></returns>
         public static StableDiffusionModelSet CreateModelSet(string modelFolder, DiffuserPipelineType pipeline, ModelType modelType, int deviceId, ExecutionProvider executionProvider, MemoryModeType memoryMode)
         {
+            if (pipeline == DiffuserPipelineType.StableCascade)
+                return CreateStableCascadeModelSet(modelFolder, pipeline, modelType, deviceId, executionProvider, memoryMode);
+
             var tokenizerPath = Path.Combine(modelFolder, "tokenizer", "model.onnx");
             if (!File.Exists(tokenizerPath))
                 tokenizerPath = DefaultTokenizer;
@@ -131,6 +134,79 @@ namespace OnnxStack.StableDiffusion.Helpers
             return configuration;
         }
 
+        public static StableDiffusionModelSet CreateStableCascadeModelSet(string modelFolder, DiffuserPipelineType pipeline, ModelType modelType, int deviceId, ExecutionProvider executionProvider, MemoryModeType memoryMode)
+        {
+            var tokenizerPath = Path.Combine(modelFolder, "tokenizer", "model.onnx");
+            if (!File.Exists(tokenizerPath))
+                tokenizerPath = DefaultTokenizer;
+
+            var priorUnetPath = Path.Combine(modelFolder, "prior", "model.onnx");
+            var decoderUnetPath = Path.Combine(modelFolder, "decoder", "model.onnx");
+            var textEncoderPath = Path.Combine(modelFolder, "text_encoder", "model.onnx");
+            var vqganPath = Path.Combine(modelFolder, "vqgan", "model.onnx");
+            var imageEncoderPath = Path.Combine(modelFolder, "image_encoder", "model.onnx");
+
+            var diffusers = new List<DiffuserType> { DiffuserType.TextToImage };
+
+            var sampleSize = 1024;
+            var tokenizer2Config = default(TokenizerModelConfig);
+            var textEncoder2Config = default(TextEncoderModelConfig);
+
+            var tokenizerConfig = new TokenizerModelConfig
+            {
+                TokenizerLength = 1280,
+                OnnxModelPath = tokenizerPath
+            };
+
+            var textEncoderConfig = new TextEncoderModelConfig
+            {
+                OnnxModelPath = textEncoderPath
+            };
+
+            var priorUnetConfig = new UNetConditionModelConfig
+            {
+                OnnxModelPath = priorUnetPath
+            };
+
+            var decoderUnetConfig = new UNetConditionModelConfig
+            {
+                OnnxModelPath = decoderUnetPath
+            };
+
+            var vqganConfig = new AutoEncoderModelConfig
+            {
+                ScaleFactor = 0.3764f,
+                OnnxModelPath = vqganPath
+            };
+
+            var imageEncoderConfig = new AutoEncoderModelConfig
+            {
+                OnnxModelPath = imageEncoderPath
+            };
+
+
+            var configuration = new StableDiffusionModelSet
+            {
+                IsEnabled = true,
+                SampleSize = sampleSize,
+                Name = Path.GetFileNameWithoutExtension(modelFolder),
+                PipelineType = pipeline,
+                Diffusers = diffusers,
+                DeviceId = deviceId,
+                MemoryMode = memoryMode,
+                ExecutionProvider = executionProvider,
+                SchedulerOptions = GetDefaultSchedulerOptions(pipeline, modelType),
+                TokenizerConfig = tokenizerConfig,
+                Tokenizer2Config = tokenizer2Config,
+                TextEncoderConfig = textEncoderConfig,
+                TextEncoder2Config = textEncoder2Config,
+                UnetConfig = priorUnetConfig,
+                DecoderUnetConfig = decoderUnetConfig,
+                VaeDecoderConfig = vqganConfig,
+                VaeEncoderConfig = imageEncoderConfig
+            };
+            return configuration;
+        }
 
         /// <summary>
         /// Gets default scheduler options for specialized model types.

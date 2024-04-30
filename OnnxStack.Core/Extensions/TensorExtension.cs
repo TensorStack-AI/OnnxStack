@@ -287,7 +287,7 @@ namespace OnnxStack.Core
         /// <param name="tensor">The tensor.</param>
         public static void NormalizeMinMax(this DenseTensor<float> tensor)
         {
-            tensor.Buffer.Span.NormalizeMinMax();
+            tensor.Buffer.Span.NormalizeZeroToOne();
         }
 
 

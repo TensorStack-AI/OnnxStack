@@ -230,6 +230,30 @@ namespace OnnxStack.Core.Image
         }
 
 
+        public DenseTensor<float> GetClipImageFeatureTensor()
+        {
+            var image = Clone();
+            image.Resize(224, 224);
+            var imageArray = new DenseTensor<float>(new[] { 1, 3, 224, 224 });
+            var mean = new[] { 0.485f, 0.456f, 0.406f };
+            var stddev = new[] { 0.229f, 0.224f, 0.225f };
+            image.ProcessPixelRows(img =>
+            {
+                for (int x = 0; x < image.Width; x++)
+                {
+                    for (int y = 0; y < image.Height; y++)
+                    {
+                        var pixelSpan = img.GetRowSpan(y);
+                        imageArray[0, 0, y, x] = ((pixelSpan[x].R / 255f) - mean[0]) / stddev[0];
+                        imageArray[0, 1, y, x] = ((pixelSpan[x].G / 255f) - mean[1]) / stddev[1];
+                        imageArray[0, 2, y, x] = ((pixelSpan[x].B / 255f) - mean[2]) / stddev[2];
+                    }
+                }
+            });
+            return imageArray;
+        }
+
+
         /// <summary>
         /// Gets the image as tensor.
         /// </summary>
@@ -293,7 +317,12 @@ namespace OnnxStack.Core.Image
             });
         }
 
-  
+        public void ProcessPixelRows(PixelAccessorAction<Rgba32> processPixels)
+        {
+            _imageData.ProcessPixelRows(processPixels);
+        }
+
+
         public OnnxImage Clone()
         {
             return new OnnxImage(_imageData);
@@ -412,7 +441,6 @@ namespace OnnxStack.Core.Image
             });
             return imageArray;
         }
-
 
         /// <summary>
         /// Denormalizes the pixels from 0 to 1 to 0-255
