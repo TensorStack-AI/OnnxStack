@@ -13,6 +13,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         private float _s;
         private float _scaler;
         private float _initAlphaCumprod;
+        private float _timestepRatio = 1000f;
 
 
         /// <summary>
@@ -47,14 +48,12 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            // Create timesteps based on the specified strategy
-            var timesteps = ArrayHelpers.Linspace(0, 1000, Options.InferenceSteps + 1);
-            var x = timesteps
+            var timesteps = ArrayHelpers.Linspace(0, _timestepRatio, Options.InferenceSteps + 1);
+            return timesteps
                 .Skip(1)
                 .Select(x => (int)x)
                 .OrderByDescending(x => x)
                 .ToArray();
-            return x;
         }
 
 
@@ -82,8 +81,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <exception cref="NotImplementedException">DDPMScheduler Thresholding currently not implemented</exception>
         public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
         {
-            var currentTimestep = timestep / 1000f;
-            var previousTimestep = GetPreviousTimestep(timestep) / 1000f;
+            var currentTimestep = timestep / _timestepRatio;
+            var previousTimestep = GetPreviousTimestep(timestep) / _timestepRatio;
 
             var alpha_cumprod = GetAlphaCumprod(currentTimestep);
             var alpha_cumprod_prev = GetAlphaCumprod(previousTimestep);
@@ -108,10 +107,10 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps)
         {
-            float timestep = timesteps[0] / 1000f;
-            float alphaProd = GetAlphaCumprod(timestep);
-            float sqrtAlpha = MathF.Sqrt(alphaProd);
-            float sqrtOneMinusAlpha = MathF.Sqrt(1.0f - alphaProd);
+            var timestep = timesteps[0] / _timestepRatio;
+            var alphaProd = GetAlphaCumprod(timestep);
+            var sqrtAlpha = MathF.Sqrt(alphaProd);
+            var sqrtOneMinusAlpha = MathF.Sqrt(1.0f - alphaProd);
 
             return noise
                 .MultiplyTensorByFloat(sqrtOneMinusAlpha)

@@ -87,6 +87,9 @@ namespace OnnxStack.StableDiffusion.Config
 
         public float ConditioningScale { get; set; } = 0.7f;
 
+        public int InferenceSteps2 { get; set; } = 10;
+        public float GuidanceScale2 { get; set; } = 0;
+
         public bool IsKarrasScheduler
         {
             get

@@ -105,6 +105,17 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Check if we should run guidance.
+        /// </summary>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <returns></returns>
+        protected override bool ShouldPerformGuidance(SchedulerOptions schedulerOptions)
+        {
+            return schedulerOptions.GuidanceScale > 1f || schedulerOptions.GuidanceScale2 > 1f;
+        }
+
+
+        /// <summary>
         /// Creates the embeds using Tokenizer2 and TextEncoder2
         /// </summary>
         /// <param name="promptOptions">The prompt options.</param>
