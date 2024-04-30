@@ -40,7 +40,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
             _decoderUnet = decoderUnet;
             _supportedDiffusers = diffusers ?? new List<DiffuserType>
             {
-                DiffuserType.TextToImage
+                DiffuserType.TextToImage,
+                DiffuserType.ImageToImage
             };
             _supportedSchedulers = new List<SchedulerType>
             {
@@ -99,6 +100,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             return diffuserType switch
             {
                 DiffuserType.TextToImage => new TextDiffuser(_unet, _decoderUnet, _vaeDecoder, _pipelineOptions.MemoryMode, _logger),
+                DiffuserType.ImageToImage => new ImageDiffuser(_unet, _decoderUnet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
                 _ => throw new NotImplementedException()
             };
         }

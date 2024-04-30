@@ -62,15 +62,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
 
 
         /// <summary>
-        /// Prepares the decoder latents.
+        /// Gets the clip image channels.
         /// </summary>
-        /// <param name="prompt">The prompt.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="scheduler">The scheduler.</param>
-        /// <param name="timesteps">The timesteps.</param>
-        /// <param name="priorLatents">The prior latents.</param>
-        /// <returns></returns>
-        protected abstract Task<DenseTensor<float>> PrepareDecoderLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps, DenseTensor<float> priorLatents);
+        protected int ClipImageChannels => _clipImageChannels;
 
 
         /// <summary>
@@ -135,6 +129,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                 // Create latent sample
                 var latents = await PrepareLatentsAsync(prompt, schedulerOptions, scheduler, timesteps);
 
+                var encodedImage = await EncodeImageAsync(prompt, performGuidance);
+
                 // Get Model metadata
                 var metadata = await _unet.GetMetadataAsync();
 
@@ -150,14 +146,13 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                     var inputLatent = performGuidance ? latents.Repeat(2) : latents;
                     var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
                     var timestepTensor = CreateTimestepTensor(inputLatent, timestep);
-                    var imageEmbeds = new DenseTensor<float>(new[] { performGuidance ? 2 : 1, 1, _clipImageChannels });
                     using (var inferenceParameters = new OnnxInferenceParameters(metadata))
                     {
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
                         inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                        inferenceParameters.AddInputTensor(imageEmbeds);
+                        inferenceParameters.AddInputTensor(encodedImage);
                         inferenceParameters.AddOutputBuffer(inputTensor.Dimensions);
 
                         var results = await _unet.RunInferenceAsync(inferenceParameters);
@@ -185,6 +180,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                 return latents;
             }
         }
+
+
 
 
         /// <summary>
@@ -294,6 +291,59 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                         .ToDenseTensor(outputDim);
                 }
             }
+        }
+
+
+        /// <summary>
+        /// Prepares the input latents.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        {
+            var latents = scheduler.CreateRandomSample(new[]
+            {
+               1, 16,
+               (int)Math.Ceiling(options.Height / ResolutionMultiple),
+               (int)Math.Ceiling(options.Width / ResolutionMultiple)
+           }, scheduler.InitNoiseSigma);
+            return Task.FromResult(latents);
+        }
+
+
+        /// <summary>
+        /// Prepares the decoder latents.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <param name="priorLatents">The prior latents.</param>
+        /// <returns></returns>
+        protected virtual Task<DenseTensor<float>> PrepareDecoderLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps, DenseTensor<float> priorLatents)
+        {
+            var latents = scheduler.CreateRandomSample(new[]
+            {
+                1, 4,
+                (int)(priorLatents.Dimensions[2] * LatentDimScale),
+                (int)(priorLatents.Dimensions[3] * LatentDimScale)
+            }, scheduler.InitNoiseSigma);
+            return Task.FromResult(latents);
+        }
+
+
+        /// <summary>
+        /// Encodes the image.
+        /// </summary>
+        /// <param name="prompt">The prompt.</param>
+        /// <param name="performGuidance">if set to <c>true</c> [perform guidance].</param>
+        /// <returns></returns>
+        protected virtual Task<DenseTensor<float>> EncodeImageAsync(PromptOptions prompt, bool performGuidance)
+        {
+            return Task.FromResult(new DenseTensor<float>(new[] { performGuidance ? 2 : 1, 1, _clipImageChannels }));
         }
 
 

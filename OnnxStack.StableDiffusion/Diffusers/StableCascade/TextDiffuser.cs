@@ -48,27 +48,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         }
 
 
-        protected override Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
-        {
-            var latents = scheduler.CreateRandomSample(new[]
-            {
-               1, 16,
-               (int)Math.Ceiling(options.Height / ResolutionMultiple),
-               (int)Math.Ceiling(options.Width / ResolutionMultiple)
-           }, scheduler.InitNoiseSigma);
-            return Task.FromResult(latents);
-        }
-
-
-        protected override Task<DenseTensor<float>> PrepareDecoderLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps, DenseTensor<float> priorLatents)
-        {
-            var latents = scheduler.CreateRandomSample(new[]
-            {
-                1, 4,
-                (int)(priorLatents.Dimensions[2] * LatentDimScale),
-                (int)(priorLatents.Dimensions[3] * LatentDimScale)
-            }, scheduler.InitNoiseSigma);
-            return Task.FromResult(latents);
-        }
+      
     }
 }
