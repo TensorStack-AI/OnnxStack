@@ -37,14 +37,9 @@ namespace OnnxStack.StableDiffusion.Helpers
             var vaeEncoderPath = Path.Combine(modelFolder, "vae_encoder", "model.onnx");
             var controlNetPath = Path.Combine(modelFolder, "controlNet", "model.onnx");
 
-            // Some repositories have the ControlNet in the unet folder, some in the controlnet folder
-            if (modelType == ModelType.ControlNet && File.Exists(controlNetPath))
-                unetPath = controlNetPath;
-
             var diffusers = modelType switch
             {
                 ModelType.Inpaint => new List<DiffuserType> { DiffuserType.ImageInpaint },
-                ModelType.ControlNet => new List<DiffuserType> { DiffuserType.ControlNet, DiffuserType.ControlNetImage },
                 _ => new List<DiffuserType> { DiffuserType.TextToImage, DiffuserType.ImageToImage, DiffuserType.ImageInpaintLegacy }
             };
 
@@ -78,6 +73,19 @@ namespace OnnxStack.StableDiffusion.Helpers
                 ScaleFactor = 0.18215f,
                 OnnxModelPath = vaeEncoderPath
             };
+
+            var contronNetConfig = default(UNetConditionModelConfig);
+            if (File.Exists(controlNetPath))
+            {
+                diffusers.Add(DiffuserType.ControlNet);
+                diffusers.Add(DiffuserType.ControlNetImage);
+                contronNetConfig = new UNetConditionModelConfig
+                {
+                    ModelType = modelType,
+                    OnnxModelPath = controlNetPath
+                };
+            }
+
 
             // SDXL Pipelines
             if (pipeline == DiffuserPipelineType.StableDiffusionXL || pipeline == DiffuserPipelineType.LatentConsistencyXL)
@@ -129,7 +137,8 @@ namespace OnnxStack.StableDiffusion.Helpers
                 TextEncoder2Config = textEncoder2Config,
                 UnetConfig = unetConfig,
                 VaeDecoderConfig = vaeDecoderConfig,
-                VaeEncoderConfig = vaeEncoderConfig
+                VaeEncoderConfig = vaeEncoderConfig,
+                ControlNetUnetConfig = contronNetConfig
             };
             return configuration;
         }
@@ -201,7 +210,7 @@ namespace OnnxStack.StableDiffusion.Helpers
                 TextEncoderConfig = textEncoderConfig,
                 TextEncoder2Config = textEncoder2Config,
                 UnetConfig = priorUnetConfig,
-                DecoderUnetConfig = decoderUnetConfig,
+                Unet2Config = decoderUnetConfig,
                 VaeDecoderConfig = vqganConfig,
                 VaeEncoderConfig = imageEncoderConfig
             };

@@ -20,7 +20,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
     public class StableDiffusionXLPipeline : StableDiffusionPipeline
     {
         protected TokenizerModel _tokenizer2;
-        protected OnnxModelSession _textEncoder2;
+        protected TextEncoderModel _textEncoder2;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusionXLPipeline"/> class.
@@ -34,8 +34,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public StableDiffusionXLPipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TokenizerModel tokenizer2, TextEncoderModel textEncoder, TextEncoderModel textEncoder2, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
-            : base(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, diffusers, defaultSchedulerOptions, logger)
+        public StableDiffusionXLPipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TokenizerModel tokenizer2, TextEncoderModel textEncoder, TextEncoderModel textEncoder2, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlNet, diffusers, defaultSchedulerOptions, logger)
         {
             _tokenizer2 = tokenizer2;
             _textEncoder2 = textEncoder2;
@@ -64,19 +64,31 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Gets the tokenizer2.
+        /// </summary>
+        public TokenizerModel Tokenizer2 => _tokenizer2;
+
+
+        /// <summary>
+        /// Gets the text encoder2.
+        /// </summary>
+        public TextEncoderModel TextEncoder2 => _textEncoder2;
+
+
+        /// <summary>
         /// Loads the pipeline
         /// </summary>
-        public override Task LoadAsync()
+        public override Task LoadAsync(bool controlNet = false)
         {
             if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
-                return base.LoadAsync();
+                return base.LoadAsync(controlNet);
 
             // Preload all models into VRAM
             return Task.WhenAll
             (
                 _tokenizer2.LoadAsync(),
                 _textEncoder2.LoadAsync(),
-                base.LoadAsync()
+                base.LoadAsync(controlNet)
             );
         }
 
@@ -106,8 +118,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 DiffuserType.TextToImage => new TextDiffuser(_unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
                 DiffuserType.ImageToImage => new ImageDiffuser(_unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
                 DiffuserType.ImageInpaintLegacy => new InpaintLegacyDiffuser(_unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
-                DiffuserType.ControlNet => new ControlNetDiffuser(controlNetModel, _unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
-                DiffuserType.ControlNetImage => new ControlNetImageDiffuser(controlNetModel, _unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
+                DiffuserType.ControlNet => new ControlNetDiffuser(controlNetModel, _controlNetUnet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
+                DiffuserType.ControlNetImage => new ControlNetImageDiffuser(controlNetModel, _controlNetUnet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
                 _ => throw new NotImplementedException()
             };
         }
@@ -313,8 +325,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
             var textEncoder2 = new TextEncoderModel(modelSet.TextEncoder2Config.ApplyDefaults(modelSet));
             var vaeDecoder = new AutoEncoderModel(modelSet.VaeDecoderConfig.ApplyDefaults(modelSet));
             var vaeEncoder = new AutoEncoderModel(modelSet.VaeEncoderConfig.ApplyDefaults(modelSet));
+            var controlnet = default(UNetConditionModel);
+            if (modelSet.ControlNetUnetConfig is not null)
+                controlnet = new UNetConditionModel(modelSet.ControlNetUnetConfig.ApplyDefaults(modelSet));
+
             var pipelineOptions = new PipelineOptions(modelSet.Name, modelSet.MemoryMode);
-            return new StableDiffusionXLPipeline(pipelineOptions, tokenizer, tokenizer2, textEncoder, textEncoder2, unet, vaeDecoder, vaeEncoder, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
+            return new StableDiffusionXLPipeline(pipelineOptions, tokenizer, tokenizer2, textEncoder, textEncoder2, unet, vaeDecoder, vaeEncoder, controlnet, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
         }
 
 

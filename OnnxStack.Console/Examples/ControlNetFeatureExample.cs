@@ -4,7 +4,6 @@ using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Pipelines;
-using SixLabors.ImageSharp;
 
 namespace OnnxStack.Console.Runner
 {
@@ -35,7 +34,7 @@ namespace OnnxStack.Console.Runner
             var inputImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
             // Create Annotation pipeline
-            var annotationPipeline = FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\depth.onnx", sampleSize: 512, normalizeOutput: true);
+            var annotationPipeline = FeatureExtractorPipeline.CreatePipeline("D:\\Models\\controlnet_onnx\\annotators\\depth.onnx", sampleSize: 512, normalizeOutput: true);
 
             // Create Depth Image
             var controlImage = await annotationPipeline.RunAsync(inputImage);
@@ -44,10 +43,10 @@ namespace OnnxStack.Console.Runner
             await controlImage.SaveAsync(Path.Combine(_outputDirectory, $"Depth.png"));
 
             // Create ControlNet
-            var controlNet = ControlNetModel.Create("D:\\Repositories\\controlnet_onnx\\controlnet\\depth.onnx", ControlNetType.Depth, DiffuserPipelineType.StableDiffusion);
+            var controlNet = ControlNetModel.Create("D:\\Models\\controlnet_onnx\\controlnet\\depth.onnx", ControlNetType.Depth, DiffuserPipelineType.StableDiffusion);
 
             // Create Pipeline
-            var pipeline = StableDiffusionPipeline.CreatePipeline("D:\\Repositories\\stable_diffusion_onnx", ModelType.ControlNet);
+            var pipeline = StableDiffusionPipeline.CreatePipeline("D:\\Models\\stable-diffusion-v1-5-onnx");
 
             // Prompt
             var promptOptions = new PromptOptions
@@ -56,6 +55,9 @@ namespace OnnxStack.Console.Runner
                 DiffuserType = DiffuserType.ControlNet,
                 InputContolImage = controlImage
             };
+
+            // Preload (optional)
+            await pipeline.LoadAsync(true);
 
             // Run pipeline
             var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet, progressCallback: OutputHelpers.ProgressCallback);

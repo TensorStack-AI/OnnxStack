@@ -34,8 +34,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="diffusers">The diffusers.</param>
         /// <param name="defaultSchedulerOptions">The default scheduler options.</param>
         /// <param name="logger">The logger.</param>
-        public StableCascadePipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel imageDecoder, AutoEncoderModel imageEncoder, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
-            : base(pipelineOptions, tokenizer, textEncoder, priorUnet, imageDecoder, imageEncoder, diffusers, defaultSchedulerOptions, logger)
+        public StableCascadePipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel imageDecoder, AutoEncoderModel imageEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(pipelineOptions, tokenizer, textEncoder, priorUnet, imageDecoder, imageEncoder, controlNet, diffusers, defaultSchedulerOptions, logger)
         {
             _decoderUnet = decoderUnet;
             _supportedDiffusers = diffusers ?? new List<DiffuserType>
@@ -66,17 +66,27 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         public override DiffuserPipelineType PipelineType => DiffuserPipelineType.StableCascade;
 
+        /// <summary>
+        /// Gets the unet.
+        /// </summary>
+        public UNetConditionModel PriorUnet => _unet;
 
-        public override Task LoadAsync()
+        /// <summary>
+        /// Gets the unet.
+        /// </summary>
+        public UNetConditionModel DecoderUnet => _decoderUnet;
+
+
+        public override Task LoadAsync(bool controlNet = false)
         {
             if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
-                return base.LoadAsync();
+                return base.LoadAsync(controlNet);
 
             // Preload all models into VRAM
             return Task.WhenAll
             (
                 _decoderUnet.LoadAsync(),
-                base.LoadAsync()
+                base.LoadAsync(controlNet)
             );
         }
 
@@ -252,13 +262,17 @@ namespace OnnxStack.StableDiffusion.Pipelines
         public static new StableCascadePipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
         {
             var priorUnet = new UNetConditionModel(modelSet.UnetConfig.ApplyDefaults(modelSet));
-            var decoderUnet = new UNetConditionModel(modelSet.DecoderUnetConfig.ApplyDefaults(modelSet));
+            var decoderUnet = new UNetConditionModel(modelSet.Unet2Config.ApplyDefaults(modelSet));
             var tokenizer = new TokenizerModel(modelSet.TokenizerConfig.ApplyDefaults(modelSet));
             var textEncoder = new TextEncoderModel(modelSet.TextEncoderConfig.ApplyDefaults(modelSet));
             var imageDecoder = new AutoEncoderModel(modelSet.VaeDecoderConfig.ApplyDefaults(modelSet));
             var imageEncoder = new AutoEncoderModel(modelSet.VaeEncoderConfig.ApplyDefaults(modelSet));
+            var controlnet = default(UNetConditionModel);
+            if (modelSet.ControlNetUnetConfig is not null)
+                controlnet = new UNetConditionModel(modelSet.ControlNetUnetConfig.ApplyDefaults(modelSet));
+
             var pipelineOptions = new PipelineOptions(modelSet.Name, modelSet.MemoryMode);
-            return new StableCascadePipeline(pipelineOptions, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
+            return new StableCascadePipeline(pipelineOptions, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, controlnet, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
         }
 
 

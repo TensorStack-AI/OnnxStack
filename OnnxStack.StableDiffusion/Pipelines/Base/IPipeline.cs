@@ -43,7 +43,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// Loads the pipeline.
         /// </summary>
         /// <returns></returns>
-        Task LoadAsync();
+        Task LoadAsync(bool controlNet = false);
 
 
         /// <summary>

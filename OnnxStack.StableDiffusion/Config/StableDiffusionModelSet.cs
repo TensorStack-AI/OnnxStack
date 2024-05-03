@@ -36,6 +36,8 @@ namespace OnnxStack.StableDiffusion.Config
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public UNetConditionModelConfig UnetConfig { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public UNetConditionModelConfig Unet2Config { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public AutoEncoderModelConfig VaeDecoderConfig { get; set; }
@@ -44,11 +46,9 @@ namespace OnnxStack.StableDiffusion.Config
         public AutoEncoderModelConfig VaeEncoderConfig { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public UNetConditionModelConfig DecoderUnetConfig { get; set; }
+        public UNetConditionModelConfig ControlNetUnetConfig { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public SchedulerOptions SchedulerOptions { get; set; }
-
-      
     }
 }
