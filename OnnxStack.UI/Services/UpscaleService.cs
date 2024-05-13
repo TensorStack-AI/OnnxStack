@@ -102,7 +102,7 @@ namespace OnnxStack.UI.Services
             if (!_pipelines.TryGetValue(model, out var pipeline))
                 throw new Exception("Pipeline not found or is unsupported");
 
-            return await pipeline.RunAsync(inputVideo, cancellationToken);
+            return await pipeline.RunAsync(inputVideo, cancellationToken: cancellationToken);
         }
 
 

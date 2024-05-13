@@ -6,6 +6,7 @@ using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 using OnnxStack.Core.Video;
 using OnnxStack.FeatureExtractor.Common;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -95,13 +96,15 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// </summary>
         /// <param name="videoFrames">The input video.</param>
         /// <returns></returns>
-        public async Task<OnnxVideo> RunAsync(OnnxVideo video, CancellationToken cancellationToken = default)
+        public async Task<OnnxVideo> RunAsync(OnnxVideo video, Action<OnnxImage, OnnxImage> progressCallback = default, CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Extracting OnnxVideo features...");
             var featureFrames = new List<OnnxImage>();
             foreach (var videoFrame in video.Frames)
             {
-                featureFrames.Add(await RunAsync(videoFrame, cancellationToken));
+                var result = await RunAsync(videoFrame, cancellationToken);
+                featureFrames.Add(result);
+                progressCallback?.Invoke(videoFrame, result);
             }
             _logger?.LogEnd("Extracting OnnxVideo features complete.", timestamp);
             return new OnnxVideo(video.Info, featureFrames);

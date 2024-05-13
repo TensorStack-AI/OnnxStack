@@ -25,7 +25,7 @@ namespace OnnxStack.Core.Model
         public OnnxModelSession(OnnxModelConfig configuration)
         {
             if (!File.Exists(configuration.OnnxModelPath))
-                throw new FileNotFoundException("Onnx model file not found", configuration.OnnxModelPath);
+                throw new FileNotFoundException($"Onnx model file not found, Path: {configuration.OnnxModelPath}", configuration.OnnxModelPath);
 
             _configuration = configuration;
             _options = configuration.GetSessionOptions();

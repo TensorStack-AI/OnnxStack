@@ -99,13 +99,15 @@ namespace OnnxStack.FeatureExtractor.Pipelines
         /// <param name="inputVideo">The input video.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<OnnxVideo> RunAsync(OnnxVideo inputVideo, CancellationToken cancellationToken = default)
+        public async Task<OnnxVideo> RunAsync(OnnxVideo inputVideo, Action<OnnxImage, OnnxImage> progressCallback = default, CancellationToken cancellationToken = default)
         {
             var timestamp = _logger?.LogBegin("Upscale OnnxVideo..");
             var upscaledFrames = new List<OnnxImage>();
             foreach (var videoFrame in inputVideo.Frames)
             {
-                upscaledFrames.Add(await UpscaleImageAsync(videoFrame, cancellationToken));
+                var result = await UpscaleImageAsync(videoFrame, cancellationToken);
+                upscaledFrames.Add(result);
+                progressCallback?.Invoke(videoFrame, result);
             }
 
             var firstFrame = upscaledFrames.First();
