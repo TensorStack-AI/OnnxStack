@@ -14,7 +14,7 @@ namespace OnnxStack.UI.Services
 
         UpscaleModelSet CreateUpscaleModelSet(string name, string filename, UpscaleModelTemplate modelTemplate);
         StableDiffusionModelSet CreateStableDiffusionModelSet(string name, string folder, StableDiffusionModelTemplate modelTemplate);
-        ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, DiffuserPipelineType pipelineType, string modelFilename);
+        ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, string modelFilename);
         FeatureExtractorModelSet CreateFeatureExtractorModelSet(string name, bool normalize, int sampleSize, int channels, string modelFilename);
     }
 }

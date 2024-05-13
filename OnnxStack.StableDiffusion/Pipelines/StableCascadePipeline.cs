@@ -77,16 +77,16 @@ namespace OnnxStack.StableDiffusion.Pipelines
         public UNetConditionModel DecoderUnet => _decoderUnet;
 
 
-        public override Task LoadAsync(bool controlNet = false)
+        public override Task LoadAsync(UnetModeType unetMode = UnetModeType.Default)
         {
             if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
-                return base.LoadAsync(controlNet);
+                return base.LoadAsync(unetMode);
 
             // Preload all models into VRAM
             return Task.WhenAll
             (
                 _decoderUnet.LoadAsync(),
-                base.LoadAsync(controlNet)
+                base.LoadAsync(unetMode)
             );
         }
 

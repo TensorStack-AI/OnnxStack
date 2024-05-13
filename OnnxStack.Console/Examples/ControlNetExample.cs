@@ -35,7 +35,7 @@ namespace OnnxStack.Console.Runner
             var controlImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\OpenPose.png");
 
             // Create ControlNet
-            var controlNet = ControlNetModel.Create("D:\\Models\\controlnet_onnx\\controlnet\\openpose.onnx", ControlNetType.OpenPose, DiffuserPipelineType.StableDiffusion);
+            var controlNet = ControlNetModel.Create("D:\\Models\\controlnet_onnx\\controlnet\\openpose.onnx", ControlNetType.OpenPose);
 
             // Create Pipeline
             var pipeline = StableDiffusionPipeline.CreatePipeline("D:\\Models\\stable-diffusion-v1-5-onnx");
@@ -49,7 +49,7 @@ namespace OnnxStack.Console.Runner
             };
 
             // Preload (optional)
-            await pipeline.LoadAsync(true);
+            await pipeline.LoadAsync(UnetModeType.ControlNet);
 
             // Run pipeline
             var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet, progressCallback: OutputHelpers.ProgressCallback);

@@ -34,6 +34,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         protected List<DiffuserType> _supportedDiffusers;
         protected IReadOnlyList<SchedulerType> _supportedSchedulers;
         protected SchedulerOptions _defaultSchedulerOptions;
+        private UnetModeType _currentUnetMode;
 
         protected sealed record BatchResultInternal(SchedulerOptions SchedulerOptions, List<DenseTensor<float>> Result);
 
@@ -111,6 +112,11 @@ namespace OnnxStack.StableDiffusion.Pipelines
         public override SchedulerOptions DefaultSchedulerOptions => _defaultSchedulerOptions;
 
         /// <summary>
+        /// Gets the current unet mode.
+        /// </summary>
+        public override UnetModeType CurrentUnetMode => _currentUnetMode;
+
+        /// <summary>
         /// Gets the unet.
         /// </summary>
         public UNetConditionModel Unet => _unet;
@@ -144,22 +150,29 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <summary>
         /// Loads the pipeline.
         /// </summary>
-        public override Task LoadAsync(bool controlNet = false)
+        public override Task LoadAsync(UnetModeType unetMode = UnetModeType.Default)
         {
+            _currentUnetMode = unetMode;
             if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
                 return Task.CompletedTask;
 
-            // Preload all models into VRAM
-            return Task.WhenAll
+            var unetModels = Task.CompletedTask;
+            if (_currentUnetMode == UnetModeType.Default)
+                unetModels = Task.WhenAll(_unet.LoadAsync(), _controlNetUnet?.UnloadAsync() ?? Task.CompletedTask);
+            if (_currentUnetMode == UnetModeType.ControlNet)
+                unetModels = Task.WhenAll(_controlNetUnet.LoadAsync(), _unet.UnloadAsync());
+            if (_currentUnetMode == UnetModeType.Both)
+                unetModels = Task.WhenAll(_unet.LoadAsync(), _controlNetUnet?.LoadAsync() ?? Task.CompletedTask);
+
+            var subModels = Task.WhenAll
             (
-                controlNet
-                    ? _controlNetUnet.LoadAsync()
-                    : _unet.LoadAsync(),
-                _tokenizer.LoadAsync(),
+                 _tokenizer.LoadAsync(),
                 _textEncoder.LoadAsync(),
                 _vaeDecoder.LoadAsync(),
                 _vaeEncoder.LoadAsync()
             );
+
+            return Task.WhenAll(unetModels, subModels);
         }
 
 
@@ -695,4 +708,5 @@ namespace OnnxStack.StableDiffusion.Pipelines
             return CreatePipeline(ModelFactory.CreateModelSet(modelFolder, DiffuserPipelineType.StableDiffusion, modelType, deviceId, executionProvider, memoryMode), logger);
         }
     }
+
 }

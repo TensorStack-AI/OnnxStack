@@ -76,15 +76,6 @@ namespace OnnxStack.UI.Dialogs
 
         }
 
-        private DiffuserPipelineType _selectedPipelineType;
-
-        public DiffuserPipelineType SelectedPipelineType
-        {
-            get { return _selectedPipelineType; }
-            set { _selectedPipelineType = value; NotifyPropertyChanged(); CreateModelSet(); }
-        }
-
-
         public ControlNetModelSet ModelSetResult
         {
             get { return _modelSetResult; }
@@ -104,7 +95,7 @@ namespace OnnxStack.UI.Dialogs
             if (string.IsNullOrEmpty(_modelFile))
                 return;
 
-            _modelSetResult = _modelFactory.CreateControlNetModelSet(ModelName.Trim(), _selectedControlNetType, _selectedPipelineType, _modelFile);
+            _modelSetResult = _modelFactory.CreateControlNetModelSet(ModelName.Trim(), _selectedControlNetType, _modelFile);
 
             // Validate
             ValidationResults.Add(new ValidationResult("Name", !_invalidOptions.Contains(_modelName, StringComparer.OrdinalIgnoreCase) && _modelName.Length > 2 && _modelName.Length < 50));

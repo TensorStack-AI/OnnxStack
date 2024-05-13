@@ -78,17 +78,17 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <summary>
         /// Loads the pipeline
         /// </summary>
-        public override Task LoadAsync(bool controlNet = false)
+        public override Task LoadAsync(UnetModeType unetMode = UnetModeType.Default)
         {
             if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
-                return base.LoadAsync(controlNet);
+                return base.LoadAsync(unetMode);
 
             // Preload all models into VRAM
             return Task.WhenAll
             (
                 _tokenizer2.LoadAsync(),
                 _textEncoder2.LoadAsync(),
-                base.LoadAsync(controlNet)
+                base.LoadAsync(unetMode)
             );
         }
 

@@ -43,7 +43,7 @@ namespace OnnxStack.Console.Runner
             await controlImage.SaveAsync(Path.Combine(_outputDirectory, $"Depth.png"));
 
             // Create ControlNet
-            var controlNet = ControlNetModel.Create("D:\\Models\\controlnet_onnx\\controlnet\\depth.onnx", ControlNetType.Depth, DiffuserPipelineType.StableDiffusion);
+            var controlNet = ControlNetModel.Create("D:\\Models\\controlnet_onnx\\controlnet\\depth.onnx", ControlNetType.Depth);
 
             // Create Pipeline
             var pipeline = StableDiffusionPipeline.CreatePipeline("D:\\Models\\stable-diffusion-v1-5-onnx");
@@ -57,7 +57,7 @@ namespace OnnxStack.Console.Runner
             };
 
             // Preload (optional)
-            await pipeline.LoadAsync(true);
+            await pipeline.LoadAsync(UnetModeType.ControlNet);
 
             // Run pipeline
             var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet, progressCallback: OutputHelpers.ProgressCallback);

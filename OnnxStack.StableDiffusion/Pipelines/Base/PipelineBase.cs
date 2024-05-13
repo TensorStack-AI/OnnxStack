@@ -63,10 +63,16 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Gets the current unet mode.
+        /// </summary>
+        public abstract UnetModeType CurrentUnetMode { get; }
+
+
+        /// <summary>
         /// Loads the pipeline.
         /// </summary>
         /// <returns></returns>
-        public abstract Task LoadAsync(bool controlNet = false);
+        public abstract Task LoadAsync(UnetModeType unetMode =  UnetModeType.Default);
 
 
         /// <summary>
@@ -94,8 +100,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         public abstract Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
-
-
 
 
         /// <summary>

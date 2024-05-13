@@ -144,7 +144,7 @@ namespace OnnxStack.UI.Services
         }
 
 
-        public ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, DiffuserPipelineType pipelineType, string modelFilename)
+        public ControlNetModelSet CreateControlNetModelSet(string name, ControlNetType controlNetType, string modelFilename)
         {
             return new ControlNetModelSet
             {
@@ -159,7 +159,6 @@ namespace OnnxStack.UI.Services
                 ControlNetConfig = new ControlNetModelConfig
                 {
                     Type = controlNetType,
-                    PipelineType = pipelineType,
                     OnnxModelPath = modelFilename
                 }
             };

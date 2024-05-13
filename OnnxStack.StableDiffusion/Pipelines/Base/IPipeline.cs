@@ -20,6 +20,10 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         string Name { get; }
 
+        /// <summary>
+        /// Gets the type of the pipeline.
+        /// </summary>
+        DiffuserPipelineType PipelineType { get; }
 
         /// <summary>
         /// Gets the pipelines supported diffusers.
@@ -40,10 +44,16 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Gets the current unet mode.
+        /// </summary>
+        UnetModeType CurrentUnetMode { get; }
+
+
+        /// <summary>
         /// Loads the pipeline.
         /// </summary>
         /// <returns></returns>
-        Task LoadAsync(bool controlNet = false);
+        Task LoadAsync(UnetModeType unetMode = UnetModeType.Default);
 
 
         /// <summary>
