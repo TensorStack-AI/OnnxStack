@@ -1,5 +1,4 @@
-﻿using FFMpegCore;
-using OnnxStack.Core.Config;
+﻿using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
 using System;
 using System.Collections.Generic;
@@ -7,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -73,7 +73,7 @@ namespace OnnxStack.Core.Video
                 foreach (var image in onnxImages)
                 {
                     // Write each frame to the input stream of FFMPEG
-                    await videoWriter.StandardInput.BaseStream.WriteAsync(image.GetImageBytes(), cancellationToken);
+                    await image.CopyToStreamAsync(videoWriter.StandardInput.BaseStream, cancellationToken);
                 }
 
                 // Done close stream and wait for app to process
@@ -103,7 +103,7 @@ namespace OnnxStack.Core.Video
                 await foreach (var frame in videoStream)
                 {
                     // Write each frame to the input stream of FFMPEG
-                    await frame.CopyToStreamAsync(videoWriter.StandardInput.BaseStream);
+                    await frame.CopyToStreamAsync(videoWriter.StandardInput.BaseStream, cancellationToken);
                 }
 
                 // Done close stream and wait for app to process
@@ -118,12 +118,17 @@ namespace OnnxStack.Core.Video
         /// </summary>
         /// <param name="videoBytes">The video bytes.</param>
         /// <returns></returns>
-        public static async Task<VideoInfo> ReadVideoInfoAsync(byte[] videoBytes)
+        public static async Task<VideoInfo> ReadVideoInfoAsync(byte[] videoBytes, CancellationToken cancellationToken = default)
         {
-            using (var memoryStream = new MemoryStream(videoBytes))
+            string tempVideoPath = GetTempFilename();
+            try
             {
-                var result = await FFProbe.AnalyseAsync(memoryStream).ConfigureAwait(false);
-                return new VideoInfo(result.PrimaryVideoStream.Width, result.PrimaryVideoStream.Height, result.Duration, (int)result.PrimaryVideoStream.FrameRate);
+                await File.WriteAllBytesAsync(tempVideoPath, videoBytes, cancellationToken);
+                return await ReadVideoInfoAsync(tempVideoPath, cancellationToken);
+            }
+            finally
+            {
+                DeleteTempFile(tempVideoPath);
             }
         }
 
@@ -133,10 +138,29 @@ namespace OnnxStack.Core.Video
         /// </summary>
         /// <param name="filename">The filename.</param>
         /// <returns></returns>
-        public static async Task<VideoInfo> ReadVideoInfoAsync(string filename)
+        public static async Task<VideoInfo> ReadVideoInfoAsync(string filename, CancellationToken cancellationToken = default)
         {
-            var result = await FFProbe.AnalyseAsync(filename).ConfigureAwait(false);
-            return new VideoInfo(result.PrimaryVideoStream.Width, result.PrimaryVideoStream.Height, result.Duration, (int)result.PrimaryVideoStream.FrameRate);
+
+            using (var metadataReader = CreateMetadataReader(filename))
+            {
+                // Start FFMPEG
+                metadataReader.Start();
+
+                var videoInfo = default(VideoInfo);
+                using (StreamReader reader = metadataReader.StandardOutput)
+                {
+                    string result = await reader.ReadToEndAsync();
+                    var videoMetadata = JsonSerializer.Deserialize<VideoMetadata>(result);
+                    var videoStream = videoMetadata.Streams.FirstOrDefault();
+                    if (videoStream is null)
+                        throw new Exception("Failed to parse video stream metadata");
+
+                    videoInfo = new VideoInfo(videoStream.Height, videoStream.Width, videoStream.Duration, videoStream.FramesPerSecond);
+                }
+
+                await metadataReader.WaitForExitAsync(cancellationToken);
+                return videoInfo;
+            }
         }
 
 
@@ -308,7 +332,7 @@ namespace OnnxStack.Core.Video
         {
             var ffmpegProcess = new Process();
             ffmpegProcess.StartInfo.FileName = _configuration.FFmpegPath;
-            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -i \"{inputFile}\" -c:v png  -r {fps} -f image2pipe -";
+            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -hwaccel:v auto -i \"{inputFile}\" -c:v png  -r {fps} -f image2pipe -";
             ffmpegProcess.StartInfo.RedirectStandardOutput = true;
             ffmpegProcess.StartInfo.UseShellExecute = false;
             ffmpegProcess.StartInfo.CreateNoWindow = true;
@@ -329,11 +353,28 @@ namespace OnnxStack.Core.Video
             var codec = preserveTransparency ? "png" : "libx264";
             var format = preserveTransparency ? "yuva420p" : "yuv420p";
             ffmpegProcess.StartInfo.FileName = _configuration.FFmpegPath;
-            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -framerate {fps:F4} -i - -c:v {codec} -movflags +faststart -vf format={format} -aspect {aspectRatio} {outputFile}";
+            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -framerate {fps:F4} -hwaccel:v auto -i - -c:v {codec} -movflags +faststart -vf format={format} -aspect {aspectRatio} {outputFile}";
             ffmpegProcess.StartInfo.RedirectStandardInput = true;
             ffmpegProcess.StartInfo.UseShellExecute = false;
             ffmpegProcess.StartInfo.CreateNoWindow = true;
             return ffmpegProcess;
+        }
+
+
+        /// <summary>
+        /// Creates the metadata reader.
+        /// </summary>
+        /// <param name="inputFile">The input file.</param>
+        /// <returns></returns>
+        private static Process CreateMetadataReader(string inputFile)
+        {
+            var ffprobeProcess = new Process();
+            ffprobeProcess.StartInfo.FileName = _configuration.FFprobePath;
+            ffprobeProcess.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams {inputFile}";
+            ffprobeProcess.StartInfo.RedirectStandardOutput = true;
+            ffprobeProcess.StartInfo.UseShellExecute = false;
+            ffprobeProcess.StartInfo.CreateNoWindow = true;
+            return ffprobeProcess;
         }
 
 

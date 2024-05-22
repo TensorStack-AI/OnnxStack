@@ -164,7 +164,7 @@ namespace OnnxStack.Core.Video
         public static async Task<OnnxVideo> FromFileAsync(string filename, float? frameRate = default, CancellationToken cancellationToken = default)
         {
             var videoBytes = await File.ReadAllBytesAsync(filename, cancellationToken);
-            var videoInfo = await VideoHelper.ReadVideoInfoAsync(videoBytes);
+            var videoInfo = await VideoHelper.ReadVideoInfoAsync(videoBytes, cancellationToken);
             if (frameRate.HasValue)
                 videoInfo = videoInfo with { FrameRate = Math.Min(videoInfo.FrameRate, frameRate.Value) };
 

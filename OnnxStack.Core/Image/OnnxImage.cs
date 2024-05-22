@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using ImageSharp = SixLabors.ImageSharp.Image;
 
@@ -209,9 +210,9 @@ namespace OnnxStack.Core.Image
         /// </summary>
         /// <param name="destination">The destination.</param>
         /// <returns></returns>
-        public Task CopyToStreamAsync(Stream destination)
+        public Task CopyToStreamAsync(Stream destination, CancellationToken cancellationToken)
         {
-            return _imageData.SaveAsPngAsync(destination);
+            return _imageData.SaveAsPngAsync(destination, cancellationToken);
         }
 
 
