@@ -1,5 +1,4 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -55,19 +54,20 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         {
             var sigmas = _sigmas.ToArray();
             var timesteps = GetTimesteps();
-            var log_sigmas = np.log(sigmas).ToArray<float>();
-            var range = np.arange(0, (float)_sigmas.Length).ToArray<float>();
+            var logSigmas = ArrayHelpers.Log(sigmas);
+            var range = ArrayHelpers.Range(0, sigmas.Length);
 
             // TODO: Implement "interpolation_type"
-            var interpolation_type = "linear";
-            sigmas = interpolation_type == "log_linear"
-                ? np.exp(np.linspace(np.log(sigmas.Last()), np.log(sigmas.First()), timesteps.Length + 1)).ToArray<float>()
-                : Interpolate(timesteps, range, _sigmas);
+            //var interpolation_type = "linear";
+            //sigmas = interpolation_type == "log_linear"
+            //    ? np.exp(np.linspace(np.log(sigmas.Last()), np.log(sigmas.First()), timesteps.Length + 1)).ToArray<float>()
+            //    : Interpolate(timesteps, range, _sigmas);
 
+            sigmas = Interpolate(timesteps, range, _sigmas);
             if (Options.UseKarrasSigmas)
             {
                 sigmas = ConvertToKarras(sigmas);
-                timesteps = SigmaToTimestep(sigmas, log_sigmas);
+                timesteps = SigmaToTimestep(sigmas, logSigmas);
             }
 
             _sigmas = sigmas

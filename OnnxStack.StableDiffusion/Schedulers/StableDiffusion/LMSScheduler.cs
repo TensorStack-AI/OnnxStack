@@ -1,6 +1,4 @@
-﻿using MathNet.Numerics;
-using Microsoft.ML.OnnxRuntime.Tensors;
-using NumSharp;
+﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Helpers;
@@ -57,16 +55,14 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         protected override int[] SetTimesteps()
         {
             var timesteps = GetTimesteps();
-            var log_sigmas = _sigmas.Select(x => MathF.Log(x)).ToArray();
-            var range = Enumerable.Range(0, _sigmas.Length)
-                .Select(x => (float)x)
-                .ToArray();
+            var logSigmas = ArrayHelpers.Log(_sigmas);
+            var range = ArrayHelpers.Range(0, _sigmas.Length);
 
             var sigmas = Interpolate(timesteps, range, _sigmas);
             if (Options.UseKarrasSigmas)
             {
                 sigmas = ConvertToKarras(sigmas);
-                timesteps = SigmaToTimestep(sigmas, log_sigmas);
+                timesteps = SigmaToTimestep(sigmas, logSigmas);
             }
 
             _sigmas = sigmas
@@ -196,7 +192,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 }
                 return prod;
             }
-            return (float)Integrate.OnClosedInterval(LmsDerivative, _sigmas[t], _sigmas[t + 1], 1e-4);
+            return MathHelpers.IntegrateOnClosedInterval(LmsDerivative, _sigmas[t], _sigmas[t + 1], 1e-4);
         }
 
         protected override void Dispose(bool disposing)

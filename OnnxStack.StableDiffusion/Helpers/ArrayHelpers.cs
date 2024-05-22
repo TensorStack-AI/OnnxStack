@@ -14,5 +14,19 @@ namespace OnnxStack.StableDiffusion.Helpers
                 : result.Select(x => MathF.Round(x)).ToArray();
         }
 
+
+        public static float[] Range(int start, int end)
+        {
+            return Enumerable.Range(start, end)
+                .Select(x => (float)x)
+                .ToArray();
+        }
+
+        public static float[] Log(float[] array)
+        {
+            return array
+                .Select(x => MathF.Log(x))
+                .ToArray();
+        }
     }
 }

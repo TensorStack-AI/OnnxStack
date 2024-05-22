@@ -1,8 +1,8 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -63,8 +63,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             // Create timesteps based on the specified strategy
             var sigmas = _sigmas.ToArray();
             var timesteps = GetTimesteps();
-            var logSigmas = np.log(sigmas).ToArray<float>();
-            var range = np.arange(0, (float)_sigmas.Length).ToArray<float>();
+            var logSigmas = ArrayHelpers.Log(sigmas);
+            var range = ArrayHelpers.Range(0, _sigmas.Length);
             sigmas = Interpolate(timesteps, range, _sigmas);
 
             if (Options.UseKarrasSigmas)

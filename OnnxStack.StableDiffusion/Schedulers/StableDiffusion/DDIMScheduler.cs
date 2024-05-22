@@ -114,27 +114,26 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             DenseTensor<float> predOriginalSample = null;
             if (Options.PredictionType == PredictionType.Epsilon)
             {
-                var sampleBeta = sample.SubtractTensors(modelOutput.MultiplyTensorByFloat((float)Math.Sqrt(betaProdT)));
-                predOriginalSample = sampleBeta.DivideTensorByFloat((float)Math.Sqrt(alphaProdT));
+                var sampleBeta = sample.SubtractTensors(modelOutput.MultiplyTensorByFloat(MathF.Sqrt(betaProdT)));
+                predOriginalSample = sampleBeta.DivideTensorByFloat(MathF.Sqrt(alphaProdT));
                 predEpsilon = modelOutput;
             }
             else if (Options.PredictionType == PredictionType.Sample)
             {
                 predOriginalSample = modelOutput;
                 predEpsilon = sample.SubtractTensors(predOriginalSample
-                    .MultiplyTensorByFloat((float)Math.Sqrt(alphaProdT)))
-                    .DivideTensorByFloat((float)Math.Sqrt(betaProdT));
+                    .MultiplyTensorByFloat(MathF.Sqrt(alphaProdT)))
+                    .DivideTensorByFloat(MathF.Sqrt(betaProdT));
             }
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
-                var alphaSqrt = (float)Math.Sqrt(alphaProdT);
-                var betaSqrt = (float)Math.Sqrt(betaProdT);
-                predOriginalSample = sample
-                    .MultiplyTensorByFloat(alphaSqrt)
-                    .SubtractTensors(modelOutput.MultiplyTensorByFloat(betaSqrt));
-                predEpsilon = modelOutput
-                    .MultiplyTensorByFloat(alphaSqrt)
-                    .AddTensors(sample.MultiplyTensorByFloat(betaSqrt));
+                var tmp = sample.MultiplyTensorByFloat(MathF.Pow(alphaProdT, 0.5f));
+                var tmp2 = modelOutput.MultiplyTensorByFloat(MathF.Pow(betaProdT, 0.5f));
+                predOriginalSample = tmp.Subtract(tmp2);
+
+                var tmp3 = modelOutput.MultiplyTensorByFloat(MathF.Pow(alphaProdT, 0.5f));
+                var tmp4 = sample.MultiplyTensorByFloat(MathF.Pow(betaProdT, 0.5f));
+                predEpsilon = tmp3.Add(tmp4);
             }
 
 
@@ -154,24 +153,23 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             //# σ_t = sqrt((1 − α_t−1)/(1 − α_t)) * sqrt(1 − α_t/α_t−1)
             var eta = 0f;
             var variance = GetVariance(currentTimestep, previousTimestep);
-            var stdDevT = eta * (float)Math.Sqrt(variance);
+            var stdDevT = eta * MathF.Pow(variance, 0.5f);
 
             var useClippedModelOutput = false;
             if (useClippedModelOutput)
             {
                 //# the pred_epsilon is always re-derived from the clipped x_0 in Glide
                 predEpsilon = sample
-                    .SubtractTensors(predOriginalSample.MultiplyTensorByFloat((float)Math.Sqrt(alphaProdT)))
-                    .DivideTensorByFloat((float)Math.Sqrt(betaProdT));
+                    .SubtractTensors(predOriginalSample.MultiplyTensorByFloat(MathF.Pow(alphaProdT, 0.5f)))
+                    .DivideTensorByFloat(MathF.Pow(betaProdT, 0.5f));
             }
 
 
             //# 5. compute "direction pointing to x_t" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-            var predSampleDirection = predEpsilon.MultiplyTensorByFloat((float)Math.Sqrt(1f - alphaProdTPrev - Math.Pow(stdDevT, 2f)));
-
+            var predSampleDirection = predEpsilon.MultiplyTensorByFloat(MathF.Pow(1.0f - alphaProdTPrev - MathF.Pow(stdDevT, 2f), 0.5f));
 
             //# 6. compute x_t without "random noise" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-            var prevSample = predSampleDirection.AddTensors(predOriginalSample.MultiplyTensorByFloat((float)Math.Sqrt(alphaProdTPrev)));
+            var prevSample = predSampleDirection.AddTensors(predOriginalSample.MultiplyTensorByFloat(MathF.Pow(alphaProdTPrev, 0.5f)));
 
             if (eta > 0)
                 prevSample = prevSample.AddTensors(CreateRandomSample(modelOutput.Dimensions).MultiplyTensorByFloat(stdDevT));
@@ -192,8 +190,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
             int timestep = timesteps[0];
             float alphaProd = _alphasCumProd[timestep];
-            float sqrtAlpha = (float)Math.Sqrt(alphaProd);
-            float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
+            float sqrtAlpha = MathF.Sqrt(alphaProd);
+            float sqrtOneMinusAlpha = MathF.Sqrt(1.0f - alphaProd);
 
             return noise
                 .MultiplyTensorByFloat(sqrtOneMinusAlpha)

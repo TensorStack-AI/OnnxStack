@@ -1,5 +1,4 @@
-﻿using MathNet.Numerics;
-using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.ML.OnnxRuntime;
 using OnnxStack.Core.Config;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;

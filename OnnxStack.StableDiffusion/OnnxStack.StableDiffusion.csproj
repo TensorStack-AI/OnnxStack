@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.31.0</Version>
+    <Version>0.31.16</Version>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -48,12 +48,6 @@
   <ItemGroup>
     <PackageReference Include="OnnxStack.Core" Version="0.31.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
     <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)'=='Debug-Nvidia'" />
-  </ItemGroup>
-
-
-  <ItemGroup>
-    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="NumSharp" Version="0.30.0" />
   </ItemGroup>
 
   <ItemGroup>

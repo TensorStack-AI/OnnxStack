@@ -1,5 +1,4 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
-using NumSharp;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -115,7 +114,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             if (Options.Thresholding)
             {
                 // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L322
-                predOriginalSample = ThresholdSample(predOriginalSample);
+               // predOriginalSample = ThresholdSample(predOriginalSample);
             }
             else if (Options.ClipSample)
             {
@@ -254,87 +253,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             return variance;
         }
 
-
-        /// <summary>
-        /// Thresholds the sample.
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <param name="dynamicThresholdingRatio">The dynamic thresholding ratio.</param>
-        /// <param name="sampleMaxValue">The sample maximum value.</param>
-        /// <returns></returns>
-        private DenseTensor<float> ThresholdSample(DenseTensor<float> input, float dynamicThresholdingRatio = 0.995f, float sampleMaxValue = 1f)
-        {
-            var sample = new NDArray(input.ToArray(), new Shape(input.Dimensions.ToArray()));
-            var batch_size = sample.shape[0];
-            var channels = sample.shape[1];
-            var height = sample.shape[2];
-            var width = sample.shape[3];
-
-            // Flatten sample for doing quantile calculation along each image
-            var flatSample = sample.reshape(batch_size, channels * height * width);
-
-            // Calculate the absolute values of the sample
-            var absSample = np.abs(flatSample);
-
-            // Calculate the quantile for each row
-            var quantiles = new List<float>();
-            for (int i = 0; i < batch_size; i++)
-            {
-                var row = absSample[$"{i},:"].MakeGeneric<float>();
-                var percentileValue = CalculatePercentile(row, dynamicThresholdingRatio);
-                percentileValue = Math.Clamp(percentileValue, 1f, sampleMaxValue);
-                quantiles.Add(percentileValue);
-            }
-
-            // Create an NDArray from quantiles
-            var quantileArray = np.array(quantiles.ToArray());
-
-            // Calculate the thresholded sample
-            var sExpanded = np.expand_dims(quantileArray, 1); // Expand to match the sample shape
-            var negSExpanded = np.negative(sExpanded); // Get the negation of sExpanded
-            var thresholdedSample = sample - negSExpanded; // Element-wise subtraction
-            thresholdedSample = np.maximum(thresholdedSample, negSExpanded); // Ensure values are not less than -sExpanded
-            thresholdedSample = np.minimum(thresholdedSample, sExpanded); // Ensure values are not greater than sExpanded
-            thresholdedSample = thresholdedSample / sExpanded;
-
-            // Reshape to the original shape
-            thresholdedSample = thresholdedSample.reshape(batch_size, channels, height, width);
-
-            return new DenseTensor<float>(thresholdedSample.ToArray<float>(), thresholdedSample.shape);
-        }
-
-
-        /// <summary>
-        /// Calculates the percentile.
-        /// </summary>
-        /// <param name="data">The data.</param>
-        /// <param name="percentile">The percentile.</param>
-        /// <returns></returns>
-        private float CalculatePercentile(NDArray data, float percentile)
-        {
-            // Sort the data indices in ascending order
-            var sortedIndices = np.argsort<float>(data);
-
-            // Calculate the index corresponding to the percentile
-            var index = (int)Math.Ceiling(percentile / 100f * (data.Shape[0] - 1));
-
-            // Retrieve the value at the calculated index
-            var percentileValue = data[sortedIndices[index]];
-
-            return percentileValue.GetSingle();
-        }
-
-
-        /// <summary>
-        /// Determines whether the VarianceType is learned.
-        /// </summary>
-        /// <returns>
-        ///   <c>true</c> if the VarianceType is learned; otherwise, <c>false</c>.
-        /// </returns>
-        private bool IsVarianceTypeLearned()
-        {
-            return Options.VarianceType == VarianceType.Learned || Options.VarianceType == VarianceType.LearnedRange;
-        }
 
         protected override void Dispose(bool disposing)
         {
