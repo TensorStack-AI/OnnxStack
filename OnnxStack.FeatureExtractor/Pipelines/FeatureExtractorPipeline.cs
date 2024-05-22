@@ -102,10 +102,11 @@ namespace OnnxStack.FeatureExtractor.Pipelines
             var featureFrames = new List<OnnxImage>();
             foreach (var videoFrame in video.Frames)
             {
-                var result = await RunAsync(videoFrame, cancellationToken);
+                var result = await ExtractImageAsync(videoFrame, cancellationToken);
                 featureFrames.Add(result);
                 progressCallback?.Invoke(videoFrame, result);
             }
+
             _logger?.LogEnd("Extracting OnnxVideo features complete.", timestamp);
             return new OnnxVideo(video.Info, featureFrames);
         }

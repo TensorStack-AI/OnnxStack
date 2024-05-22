@@ -2,7 +2,7 @@
 {
     public enum OnnxModelPrecision
     {
-        F32 = 0,
-        F16 = 1
+        F16 = 0,
+        F32 = 1
     }
 }

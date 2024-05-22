@@ -84,7 +84,11 @@ namespace OnnxStack.Core.Video
             if (FrameCount == 0 || DurationSeconds == 0)
                 return 0;
 
-            return FrameCount / DurationSeconds;
+            var framesPerSec = FrameCount / DurationSeconds;
+            if (framesPerSec < 1)
+                return MathF.Round(framesPerSec, 2);
+
+            return MathF.Round(framesPerSec, 0);
         }
     }
 }
