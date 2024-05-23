@@ -261,18 +261,19 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <returns></returns>
         public static new StableCascadePipeline CreatePipeline(StableDiffusionModelSet modelSet, ILogger logger = default)
         {
-            var priorUnet = new UNetConditionModel(modelSet.UnetConfig.ApplyDefaults(modelSet));
-            var decoderUnet = new UNetConditionModel(modelSet.Unet2Config.ApplyDefaults(modelSet));
-            var tokenizer = new TokenizerModel(modelSet.TokenizerConfig.ApplyDefaults(modelSet));
-            var textEncoder = new TextEncoderModel(modelSet.TextEncoderConfig.ApplyDefaults(modelSet));
-            var imageDecoder = new AutoEncoderModel(modelSet.VaeDecoderConfig.ApplyDefaults(modelSet));
-            var imageEncoder = new AutoEncoderModel(modelSet.VaeEncoderConfig.ApplyDefaults(modelSet));
+            var config = modelSet with { };
+            var priorUnet = new UNetConditionModel(config.UnetConfig.ApplyDefaults(config));
+            var decoderUnet = new UNetConditionModel(config.Unet2Config.ApplyDefaults(config));
+            var tokenizer = new TokenizerModel(config.TokenizerConfig.ApplyDefaults(config));
+            var textEncoder = new TextEncoderModel(config.TextEncoderConfig.ApplyDefaults(config));
+            var imageDecoder = new AutoEncoderModel(config.VaeDecoderConfig.ApplyDefaults(config));
+            var imageEncoder = new AutoEncoderModel(config.VaeEncoderConfig.ApplyDefaults(config));
             var controlnet = default(UNetConditionModel);
-            if (modelSet.ControlNetUnetConfig is not null)
-                controlnet = new UNetConditionModel(modelSet.ControlNetUnetConfig.ApplyDefaults(modelSet));
+            if (config.ControlNetUnetConfig is not null)
+                controlnet = new UNetConditionModel(config.ControlNetUnetConfig.ApplyDefaults(config));
 
-            var pipelineOptions = new PipelineOptions(modelSet.Name, modelSet.MemoryMode);
-            return new StableCascadePipeline(pipelineOptions, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, controlnet, modelSet.Diffusers, modelSet.SchedulerOptions, logger);
+            var pipelineOptions = new PipelineOptions(config.Name, config.MemoryMode);
+            return new StableCascadePipeline(pipelineOptions, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, controlnet, config.Diffusers, config.SchedulerOptions, logger);
         }
 
 

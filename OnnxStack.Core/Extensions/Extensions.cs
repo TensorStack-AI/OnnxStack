@@ -61,13 +61,15 @@ namespace OnnxStack.Core
 
         public static T ApplyDefaults<T>(this T config, IOnnxModelSetConfig defaults) where T : OnnxModelConfig
         {
-            config.DeviceId ??= defaults.DeviceId;
-            config.ExecutionMode ??= defaults.ExecutionMode;
-            config.ExecutionProvider ??= defaults.ExecutionProvider;
-            config.InterOpNumThreads ??= defaults.InterOpNumThreads;
-            config.IntraOpNumThreads ??= defaults.IntraOpNumThreads;
-            config.Precision ??= defaults.Precision;
-            return config;
+            return config with
+            {
+                DeviceId = config.DeviceId ?? defaults.DeviceId,
+                ExecutionMode = config.ExecutionMode ?? defaults.ExecutionMode,
+                ExecutionProvider = config.ExecutionProvider ?? defaults.ExecutionProvider,
+                InterOpNumThreads = config.InterOpNumThreads ?? defaults.InterOpNumThreads,
+                IntraOpNumThreads = config.IntraOpNumThreads ?? defaults.IntraOpNumThreads,
+                Precision = config.Precision ?? defaults.Precision
+            };
         }
 
 
@@ -282,6 +284,16 @@ namespace OnnxStack.Core
                 values[i] = (values[i] * 2) - 1;
             }
             return values;
+        }
+
+
+        public static void RemoveRange<TSource>(this List<TSource> source, IEnumerable<TSource> toRemove)
+        {
+            if (toRemove.IsNullOrEmpty())
+                return;
+
+            foreach (var item in toRemove)
+                source.Remove(item);
         }
     }
 }
