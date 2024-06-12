@@ -85,6 +85,18 @@ namespace OnnxStack.Core
 
 
         /// <summary>
+        /// Converts DenseTensor<bool> to OrtValue.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="metadata">The metadata.</param>
+        /// <returns></returns>
+        public static OrtValue ToOrtValue(this DenseTensor<byte> tensor, OnnxNamedMetadata metadata)
+        {
+            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, tensor.Buffer, tensor.Dimensions.ToLong());
+        }
+
+
+        /// <summary>
         /// Creates and allocates the output tensors buffer.
         /// </summary>
         /// <param name="metadata">The metadata.</param>

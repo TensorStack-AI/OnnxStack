@@ -88,13 +88,13 @@ namespace OnnxStack.Core.Image
             var splitTensor = new DenseTensor<float>(new[] { 1, channels, height, width });
             Parallel.For(0, channels, (c) =>
             {
-                Parallel.For(0, height, (i) =>
+                for (int i = 0; i < height; i++)
                 {
-                    Parallel.For(0, width, (j) =>
+                    for (int j = 0; j < width; j++)
                     {
                         splitTensor[0, c, i, j] = source[0, c, startRow + i, startCol + j];
-                    });
-                });
+                    }
+                }
             });
             return splitTensor;
         }
@@ -135,9 +135,9 @@ namespace OnnxStack.Core.Image
             int channels = tile.Dimensions[1];
             Parallel.For(0, channels, (c) =>
             {
-                Parallel.For(0, height, (i) =>
+                for (int i = 0; i < height; i++)
                 {
-                    Parallel.For(0, width, (j) =>
+                    for (int j = 0; j < width; j++)
                     {
                         var value = tile[0, c, i, j];
                         var existing = destination[0, c, startRow + i, startCol + j];
@@ -147,8 +147,8 @@ namespace OnnxStack.Core.Image
                             value = (existing + value) / 2f;
                         }
                         destination[0, c, startRow + i, startCol + j] = value;
-                    });
-                });
+                    }
+                }
             });
         }
     }
