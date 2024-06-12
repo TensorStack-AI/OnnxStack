@@ -1,21 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.31.0</Version>
-    <TargetFramework>net7.0</TargetFramework>
+    <Version>0.31.11</Version>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
 
     <Title>OnnxStack.ImageUpscaler</Title>
-    <Company>Stackyard AI</Company>
+    <Company>TensorStack</Company>
     <Description>
-      OnnxRuntime Image Upscale Library for .NET Core
+      OnnxRuntime Image Upscale Library for .NET
     </Description>
-    <Copyright>Stackyard AI - 2024</Copyright>
-    <RepositoryUrl>https://github.com/saddam213/OnnxStack</RepositoryUrl>
+    <Copyright>TensorStack, Advanced Micro Devices - 2024</Copyright>
+    <RepositoryUrl>https://github.com/TensorStack-AI/OnnxStack</RepositoryUrl>
     <PackageTags>onnx;onnx-runtime;upscale</PackageTags>
-    <Authors>sa_ddam213</Authors>
+    <Authors>TensorStack, Advanced Micro Devices</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageId>OnnxStack.ImageUpscaler</PackageId>
     <Product>$(AssemblyName)</Product>
