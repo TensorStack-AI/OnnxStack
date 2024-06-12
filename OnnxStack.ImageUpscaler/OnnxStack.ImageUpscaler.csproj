@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.31.11</Version>
+    <Version>0.39.0</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.Core" Version="0.31.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
+    <PackageReference Include="OnnxStack.Core" Version="0.39.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
     <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)'=='Debug-Nvidia'" />
   </ItemGroup>
 
