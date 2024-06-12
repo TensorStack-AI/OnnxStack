@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using OnnxStack.Core;
 using OnnxStack.Core.Config;
+using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
 using OnnxStack.StableDiffusion.Diffusers.InstaFlow;
@@ -25,14 +26,14 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public InstaFlowPipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
-            : base(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlNet, diffusers, defaultSchedulerOptions, logger)
+        public InstaFlowPipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, List<SchedulerType> schedulers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlNet, diffusers, schedulers, defaultSchedulerOptions, logger)
         {
             _supportedDiffusers = diffusers ?? new List<DiffuserType>
             {
                 DiffuserType.TextToImage
             };
-            _supportedSchedulers = new List<SchedulerType>
+            _supportedSchedulers = schedulers ?? new List<SchedulerType>
             {
                 SchedulerType.InstaFlow
             };
@@ -87,7 +88,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 controlnet = new UNetConditionModel(config.ControlNetUnetConfig.ApplyDefaults(config));
 
             var pipelineOptions = new PipelineOptions(config.Name, config.MemoryMode);
-            return new InstaFlowPipeline(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlnet, config.Diffusers, config.SchedulerOptions, logger);
+            return new InstaFlowPipeline(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlnet, config.Diffusers, config.Schedulers, config.SchedulerOptions, logger);
         }
 
 

@@ -51,7 +51,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="diffusers">The diffusers.</param>
         /// <param name="defaultSchedulerOptions">The default scheduler options.</param>
         /// <param name="logger">The logger.</param>
-        public StableDiffusionPipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, UNetConditionModel controlNetUnet, List<DiffuserType> diffusers = default, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default) : base(pipelineOptions, logger)
+        public StableDiffusionPipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, UNetConditionModel controlNetUnet, List<DiffuserType> diffusers = default, List<SchedulerType> schedulers = default,  SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default) : base(pipelineOptions, logger)
         {
             _unet = unet;
             _tokenizer = tokenizer;
@@ -70,7 +70,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             if (_controlNetUnet is null)
                 _supportedDiffusers.RemoveRange(new[] { DiffuserType.ControlNet, DiffuserType.ControlNetImage });
 
-            _supportedSchedulers = new List<SchedulerType>
+            _supportedSchedulers = schedulers ?? new List<SchedulerType>
             {
                 SchedulerType.LMS,
                 SchedulerType.Euler,
@@ -639,9 +639,9 @@ namespace OnnxStack.StableDiffusion.Pipelines
             // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate1
             var tokenBatches = new List<long[]>();
             var attentionBatches = new List<long[]>();
-            foreach (var tokenBatch in inputTokens.InputIds.Batch(_tokenizer.TokenizerLimit))
+            foreach (var tokenBatch in inputTokens.InputIds.Chunk(_tokenizer.TokenizerLimit))
                 tokenBatches.Add(PadWithBlankTokens(tokenBatch, _tokenizer.TokenizerLimit, _tokenizer.PadTokenId).ToArray());
-            foreach (var attentionBatch in inputTokens.AttentionMask.Batch(_tokenizer.TokenizerLimit))
+            foreach (var attentionBatch in inputTokens.AttentionMask.Chunk(_tokenizer.TokenizerLimit))
                 attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 1).ToArray());
 
             var promptEmbeddings = new List<float>();
@@ -693,7 +693,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 controlnet = new UNetConditionModel(config.ControlNetUnetConfig.ApplyDefaults(config));
 
             var pipelineOptions = new PipelineOptions(config.Name, config.MemoryMode);
-            return new StableDiffusionPipeline(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlnet, config.Diffusers, config.SchedulerOptions, logger);
+            return new StableDiffusionPipeline(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlnet, config.Diffusers, config.Schedulers, config.SchedulerOptions, logger);
         }
 
 

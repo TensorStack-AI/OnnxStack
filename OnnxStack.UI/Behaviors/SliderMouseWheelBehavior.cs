@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xaml.Behaviors;
-using Newtonsoft.Json.Linq;
 using System.Windows.Controls;
 using System.Windows.Input;
 

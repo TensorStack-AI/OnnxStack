@@ -32,7 +32,7 @@ namespace OnnxStack.StableDiffusion.Models
                 InterOpNumThreads = 0,
                 IntraOpNumThreads = 0,
                 OnnxModelPath = modelFile,
-                Type = type,
+                Type = type
             };
             return new ControlNetModel(configuration);
         }

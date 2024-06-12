@@ -11,16 +11,19 @@ namespace OnnxStack.StableDiffusion.Config
     {
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
-        public int SampleSize { get; set; } = 512;
-        public DiffuserPipelineType PipelineType { get; set; }
-        public List<DiffuserType> Diffusers { get; set; } = new List<DiffuserType>();
-        public MemoryModeType MemoryMode { get; set; }
         public int DeviceId { get; set; }
         public int InterOpNumThreads { get; set; }
         public int IntraOpNumThreads { get; set; }
         public ExecutionMode ExecutionMode { get; set; }
         public ExecutionProvider ExecutionProvider { get; set; }
         public OnnxModelPrecision Precision { get; set; }
+        public MemoryModeType MemoryMode { get; set; }
+        public int SampleSize { get; set; } = 512;
+        public DiffuserPipelineType PipelineType { get; set; }
+        public List<DiffuserType> Diffusers { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<SchedulerType> Schedulers { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TokenizerModelConfig TokenizerConfig { get; set; }

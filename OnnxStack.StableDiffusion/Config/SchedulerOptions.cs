@@ -1,6 +1,7 @@
 ﻿using OnnxStack.StableDiffusion.Enums;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace OnnxStack.StableDiffusion.Config
 {
@@ -36,6 +37,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// If value is set to 0 a random seed is used.
         /// </value>
         [Range(0, int.MaxValue)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int Seed { get; set; }
 
         /// <summary>
@@ -45,6 +47,7 @@ namespace OnnxStack.StableDiffusion.Config
         /// The number of steps to run inference for. The more steps the longer it will take to run the inference loop but the image quality should improve.
         /// </value>
         [Range(5, 200)]
+
         public int InferenceSteps { get; set; } = 30;
 
         /// <summary>
@@ -62,34 +65,76 @@ namespace OnnxStack.StableDiffusion.Config
         public float Strength { get; set; } = 0.6f;
 
         [Range(0, int.MaxValue)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int TrainTimesteps { get; set; } = 1000;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float BetaStart { get; set; } = 0.00085f;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float BetaEnd { get; set; } = 0.012f;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public IEnumerable<float> TrainedBetas { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public TimestepSpacingType TimestepSpacing { get; set; } = TimestepSpacingType.Linspace;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public BetaScheduleType BetaSchedule { get; set; } = BetaScheduleType.ScaledLinear;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int StepsOffset { get; set; } = 0;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool UseKarrasSigmas { get; set; } = false;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public VarianceType VarianceType { get; set; } = VarianceType.FixedSmall;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float SampleMaxValue { get; set; } = 1.0f;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool Thresholding { get; set; } = false;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool ClipSample { get; set; } = false;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float ClipSampleRange { get; set; } = 1f;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public PredictionType PredictionType { get; set; } = PredictionType.Epsilon;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public AlphaTransformType AlphaTransformType { get; set; } = AlphaTransformType.Cosine;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float MaximumBeta { get; set; } = 0.999f;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public List<int> Timesteps { get; set; }
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int OriginalInferenceSteps { get; set; } = 50;
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float AestheticScore { get; set; } = 6f;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float AestheticNegativeScore { get; set; } = 2.5f;
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float ConditioningScale { get; set; } = 0.7f;
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int InferenceSteps2 { get; set; } = 10;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float GuidanceScale2 { get; set; } = 0;
 
+        [JsonIgnore]
         public bool IsKarrasScheduler
         {
             get

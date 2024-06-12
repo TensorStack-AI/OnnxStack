@@ -34,8 +34,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="diffusers">The diffusers.</param>
         /// <param name="defaultSchedulerOptions">The default scheduler options.</param>
         /// <param name="logger">The logger.</param>
-        public StableCascadePipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel imageDecoder, AutoEncoderModel imageEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
-            : base(pipelineOptions, tokenizer, textEncoder, priorUnet, imageDecoder, imageEncoder, controlNet, diffusers, defaultSchedulerOptions, logger)
+        public StableCascadePipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel imageDecoder, AutoEncoderModel imageEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, List<SchedulerType> schedulers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(pipelineOptions, tokenizer, textEncoder, priorUnet, imageDecoder, imageEncoder, controlNet, diffusers, schedulers,defaultSchedulerOptions, logger)
         {
             _decoderUnet = decoderUnet;
             _supportedDiffusers = diffusers ?? new List<DiffuserType>
@@ -43,7 +43,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 DiffuserType.TextToImage,
                 DiffuserType.ImageToImage
             };
-            _supportedSchedulers = new List<SchedulerType>
+            _supportedSchedulers = schedulers ?? new List<SchedulerType>
             {
                 SchedulerType.DDPM,
                 SchedulerType.DDPMWuerstchen
@@ -233,9 +233,9 @@ namespace OnnxStack.StableDiffusion.Pipelines
             // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
             var tokenBatches = new List<long[]>();
             var attentionBatches = new List<long[]>();
-            foreach (var tokenBatch in inputTokens.InputIds.Batch(_tokenizer.TokenizerLimit))
+            foreach (var tokenBatch in inputTokens.InputIds.Chunk(_tokenizer.TokenizerLimit))
                 tokenBatches.Add(PadWithBlankTokens(tokenBatch, _tokenizer.TokenizerLimit, _tokenizer.PadTokenId).ToArray());
-            foreach (var attentionBatch in inputTokens.AttentionMask.Batch(_tokenizer.TokenizerLimit))
+            foreach (var attentionBatch in inputTokens.AttentionMask.Chunk(_tokenizer.TokenizerLimit))
                 attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 1).ToArray());
 
             var promptEmbeddings = new List<float>();
@@ -273,7 +273,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 controlnet = new UNetConditionModel(config.ControlNetUnetConfig.ApplyDefaults(config));
 
             var pipelineOptions = new PipelineOptions(config.Name, config.MemoryMode);
-            return new StableCascadePipeline(pipelineOptions, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, controlnet, config.Diffusers, config.SchedulerOptions, logger);
+            return new StableCascadePipeline(pipelineOptions, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, controlnet, config.Diffusers, config.Schedulers, config.SchedulerOptions, logger);
         }
 
 

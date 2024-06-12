@@ -252,7 +252,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
 
                 // Unload if required
                 if (_memoryMode == MemoryModeType.Minimum)
-                    await _unet.UnloadAsync();
+                    await _decoderUnet.UnloadAsync();
 
                 return latents;
             }

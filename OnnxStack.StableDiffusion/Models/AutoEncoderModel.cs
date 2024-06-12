@@ -1,4 +1,5 @@
-﻿using OnnxStack.Core.Config;
+﻿using Microsoft.ML.OnnxRuntime;
+using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 
 namespace OnnxStack.StableDiffusion.Models
@@ -13,6 +14,27 @@ namespace OnnxStack.StableDiffusion.Models
         }
 
         public float ScaleFactor => _configuration.ScaleFactor;
+
+
+        public static AutoEncoderModel Create(AutoEncoderModelConfig configuration)
+        {
+            return new AutoEncoderModel(configuration);
+        }
+
+        public static AutoEncoderModel Create(string modelFile, float scaleFactor, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML)
+        {
+            var configuration = new AutoEncoderModelConfig
+            {
+                DeviceId = deviceId,
+                ExecutionProvider = executionProvider,
+                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
+                InterOpNumThreads = 0,
+                IntraOpNumThreads = 0,
+                OnnxModelPath = modelFile,
+                ScaleFactor = scaleFactor
+            };
+            return new AutoEncoderModel(configuration);
+        }
     }
 
     public record AutoEncoderModelConfig : OnnxModelConfig
