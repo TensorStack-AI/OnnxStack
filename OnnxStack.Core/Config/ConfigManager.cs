@@ -9,6 +9,19 @@ namespace OnnxStack.Core.Config
 {
     public class ConfigManager
     {
+        private static string _configurationBaseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+
+        /// <summary>
+        /// Sets the configuration location.
+        /// </summary>
+        /// <param name="baseDirectory">The base directory.</param>
+        public static void SetConfiguration(string baseDirectory)
+        {
+            _configurationBaseDirectory = baseDirectory;
+        }
+
+
         /// <summary>
         /// Loads the OnnxStackConfig configuration object from appsetting.json
         /// </summary>
@@ -88,19 +101,37 @@ namespace OnnxStack.Core.Config
             return serializerOptions;
         }
 
+
+        /// <summary>
+        /// Saves the configuration.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
         public static void SaveConfiguration(OnnxStackConfig configuration)
         {
             SaveConfiguration<OnnxStackConfig>(configuration);
         }
 
+
+        /// <summary>
+        /// Saves the configuration.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="configuration">The configuration.</param>
         public static void SaveConfiguration<T>(T configuration) where T : class, IConfigSection
         {
             SaveConfiguration<T>(typeof(T).Name, configuration);
         }
 
+
+        /// <summary>
+        /// Saves the configuration.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sectionName">Name of the section.</param>
+        /// <param name="configuration">The configuration.</param>
         public static void SaveConfiguration<T>(string sectionName, T configuration) where T : class, IConfigSection
         {
-          
+
             string appsettingStreamFile = GetAppSettingsFile();
 
             // Read In File
@@ -118,9 +149,14 @@ namespace OnnxStack.Core.Config
                 JsonSerializer.Serialize(appsettingWriteStream, appSettings, serializerOptions);
         }
 
+
+        /// <summary>
+        /// Gets the application settings file.
+        /// </summary>
+        /// <returns></returns>
         private static string GetAppSettingsFile()
         {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+            return Path.Combine(_configurationBaseDirectory, "appsettings.json");
         }
     }
 }
