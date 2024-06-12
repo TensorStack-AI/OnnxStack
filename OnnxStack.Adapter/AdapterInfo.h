@@ -11,10 +11,8 @@ struct AdapterInfo
     SIZE_T DedicatedSystemMemory;
     SIZE_T SharedSystemMemory;
     LUID AdapterLuid;
+    UINT Flags;
     WCHAR Description[128];
 };
-
-
-extern "C" __declspec(dllexport) int __cdecl GetAdapter(bool preferHighPerformance);
 
 extern "C" __declspec(dllexport) void __cdecl GetAdapters(AdapterInfo * adapterArray);

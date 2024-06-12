@@ -38,63 +38,20 @@ public:
     }
 };
 
-extern "C" __declspec(dllexport) int __cdecl GetAdapter(bool preferHighPerformance)
-{
-    DxgiModule dxgi;
-
-    ComPtr<IDXGIFactory6> factory = dxgi.CreateFactory();;
-    if (!factory)
-    {
-        return 0;
-    }
-
-    ComPtr<IDXGIAdapter1> adapter;
-
-    // Store LUIDs for hardware adapters in original unsorted order.
-    std::vector<std::pair<int, LUID>> adaptersUnsortedIndexAndLuid;
-    for (int i = 0; factory->EnumAdapters1(i, adapter.ReleaseAndGetAddressOf()) != DXGI_ERROR_NOT_FOUND; i++)
-    {
-        DXGI_ADAPTER_DESC desc = {};
-        RETURN_IF_FAILED(adapter->GetDesc(&desc));
-        adaptersUnsortedIndexAndLuid.emplace_back(i, desc.AdapterLuid);
-    }
-
-    // Find the first adapter meeting GPU preference.
-    DXGI_ADAPTER_DESC preferredAdapterDesc = {};
-    {
-        DXGI_GPU_PREFERENCE gpuPreference = preferHighPerformance ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_MINIMUM_POWER;
-        RETURN_IF_FAILED(factory->EnumAdapterByGpuPreference(0, gpuPreference, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
-        RETURN_IF_FAILED(adapter->GetDesc(&preferredAdapterDesc));
-    }
-
-    // Look up the index of the preferred adapter in the unsorted list order.
-    for (auto& hardwareAdapterEntry : adaptersUnsortedIndexAndLuid)
-    {
-        if (hardwareAdapterEntry.second.HighPart == preferredAdapterDesc.AdapterLuid.HighPart &&
-            hardwareAdapterEntry.second.LowPart == preferredAdapterDesc.AdapterLuid.LowPart)
-        {
-            return hardwareAdapterEntry.first;
-        }
-    }
-
-    return 0;
-}
-
 
 extern "C" __declspec(dllexport) void __cdecl GetAdapters(AdapterInfo * adapterArray)
 {
     DxgiModule dxgi;
-
-    ComPtr<IDXGIFactory6> factory = dxgi.CreateFactory();;
+    ComPtr<IDXGIFactory6> factory = dxgi.CreateFactory();
     if (!factory)
         return;
 
     int adapterCount = 0;
     ComPtr<IDXGIAdapter1> adapter;
-    for (int i = 0; factory->EnumAdapters1(i, adapter.ReleaseAndGetAddressOf()) != DXGI_ERROR_NOT_FOUND; i++)
+    for (int i = 0; factory->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())) != DXGI_ERROR_NOT_FOUND; i++)
     {
-        DXGI_ADAPTER_DESC desc = {};
-        HRESULT hr = adapter->GetDesc(&desc);
+        DXGI_ADAPTER_DESC1 desc = {};
+        HRESULT hr = adapter->GetDesc1(&desc);
         if (SUCCEEDED(hr))
         {
             AdapterInfo info{};
@@ -107,6 +64,7 @@ extern "C" __declspec(dllexport) void __cdecl GetAdapters(AdapterInfo * adapterA
             info.SharedSystemMemory = desc.SharedSystemMemory;
             info.SubSysId = desc.SubSysId;
             info.VendorId = desc.VendorId;
+            info.Flags = desc.Flags;
             wcsncpy_s(info.Description, desc.Description, _TRUNCATE);
             adapterArray[adapterCount] = info;
             ++adapterCount;
