@@ -1,20 +1,15 @@
-﻿using OnnxStack.Core.Image;
-using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Pipelines;
-using SixLabors.ImageSharp;
-using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
 {
     public sealed class StableCascadeExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly StableDiffusionConfig _configuration;
 
-        public StableCascadeExample(StableDiffusionConfig configuration)
+        public StableCascadeExample()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableCascadeExample));
             Directory.CreateDirectory(_outputDirectory);
         }
@@ -30,19 +25,21 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
+            // Execution provider
+            var provider = Providers.DirectML(0);
+
             // Prompt
-            var promptOptions = new PromptOptions
+            var generateOptions = new GenerateOptions
             {
                 Prompt = "an image of a cat, donning a spacesuit and helmet",
-                DiffuserType = DiffuserType.TextToImage,
-                //InputImage = await OnnxImage.FromFileAsync("Input.png"),
+                Diffuser = DiffuserType.TextToImage,
             };
 
             // Create Pipeline
-            var pipeline = StableCascadePipeline.CreatePipeline("D:\\Models\\stable-cascade-onnx", memoryMode: MemoryModeType.Minimum);
+            var pipeline = StableCascadePipeline.CreatePipeline(provider, "D:\\Models\\stable-cascade-onnx");
 
             // Run pipeline
-            var result = await pipeline.GenerateImageAsync(promptOptions, progressCallback: OutputHelpers.ProgressCallback);
+            var result = await pipeline.GenerateAsync(generateOptions, progressCallback: OutputHelpers.ProgressCallback);
 
             // Save Image File
             await result.SaveAsync(Path.Combine(_outputDirectory, $"output.png"));

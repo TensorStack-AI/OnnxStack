@@ -8,6 +8,7 @@ using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
@@ -22,8 +23,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public ImageDiffuser(UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel decoderVqgan, AutoEncoderModel imageEncoder, MemoryModeType memoryMode, ILogger logger = default)
-            : base(priorUnet, decoderUnet, decoderVqgan, imageEncoder, memoryMode, logger) { }
+        public ImageDiffuser(UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel decoderVqgan, AutoEncoderModel imageEncoder, ILogger logger = default)
+            : base(priorUnet, decoderUnet, decoderVqgan, imageEncoder, logger) { }
 
 
         /// <summary>
@@ -53,11 +54,11 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         /// <param name="prompt">The prompt.</param>
         /// <param name="performGuidance">if set to <c>true</c> [perform guidance].</param>
         /// <returns></returns>
-        protected override async Task<DenseTensor<float>> EncodeImageAsync(PromptOptions prompt, bool performGuidance)
+        protected override async Task<DenseTensor<float>> EncodeImageAsync(GenerateOptions options, bool performGuidance, CancellationToken cancellationToken = default)
         {
-            var metadata = await _vaeEncoder.GetMetadataAsync();
-            var imageTensor = prompt.InputImage.GetClipImageFeatureTensor();
-            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+            var metadata = await _vaeEncoder.LoadAsync(cancellationToken: cancellationToken);
+            var imageTensor = options.InputImage.GetClipImageFeatureTensor();
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata, cancellationToken))
             {
                 inferenceParameters.AddInputTensor(imageTensor);
                 inferenceParameters.AddOutputBuffer(new[] { 1, ClipImageChannels });
@@ -66,7 +67,7 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
                 using (var result = results.First())
                 {
                     // Unload if required
-                    if (_memoryMode == MemoryModeType.Minimum)
+                    if (options.IsLowMemoryEncoderEnabled)
                         await _vaeEncoder.UnloadAsync();
 
                     var image_embeds = result.ToDenseTensor(new[] { 1, 1, ClipImageChannels });

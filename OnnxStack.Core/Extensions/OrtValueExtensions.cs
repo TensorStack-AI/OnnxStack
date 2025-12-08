@@ -116,8 +116,7 @@ namespace OnnxStack.Core
         /// <returns></returns>
         public static DenseTensor<float> ToDenseTensor(this OrtValue ortValue)
         {
-            var typeInfo = ortValue.GetTensorTypeAndShape();
-            return ortValue.ToDenseTensor(typeInfo.Shape.ToInt());
+            return ortValue.ToDenseTensor(ortValue.GetDimensions());
         }
 
 
@@ -148,6 +147,17 @@ namespace OnnxStack.Core
         public static DenseTensor<float> ToDenseTensor(this Span<float> ortSpanValue, ReadOnlySpan<int> dimensions)
         {
             return new DenseTensor<float>(ortSpanValue.ToArray(), dimensions);
+        }
+
+
+        public static DenseTensor<T> ToDenseTensor<T>(this OrtValue ortValue) where T : unmanaged
+        {
+            return new DenseTensor<T>(ortValue.ToArray<T>(), ortValue.GetDimensions());
+        }
+
+        public static int[] GetDimensions(this OrtValue ortValue)
+        {
+            return ortValue.GetTensorTypeAndShape().Shape.ToInt();
         }
 
 

@@ -8,10 +8,8 @@ using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
-    internal class DDPMScheduler : SchedulerBase
+    public sealed class DDPMScheduler : SchedulerBase
     {
-        private float[] _alphasCumProd;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="DDPMScheduler"/> class.
         /// </summary>
@@ -31,15 +29,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// </summary>
         protected override void Initialize()
         {
-            _alphasCumProd = null;
-
-            var betas = GetBetaSchedule();
-            var alphas = betas.Select(beta => 1.0f - beta);
-            _alphasCumProd = alphas
-                .Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b))
-                .ToArray();
-
-            SetInitNoiseSigma(1.0f);
+            base.Initialize();
         }
 
 
@@ -49,10 +39,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            // Create timesteps based on the specified strategy
             var timesteps = GetTimesteps();
             return timesteps
-                .Select(x => (int)x)
+                .Select(x => (int)Math.Round(x))
                 .OrderByDescending(x => x)
                 .ToArray();
         }
@@ -80,14 +69,16 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         /// <exception cref="ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
         /// <exception cref="NotImplementedException">DDPMScheduler Thresholding currently not implemented</exception>
-        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16)
         {
             int currentTimestep = timestep;
-            int previousTimestep = GetPreviousTimestep(currentTimestep);
+            int currentTimestepIndex = Timesteps.IndexOf(currentTimestep);
+            int previousTimestepIndex = currentTimestepIndex + 1;
+            int previousTimestep = Timesteps.ElementAtOrDefault(previousTimestepIndex);
 
             //# 1. compute alphas, betas
-            float alphaProdT = _alphasCumProd[currentTimestep];
-            float alphaProdTPrev = previousTimestep >= 0 ? _alphasCumProd[previousTimestep] : 1f;
+            float alphaProdT = AlphasCumProd[currentTimestep];
+            float alphaProdTPrev = previousTimestep >= 0 ? AlphasCumProd[previousTimestep] : 1f;
             float betaProdT = 1f - alphaProdT;
             float betaProdTPrev = 1f - alphaProdTPrev;
             float currentAlphaT = alphaProdT / alphaProdTPrev;
@@ -114,7 +105,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             if (Options.Thresholding)
             {
                 // TODO: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L322
-               // predOriginalSample = ThresholdSample(predOriginalSample);
+                // predOriginalSample = ThresholdSample(predOriginalSample);
             }
             else if (Options.ClipSample)
             {
@@ -162,6 +153,35 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         }
 
 
+        /// <summary>
+        /// Adds noise to the sample.
+        /// </summary>
+        /// <param name="originalSamples">The original samples.</param>
+        /// <param name="noise">The noise.</param>
+        /// <param name="timesteps">The timesteps.</param>
+        /// <returns></returns>
+        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps)
+        {
+            // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
+            int timestep = timesteps[0];
+            float alphaProd = AlphasCumProd[timestep];
+            float sqrtAlpha = (float)Math.Sqrt(alphaProd);
+            float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
+
+            return noise
+                .MultiplyTensorByFloat(sqrtOneMinusAlpha)
+                .AddTensors(originalSamples.MultiplyTensorByFloat(sqrtAlpha));
+        }
+
+
+        /// <summary>
+        /// Gets the predicted sample.
+        /// </summary>
+        /// <param name="modelOutput">The model output.</param>
+        /// <param name="sample">The sample.</param>
+        /// <param name="alphaProdT">The alpha product t.</param>
+        /// <param name="betaProdT">The beta product t.</param>
+        /// <returns>DenseTensor&lt;System.Single&gt;.</returns>
         private DenseTensor<float> GetPredictedSample(DenseTensor<float> modelOutput, DenseTensor<float> sample, float alphaProdT, float betaProdT)
         {
             DenseTensor<float> predOriginalSample = null;
@@ -187,25 +207,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             return predOriginalSample;
         }
 
-        /// <summary>
-        /// Adds noise to the sample.
-        /// </summary>
-        /// <param name="originalSamples">The original samples.</param>
-        /// <param name="noise">The noise.</param>
-        /// <param name="timesteps">The timesteps.</param>
-        /// <returns></returns>
-        public override DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps)
-        {
-            // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
-            int timestep = timesteps[0];
-            float alphaProd = _alphasCumProd[timestep];
-            float sqrtAlpha = (float)Math.Sqrt(alphaProd);
-            float sqrtOneMinusAlpha = (float)Math.Sqrt(1.0f - alphaProd);
-
-            return noise
-                .MultiplyTensorByFloat(sqrtOneMinusAlpha)
-                .AddTensors(originalSamples.MultiplyTensorByFloat(sqrtAlpha));
-        }
 
         /// <summary>
         /// Gets the variance.
@@ -216,8 +217,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         private float GetVariance(int timestep, float predictedVariance = 0f)
         {
             int prevTimestep = GetPreviousTimestep(timestep);
-            float alphaProdT = _alphasCumProd[timestep];
-            float alphaProdTPrev = prevTimestep >= 0 ? _alphasCumProd[prevTimestep] : 1.0f;
+            float alphaProdT = AlphasCumProd[timestep];
+            float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumProd[prevTimestep] : 1.0f;
             float currentBetaT = 1 - alphaProdT / alphaProdTPrev;
 
             // For t > 0, compute predicted variance βt
@@ -253,11 +254,5 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             return variance;
         }
 
-
-        protected override void Dispose(bool disposing)
-        {
-            _alphasCumProd = null;
-            base.Dispose(disposing);
-        }
     }
 }

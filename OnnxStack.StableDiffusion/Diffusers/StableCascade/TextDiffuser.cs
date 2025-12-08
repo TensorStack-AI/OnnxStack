@@ -1,13 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Models;
-using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
 {
@@ -23,8 +20,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         /// <param name="imageEncoder">The image encoder.</param>
         /// <param name="memoryMode">The memory mode.</param>
         /// <param name="logger">The logger.</param>
-        public TextDiffuser(UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel decoderVqgan, MemoryModeType memoryMode, ILogger logger = default)
-            : base(priorUnet, decoderUnet, decoderVqgan, default, memoryMode, logger) { }
+        public TextDiffuser(UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel decoderVqgan, ILogger logger = default)
+            : base(priorUnet, decoderUnet, decoderVqgan, default, logger) { }
 
 
         /// <summary>
@@ -48,6 +45,6 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableCascade
         }
 
 
-      
+
     }
 }

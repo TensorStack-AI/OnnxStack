@@ -1,19 +1,15 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
-using OnnxStack.StableDiffusion.Common;
+using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Diffusers;
-using OnnxStack.StableDiffusion.Diffusers.LatentConsistency;
+using OnnxStack.StableDiffusion.Diffusers.StableDiffusion;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
+using OnnxStack.StableDiffusion.Tokenizers;
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Pipelines
 {
@@ -23,15 +19,15 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <summary>
         /// Initializes a new instance of the <see cref="LatentConsistencyPipeline"/> class.
         /// </summary>
-        /// <param name="pipelineOptions">The pipeline options</param>
+        /// <param name="name">The pipeline name.</param>
         /// <param name="tokenizer">The tokenizer.</param>
         /// <param name="textEncoder">The text encoder.</param>
         /// <param name="unet">The unet.</param>
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public LatentConsistencyPipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, List<SchedulerType> schedulers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
-            : base(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlNet, diffusers, schedulers, defaultSchedulerOptions, logger)
+        public LatentConsistencyPipeline(string name, ITokenizer tokenizer, TextEncoderModel textEncoder, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, List<SchedulerType> schedulers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(name, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlNet, diffusers, schedulers, defaultSchedulerOptions, logger)
         {
             _supportedSchedulers = schedulers ?? new List<SchedulerType>
             {
@@ -49,54 +45,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <summary>
         /// Gets the type of the pipeline.
         /// </summary>
-        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.LatentConsistency;
-
-
-        /// <summary>
-        /// Runs the pipeline.
-        /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="controlNet">The control net.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public override Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            // LCM does not support negative prompting
-            promptOptions.NegativePrompt = string.Empty;
-            return base.RunAsync(promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
-        }
-
-
-        /// <summary>
-        /// Runs the pipeline batch.
-        /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="controlNet">The control net.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public override IAsyncEnumerable<BatchResult> RunBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            // LCM does not support negative prompting
-            promptOptions.NegativePrompt = string.Empty;
-            return base.RunBatchAsync(batchOptions, promptOptions, schedulerOptions, controlNet, progressCallback, cancellationToken);
-        }
-
-
-        /// <summary>
-        /// Check if we should run guidance.
-        /// </summary>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <returns></returns>
-        protected override bool ShouldPerformGuidance(SchedulerOptions schedulerOptions)
-        {
-            // LCM does not support Guidance
-            return false;
-        }
+        public override PipelineType PipelineType => PipelineType.LatentConsistency;
 
 
         /// <summary>
@@ -109,11 +58,11 @@ namespace OnnxStack.StableDiffusion.Pipelines
         {
             return diffuserType switch
             {
-                DiffuserType.TextToImage => new TextDiffuser(_unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
-                DiffuserType.ImageToImage => new ImageDiffuser(_unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
-                DiffuserType.ImageInpaintLegacy => new InpaintLegacyDiffuser(_unet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
-                DiffuserType.ControlNet => new ControlNetDiffuser(controlNetModel, _controlNetUnet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
-                DiffuserType.ControlNetImage => new ControlNetImageDiffuser(controlNetModel, _controlNetUnet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
+                DiffuserType.TextToImage => new TextDiffuser(_unet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ImageToImage => new ImageDiffuser(_unet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ImageInpaintLegacy => new InpaintLegacyDiffuser(_unet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ControlNet => new ControlNetDiffuser(controlNetModel, _controlNetUnet, _vaeDecoder, _vaeEncoder, _logger),
+                DiffuserType.ControlNetImage => new ControlNetImageDiffuser(controlNetModel, _controlNetUnet, _vaeDecoder, _vaeEncoder, _logger),
                 _ => throw new NotImplementedException()
             };
         }
@@ -129,7 +78,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         {
             var config = modelSet with { };
             var unet = new UNetConditionModel(config.UnetConfig.ApplyDefaults(config));
-            var tokenizer = new TokenizerModel(config.TokenizerConfig.ApplyDefaults(config));
+            var tokenizer = new ClipTokenizer(config.TokenizerConfig.ApplyDefaults(config));
             var textEncoder = new TextEncoderModel(config.TextEncoderConfig.ApplyDefaults(config));
             var vaeDecoder = new AutoEncoderModel(config.VaeDecoderConfig.ApplyDefaults(config));
             var vaeEncoder = new AutoEncoderModel(config.VaeEncoderConfig.ApplyDefaults(config));
@@ -137,8 +86,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
             if (config.ControlNetUnetConfig is not null)
                 controlnet = new UNetConditionModel(config.ControlNetUnetConfig.ApplyDefaults(config));
 
-            var pipelineOptions = new PipelineOptions(config.Name, config.MemoryMode);
-            return new LatentConsistencyPipeline(pipelineOptions, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlnet, config.Diffusers, config.Schedulers, config.SchedulerOptions, logger);
+            LogPipelineInfo(modelSet, logger);
+            return new LatentConsistencyPipeline(config.Name, tokenizer, textEncoder, unet, vaeDecoder, vaeEncoder, controlnet, config.Diffusers, config.Schedulers, config.SchedulerOptions, logger);
         }
 
 
@@ -151,9 +100,9 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public static new LatentConsistencyPipeline CreatePipeline(string modelFolder, ModelType modelType = ModelType.Base, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, MemoryModeType memoryMode = MemoryModeType.Maximum, ILogger logger = default)
+        public static new LatentConsistencyPipeline CreatePipeline(OnnxExecutionProvider executionProvider, string modelFolder, ModelType modelType = ModelType.Base, ILogger logger = default)
         {
-            return CreatePipeline(ModelFactory.CreateModelSet(modelFolder, DiffuserPipelineType.LatentConsistency, modelType, deviceId, executionProvider, memoryMode), logger);
+            return CreatePipeline(ModelFactory.CreateStableDiffusionModelSet(modelFolder, modelType, PipelineType.LatentConsistency).WithProvider(executionProvider), logger);
         }
     }
 }

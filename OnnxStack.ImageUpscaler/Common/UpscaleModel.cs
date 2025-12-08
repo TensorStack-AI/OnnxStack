@@ -1,8 +1,5 @@
-﻿using Microsoft.ML.OnnxRuntime;
-using OnnxStack.Core.Config;
-using OnnxStack.Core.Image;
+﻿using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
-using System;
 
 namespace OnnxStack.ImageUpscaler.Common
 {
@@ -10,7 +7,8 @@ namespace OnnxStack.ImageUpscaler.Common
     {
         private readonly UpscaleModelConfig _configuration;
 
-        public UpscaleModel(UpscaleModelConfig configuration) : base(configuration)
+        public UpscaleModel(UpscaleModelConfig configuration)
+            : base(configuration)
         {
             _configuration = configuration;
         }
@@ -18,33 +16,25 @@ namespace OnnxStack.ImageUpscaler.Common
         public int Channels => _configuration.Channels;
         public int SampleSize => _configuration.SampleSize;
         public int ScaleFactor => _configuration.ScaleFactor;
-        public int TileSize => _configuration.TileSize;
-        public int TileOverlap => _configuration.TileOverlap;
         public ImageNormalizeType NormalizeType => _configuration.NormalizeType;
-        public bool NormalizeInput => _configuration.NormalizeInput;
+
 
         public static UpscaleModel Create(UpscaleModelConfig configuration)
         {
             return new UpscaleModel(configuration);
         }
 
-        public static UpscaleModel Create(string modelFile, int scaleFactor, int sampleSize, ImageNormalizeType normalizeType = ImageNormalizeType.ZeroToOne, bool normalizeInput = true, int tileSize = 0, int tileOverlap = 20, int channels = 3, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML)
+
+        public static UpscaleModel Create(OnnxExecutionProvider executionProvider, string modelFile, int scaleFactor, int sampleSize, ImageNormalizeType normalizeType = ImageNormalizeType.ZeroToOne, int channels = 3)
         {
             var configuration = new UpscaleModelConfig
             {
                 Channels = channels,
                 SampleSize = sampleSize,
                 ScaleFactor = scaleFactor,
-                TileOverlap = tileOverlap,
-                TileSize = Math.Min(sampleSize, tileSize > 0 ? tileSize : sampleSize),
                 NormalizeType = normalizeType,
-                NormalizeInput = normalizeInput,
-                DeviceId = deviceId,
-                ExecutionProvider = executionProvider,
-                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
-                InterOpNumThreads = 0,
-                IntraOpNumThreads = 0,
-                OnnxModelPath = modelFile
+                OnnxModelPath = modelFile,
+                ExecutionProvider = executionProvider
             };
             return new UpscaleModel(configuration);
         }

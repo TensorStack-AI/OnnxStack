@@ -1,30 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.39.0</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
+    <Configurations>Debug;Release;</Configurations>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 
-    <Title>OnnxStack.ImageUpscaler</Title>
-    <Company>TensorStack</Company>
+    <Title>$(AssemblyName)</Title>
+    <Product>$(AssemblyName)</Product>
+    <PackageId>$(AssemblyName)</PackageId>
     <Description>
       OnnxRuntime Image Upscale Library for .NET
     </Description>
-    <Copyright>TensorStack, Advanced Micro Devices - 2024</Copyright>
-    <RepositoryUrl>https://github.com/TensorStack-AI/OnnxStack</RepositoryUrl>
-    <PackageTags>onnx;onnx-runtime;upscale</PackageTags>
-    <Authors>TensorStack, Advanced Micro Devices</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageId>OnnxStack.ImageUpscaler</PackageId>
-    <Product>$(AssemblyName)</Product>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PackageIcon>OnnxStack - 128x128.png</PackageIcon>
-    <Configurations>Debug;Release</Configurations>
-    <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,8 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OnnxStack.Core" Version="0.39.0" Condition=" '$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release-Nvidia'" />
-    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug' OR '$(Configuration)'=='Debug-Nvidia'" />
+    <PackageReference Include="OnnxStack.Core" Version="$(Version)" Condition=" '$(Configuration)' == 'Release'" />
+    <ProjectReference Include="..\OnnxStack.Core\OnnxStack.Core.csproj" Condition=" '$(Configuration)' == 'Debug'" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Configurations>Debug;Release;</Configurations>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+
+    <Title>$(AssemblyName)</Title>
+    <Product>$(AssemblyName)</Product>
+    <PackageId>$(AssemblyName)</PackageId>
+    <Description>
+      CPU, GPU and NPU Device info and status for .NET
+    </Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>OnnxStack - 128x128.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="OnnxStack.Adapter.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OnnxStack - 128x128.png" Link="OnnxStack - 128x128.png">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="9.0.6" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <None Update="README.md">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -1,5 +1,4 @@
-﻿using Microsoft.ML.OnnxRuntime;
-using OnnxStack.Core.Config;
+﻿using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 
 namespace OnnxStack.StableDiffusion.Models
@@ -8,7 +7,8 @@ namespace OnnxStack.StableDiffusion.Models
     {
         private readonly TextEncoderModelConfig _configuration;
 
-        public TextEncoderModel(TextEncoderModelConfig configuration) : base(configuration)
+        public TextEncoderModel(TextEncoderModelConfig configuration)
+            : base(configuration)
         {
             _configuration = configuration;
         }
@@ -18,16 +18,12 @@ namespace OnnxStack.StableDiffusion.Models
             return new TextEncoderModel(configuration);
         }
 
-        public static TextEncoderModel Create(string modelFile, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML)
+        public static TextEncoderModel Create(OnnxExecutionProvider executionProvider, string modelFile)
         {
             var configuration = new TextEncoderModelConfig
             {
-                DeviceId = deviceId,
-                ExecutionProvider = executionProvider,
-                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
-                InterOpNumThreads = 0,
-                IntraOpNumThreads = 0,
-                OnnxModelPath = modelFile
+                OnnxModelPath = modelFile,
+                ExecutionProvider = executionProvider
             };
             return new TextEncoderModel(configuration);
         }

@@ -233,25 +233,27 @@ namespace OnnxStack.Core.Image
 
         public DenseTensor<float> GetClipImageFeatureTensor()
         {
-            var image = Clone();
-            image.Resize(224, 224);
-            var imageArray = new DenseTensor<float>(new[] { 1, 3, 224, 224 });
-            var mean = new[] { 0.485f, 0.456f, 0.406f };
-            var stddev = new[] { 0.229f, 0.224f, 0.225f };
-            image.ProcessPixelRows(img =>
+            using (var image = Clone())
             {
-                for (int x = 0; x < image.Width; x++)
+                image.Resize(224, 224);
+                var imageArray = new DenseTensor<float>(new[] { 1, 3, 224, 224 });
+                var mean = new[] { 0.485f, 0.456f, 0.406f };
+                var stddev = new[] { 0.229f, 0.224f, 0.225f };
+                image.ProcessPixelRows(img =>
                 {
-                    for (int y = 0; y < image.Height; y++)
+                    for (int x = 0; x < image.Width; x++)
                     {
-                        var pixelSpan = img.GetRowSpan(y);
-                        imageArray[0, 0, y, x] = ((pixelSpan[x].R / 255f) - mean[0]) / stddev[0];
-                        imageArray[0, 1, y, x] = ((pixelSpan[x].G / 255f) - mean[1]) / stddev[1];
-                        imageArray[0, 2, y, x] = ((pixelSpan[x].B / 255f) - mean[2]) / stddev[2];
+                        for (int y = 0; y < image.Height; y++)
+                        {
+                            var pixelSpan = img.GetRowSpan(y);
+                            imageArray[0, 0, y, x] = ((pixelSpan[x].R / 255f) - mean[0]) / stddev[0];
+                            imageArray[0, 1, y, x] = ((pixelSpan[x].G / 255f) - mean[1]) / stddev[1];
+                            imageArray[0, 2, y, x] = ((pixelSpan[x].B / 255f) - mean[2]) / stddev[2];
+                        }
                     }
-                }
-            });
-            return imageArray;
+                });
+                return imageArray;
+            }
         }
 
 
@@ -318,16 +320,83 @@ namespace OnnxStack.Core.Image
             });
         }
 
+
+        /// <summary>
+        /// Processes the pixel rows.
+        /// </summary>
+        /// <param name="processPixels">The process pixels.</param>
         public void ProcessPixelRows(PixelAccessorAction<Rgba32> processPixels)
         {
             _imageData.ProcessPixelRows(processPixels);
         }
 
 
+        /// <summary>
+        /// Gets the brightness.
+        /// </summary>
+        /// <returns></returns>
+        public float GetBrightness()
+        {
+            var totalBrightness = 0f;
+            var pixelCount = _imageData.Width * _imageData.Height;
+            // Loop through all pixels and sum their brightness (average RGB value)
+            _imageData.ProcessPixelRows(accessor =>
+            {
+                for (int y = 0; y < accessor.Height; y++)
+                {
+                    var row = accessor.GetRowSpan(y);
+                    for (int x = 0; x < row.Length; x++)
+                    {
+                        var pixel = row[x];
+                        float brightness = (pixel.R + pixel.G + pixel.B) / 3f;
+                        totalBrightness += brightness / 255f;
+                    }
+                }
+            });
+            return totalBrightness / pixelCount;
+        }
+
+
+        /// <summary>
+        /// Sets the brightness.
+        /// </summary>
+        /// <param name="adjustmentFactor">The adjustment factor.</param>
+        public void SetBrightness(float adjustmentFactor)
+        {
+            _imageData.Mutate(ctx => ctx.Brightness(adjustmentFactor));
+        }
+
+
+        /// <summary>
+        /// Clones this image.
+        /// </summary>
+        /// <returns></returns>
         public OnnxImage Clone()
         {
             return new OnnxImage(_imageData);
         }
+
+
+        /// <summary>
+        /// Merges the specified image with this image.
+        /// </summary>
+        /// <param name="image">The image.</param>
+        /// <param name="strength">The strength.</param>
+        /// <param name="previousStrength">The previous strength.</param>
+        /// <param name="blendingMode">The blending mode.</param>
+        /// <returns></returns>
+        public OnnxImage Merge(OnnxImage image, float imageStrength, ImageBlendingMode blendingMode, float baseStrength = 1)
+        {
+            using var current = _imageData.Clone();
+            using var previous = image.GetImage().Clone();
+            var pixelColorBlendingMode = blendingMode.ToPixelColorBlendingMode();
+            current.Mutate(x =>
+            {
+                x.DrawImage(previous, pixelColorBlendingMode, imageStrength);
+            });
+            return new OnnxImage(current);
+        }
+
 
         /// <summary>
         /// Saves the specified image to file.
@@ -442,6 +511,7 @@ namespace OnnxStack.Core.Image
             });
             return imageArray;
         }
+
 
         /// <summary>
         /// Denormalizes the pixels from 0 to 1 to 0-255

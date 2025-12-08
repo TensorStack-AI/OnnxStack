@@ -1,32 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.39.0</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
+    <Configurations>Debug;Release;</Configurations>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 
-    <Title>OnnxStack.Core</Title>
-    <Company>TensorStack</Company>
+    <Title>$(AssemblyName)</Title>
+    <Product>$(AssemblyName)</Product>
+    <PackageId>$(AssemblyName)</PackageId>
     <Description>
       OnnxRuntime Integration Library for .NET
-
       OnnxStack transforms machine learning in .NET, Seamlessly integrating with ONNX Runtime and Microsoft ML, this library empowers you to build, deploy, and execute machine learning models entirely within the .NET ecosystem. Bid farewell to Python dependencies and embrace a new era of intelligent applications tailored for .NET
     </Description>
-    <Copyright>TensorStack, Advanced Micro Devices - 2024</Copyright>
-    <RepositoryUrl>https://github.com/TensorStack-AI/OnnxStack</RepositoryUrl>
-    <PackageTags>onnx;onnx-runtime;llm;stable-diffusion</PackageTags>
-    <Authors>TensorStack, Advanced Micro Devices</Authors>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageId>OnnxStack.Core</PackageId>
-    <Product>$(AssemblyName)</Product>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PackageIcon>OnnxStack - 128x128.png</PackageIcon>
-     <Configurations>Debug;Release</Configurations>    
-    <Platforms>x64</Platforms>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,13 +28,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Extensions" Version="0.10.0" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.18.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
-    <PackageReference Include="System.Numerics.Tensors" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.6" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Extensions" Version="0.14.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.23.0-dev-20250603-0558-cd5133371" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.10" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
+    <PackageReference Include="System.Numerics.Tensors" Version="9.0.6" />
+    <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
   </ItemGroup>
 
   <ItemGroup>

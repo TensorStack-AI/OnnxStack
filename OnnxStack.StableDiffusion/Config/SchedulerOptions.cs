@@ -117,9 +117,6 @@ namespace OnnxStack.StableDiffusion.Config
         public List<int> Timesteps { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public int OriginalInferenceSteps { get; set; } = 50;
-
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float AestheticScore { get; set; } = 6f;
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -134,15 +131,20 @@ namespace OnnxStack.StableDiffusion.Config
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public float GuidanceScale2 { get; set; } = 0;
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public float Shift { get; set; } = 1f;
+
+
         [JsonIgnore]
         public bool IsKarrasScheduler
         {
             get
             {
                 return SchedulerType == SchedulerType.LMS
-                    || SchedulerType == SchedulerType.KDPM2
                     || SchedulerType == SchedulerType.Euler
-                    || SchedulerType == SchedulerType.EulerAncestral;
+                    || SchedulerType == SchedulerType.EulerAncestral
+                    || SchedulerType == SchedulerType.KDPM2
+                    || SchedulerType == SchedulerType.KDPM2Ancestral;
             }
         }
     }

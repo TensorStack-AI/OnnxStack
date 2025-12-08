@@ -25,8 +25,42 @@ namespace OnnxStack.Console
             System.Console.ForegroundColor = previous;
         }
 
-        public static Action<DiffusionProgress> ProgressCallback => (DiffusionProgress progress) => WriteConsole($"Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Gray);
-        public static Action<DiffusionProgress> BatchProgressCallback => (DiffusionProgress progress) => WriteConsole($"Batch: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Gray);
-        public static Action<DiffusionProgress> FrameProgressCallback => (DiffusionProgress progress) => WriteConsole($"Frame: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax}", ConsoleColor.Gray);
+        public static IProgress<DiffusionProgress> ProgressCallback => new Progress<DiffusionProgress>((DiffusionProgress progress) => WriteConsole(PrintProgress(progress), ConsoleColor.Gray));
+        public static IProgress<DiffusionProgress> BatchProgressCallback => new Progress<DiffusionProgress>((DiffusionProgress progress) => WriteConsole(PrintBatchProgress(progress), ConsoleColor.Gray));
+        public static IProgress<DiffusionProgress> FrameProgressCallback => new Progress<DiffusionProgress>((DiffusionProgress progress) => WriteConsole(PrintFrameProgress(progress), ConsoleColor.Gray));
+
+
+        private static string PrintProgress(DiffusionProgress progress)
+        {
+            if (progress.StepMax == 0)
+                return progress.Elapsed > 0 ? $"Complete: {progress.Elapsed}ms" : progress.Message;
+
+            return progress.Elapsed > 0 ? $"Step: {progress.StepValue}/{progress.StepMax} - {progress.Elapsed}ms" : progress.Message;
+        }
+
+        private static string PrintBatchProgress(DiffusionProgress progress)
+        {
+            if (progress.StepMax == 0)
+                return progress.Elapsed > 0 ? $"Complete: {progress.Elapsed}ms" : progress.Message;
+
+            return $"Batch: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax} - {progress.Elapsed}ms";
+        }
+
+        private static string PrintFrameProgress(DiffusionProgress progress)
+        {
+            if (progress.StepMax == 0)
+                return progress.Elapsed > 0 ? $"Complete: {progress.Elapsed}ms" : progress.Message;
+
+            return $"Frame: {progress.BatchValue}/{progress.BatchMax} - Step: {progress.StepValue}/{progress.StepMax} - {progress.Elapsed}ms";
+        }
+
+
+        public static IProgress<DiffusionProgress> PythonProgressCallback => new Progress<DiffusionProgress>((DiffusionProgress progress) => WriteConsole(PrintPythonProgress(progress), ConsoleColor.Gray));
+
+        private static string PrintPythonProgress(DiffusionProgress progress)
+        {
+            var msg = string.IsNullOrEmpty(progress.Message) ? string.Empty : $"{progress.Message.PadRight(30)}\t" ;
+            return $"[PythonProgress] {msg} Step: {progress.StepValue}/{progress.StepMax}\t\t{progress.IterationsPerSecond:F2} it/s\t{progress.SecondsPerIteration:F2} s/it\t\t{progress.Downloaded}M/{progress.DownloadTotal}M @ {progress.DownloadSpeed}MB/s\t\t{progress.Percentage}%";
+        }
     }
 }

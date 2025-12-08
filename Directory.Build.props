@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.41.32</Version>
+    <Company>TensorStack</Company>
+    <Copyright>TensorStack, Advanced Micro Devices - 2025</Copyright>
+    <RepositoryUrl>https://github.com/TensorStack-AI/OnnxStack</RepositoryUrl>
+    <PackageTags>onnx;onnx-runtime;stable-diffusion</PackageTags>
+    <Authors>TensorStack, Advanced Micro Devices</Authors>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+</Project>

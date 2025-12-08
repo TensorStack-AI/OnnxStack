@@ -11,8 +11,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
     public sealed class EulerScheduler : SchedulerBase
     {
-        private float[] _sigmas;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="EulerScheduler"/> class.
         /// </summary>
@@ -32,17 +30,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// </summary>
         protected override void Initialize()
         {
-            _sigmas = null;
-
-            var betas = GetBetaSchedule();
-            var alphas = betas.Select(beta => 1.0f - beta);
-            var alphaCumProd = alphas.Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b));
-            _sigmas = alphaCumProd
-                 .Select(alpha_prod => (float)Math.Sqrt((1 - alpha_prod) / alpha_prod))
-                 .ToArray();
-
-            var initNoiseSigma = GetInitNoiseSigma(_sigmas);
-            SetInitNoiseSigma(initNoiseSigma);
+            base.Initialize();
         }
 
 
@@ -52,10 +40,10 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            var sigmas = _sigmas.ToArray();
+            var sigmas = Sigmas.ToArray();
             var timesteps = GetTimesteps();
             var logSigmas = ArrayHelpers.Log(sigmas);
-            var range = ArrayHelpers.Range(0, sigmas.Length);
+            var range = ArrayHelpers.Range(0, sigmas.Length, true);
 
             // TODO: Implement "interpolation_type"
             //var interpolation_type = "linear";
@@ -63,18 +51,18 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             //    ? np.exp(np.linspace(np.log(sigmas.Last()), np.log(sigmas.First()), timesteps.Length + 1)).ToArray<float>()
             //    : Interpolate(timesteps, range, _sigmas);
 
-            sigmas = Interpolate(timesteps, range, _sigmas);
+            sigmas = Interpolate(timesteps, range, sigmas);
             if (Options.UseKarrasSigmas)
             {
                 sigmas = ConvertToKarras(sigmas);
                 timesteps = SigmaToTimestep(sigmas, logSigmas);
             }
 
-            _sigmas = sigmas
-                .Append(0.000f)
-                .ToArray();
+            Sigmas = [.. sigmas, 0f];
 
-            return timesteps.Select(x => (int)x)
+            SetInitNoiseSigma();
+
+            return timesteps.Select(x => (int)Math.Round(x))
                  .OrderByDescending(x => x)
                  .ToArray();
         }
@@ -88,14 +76,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         public override DenseTensor<float> ScaleInput(DenseTensor<float> sample, int timestep)
         {
-            // Get step index of timestep from TimeSteps
-            int stepIndex = Timesteps.IndexOf(timestep);
-
-            // Get sigma at stepIndex
-            var sigma = _sigmas[stepIndex];
+            var stepIndex = Timesteps.IndexOf(timestep);
+            var sigma = Sigmas[stepIndex];
             sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
-
-            // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
             return sample.DivideTensorByFloat(sigma);
         }
 
@@ -108,7 +91,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16)
         {
             // TODO: Implement "extended settings for scheduler types"
             float s_churn = 0f;
@@ -117,9 +100,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             float s_noise = 1f;
 
             var stepIndex = Timesteps.IndexOf(timestep);
-            float sigma = _sigmas[stepIndex];
+            float sigma = Sigmas[stepIndex];
 
-            float gamma = s_tmin <= sigma && sigma <= s_tmax ? (float)Math.Min(s_churn / (_sigmas.Length - 1f), Math.Sqrt(2.0f) - 1.0f) : 0f;
+            float gamma = s_tmin <= sigma && sigma <= s_tmax ? (float)Math.Min(s_churn / (Sigmas.Length - 1f), Math.Sqrt(2.0f) - 1.0f) : 0f;
             var noise = CreateRandomSample(modelOutput.Dimensions);
             var epsilon = noise.MultiplyTensorByFloat(s_noise);
             float sigmaHat = sigma * (1.0f + gamma);
@@ -139,7 +122,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .SubtractTensors(predOriginalSample)
                 .DivideTensorByFloat(sigmaHat);
 
-            var delta = _sigmas[stepIndex + 1] - sigmaHat;
+            var delta = Sigmas[stepIndex + 1] - sigmaHat;
             return new SchedulerStepResult(sample.AddTensors(derivative.MultiplyTensorByFloat(delta)));
         }
 
@@ -156,7 +139,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_euler_ancestral_discrete.py#L389
             var sigma = timesteps
                 .Select(x => Timesteps.IndexOf(x))
-                .Select(x => _sigmas[x])
+                .Select(x => Sigmas[x])
                 .Max();
 
             return noise
@@ -164,15 +147,5 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .AddTensors(originalSamples);
         }
 
-
-        /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
-        /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected override void Dispose(bool disposing)
-        {
-            _sigmas = null;
-            base.Dispose(disposing);
-        }
     }
 }

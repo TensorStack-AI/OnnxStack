@@ -5,6 +5,7 @@
         Base = 0,
         Refiner = 1,
         Turbo = 3,
-        Inpaint = 4
+        Inpaint = 4,
+        Instruct = 5
     }
 }

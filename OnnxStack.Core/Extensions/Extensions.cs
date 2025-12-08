@@ -1,75 +1,22 @@
 ﻿using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Config;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace OnnxStack.Core
 {
     public static class Extensions
     {
-        public static SessionOptions GetSessionOptions(this OnnxModelConfig configuration)
-        {
-            var sessionOptions = new SessionOptions
-            {
-                ExecutionMode = configuration.ExecutionMode.Value,
-                InterOpNumThreads = configuration.InterOpNumThreads.Value,
-                IntraOpNumThreads = configuration.IntraOpNumThreads.Value
-            };
-
-            switch (configuration.ExecutionProvider)
-            {
-                case ExecutionProvider.DirectML:
-                    sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
-                    sessionOptions.EnableMemoryPattern = false;
-                    sessionOptions.AppendExecutionProvider_DML(configuration.DeviceId.Value);
-                    sessionOptions.AppendExecutionProvider_CPU();
-                    return sessionOptions;
-                case ExecutionProvider.Cpu:
-                    sessionOptions.AppendExecutionProvider_CPU();
-                    return sessionOptions;
-                default:
-                case ExecutionProvider.Cuda:
-                    sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
-                    sessionOptions.AppendExecutionProvider_CUDA(configuration.DeviceId.Value);
-                    sessionOptions.AppendExecutionProvider_CPU();
-                    return sessionOptions;
-                case ExecutionProvider.CoreML:
-                    sessionOptions.AppendExecutionProvider_CoreML(CoreMLFlags.COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE);
-                    return sessionOptions;
-                case ExecutionProvider.OpenVino:
-                    var deviceId = configuration.DeviceId switch
-                    {
-                        0 => "CPU_FP32",
-                        1 => "GPU_FP32",
-                        2 => "GPU_FP16",
-                        3 => "MYRIAD_FP16",
-                        4 => "VAD-M_FP16",
-                        5 => "VAD-F_FP32",
-                        _ => string.Empty
-                    };
-                    sessionOptions.AppendExecutionProvider_OpenVINO(deviceId);
-                    return sessionOptions;
-                case ExecutionProvider.TensorRT:
-                    sessionOptions.AppendExecutionProvider_Tensorrt(configuration.DeviceId.Value);
-                    return sessionOptions;
-            }
-        }
-
 
         public static T ApplyDefaults<T>(this T config, IOnnxModelSetConfig defaults) where T : OnnxModelConfig
         {
             return config with
             {
-                DeviceId = config.DeviceId ?? defaults.DeviceId,
-                ExecutionMode = config.ExecutionMode ?? defaults.ExecutionMode,
-                ExecutionProvider = config.ExecutionProvider ?? defaults.ExecutionProvider,
-                InterOpNumThreads = config.InterOpNumThreads ?? defaults.InterOpNumThreads,
-                IntraOpNumThreads = config.IntraOpNumThreads ?? defaults.IntraOpNumThreads,
-                Precision = config.Precision ?? defaults.Precision
+                ExecutionProvider = config.ExecutionProvider ?? defaults.ExecutionProvider
             };
         }
 
@@ -103,6 +50,23 @@ namespace OnnxStack.Core
                     return i;
             }
             return -1;
+        }
+
+
+        /// <summary>
+        /// Get the index of the specified item
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="list">The list.</param>
+        /// <param name="itemSelector">The item selector.</param>
+        /// <returns>System.Int32.</returns>
+        public static int IndexOf<T>(this IReadOnlyList<T> list, Func<T, bool> itemSelector) where T : IEquatable<T>
+        {
+            var item = list.FirstOrDefault(itemSelector);
+            if (item == null)
+                return -1;
+
+            return IndexOf(list, item);
         }
 
 
@@ -174,6 +138,30 @@ namespace OnnxStack.Core
 
 
         /// <summary>
+        /// Converts to intsafe.
+        /// </summary>
+        /// <param name="array">The array.</param>
+        /// <returns></returns>
+        /// <exception cref="OverflowException">$"Value {value} at index {i} is outside the range of an int.</exception>
+        public static int[] ToIntSafe(this long[] array)
+        {
+            int[] result = new int[array.Length];
+
+            for (int i = 0; i < array.Length; i++)
+            {
+                long value = array[i];
+
+                if (value < int.MinValue || value > int.MaxValue)
+                    value = 0;
+
+                result[i] = (int)value;
+            }
+
+            return result;
+        }
+
+
+        /// <summary>
         /// Converts to long.
         /// </summary>
         /// <param name="array">The array.</param>
@@ -229,6 +217,41 @@ namespace OnnxStack.Core
 
             foreach (var item in toRemove)
                 source.Remove(item);
+        }
+
+
+        public static void CancelSession(this SessionOptions sessionOptions)
+        {
+            sessionOptions.SetLoadCancellationFlag(true);
+        }
+
+
+        public static void CancelSession(this RunOptions runOptions)
+        {
+            try
+            {
+                if (runOptions.IsClosed)
+                    return;
+
+                if (runOptions.IsInvalid)
+                    return;
+
+                if (runOptions.Terminate == true)
+                    return;
+
+                runOptions.Terminate = true;
+            }
+            catch (Exception)
+            {
+                throw new OperationCanceledException();
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float ZeroIfNan(this float value)
+        {
+            return float.IsNaN(value) ? 0f : value;
         }
     }
 }

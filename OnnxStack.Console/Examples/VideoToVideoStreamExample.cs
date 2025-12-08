@@ -1,5 +1,4 @@
 ﻿using OnnxStack.Core.Video;
-using OnnxStack.FeatureExtractor.Pipelines;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Pipelines;
@@ -9,11 +8,9 @@ namespace OnnxStack.Console.Runner
     public sealed class VideoToVideoStreamExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly StableDiffusionConfig _configuration;
 
-        public VideoToVideoStreamExample(StableDiffusionConfig configuration)
+        public VideoToVideoStreamExample()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(VideoToVideoStreamExample));
             Directory.CreateDirectory(_outputDirectory);
         }
@@ -26,42 +23,35 @@ namespace OnnxStack.Console.Runner
 
         public async Task RunAsync()
         {
+            // Execution provider
+            var provider = Providers.DirectML(0);
 
             // Read Video
             var videoFile = "C:\\Users\\Deven\\Pictures\\gidsgphy.gif";
             var videoInfo = await VideoHelper.ReadVideoInfoAsync(videoFile);
 
-            // Loop though the appsettings.json model sets
-            foreach (var modelSet in _configuration.ModelSets)
+            // Create Pipeline
+            var pipeline = StableDiffusionPipeline.CreatePipeline(provider, "M:\\Models\\stable-diffusion-v1-5-onnx");
+            OutputHelpers.WriteConsole($"Loading Model `{pipeline.Name}`...", ConsoleColor.Cyan);
+
+            // Add text and video to prompt
+            var generateOptions = new GenerateOptions
             {
-                OutputHelpers.WriteConsole($"Loading Model `{modelSet.Name}`...", ConsoleColor.Cyan);
+                Prompt = "Iron Man",
+                Diffuser = DiffuserType.ImageToImage
+            };
 
-                // Create Pipeline
-                var pipeline = PipelineBase.CreatePipeline(modelSet);
+            // Create Video Stream
+            var videoStream = VideoHelper.ReadVideoStreamAsync(videoFile, videoInfo.FrameRate, 512, 512);
 
-                // Preload Models (optional)
-                await pipeline.LoadAsync();
+            // Create Pipeline Stream
+            var pipelineStream = pipeline.GenerateVideoStreamAsync(generateOptions, videoStream, progressCallback: OutputHelpers.ProgressCallback);
 
-                // Add text and video to prompt
-                var promptOptions = new PromptOptions
-                {
-                    Prompt = "Iron Man",
-                    DiffuserType = DiffuserType.ImageToImage
-                };
+            // Write Video Stream
+            await VideoHelper.WriteVideoStreamAsync(Path.Combine(_outputDirectory, $"{pipeline.PipelineType}.mp4"), pipelineStream, videoInfo.FrameRate, videoInfo.Width, videoInfo.Height);
 
-
-                // Create Video Stream
-                var videoStream = VideoHelper.ReadVideoStreamAsync(videoFile, videoInfo.FrameRate);
-
-                // Create Pipeline Stream
-                var pipelineStream = pipeline.GenerateVideoStreamAsync(videoStream, promptOptions, progressCallback:OutputHelpers.ProgressCallback);
-
-                // Write Video Stream
-                await VideoHelper.WriteVideoStreamAsync(videoInfo, pipelineStream, Path.Combine(_outputDirectory, $"{modelSet.PipelineType}.mp4"));
-
-                //Unload
-                await pipeline.UnloadAsync();
-            }
+            //Unload
+            await pipeline.UnloadAsync();
         }
     }
 }

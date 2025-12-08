@@ -1,0 +1,13 @@
+#python 3.12.9
+diffusers
+sentencepiece
+transformers
+torch
+peft
+tabulate
+accelerate
+protobuf
+onnx
+onnxruntime-directml
+onnxruntime_extensions
+olive-ai[directml]

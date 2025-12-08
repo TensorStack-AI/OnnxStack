@@ -1,4 +1,5 @@
 ﻿using OnnxStack.Core.Image;
+using OnnxStack.FeatureExtractor.Common;
 using OnnxStack.FeatureExtractor.Pipelines;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
@@ -10,11 +11,9 @@ namespace OnnxStack.Console.Runner
     public sealed class ControlNetFeatureExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly StableDiffusionConfig _configuration;
 
-        public ControlNetFeatureExample(StableDiffusionConfig configuration)
+        public ControlNetFeatureExample()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(ControlNetFeatureExample));
             Directory.CreateDirectory(_outputDirectory);
         }
@@ -30,37 +29,43 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
+            // Execution provider
+            var provider = Providers.DirectML(0);
+
             // Load Control Image
             var inputImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
-            // Create Annotation pipeline
-            var annotationPipeline = FeatureExtractorPipeline.CreatePipeline("D:\\Models\\controlnet_onnx\\annotators\\depth.onnx", sampleSize: 512, normalizeOutput: true);
+            // Create FeatureExtractor
+            var featureExtractor = FeatureExtractorPipeline.CreatePipeline(provider, "M:\\Models\\FeatureExtractor-onnx\\SD\\Depth\\model.onnx", sampleSize: 512, normalizeOutputType: ImageNormalizeType.MinMax);
 
             // Create Depth Image
-            var controlImage = await annotationPipeline.RunAsync(inputImage);
+            var controlImage = await featureExtractor.RunAsync(inputImage, new FeatureExtractorOptions());
 
             // Save Depth Image (Debug Only)
             await controlImage.SaveAsync(Path.Combine(_outputDirectory, $"Depth.png"));
 
             // Create ControlNet
-            var controlNet = ControlNetModel.Create("D:\\Models\\controlnet_onnx\\controlnet\\depth.onnx", ControlNetType.Depth);
+            var controlNet = ControlNetModel.Create(provider, "M:\\Models\\ControlNet-onnx\\SD\\Depth\\model.onnx");
 
             // Create Pipeline
-            var pipeline = StableDiffusionPipeline.CreatePipeline("D:\\Models\\stable-diffusion-v1-5-onnx");
+            var pipeline = StableDiffusionPipeline.CreatePipeline(provider, "M:\\Models\\stable-diffusion-v1-5-onnx");
 
-            // Prompt
-            var promptOptions = new PromptOptions
+
+            var generateOptions = new GenerateOptions
             {
-                Prompt = "steampunk dog",
-                DiffuserType = DiffuserType.ControlNet,
-                InputContolImage = controlImage
+                Prompt = "cyberpunk dog",
+                Diffuser = DiffuserType.ControlNet,
+                InputContolImage = controlImage,
+                ControlNet = controlNet,
+                SchedulerOptions = pipeline.DefaultSchedulerOptions with
+                {
+                    Seed = 12345,
+                    ConditioningScale = 0.8f
+                }
             };
 
-            // Preload (optional)
-            await pipeline.LoadAsync(UnetModeType.ControlNet);
-
             // Run pipeline
-            var result = await pipeline.RunAsync(promptOptions, controlNet: controlNet, progressCallback: OutputHelpers.ProgressCallback);
+            var result = await pipeline.RunAsync(generateOptions, progressCallback: OutputHelpers.ProgressCallback);
 
             // Create Image from Tensor result
             var image = new OnnxImage(result);
@@ -70,7 +75,7 @@ namespace OnnxStack.Console.Runner
             await image.SaveAsync(outputFilename);
 
             //Unload
-            await annotationPipeline.UnloadAsync();
+            await featureExtractor.UnloadAsync();
             await controlNet.UnloadAsync();
             await pipeline.UnloadAsync();
         }

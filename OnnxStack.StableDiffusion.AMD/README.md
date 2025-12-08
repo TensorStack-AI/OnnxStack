@@ -1,0 +1,1 @@
+﻿# OnnxStack.StableDiffusion.AMD

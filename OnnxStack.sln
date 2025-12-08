@@ -9,78 +9,60 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.StableDiffusion",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.Console", "OnnxStack.Console\OnnxStack.Console.csproj", "{46A43C80-A440-4461-B7EB-81FA998FB24B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.UI", "OnnxStack.UI\OnnxStack.UI.csproj", "{85BB1855-8C3B-4049-A2DD-1130FA6CD846}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.ImageUpscaler", "OnnxStack.ImageUpscaler\OnnxStack.ImageUpscaler.csproj", "{A33D08BF-7881-4910-8439-5AE46646C1DD}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnnxStack.Adapter", "OnnxStack.Adapter\OnnxStack.Adapter.vcxproj", "{5A64FC26-6926-4A45-ACCE-1FE173166990}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.FeatureExtractor", "OnnxStack.FeatureExtractor\OnnxStack.FeatureExtractor.csproj", "{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnnxStack.Device", "OnnxStack.Device\OnnxStack.Device.csproj", "{2258C5A4-D0EB-4AE5-9B61-CA012A71EAFB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{597F8585-67C0-49D3-BC2A-DD54650674A8}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnnxStack.StableDiffusion.AMD", "OnnxStack.StableDiffusion.AMD\OnnxStack.StableDiffusion.AMD.csproj", "{E523273B-3996-4F3C-9E2F-85EA7689D271}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
-		Debug-Nvidia|x64 = Debug-Nvidia|x64
 		Release|x64 = Release|x64
-		Release-Nvidia|x64 = Release-Nvidia|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{02404CEB-207F-4D19-894C-11D51394F1D5}.Debug|x64.ActiveCfg = Debug|x64
 		{02404CEB-207F-4D19-894C-11D51394F1D5}.Debug|x64.Build.0 = Debug|x64
-		{02404CEB-207F-4D19-894C-11D51394F1D5}.Debug-Nvidia|x64.ActiveCfg = Debug|x64
-		{02404CEB-207F-4D19-894C-11D51394F1D5}.Debug-Nvidia|x64.Build.0 = Debug|x64
 		{02404CEB-207F-4D19-894C-11D51394F1D5}.Release|x64.ActiveCfg = Release|x64
 		{02404CEB-207F-4D19-894C-11D51394F1D5}.Release|x64.Build.0 = Release|x64
-		{02404CEB-207F-4D19-894C-11D51394F1D5}.Release-Nvidia|x64.ActiveCfg = Release|x64
-		{02404CEB-207F-4D19-894C-11D51394F1D5}.Release-Nvidia|x64.Build.0 = Release|x64
 		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Debug|x64.ActiveCfg = Debug|x64
 		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Debug|x64.Build.0 = Debug|x64
-		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Debug-Nvidia|x64.ActiveCfg = Debug|x64
-		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Debug-Nvidia|x64.Build.0 = Debug|x64
 		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Release|x64.ActiveCfg = Release|x64
 		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Release|x64.Build.0 = Release|x64
-		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Release-Nvidia|x64.ActiveCfg = Release|x64
-		{EA1F61D0-490B-42EC-96F5-7DCCAB94457A}.Release-Nvidia|x64.Build.0 = Release|x64
 		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Debug|x64.ActiveCfg = Debug|x64
 		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Debug|x64.Build.0 = Debug|x64
-		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Debug-Nvidia|x64.ActiveCfg = Debug-Nvidia|x64
-		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Debug-Nvidia|x64.Build.0 = Debug-Nvidia|x64
 		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Release|x64.ActiveCfg = Release|x64
 		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Release|x64.Build.0 = Release|x64
-		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Release-Nvidia|x64.ActiveCfg = Release-Nvidia|x64
-		{46A43C80-A440-4461-B7EB-81FA998FB24B}.Release-Nvidia|x64.Build.0 = Release-Nvidia|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Debug|x64.ActiveCfg = Debug|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Debug|x64.Build.0 = Debug|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Debug-Nvidia|x64.ActiveCfg = Debug-Nvidia|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Debug-Nvidia|x64.Build.0 = Debug-Nvidia|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Release|x64.ActiveCfg = Release|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Release|x64.Build.0 = Release|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Release-Nvidia|x64.ActiveCfg = Release-Nvidia|x64
-		{85BB1855-8C3B-4049-A2DD-1130FA6CD846}.Release-Nvidia|x64.Build.0 = Release-Nvidia|x64
 		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Debug|x64.ActiveCfg = Debug|x64
 		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Debug|x64.Build.0 = Debug|x64
-		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Debug-Nvidia|x64.ActiveCfg = Debug|x64
-		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Debug-Nvidia|x64.Build.0 = Debug|x64
 		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Release|x64.ActiveCfg = Release|x64
 		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Release|x64.Build.0 = Release|x64
-		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Release-Nvidia|x64.ActiveCfg = Release|x64
-		{A33D08BF-7881-4910-8439-5AE46646C1DD}.Release-Nvidia|x64.Build.0 = Release|x64
 		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Debug|x64.ActiveCfg = Debug|x64
 		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Debug|x64.Build.0 = Debug|x64
-		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Debug-Nvidia|x64.ActiveCfg = Debug|x64
-		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Debug-Nvidia|x64.Build.0 = Debug|x64
 		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Release|x64.ActiveCfg = Release|x64
 		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Release|x64.Build.0 = Release|x64
-		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Release-Nvidia|x64.ActiveCfg = Release|x64
-		{5A64FC26-6926-4A45-ACCE-1FE173166990}.Release-Nvidia|x64.Build.0 = Release|x64
 		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Debug|x64.ActiveCfg = Debug|x64
 		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Debug|x64.Build.0 = Debug|x64
-		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Debug-Nvidia|x64.ActiveCfg = Debug|x64
-		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Debug-Nvidia|x64.Build.0 = Debug|x64
 		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Release|x64.ActiveCfg = Release|x64
 		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Release|x64.Build.0 = Release|x64
-		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Release-Nvidia|x64.ActiveCfg = Release|x64
-		{0E8095A4-83EF-48AD-9BD1-0CC2893050F6}.Release-Nvidia|x64.Build.0 = Release|x64
+		{2258C5A4-D0EB-4AE5-9B61-CA012A71EAFB}.Debug|x64.ActiveCfg = Debug|x64
+		{2258C5A4-D0EB-4AE5-9B61-CA012A71EAFB}.Debug|x64.Build.0 = Debug|x64
+		{2258C5A4-D0EB-4AE5-9B61-CA012A71EAFB}.Release|x64.ActiveCfg = Release|x64
+		{2258C5A4-D0EB-4AE5-9B61-CA012A71EAFB}.Release|x64.Build.0 = Release|x64
+		{E523273B-3996-4F3C-9E2F-85EA7689D271}.Debug|x64.ActiveCfg = Debug|x64
+		{E523273B-3996-4F3C-9E2F-85EA7689D271}.Debug|x64.Build.0 = Debug|x64
+		{E523273B-3996-4F3C-9E2F-85EA7689D271}.Release|x64.ActiveCfg = Release|x64
+		{E523273B-3996-4F3C-9E2F-85EA7689D271}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

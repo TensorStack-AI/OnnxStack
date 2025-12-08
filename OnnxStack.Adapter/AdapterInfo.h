@@ -11,8 +11,15 @@ struct AdapterInfo
     SIZE_T DedicatedSystemMemory;
     SIZE_T SharedSystemMemory;
     LUID AdapterLuid;
-    UINT Flags;
-    WCHAR Description[128];
+    UINT DeviceType;
+    BOOLEAN IsHardware;
+    BOOLEAN IsIntegrated;
+    BOOLEAN IsDetachable;
+    CHAR Description[128];
+    BOOLEAN IsLegacy;
 };
 
+
 extern "C" __declspec(dllexport) void __cdecl GetAdapters(AdapterInfo * adapterArray);
+
+extern "C" __declspec(dllexport) void __cdecl GetAdaptersLegacy(AdapterInfo* adapterArray);

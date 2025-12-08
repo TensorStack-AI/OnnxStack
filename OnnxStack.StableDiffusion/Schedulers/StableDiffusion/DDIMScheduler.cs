@@ -8,9 +8,8 @@ using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
-    internal class DDIMScheduler : SchedulerBase
+    public sealed class DDIMScheduler : SchedulerBase
     {
-        private float[] _alphasCumProd;
         private float _finalAlphaCumprod;
 
         /// <summary>
@@ -32,20 +31,11 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// </summary>
         protected override void Initialize()
         {
-            _alphasCumProd = null;
-
-            var betas = GetBetaSchedule();
-            var alphas = betas.Select(beta => 1.0f - beta);
-            _alphasCumProd = alphas
-                .Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b))
-                .ToArray();
-
+            base.Initialize();
             bool setAlphaToOne = true;
             _finalAlphaCumprod = setAlphaToOne
                 ? 1.0f
-                : _alphasCumProd.First();
-
-            SetInitNoiseSigma(1.0f);
+                : AlphasCumProd.First();
         }
 
 
@@ -55,10 +45,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            // Create timesteps based on the specified strategy
             var timesteps = GetTimesteps();
             return timesteps
-                .Select(x => (int)x)
+                .Select(x => (int)Math.Round(x))
                 .OrderByDescending(x => x)
                 .ToArray();
         }
@@ -86,7 +75,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         /// <exception cref="ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
         /// <exception cref="NotImplementedException">DDIMScheduler Thresholding currently not implemented</exception>
-        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16)
         {
             //# See formulas (12) and (16) of DDIM paper https://arxiv.org/pdf/2010.02502.pdf
             //# Ideally, read DDIM paper in-detail understanding
@@ -100,11 +89,13 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             //# - pred_prev_sample -> "x_t-1"
 
             int currentTimestep = timestep;
-            int previousTimestep = GetPreviousTimestep(currentTimestep);
+            int currentTimestepIndex = Timesteps.IndexOf(currentTimestep);
+            int previousTimestepIndex = currentTimestepIndex + 1;
+            int previousTimestep = Timesteps.ElementAtOrDefault(previousTimestepIndex);
 
             //# 1. compute alphas, betas
-            float alphaProdT = _alphasCumProd[currentTimestep];
-            float alphaProdTPrev = previousTimestep >= 0 ? _alphasCumProd[previousTimestep] : _finalAlphaCumprod;
+            float alphaProdT = AlphasCumProd[currentTimestep];
+            float alphaProdTPrev = previousTimestep >= 0 ? AlphasCumProd[previousTimestep] : _finalAlphaCumprod;
             float betaProdT = 1f - alphaProdT;
 
 
@@ -189,7 +180,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         {
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
             int timestep = timesteps[0];
-            float alphaProd = _alphasCumProd[timestep];
+            float alphaProd = AlphasCumProd[timestep];
             float sqrtAlpha = MathF.Sqrt(alphaProd);
             float sqrtOneMinusAlpha = MathF.Sqrt(1.0f - alphaProd);
 
@@ -207,9 +198,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         private float GetVariance(int timestep, int prevTimestep)
         {
-            float alphaProdT = _alphasCumProd[timestep];
+            float alphaProdT = AlphasCumProd[timestep];
             float alphaProdTPrev = prevTimestep >= 0
-                ? _alphasCumProd[timestep]
+                ? AlphasCumProd[timestep]
                 : _finalAlphaCumprod;
 
             float betaProdT = 1f - alphaProdT;
@@ -218,11 +209,5 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             return variance;
         }
 
-
-        protected override void Dispose(bool disposing)
-        {
-            _alphasCumProd = null;
-            base.Dispose(disposing);
-        }
     }
 }

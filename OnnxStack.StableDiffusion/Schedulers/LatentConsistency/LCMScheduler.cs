@@ -9,9 +9,8 @@ using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 {
-    internal class LCMScheduler : SchedulerBase
+    public class LCMScheduler : SchedulerBase
     {
-        private float[] _alphasCumProd;
         private float _finalAlphaCumprod;
 
         /// <summary>
@@ -33,20 +32,11 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         /// </summary>
         protected override void Initialize()
         {
-            _alphasCumProd = null;
-
-            var betas = GetBetaSchedule();
-            var alphas = betas.Select(beta => 1.0f - beta);
-            _alphasCumProd = alphas
-                .Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b))
-                .ToArray();
-
-            bool setAlphaToOne = true;
+            base.Initialize();
+            bool setAlphaToOne = false;
             _finalAlphaCumprod = setAlphaToOne
                 ? 1.0f
-            : _alphasCumProd.First();
-
-            SetInitNoiseSigma(1.0f);
+            : AlphasCumProd.First();
         }
 
 
@@ -58,22 +48,22 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         {
             // LCM Timesteps Setting
             // Currently, only linear spacing is supported.
-            var timeIncrement = Options.TrainTimesteps / Options.OriginalInferenceSteps;
-
-            if (Options.InferenceSteps <= 1)
-                return new[] { Options.TrainTimesteps / 2 - 1 };
+            var timeIncrement = Options.TrainTimesteps / Options.InferenceSteps - 1;
 
             //# LCM Training Steps Schedule
-            var lcmOriginTimesteps = Enumerable.Range(1, Options.OriginalInferenceSteps)
-                .Select(x => x * timeIncrement - 1)
+            var lcmOriginTimesteps = Enumerable.Range(1, Options.InferenceSteps)
+                .Select(x => x * timeIncrement)
                 .ToArray();
 
+            if (Options.InferenceSteps <= 1)
+                return [lcmOriginTimesteps[^1]];
+
             var steps = ArrayHelpers.Linspace(0, lcmOriginTimesteps.Length - 1, Options.InferenceSteps)
-               .Select(x => (int)Math.Floor(x))
+               .Select(x => (int)Math.Round(x))
                .Select(x => lcmOriginTimesteps[x])
                .OrderByDescending(x => x)
                .ToArray();
-             return steps;
+            return steps;
         }
 
 
@@ -97,7 +87,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16)
         {
             //# Latent Consistency Models paper https://arxiv.org/abs/2310.04378
 
@@ -110,9 +100,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
                 : currentTimestep;
 
             //# 2. compute alphas, betas
-            float alphaProdT = _alphasCumProd[currentTimestep];
+            float alphaProdT = AlphasCumProd[currentTimestep];
             float alphaProdTPrev = previousTimestep >= 0
-                ? _alphasCumProd[previousTimestep]
+                ? AlphasCumProd[previousTimestep]
                 : _finalAlphaCumprod;
             float betaProdT = 1f - alphaProdT;
             float betaProdTPrev = 1f - alphaProdTPrev;
@@ -162,7 +152,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             //# This also means that noise is not used for one-step sampling.
             if (Timesteps.IndexOf(currentTimestep) != Options.InferenceSteps - 1)
             {
-                var noise = CreateRandomSample(modelOutput.Dimensions);
+                var noise = CreateRandomSample(modelOutput.Dimensions, contextSize);
                 predOriginalSample = noise
                     .MultiplyTensorByFloat(betaProdTPrevSqrt)
                     .AddTensors(denoised.MultiplyTensorByFloat(alphaProdTPrevSqrt));
@@ -171,7 +161,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
             {
                 predOriginalSample = denoised;
             }
-
 
             return new SchedulerStepResult(predOriginalSample, denoised);
         }
@@ -188,7 +177,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
         {
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L456
             int timestep = timesteps[0];
-            float alphaProd = _alphasCumProd[timestep];
+            float alphaProd = AlphasCumProd[timestep];
             float sqrtAlpha = MathF.Sqrt(alphaProd);
             float sqrtOneMinusAlpha = MathF.Sqrt(1.0f - alphaProd);
 
@@ -218,13 +207,15 @@ namespace OnnxStack.StableDiffusion.Schedulers.LatentConsistency
 
 
         /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
+        /// Creates the random sample.
         /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected override void Dispose(bool disposing)
+        /// <param name="dimensions">The dimensions.</param>
+        /// <param name="contextSize">Size of the context.</param>
+        /// <returns>DenseTensor&lt;System.Single&gt;.</returns>
+        protected virtual DenseTensor<float> CreateRandomSample(ReadOnlySpan<int> dimensions, int contextSize)
         {
-            _alphasCumProd = null;
-            base.Dispose(disposing);
+            return CreateRandomSample(dimensions);
         }
+
     }
 }

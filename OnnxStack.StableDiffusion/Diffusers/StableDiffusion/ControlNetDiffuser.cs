@@ -28,8 +28,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public ControlNetDiffuser(ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
-            : base(unet, vaeDecoder, vaeEncoder, memoryMode, logger)
+        public ControlNetDiffuser(ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, logger)
         {
             _controlNet = controlNet;
         }
@@ -44,36 +44,38 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <summary>
         /// Runs the scheduler steps.
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="promptEmbeddings">The prompt embeddings.</param>
-        /// <param name="performGuidance">if set to <c>true</c> [perform guidance].</param>
+        /// <param name="options"></param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public override async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override async Task<DenseTensor<float>> DiffuseAsync(DiffuseOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            // Get Scheduler
+            var generateOptions = options.GenerateOptions;
+            var schedulerOptions = generateOptions.SchedulerOptions;
+            var performGuidance = ShouldPerformGuidance(schedulerOptions);
+            var promptEmbeds = options.PromptEmbeddings.GetPromptEmbeds(performGuidance);
+            var pooledPromptEmbeds = options.PromptEmbeddings.GetPooledPromptEmbeds(performGuidance);
             using (var scheduler = GetScheduler(schedulerOptions))
             {
+                // Get Model metadata
+                var metadata = await _unet.LoadAsync(cancellationToken: cancellationToken);
+
+                // Get Model metadata
+                var controlNetMetadata = await _controlNet.LoadAsync(cancellationToken: cancellationToken);
+
                 // Get timesteps
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = await PrepareLatentsAsync(promptOptions, schedulerOptions, scheduler, timesteps);
-
-                // Get Model metadata
-                var metadata = await _unet.GetMetadataAsync();
-
-                // Get Model metadata
-                var controlNetMetadata = await _controlNet.GetMetadataAsync();
+                progressCallback.Notify("Prepare Input...");
+                var latents = await PrepareLatentsAsync(generateOptions, scheduler, timesteps, cancellationToken);
 
                 // Control Image
-                var controlImage = await PrepareControlImage(promptOptions, schedulerOptions);
+                var controlImage = await PrepareControlImage(generateOptions);
 
                 // Loop though the timesteps
                 var step = 0;
+                ReportProgress(progressCallback, "Step", 0, timesteps.Count, 0);
                 foreach (var timestep in timesteps)
                 {
                     step++;
@@ -89,19 +91,19 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
 
                     var outputChannels = performGuidance ? 2 : 1;
                     var outputDimension = schedulerOptions.GetScaledDimension(outputChannels);
-                    using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+                    using (var inferenceParameters = new OnnxInferenceParameters(metadata, cancellationToken))
                     {
                         inferenceParameters.AddInputTensor(inputTensor);
                         inferenceParameters.AddInputTensor(timestepTensor);
-                        inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
+                        inferenceParameters.AddInputTensor(promptEmbeds);
 
                         // ControlNet
-                        using (var controlNetParameters = new OnnxInferenceParameters(controlNetMetadata))
+                        using (var controlNetParameters = new OnnxInferenceParameters(controlNetMetadata, cancellationToken))
                         {
                             controlNetParameters.AddInputTensor(inputTensor);
                             controlNetParameters.AddInputTensor(timestepTensor);
-                            controlNetParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                            controlNetParameters.AddInputTensor(controlImage);
+                            controlNetParameters.AddInputTensor(promptEmbeds);
+                            controlNetParameters.AddInputTensor(controlImageTensor);
                             if (controlNetMetadata.Inputs.Count == 5)
                                 controlNetParameters.AddInputTensor(conditioningScale);
 
@@ -135,16 +137,16 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
                         }
                     }
 
-                    ReportProgress(progressCallback, step, timesteps.Count, latents);
+                    ReportProgress(progressCallback, "Step", step, timesteps.Count, stepTime, latents);
                     _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Unload if required
-                if (_memoryMode == MemoryModeType.Minimum)
+                if (generateOptions.IsLowMemoryComputeEnabled)
                     await Task.WhenAll(_controlNet.UnloadAsync(), _unet.UnloadAsync());
 
                 // Decode Latents
-                return await DecodeLatentsAsync(promptOptions, schedulerOptions, latents);
+                return await DecodeLatentsAsync(generateOptions, latents, cancellationToken);
             }
         }
 
@@ -173,9 +175,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected override Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(GenerateOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
+            return Task.FromResult(scheduler.CreateRandomSample(options.SchedulerOptions.GetScaledDimension(), scheduler.InitNoiseSigma));
         }
 
 
@@ -193,12 +195,28 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusion
         /// <summary>
         /// Prepares the control image.
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="options">The options.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> PrepareControlImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        protected async Task<DenseTensor<float>> PrepareControlImage(GenerateOptions options)
         {
-            return await promptOptions.InputContolImage.GetImageTensorAsync(schedulerOptions.Height, schedulerOptions.Width, ImageNormalizeType.ZeroToOne);
+            var controlImageTensor = await options.InputContolImage.GetImageTensorAsync(options.SchedulerOptions.Height, options.SchedulerOptions.Width, ImageNormalizeType.ZeroToOne);
+            if (_controlNet.InvertInput)
+                InvertInputTensor(controlImageTensor);
+
+            return controlImageTensor;
+        }
+
+
+        /// <summary>
+        /// Inverts the input tensor.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        protected static void InvertInputTensor(DenseTensor<float> values)
+        {
+            for (int j = 0; j < values.Length; j++)
+            {
+                values.SetValue(j, 1f - values.GetValue(j));
+            }
         }
     }
 }

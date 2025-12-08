@@ -5,12 +5,13 @@ namespace OnnxStack.FeatureExtractor.Common
 {
     public record FeatureExtractorModelConfig : OnnxModelConfig
     {
+        public string Name { get; set; }
         public int SampleSize { get; set; }
         public int OutputChannels { get; set; }
-        public bool NormalizeOutput { get; set; }
+        public ImageNormalizeType NormalizeType { get; set; }
+        public ImageNormalizeType NormalizeOutputType { get; set; }
         public bool SetOutputToInputAlpha { get; set; }
         public ImageResizeMode InputResizeMode { get; set; }
-        public ImageNormalizeType NormalizeType { get; set; }
-        public bool NormalizeInput { get; set; }
+        public bool InvertOutput { get; set; }
     }
 }

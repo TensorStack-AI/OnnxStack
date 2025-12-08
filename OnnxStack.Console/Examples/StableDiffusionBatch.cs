@@ -1,9 +1,7 @@
 ﻿using OnnxStack.Core.Image;
-using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Pipelines;
-using SixLabors.ImageSharp;
 using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
@@ -11,15 +9,14 @@ namespace OnnxStack.Console.Runner
     public sealed class StableDiffusionBatch : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly StableDiffusionConfig _configuration;
 
-        public StableDiffusionBatch(StableDiffusionConfig configuration)
+        public StableDiffusionBatch()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionBatch));
+            Directory.CreateDirectory(_outputDirectory);
         }
 
-        public int Index => 2;
+        public int Index => 3;
 
         public string Name => "Stable Diffusion Batch Demo";
 
@@ -30,53 +27,44 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
-            Directory.CreateDirectory(_outputDirectory);
+            // Execution provider
+            var provider = Providers.DirectML(0);
 
+            // Create Pipeline
+            var pipeline = StableDiffusionPipeline.CreatePipeline(provider, "M:\\Models\\stable-diffusion-v1-5-onnx");
+            OutputHelpers.WriteConsole($"Loading Model `{pipeline.Name}`...", ConsoleColor.Green);
 
-            // Prompt
-            var promptOptions = new PromptOptions
+            // Run Batch
+            var timestamp = Stopwatch.GetTimestamp();
+
+            // Options
+            var generateOptions = new GenerateBatchOptions
             {
-                Prompt = "Photo of a cat"
-            };
+                Prompt = "Photo of a cat",
 
-            // Batch Of 5
-            var batchOptions = new BatchOptions
-            {
+                // Batch Of 5 seeds
                 ValueTo = 5,
                 BatchType = BatchOptionType.Seed
             };
 
-            foreach (var modelSet in _configuration.ModelSets)
+            // Generate
+            await foreach (var result in pipeline.RunBatchAsync(generateOptions, progressCallback: OutputHelpers.BatchProgressCallback))
             {
-                OutputHelpers.WriteConsole($"Loading Model `{modelSet.Name}`...", ConsoleColor.Green);
+                // Create Image from Tensor result
+                var image = new OnnxImage(result.Result);
 
-                // Create Pipeline
-                var pipeline = PipelineBase.CreatePipeline(modelSet);
+                // Save Image File
+                var outputFilename = Path.Combine(_outputDirectory, $"{pipeline.Name}_{result.SchedulerOptions.Seed}.png");
+                await image.SaveAsync(outputFilename);
 
-                // Preload Models (optional)
-                await pipeline.LoadAsync();
-
-                // Run Batch
-                var timestamp = Stopwatch.GetTimestamp();
-                await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions, progressCallback: OutputHelpers.BatchProgressCallback))
-                {
-                    // Create Image from Tensor result
-                    var image = new OnnxImage(result.Result);
-
-                    // Save Image File
-                    var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}_{result.SchedulerOptions.Seed}.png");
-                    await image.SaveAsync(outputFilename);
-
-                    OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Green);
-                    timestamp = Stopwatch.GetTimestamp();
-                }
-
-                OutputHelpers.WriteConsole($"Unloading Model `{modelSet.Name}`...", ConsoleColor.Green);
-
-                // Unload
-                await pipeline.UnloadAsync();
-
+                OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Green);
+                timestamp = Stopwatch.GetTimestamp();
             }
+
+            OutputHelpers.WriteConsole($"Unloading Model `{pipeline.Name}`...", ConsoleColor.Green);
+
+            // Unload
+            await pipeline.UnloadAsync();
         }
     }
 }

@@ -1,7 +1,5 @@
-﻿using OnnxStack.Core.Image;
-using OnnxStack.StableDiffusion.Config;
+﻿using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Pipelines;
-using SixLabors.ImageSharp;
 using System.Diagnostics;
 
 namespace OnnxStack.Console.Runner
@@ -9,15 +7,14 @@ namespace OnnxStack.Console.Runner
     public sealed class StableDiffusionExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly StableDiffusionConfig _configuration;
 
-        public StableDiffusionExample(StableDiffusionConfig configuration)
+        public StableDiffusionExample()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(StableDiffusionExample));
+            Directory.CreateDirectory(_outputDirectory);
         }
 
-        public int Index => 1;
+        public int Index => 3;
 
         public string Name => "Stable Diffusion Demo";
 
@@ -28,7 +25,8 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
-            Directory.CreateDirectory(_outputDirectory);
+            // Execution provider
+            var provider = Providers.DirectML(0);
 
             while (true)
             {
@@ -38,48 +36,43 @@ namespace OnnxStack.Console.Runner
                 OutputHelpers.WriteConsole("Please type a negative prompt and press ENTER (optional)", ConsoleColor.Yellow);
                 var negativePrompt = OutputHelpers.ReadConsole(ConsoleColor.Cyan);
 
-                var promptOptions = new PromptOptions
+
+                // Create Pipeline
+                var pipeline = StableDiffusionPipeline.CreatePipeline(provider, "M:\\Models\\stable-diffusion-v1-5-onnx");
+                OutputHelpers.WriteConsole($"Loading Model `{pipeline.Name}`...", ConsoleColor.Green);
+
+                // Options
+                var generateOptions = new GenerateOptions
                 {
                     Prompt = prompt,
-                    NegativePrompt = negativePrompt,
+                    NegativePrompt = negativePrompt
                 };
 
-                foreach (var modelSet in _configuration.ModelSets)
+                // Loop through schedulers
+                foreach (var schedulerType in pipeline.SupportedSchedulers)
                 {
-                    OutputHelpers.WriteConsole($"Loading Model `{modelSet.Name}`...", ConsoleColor.Green);
-
-                    // Create Pipeline
-                    var pipeline = PipelineBase.CreatePipeline(modelSet);
-
-                    // Preload Models (optional)
-                    await pipeline.LoadAsync();
-
-
-                    // Loop through schedulers
-                    foreach (var schedulerType in pipeline.SupportedSchedulers)
+                    generateOptions.SchedulerOptions = pipeline.DefaultSchedulerOptions with
                     {
-                        var schedulerOptions = pipeline.DefaultSchedulerOptions with
-                        {
-                            SchedulerType = schedulerType
-                        };
+                        SchedulerType = schedulerType
+                    };
 
-                        var timestamp = Stopwatch.GetTimestamp();
-                        OutputHelpers.WriteConsole($"Generating '{schedulerType}' Image...", ConsoleColor.Green);
+                    var timestamp = Stopwatch.GetTimestamp();
+                    OutputHelpers.WriteConsole($"Generating '{schedulerType}' Image...", ConsoleColor.Green);
 
-                        // Run pipeline
-                        var result = await pipeline.GenerateImageAsync(promptOptions, schedulerOptions, progressCallback: OutputHelpers.ProgressCallback);
+                    // Run pipeline
+                    var result = await pipeline.GenerateAsync(generateOptions, progressCallback: OutputHelpers.ProgressCallback);
 
-                        // Save Image File
-                        var outputFilename = Path.Combine(_outputDirectory, $"{modelSet.Name}_{schedulerOptions.SchedulerType}.png");
-                        await result.SaveAsync(outputFilename);
+                    // Save Image File
+                    var outputFilename = Path.Combine(_outputDirectory, $"{pipeline.Name}_{generateOptions.SchedulerOptions.SchedulerType}.png");
+                    await result.SaveAsync(outputFilename);
 
-                        OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Green);
-                    }
-
-                    OutputHelpers.WriteConsole($"Unloading Model `{modelSet.Name}`...", ConsoleColor.Green);
-                    await pipeline.UnloadAsync();
+                    OutputHelpers.WriteConsole($"Image Created: {Path.GetFileName(outputFilename)}, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}ms", ConsoleColor.Green);
                 }
+
+                OutputHelpers.WriteConsole($"Unloading Model `{pipeline.Name}`...", ConsoleColor.Green);
+                await pipeline.UnloadAsync();
             }
+
         }
     }
 }

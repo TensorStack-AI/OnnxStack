@@ -49,11 +49,11 @@ Run a simple Stable Diffusion process with a basic prompt
 // Create Pipeline
 var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-v1-5");
 
-// Set Prompt Options
-var promptOptions = new PromptOptions { Prompt = "Photo of a cute dog." };
+// Set Generate Options
+var generateOptions = new GenerateOptions { Prompt = "Photo of a cute dog." };
 
 // Run Pipleine
-var result = await pipeline.GenerateImageAsync(promptOptions);
+var result = await pipeline.GenerateImageAsync(generateOptions);
 
 // Save image result
 await result.SaveAsync("D:\\Results\\Image.png");
@@ -71,8 +71,8 @@ Run Stable Diffusion process and return a batch of results
 // Create Pipeline
 var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-v1-5");
 
-// Prompt
-var promptOptions = new PromptOptions{ Prompt = "Photo of a cat" };
+// Generate Options
+var generateOptions = new GenerateOptions{ Prompt = "Photo of a cat" };
 
 // Batch Of 5 Images with unique seeds
 var batchOptions = new BatchOptions
@@ -82,7 +82,7 @@ var batchOptions = new BatchOptions
 };
 
 // Run Pipleine
-await foreach (var result in pipeline.RunBatchAsync(batchOptions, promptOptions))
+await foreach (var result in pipeline.RunBatchAsync(batchOptions, generateOptions))
 {
     // Save Image result
    var image = new OnnxImage(result.ImageResult);
@@ -108,8 +108,8 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
 // Load Input Image
 var inputImage = await OnnxImage.FromFileAsync("Input.png");
 
-// Set Prompt Options
-var promptOptions = new PromptOptions
+// Set Generate Options
+var generateOptions = new GenerateOptions
 {
     DiffuserType = DiffuserType.ImageToImage,
     Prompt = "Photo of a cute dog.",
@@ -117,14 +117,14 @@ var promptOptions = new PromptOptions
 };
 
 // Set Sheduler Options
-var schedulerOptions = pipeline.DefaultSchedulerOptions with
+generateOptions.SchedulerOptions = pipeline.DefaultSchedulerOptions with
 {
     // How much the output should look like the input
     Strength = 0.8f 
 };
 
 // Run Pipleine
-var result = await pipeline.GenerateImageAsync(promptOptions, schedulerOptions);
+var result = await pipeline.GenerateImageAsync(generateOptions);
 
 // Save image result
 await result.SaveAsync("Output_ImageToImage.png");
@@ -153,16 +153,17 @@ var controlNet = ControlNetModel.Create("models\\controlnet_onnx\\controlnet\\de
 // Load Control Image
 var controlImage = await OnnxImage.FromFileAsync("Input_Depth.png");
 
-// Set Prompt Options
-var promptOptions = new PromptOptions
+// Set Generate Options
+var generateOptions = new GenerateOptions
 {
     DiffuserType = DiffuserType.ControlNet,
     Prompt = "Photo-realistic alien",
-    InputContolImage = controlImage
+    InputContolImage = controlImage,
+    ControlNet = controlNet
 };
 
 // Run Pipleine
-var result = await pipeline.GenerateImageAsync(promptOptions, controlNet: controlNet);
+var result = await pipeline.GenerateImageAsync(generateOptions);
 
 // Save image result
 await result.SaveAsync("Output_ControlNet.png");
@@ -194,7 +195,7 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
  var videoInput = await OnnxVideo.FromFileAsync("Input.gif", targetFPS);
 
  // Add text and video to prompt
- var promptOptions = new PromptOptions
+ var generateOptions = new GenerateOptions
  {
      Prompt = "Elon Musk",
      DiffuserType = DiffuserType.ImageToImage,
@@ -202,7 +203,7 @@ var pipeline = StableDiffusionPipeline.CreatePipeline("models\\stable-diffusion-
  };
 
  // Run pipeline
- var result = await pipeline.GenerateVideoAsync(promptOptions);
+ var result = await pipeline.GenerateVideoAsync(generateOptions);
 
  // Save Video File
  await result.SaveAsync("Output_VideoToVideo.mp4");

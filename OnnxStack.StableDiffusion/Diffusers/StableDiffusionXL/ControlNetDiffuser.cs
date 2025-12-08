@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
 using OnnxStack.Core.Image;
@@ -28,8 +29,8 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="vaeDecoder">The vae decoder.</param>
         /// <param name="vaeEncoder">The vae encoder.</param>
         /// <param name="logger">The logger.</param>
-        public ControlNetDiffuser( ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, MemoryModeType memoryMode, ILogger logger = default)
-            : base(unet, vaeDecoder, vaeEncoder, memoryMode, logger)
+        public ControlNetDiffuser(ControlNetModel controlNet, UNetConditionModel unet, AutoEncoderModel vaeDecoder, AutoEncoderModel vaeEncoder, ILogger logger = default)
+            : base(unet, vaeDecoder, vaeEncoder, logger)
         {
             _controlNet = controlNet;
         }
@@ -44,40 +45,44 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <summary>
         /// Runs the scheduler steps.
         /// </summary>
-        /// <param name="modelOptions">The model options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="promptEmbeddings">The prompt embeddings.</param>
-        /// <param name="performGuidance">if set to <c>true</c> [perform guidance].</param>
+        /// <param name="options"></param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public override async Task<DenseTensor<float>> DiffuseAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions, PromptEmbeddingsResult promptEmbeddings, bool performGuidance, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public override async Task<DenseTensor<float>> DiffuseAsync(DiffuseOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            // Get Scheduler
+            var generateOptions = options.GenerateOptions;
+            var schedulerOptions = generateOptions.SchedulerOptions;
+            var performGuidance = ShouldPerformGuidance(schedulerOptions);
+            var promptEmbedsCond = options.PromptEmbeddings.PromptEmbeds;
+            var pooledPromptEmbedsCond = options.PromptEmbeddings.PooledPromptEmbeds;
+            var promptEmbedsUncond = options.PromptEmbeddings.NegativePromptEmbeds;
+            var pooledPromptEmbedsUncond = options.PromptEmbeddings.NegativePooledPromptEmbeds;
+
             using (var scheduler = GetScheduler(schedulerOptions))
             {
+                // Get Model metadata
+                var metadata = await _unet.LoadAsync(cancellationToken: cancellationToken);
+
+                // Get Model metadata
+                var controlNetMetadata = await _controlNet.LoadAsync(cancellationToken: cancellationToken);
+
                 // Get timesteps
                 var timesteps = GetTimesteps(schedulerOptions, scheduler);
 
                 // Create latent sample
-                var latents = await PrepareLatentsAsync(promptOptions, schedulerOptions, scheduler, timesteps);
-
-                // Get Model metadata
-                var metadata = await _unet.GetMetadataAsync();
+                progressCallback.Notify("Prepare Input...");
+                var latents = await PrepareLatentsAsync(generateOptions, scheduler, timesteps, cancellationToken);
 
                 // Get Time ids
                 var addTimeIds = GetAddTimeIds(schedulerOptions);
 
-                // Get Model metadata
-                var controlNetMetadata = await _controlNet.GetMetadataAsync();
-
                 // Control Image
-                var controlImage = await PrepareControlImage(promptOptions, schedulerOptions);
+                var controlImage = await PrepareControlImage(generateOptions);
 
                 // Loop though the timesteps
                 var step = 0;
+                ReportProgress(progressCallback, "Step", 0, timesteps.Count, 0);
                 foreach (var timestep in timesteps)
                 {
                     step++;
@@ -85,76 +90,101 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Create input tensor.
-                    var inputLatent = performGuidance ? latents.Repeat(2) : latents;
-                    var inputTensor = scheduler.ScaleInput(inputLatent, timestep);
+                    var inputTensor = scheduler.ScaleInput(latents, timestep);
                     var timestepTensor = CreateTimestepTensor(timestep);
-                    var timeids = performGuidance ? addTimeIds.Repeat(2) : addTimeIds;
-                    var controlImageTensor = performGuidance ? controlImage.Repeat(2) : controlImage;
                     var conditioningScale = CreateConditioningScaleTensor(schedulerOptions.ConditioningScale);
 
-                    var batchCount = performGuidance ? 2 : 1;
-                    var outputDimension = schedulerOptions.GetScaledDimension(batchCount);
-                    using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+                    var outputDimension = schedulerOptions.GetScaledDimension();
+                    using (var unetCondParams = new OnnxInferenceParameters(metadata, cancellationToken))
+                    using (var unetUncondParams = new OnnxInferenceParameters(metadata, cancellationToken))
+                    using (var controlNetCondParams = new OnnxInferenceParameters(controlNetMetadata, cancellationToken))
+                    using (var controlNetUncondParams = new OnnxInferenceParameters(controlNetMetadata, cancellationToken))
                     {
-                        inferenceParameters.AddInputTensor(inputTensor);
-                        inferenceParameters.AddInputTensor(timestepTensor);
-                        inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                        inferenceParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
-                        inferenceParameters.AddInputTensor(timeids);
-                        inferenceParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
+                        // UNet
+                        unetCondParams.AddInputTensor(inputTensor);
+                        unetCondParams.AddInputTensor(timestepTensor);
+                        unetCondParams.AddInputTensor(promptEmbedsCond);
+                        unetCondParams.AddInputTensor(pooledPromptEmbedsCond);
+                        unetCondParams.AddInputTensor(addTimeIds);
 
                         // ControlNet
-                        using (var controlNetParameters = new OnnxInferenceParameters(controlNetMetadata))
+                        controlNetCondParams.AddInputTensor(inputTensor);
+                        controlNetCondParams.AddInputTensor(timestepTensor);
+                        controlNetCondParams.AddInputTensor(promptEmbedsCond);
+                        controlNetCondParams.AddInputTensor(pooledPromptEmbedsCond);
+                        controlNetCondParams.AddInputTensor(addTimeIds);
+                        controlNetCondParams.AddInputTensor(controlImage);
+                        controlNetCondParams.AddInputTensor(conditioningScale);
+
+                        // Output
+                        unetCondParams.AddOutputBuffer(outputDimension);
+                        foreach (var item in controlNetMetadata.Outputs)
+                            controlNetCondParams.AddOutputBuffer();
+
+                        // Inference
+                        var controlNetResults = _controlNet.RunInference(controlNetCondParams);
+                        foreach (var item in controlNetResults)
+                            unetCondParams.AddInput(item);
+                        var unetCondResults = await _unet.RunInferenceAsync(unetCondParams);
+
+                        // Unconditional
+                        var unetUncondResults = default(IReadOnlyCollection<OrtValue>);
+                        if (performGuidance)
                         {
-                            controlNetParameters.AddInputTensor(inputTensor);
-                            controlNetParameters.AddInputTensor(timestepTensor);
-                            controlNetParameters.AddInputTensor(promptEmbeddings.PromptEmbeds);
-                            controlNetParameters.AddInputTensor(promptEmbeddings.PooledPromptEmbeds);
-                            controlNetParameters.AddInputTensor(timeids);
-                            controlNetParameters.AddInputTensor(controlImage);
-                            if (controlNetMetadata.Inputs.Count == 5)
-                                controlNetParameters.AddInputTensor(conditioningScale);
+                            // UNet
+                            unetUncondParams.AddInputTensor(inputTensor);
+                            unetUncondParams.AddInputTensor(timestepTensor);
+                            unetUncondParams.AddInputTensor(promptEmbedsUncond);
+                            unetUncondParams.AddInputTensor(pooledPromptEmbedsUncond);
+                            unetUncondParams.AddInputTensor(addTimeIds);
 
-                            // Optimization: Pre-allocate device buffers for inputs
+                            // ControlNet
+                            controlNetUncondParams.AddInputTensor(inputTensor);
+                            controlNetUncondParams.AddInputTensor(timestepTensor);
+                            controlNetUncondParams.AddInputTensor(promptEmbedsCond);
+                            controlNetUncondParams.AddInputTensor(pooledPromptEmbedsCond);
+                            controlNetUncondParams.AddInputTensor(addTimeIds);
+                            controlNetUncondParams.AddInputTensor(controlImage);
+                            controlNetUncondParams.AddInputTensor(conditioningScale);
+
+                            // Output
+                            unetUncondParams.AddOutputBuffer(outputDimension);
                             foreach (var item in controlNetMetadata.Outputs)
-                                controlNetParameters.AddOutputBuffer();
+                                controlNetUncondParams.AddOutputBuffer();
 
-                            // ControlNet inference
-                            var controlNetResults = _controlNet.RunInference(controlNetParameters);
+                            // Inference
+                            var controlNetUncondResults = _controlNet.RunInference(controlNetUncondParams);
+                            foreach (var item in controlNetUncondResults)
+                                unetUncondParams.AddInput(item);
 
-                            // Add ControlNet outputs to Unet input
-                            foreach (var item in controlNetResults)
-                                inferenceParameters.AddInput(item);
+                            unetUncondResults = await _unet.RunInferenceAsync(unetUncondParams);
+                        }
 
-                            // Add output buffer
-                            inferenceParameters.AddOutputBuffer(outputDimension);
+                        // Result
+                        using (var unetCondResult = unetCondResults.First())
+                        using (var unetUncondResult = unetUncondResults?.FirstOrDefault())
+                        {
+                            var noisePred = unetCondResult.ToDenseTensor();
 
-                            // Unet inference
-                            var results = await _unet.RunInferenceAsync(inferenceParameters);
-                            using (var result = results.First())
-                            {
-                                var noisePred = result.ToDenseTensor();
+                            // Perform guidance
+                            if (performGuidance)
+                                noisePred = PerformGuidance(noisePred, unetUncondResult.ToDenseTensor(), schedulerOptions.GuidanceScale);
 
-                                // Perform guidance
-                                if (performGuidance)
-                                    noisePred = PerformGuidance(noisePred, schedulerOptions.GuidanceScale);
-
-                                // Scheduler Step
-                                latents = scheduler.Step(noisePred, timestep, latents).Result;
-                            }
+                            // Scheduler Step
+                            latents = scheduler.Step(noisePred, timestep, latents).Result;
                         }
                     }
 
-                    ReportProgress(progressCallback, step, timesteps.Count, latents);
+                    ReportProgress(progressCallback, "Step", step, timesteps.Count, stepTime, latents);
                     _logger?.LogEnd(LogLevel.Debug, $"Step {step}/{timesteps.Count}", stepTime);
                 }
 
                 // Unload if required
-                if (_memoryMode == MemoryModeType.Minimum)
+                if (generateOptions.IsLowMemoryComputeEnabled)
                     await Task.WhenAll(_controlNet.UnloadAsync(), _unet.UnloadAsync());
 
                 // Decode Latents
-                return await DecodeLatentsAsync(promptOptions, schedulerOptions, latents);
+                return await DecodeLatentsAsync(generateOptions, latents, cancellationToken);
             }
         }
 
@@ -183,9 +213,9 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        protected override Task<DenseTensor<float>> PrepareLatentsAsync(PromptOptions prompt, SchedulerOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps)
+        protected override Task<DenseTensor<float>> PrepareLatentsAsync(GenerateOptions options, IScheduler scheduler, IReadOnlyList<int> timesteps, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(scheduler.CreateRandomSample(options.GetScaledDimension(), scheduler.InitNoiseSigma));
+            return Task.FromResult(scheduler.CreateRandomSample(options.SchedulerOptions.GetScaledDimension(), scheduler.InitNoiseSigma));
         }
 
 
@@ -203,12 +233,28 @@ namespace OnnxStack.StableDiffusion.Diffusers.StableDiffusionXL
         /// <summary>
         /// Prepares the control image.
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
+        /// <param name="options">The options.</param>
         /// <returns></returns>
-        protected async Task<DenseTensor<float>> PrepareControlImage(PromptOptions promptOptions, SchedulerOptions schedulerOptions)
+        protected async Task<DenseTensor<float>> PrepareControlImage(GenerateOptions options)
         {
-            return await promptOptions.InputContolImage.GetImageTensorAsync(schedulerOptions.Height, schedulerOptions.Width, ImageNormalizeType.ZeroToOne);
+            var controlImageTensor = await options.InputContolImage.GetImageTensorAsync(options.SchedulerOptions.Height, options.SchedulerOptions.Width, ImageNormalizeType.ZeroToOne);
+            if (_controlNet.InvertInput)
+                InvertInputTensor(controlImageTensor);
+
+            return controlImageTensor;
+        }
+
+
+        /// <summary>
+        /// Inverts the input tensor.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        private static void InvertInputTensor(DenseTensor<float> values)
+        {
+            for (int j = 0; j < values.Length; j++)
+            {
+                values.SetValue(j, 1f - values.GetValue(j));
+            }
         }
     }
 }

@@ -16,10 +16,22 @@ namespace OnnxStack.StableDiffusion.Enums
         [Description("Image Inpaint Legacy")]
         ImageInpaintLegacy = 3,
 
+        [Description("Text To Video")]
+        TextToVideo = 4,
+
+        [Description("Image To Video")]
+        ImageToVideo = 5,
+
+        [Description("Video To Video")]
+        VideoToVideo = 6,
+
         [Description("ControlNet")]
         ControlNet = 100,
 
         [Description("ControlNet Image")]
-        ControlNetImage = 101
+        ControlNetImage = 101,
+
+        [Description("ControlNet Video")]
+        ControlNetVideo = 102
     }
 }

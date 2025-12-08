@@ -15,7 +15,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         private readonly Random _random;
         private readonly List<int> _timesteps;
         private readonly SchedulerOptions _options;
-        private float _initNoiseSigma;
+        private float _initNoiseSigma = 1f;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SchedulerBase"/> class.
@@ -27,8 +27,28 @@ namespace OnnxStack.StableDiffusion.Schedulers
             _options = schedulerOptions;
             _random = new Random(_options.Seed);
             Initialize();
-            _timesteps = new List<int>(SetTimesteps());
+            _timesteps = [.. SetTimesteps()];
         }
+
+        /// <summary>
+        /// Gets or sets the sigmas.
+        /// </summary>
+        protected float[] Sigmas { get; set; }
+
+        /// <summary>
+        /// Gets or sets the alphas.
+        /// </summary>
+        protected float[] Alphas { get; set; }
+
+        /// <summary>
+        /// Gets or sets the betas.
+        /// </summary>
+        protected float[] Betas { get; set; }
+
+        /// <summary>
+        /// Gets or sets the alphas cum product.
+        /// </summary>
+        protected float[] AlphasCumProd { get; set; }
 
         /// <summary>
         /// Gets the scheduler options.
@@ -66,8 +86,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public abstract SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
-
+        public abstract SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16);
 
         /// <summary>
         /// Adds noise to the sample.
@@ -79,15 +98,29 @@ namespace OnnxStack.StableDiffusion.Schedulers
         public abstract DenseTensor<float> AddNoise(DenseTensor<float> originalSamples, DenseTensor<float> noise, IReadOnlyList<int> timesteps);
 
         /// <summary>
-        /// Initializes this instance.
-        /// </summary>
-        protected abstract void Initialize();
-
-        /// <summary>
         /// Sets the timesteps.
         /// </summary>
         /// <returns></returns>
         protected abstract int[] SetTimesteps();
+
+
+        /// <summary>
+        /// Initializes this instance.
+        /// </summary>
+        protected virtual void Initialize()
+        {
+            Betas = GetBetaSchedule();
+            Alphas = Betas
+                .Select(beta => 1.0f - beta)
+                .ToArray();
+            AlphasCumProd = Alphas
+                .Select((alpha, i) => Alphas.Take(i + 1).Aggregate((a, b) => a * b))
+                .ToArray();
+            Sigmas = AlphasCumProd
+                 .Select(alpha_prod => MathF.Sqrt((1f - alpha_prod) / alpha_prod))
+                 .OrderByDescending(x => x)
+                 .ToArray();
+        }
 
 
         /// <summary>
@@ -142,20 +175,6 @@ namespace OnnxStack.StableDiffusion.Schedulers
 
 
         /// <summary>
-        /// Gets the initial noise sigma.
-        /// </summary>
-        /// <param name="sigmas">The sigmas.</param>
-        /// <returns></returns>
-        protected virtual float GetInitNoiseSigma(float[] sigmas)
-        {
-            var maxSigma = sigmas.Max();
-            return Options.TimestepSpacing == TimestepSpacingType.Linspace
-                || Options.TimestepSpacing == TimestepSpacingType.Trailing
-                ? maxSigma : MathF.Sqrt(maxSigma * maxSigma + 1);
-        }
-
-
-        /// <summary>
         /// Gets the timesteps.
         /// </summary>
         /// <returns></returns>
@@ -163,22 +182,30 @@ namespace OnnxStack.StableDiffusion.Schedulers
         {
             if (Options.TimestepSpacing == TimestepSpacingType.Linspace)
             {
-                return ArrayHelpers.Linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps, true);
+                if (Options.InferenceSteps <= 1)
+                    return [Options.TrainTimesteps - 1];
+
+                return ArrayHelpers.Linspace(0, Options.TrainTimesteps - 1, Options.InferenceSteps)
+                    .OrderByDescending(x => x)
+                    .ToArray();
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Leading)
             {
                 var stepRatio = Options.TrainTimesteps / Options.InferenceSteps;
                 return Enumerable.Range(0, Options.InferenceSteps)
-                    .Select(x => MathF.Round((float)x * stepRatio) + Options.StepsOffset)
+                    .Select(x => ((float)x * stepRatio) + Options.StepsOffset)
+                    .OrderByDescending(x => x)
                     .ToArray();
             }
             else if (Options.TimestepSpacing == TimestepSpacingType.Trailing)
             {
-                var stepRatio = Options.TrainTimesteps / Math.Max(1, (Options.InferenceSteps - 1));
-                return Enumerable.Range(0, Options.TrainTimesteps)
-                    .Where((number, index) => index % stepRatio == 0)
-                    .Select(x => (float)x)
+                var stepRatio = Options.TrainTimesteps / Math.Max(1, Options.InferenceSteps);
+                var result = Enumerable.Range(0, Options.TrainTimesteps + 1)
+                    .Where((number, index) => index % stepRatio == 0 && number > 0)
+                    .Select(x => MathF.Max(0, x - 1f))
+                    .OrderByDescending(x => x)
                     .ToArray();
+                return result;
             }
 
             throw new NotImplementedException();
@@ -208,17 +235,22 @@ namespace OnnxStack.StableDiffusion.Schedulers
             else if (Options.PredictionType == PredictionType.Sample)
             {
                 //prediction_type not implemented yet: sample
-                predOriginalSample = sample.ToDenseTensor();
+                predOriginalSample = sample.CloneTensor();
             }
             return predOriginalSample;
         }
+
 
         /// <summary>
         /// Sets the initial noise sigma.
         /// </summary>
         /// <param name="initNoiseSigma">The initial noise sigma.</param>
-        protected void SetInitNoiseSigma(float initNoiseSigma)
+        protected void SetInitNoiseSigma()
         {
+            var maxSigma = Sigmas.Max();
+            var initNoiseSigma = Options.TimestepSpacing == TimestepSpacingType.Linspace || Options.TimestepSpacing == TimestepSpacingType.Trailing
+                ? maxSigma 
+                : MathF.Sqrt(maxSigma * maxSigma + 1f);
             _initNoiseSigma = initNoiseSigma;
         }
 
@@ -228,9 +260,13 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// </summary>
         /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        protected virtual int GetPreviousTimestep(int timestep)
+        protected int GetPreviousTimestep(int timestep)
         {
-            return timestep - _options.TrainTimesteps / _options.InferenceSteps;
+            var index = Timesteps.IndexOf(timestep) + 1;
+            if (index > Timesteps.Count - 1)
+                return 0;
+
+            return Timesteps[index];
         }
 
 
@@ -270,44 +306,44 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="range">The range.</param>
         /// <param name="sigmas">The sigmas.</param>
         /// <returns></returns>
-        protected float[] Interpolate(float[] timesteps, float[] range, float[] sigmas)
+        protected virtual float[] Interpolate(float[] timesteps, float[] range, float[] sigmas)
         {
-            // Create an output array with the same shape as timesteps
             var result = new float[timesteps.Length];
-
-            // Loop over each element of timesteps
             for (int i = 0; i < timesteps.Length; i++)
             {
-                // Find the index of the first element in range that is greater than or equal to timesteps[i]
-                int index = Array.BinarySearch(range, timesteps[i]);
-
-                // If timesteps[i] is exactly equal to an element in range, use the corresponding value in sigma
+                float t = timesteps[i];
+                int index = ArrayHelpers.BinarySearchDescending(range, t);
                 if (index >= 0)
                 {
-                    result[i] = sigmas[(sigmas.Length - 1) - index];
+                    // Exact match
+                    result[i] = sigmas[index];
                 }
-
-                // If timesteps[i] is less than the first element in range, use the first value in sigmas
-                else if (index == -1)
-                {
-                    result[i] = sigmas[0];
-                }
-
-                // If timesteps[i] is greater than the last element in range, use the last value in sigmas
-                else if (index > range.Length - 1)
-                {
-                    result[i] = sigmas[sigmas.Length - 1];
-                }
-
-                // Otherwise, interpolate linearly between two adjacent values in sigmas
                 else
                 {
-                    index = ~index; // bitwise complement of j gives the insertion point of x[i]
-                    var startIndex = (sigmas.Length - 1) - index;
-                    float t = (timesteps[i] - range[index - 1]) / (range[index] - range[index - 1]); // fractional distance between two points
-                    result[i] = sigmas[startIndex - 1] + t * (sigmas[startIndex] - sigmas[startIndex - 1]); // linear interpolation formula
+                    index = ~index;
+                    if (index == 0)
+                    {
+                        // t < range[0], clamp to first
+                        result[i] = sigmas[0];
+                    }
+                    else if (index >= range.Length)
+                    {
+                        // t > range[^1], clamp to last
+                        result[i] = sigmas[^1];
+                    }
+                    else
+                    {
+                        // Interpolate between index - 1 and index
+                        float t0 = range[index - 1];
+                        float t1 = range[index];
+                        float s0 = sigmas[index - 1];
+                        float s1 = sigmas[index];
+                        float factor = (t - t0) / (t1 - t0);
+                        result[i] = s0 + factor * (s1 - s0);
+                    }
                 }
             }
+
             return result;
         }
 
@@ -320,7 +356,7 @@ namespace OnnxStack.StableDiffusion.Schedulers
         protected float[] ConvertToKarras(float[] inSigmas)
         {
             // Get the minimum and maximum values from the input sigmas
-            float sigmaMin = inSigmas[inSigmas.Length - 1];
+            float sigmaMin = inSigmas[^1];
             float sigmaMax = inSigmas[0];
 
             // Set the value of rho, which is used in the calculation
@@ -341,8 +377,6 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 sigmas[i] = MathF.Pow(maxInvRho + ramp[i] * (minInvRho - maxInvRho), rho);
             }
-
-            // Return the resulting noise schedule
             return sigmas;
         }
 
@@ -353,12 +387,15 @@ namespace OnnxStack.StableDiffusion.Schedulers
         /// <param name="sigmas">The sigmas.</param>
         /// <param name="logSigmas">The log sigmas.</param>
         /// <returns></returns>
-        protected float[] SigmaToTimestep(float[] sigmas, float[] logSigmas)
+        protected float[] SigmaToTimestep(float[] sigmas2, float[] logSigmas2)
         {
+            var sigmas = sigmas2.Reverse().ToArray();
+            var logSigmas = logSigmas2.Reverse().ToArray();
+
             var timesteps = new float[sigmas.Length];
             for (int i = 0; i < sigmas.Length; i++)
             {
-                float logSigma = MathF.Log(sigmas[i]);
+                float logSigma = MathF.Log(sigmas[i].ZeroIfNan());
                 float[] dists = new float[logSigmas.Length];
 
                 for (int j = 0; j < logSigmas.Length; j++)
@@ -418,6 +455,10 @@ namespace OnnxStack.StableDiffusion.Schedulers
             {
                 // Dispose managed resources here.
                 _timesteps?.Clear();
+                Sigmas = null;
+                Alphas = null;
+                Betas = null;
+                AlphasCumProd = null;
             }
 
             // Dispose unmanaged resources here (if any).

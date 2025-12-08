@@ -1,18 +1,19 @@
 ﻿using OnnxStack.Core.Config;
 using OnnxStack.Core.Image;
+using OpenCvSharp;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Video
 {
-
     public static class VideoHelper
     {
         private static OnnxStackConfig _configuration = new OnnxStackConfig();
@@ -26,15 +27,16 @@ namespace OnnxStack.Core.Video
             _configuration = configuration;
         }
 
+
         /// <summary>
         /// Writes the video frames to file.
         /// </summary>
         /// <param name="onnxVideo">The onnx video.</param>
-        /// <param name="filename">The filename.</param>
+        /// <param name="videoFile">The filename.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public static async Task WriteVideoFramesAsync(OnnxVideo onnxVideo, string filename, bool preserveTransparency = false, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoAsync(string videoFile, OnnxVideo onnxVideo, CancellationToken cancellationToken = default)
         {
-            await WriteVideoFramesAsync(onnxVideo.Frames, filename, onnxVideo.FrameRate, onnxVideo.AspectRatio, preserveTransparency, cancellationToken);
+            await WriteVideoFramesAsync(videoFile, onnxVideo.Frames, onnxVideo.FrameRate, onnxVideo.Width, onnxVideo.Height, cancellationToken);
         }
 
 
@@ -42,44 +44,16 @@ namespace OnnxStack.Core.Video
         /// Writes the video frames to file.
         /// </summary>
         /// <param name="onnxImages">The onnx images.</param>
-        /// <param name="filename">The filename.</param>
-        /// <param name="frameRate">The frame rate.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        public static async Task WriteVideoFramesAsync(IEnumerable<OnnxImage> onnxImages, string filename, float frameRate = 15, bool preserveTransparency = false, CancellationToken cancellationToken = default)
-        {
-            var firstImage = onnxImages.First();
-            var aspectRatio = (double)firstImage.Width / firstImage.Height;
-            await WriteVideoFramesAsync(onnxImages, filename, frameRate, aspectRatio, preserveTransparency, cancellationToken);
-        }
-
-
-        /// <summary>
-        /// Writes the video frames to file.
-        /// </summary>
-        /// <param name="onnxImages">The onnx images.</param>
-        /// <param name="filename">The filename.</param>
+        /// <param name="videoFile">The filename.</param>
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="aspectRatio">The aspect ratio.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private static async Task WriteVideoFramesAsync(IEnumerable<OnnxImage> onnxImages, string filename, float frameRate, double aspectRatio, bool preserveTransparency, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoFramesAsync(string videoFile, IEnumerable<OnnxImage> onnxImages, float frameRate, int width, int height, CancellationToken cancellationToken = default)
         {
-            if (File.Exists(filename))
-                File.Delete(filename);
-
-            using (var videoWriter = CreateWriter(filename, frameRate, aspectRatio, preserveTransparency))
-            {
-                // Start FFMPEG
-                videoWriter.Start();
-                foreach (var image in onnxImages)
-                {
-                    // Write each frame to the input stream of FFMPEG
-                    await image.CopyToStreamAsync(videoWriter.StandardInput.BaseStream, cancellationToken);
-                }
-
-                // Done close stream and wait for app to process
-                videoWriter.StandardInput.BaseStream.Close();
-                await videoWriter.WaitForExitAsync(cancellationToken);
-            }
+            DeleteFile(videoFile);
+            var frames = onnxImages.Select(ImageToMat)
+                .ToAsyncEnumerable();
+            await WriteFramesInternalAsync(videoFile, frames, frameRate, width, height, cancellationToken);
         }
 
 
@@ -87,29 +61,14 @@ namespace OnnxStack.Core.Video
         /// Writes the video stream to file.
         /// </summary>
         /// <param name="onnxImages">The onnx image stream.</param>
-        /// <param name="filename">The filename.</param>
+        /// <param name="videoFile">The filename.</param>
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="aspectRatio">The aspect ratio.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public static async Task WriteVideoStreamAsync(VideoInfo videoInfo, IAsyncEnumerable<OnnxImage> videoStream, string filename, bool preserveTransparency = false, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<OnnxImage> videoStream, float frameRate, int width, int height, CancellationToken cancellationToken = default)
         {
-            if (File.Exists(filename))
-                File.Delete(filename);
-
-            using (var videoWriter = CreateWriter(filename, videoInfo.FrameRate, videoInfo.AspectRatio, preserveTransparency))
-            {
-                // Start FFMPEG
-                videoWriter.Start();
-                await foreach (var frame in videoStream)
-                {
-                    // Write each frame to the input stream of FFMPEG
-                    await frame.CopyToStreamAsync(videoWriter.StandardInput.BaseStream, cancellationToken);
-                }
-
-                // Done close stream and wait for app to process
-                videoWriter.StandardInput.BaseStream.Close();
-                await videoWriter.WaitForExitAsync(cancellationToken);
-            }
+            DeleteFile(videoFile);
+            await WriteFramesInternalAsync(videoFile, videoStream.Select(ImageToMat), frameRate, width, height, cancellationToken);
         }
 
 
@@ -118,7 +77,7 @@ namespace OnnxStack.Core.Video
         /// </summary>
         /// <param name="videoBytes">The video bytes.</param>
         /// <returns></returns>
-        public static async Task<VideoInfo> ReadVideoInfoAsync(byte[] videoBytes, CancellationToken cancellationToken = default)
+        public static async Task<OnnxVideo> ReadVideoInfoAsync(byte[] videoBytes, CancellationToken cancellationToken = default)
         {
             string tempVideoPath = GetTempFilename();
             try
@@ -128,7 +87,7 @@ namespace OnnxStack.Core.Video
             }
             finally
             {
-                DeleteTempFile(tempVideoPath);
+                DeleteFile(tempVideoPath);
             }
         }
 
@@ -136,158 +95,250 @@ namespace OnnxStack.Core.Video
         /// <summary>
         /// Reads the video information.
         /// </summary>
-        /// <param name="filename">The filename.</param>
+        /// <param name="videoFile">The filename.</param>
         /// <returns></returns>
-        public static async Task<VideoInfo> ReadVideoInfoAsync(string filename, CancellationToken cancellationToken = default)
+        public static async Task<OnnxVideo> ReadVideoInfoAsync(string videoFile, CancellationToken cancellationToken = default)
         {
-
-            using (var metadataReader = CreateMetadataReader(filename))
-            {
-                // Start FFMPEG
-                metadataReader.Start();
-
-                var videoInfo = default(VideoInfo);
-                using (StreamReader reader = metadataReader.StandardOutput)
-                {
-                    string result = await reader.ReadToEndAsync();
-                    var videoMetadata = JsonSerializer.Deserialize<VideoMetadata>(result);
-                    var videoStream = videoMetadata.Streams.FirstOrDefault();
-                    if (videoStream is null)
-                        throw new Exception("Failed to parse video stream metadata");
-
-                    videoInfo = new VideoInfo(videoStream.Height, videoStream.Width, videoStream.Duration, videoStream.FramesPerSecond);
-                }
-
-                await metadataReader.WaitForExitAsync(cancellationToken);
-                return videoInfo;
-            }
+            return await ReadInfoInternalAsync(videoFile, cancellationToken);
         }
 
 
         /// <summary>
-        /// Reads the video frames.
+        /// Read video frames.
         /// </summary>
         /// <param name="videoBytes">The video bytes.</param>
-        /// <param name="frameRate">The target frame rate.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public static async Task<List<OnnxImage>> ReadVideoFramesAsync(byte[] videoBytes, float frameRate = 15, CancellationToken cancellationToken = default)
+        /// <param name="frameRate">The desired frame rate.</param>
+        /// <param name="width">The desired width. (aspect will be preserved)</param>
+        /// <param name="height">The desired height. (aspect will be preserved)</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A Task&lt;System.Collections.Generic.List<OnnxStack.Core.Image.OnnxImage>&gt; representing the asynchronous operation.</returns>
+        public static async Task<OnnxVideo> ReadVideoAsync(byte[] videoBytes, float? frameRate = default, int? width = default, int? height = default, CancellationToken cancellationToken = default)
         {
             string tempVideoPath = GetTempFilename();
             try
             {
                 await File.WriteAllBytesAsync(tempVideoPath, videoBytes, cancellationToken);
-                return await ReadVideoStreamAsync(tempVideoPath, frameRate, cancellationToken).ToListAsync(cancellationToken);
+                return await ReadVideoAsync(tempVideoPath, frameRate, width, height, cancellationToken);
             }
             finally
             {
-                DeleteTempFile(tempVideoPath);
+                DeleteFile(tempVideoPath);
             }
         }
+
 
 
         /// <summary>
         /// Reads the video frames.
         /// </summary>
-        /// <param name="filename">The video bytes.</param>
-        /// <param name="frameRate">The target frame rate.</param>
+        /// <param name="videoFile">The video bytes.</param>
+        /// <param name="frameRate">The desired frame rate.</param>
+        /// <param name="width">The desired width. (aspect will be preserved)</param>
+        /// <param name="height">The desired height. (aspect will be preserved)</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public static async Task<List<OnnxImage>> ReadVideoFramesAsync(string filename, float frameRate = 15, CancellationToken cancellationToken = default)
+        public static async Task<OnnxVideo> ReadVideoAsync(string videoFile, float? frameRate = default, int? width = default, int? height = default, CancellationToken cancellationToken = default)
         {
-            return await ReadVideoStreamAsync(filename, frameRate, cancellationToken).ToListAsync(cancellationToken);
+            var frames = await ReadFramesInternalAsync(videoFile, frameRate, width, height, cancellationToken).ToArrayAsync(cancellationToken);
+            return new OnnxVideo(ToImageFrames(frames, cancellationToken), frames[0].FrameRate);
+        }
+
+
+        /// <summary>
+        /// Read video frames
+        /// </summary>
+        /// <param name="videoFile">The video file.</param>
+        /// <param name="frameRate">The desired frame rate.</param>
+        /// <param name="width">The desired width. (aspect will be preserved)</param>
+        /// <param name="height">The desired height. (aspect will be preserved)</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A Task&lt;List`1&gt; representing the asynchronous operation.</returns>
+        public static async Task<List<OnnxImage>> ReadVideoFramesAsync(string videoFile, float? frameRate = default, int? width = default, int? height = default, CancellationToken cancellationToken = default)
+        {
+            var frames = await ReadFramesInternalAsync(videoFile, frameRate, width, height, cancellationToken).ToArrayAsync(cancellationToken);
+            return ToImageFrames(frames, cancellationToken);
         }
 
 
         /// <summary>
         /// Reads the video frames as a stream.
         /// </summary>
-        /// <param name="filename">The filename.</param>
-        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="videoFile">The filename.</param>
+        /// <param name="frameRate">The desired frame rate.</param>
+        /// <param name="width">The desired width. (aspect will be preserved)</param>
+        /// <param name="height">The desired height. (aspect will be preserved)</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public static async IAsyncEnumerable<OnnxImage> ReadVideoStreamAsync(string filename, float frameRate = 15, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public static async IAsyncEnumerable<OnnxImage> ReadVideoStreamAsync(string videoFile, float? frameRate = default, int? width = default, int? height = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            await foreach (var frameBytes in CreateFramesInternalAsync(filename, frameRate, cancellationToken))
+            await foreach (var frame in ReadFramesInternalAsync(videoFile, frameRate, width, height, cancellationToken))
             {
-                yield return new OnnxImage(frameBytes);
+                using (var image = MatToImage(frame.Mat))
+                {
+                    yield return new OnnxImage(image);
+                }
             }
         }
 
 
-        #region Private Members
+        /// <summary>
+        /// Reads the device video frames as a stream.
+        /// </summary>
+        /// <param name="deviceId">The device identifier.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
+        public static async IAsyncEnumerable<OnnxImage> ReadVideoStreamAsync(int deviceId, int? width = default, int? height = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await foreach (var frame in ReadFramesInternalAsync(deviceId, width, height, cancellationToken))
+            {
+                using (var image = MatToImage(frame.Mat))
+                {
+                    yield return new OnnxImage(image);
+                }
+            }
+        }
 
 
         /// <summary>
-        /// Creates a collection of PNG frames from a video source
+        /// Reads the video information
         /// </summary>
-        /// <param name="videoData">The video data.</param>
-        /// <param name="fps">The FPS.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        /// <exception cref="Exception">Invalid PNG header</exception>
-        private static async IAsyncEnumerable<byte[]> CreateFramesInternalAsync(string fileName, float fps = 15, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        /// <param name="videoFile">The video path.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>Task&lt;VideoInfo&gt;.</returns>
+        /// <exception cref="System.Exception">Failed to open video file.</exception>
+        private static async Task<OnnxVideo> ReadInfoInternalAsync(string videoFile, CancellationToken cancellationToken = default)
         {
-            using (var ffmpegProcess = CreateReader(fileName, fps))
+            return await Task.Run(() =>
             {
-                // Start FFMPEG
-                ffmpegProcess.Start();
-
-                // FFMPEG output stream
-                var processOutputStream = ffmpegProcess.StandardOutput.BaseStream;
-
-                // Buffer to hold the current image
-                var buffer = new byte[20480000];
-
-                var currentIndex = 0;
-                while (!cancellationToken.IsCancellationRequested)
+                using (var videoReader = new VideoCapture(videoFile))
                 {
-                    // Reset the index new PNG
-                    currentIndex = 0;
+                    if (!videoReader.IsOpened())
+                        throw new Exception("Failed to open video file.");
 
-                    // Read the PNG Header
-                    if (await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 8), cancellationToken) <= 0)
-                        break;
+                    var width = videoReader.FrameWidth;
+                    var height = videoReader.FrameHeight;
+                    var frameRate = (float)videoReader.Fps;
+                    var frameCount = videoReader.FrameCount;
+                    return Task.FromResult(new OnnxVideo(frameCount, frameRate, width, height));
+                }
+            }, cancellationToken);
+        }
 
-                    currentIndex += 8;// header length
 
-                    if (!IsImageHeader(buffer))
-                        throw new Exception("Invalid PNG header");
+        /// <summary>
+        /// Read the video frames
+        /// </summary>
+        /// <param name="videoFile">The video path.</param>
+        /// <param name="frameRate">The desired frame rate.</param>
+        /// <param name="width">The desired width. (aspect will be preserved)</param>
+        /// <param name="height">The desired height. (aspect will be preserved)</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
+        /// <exception cref="System.Exception">Failed to open video file.</exception>
+        private static async IAsyncEnumerable<MatFrame> ReadFramesInternalAsync(string videoFile, float? frameRate = default, int? width = default, int? height = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            using (var videoReader = new VideoCapture(videoFile))
+            {
+                if (!videoReader.IsOpened())
+                    throw new Exception("Failed to open video file.");
 
-                    // loop through each chunk
+                var frameCount = 0;
+                var emptySize = new OpenCvSharp.Size(0, 0);
+                var outframeRate = (float)(frameRate.HasValue ? Math.Min(frameRate.Value, videoReader.Fps) : videoReader.Fps);
+                var frameSkipInterval = frameRate.HasValue ? (int)Math.Round(videoReader.Fps / Math.Min(frameRate.Value, videoReader.Fps)) : 1;
+                var isScaleRequired = width.HasValue || height.HasValue;
+                var scaleX = (width ?? videoReader.FrameWidth) / (double)videoReader.FrameWidth;
+                var scaleY = (height ?? videoReader.FrameHeight) / (double)videoReader.FrameHeight;
+                var scaleFactor = scaleX < 1 && scaleY < 1 ? Math.Max(scaleX, scaleY) : Math.Min(scaleX, scaleY);
+                using (var frame = new Mat())
+                {
                     while (true)
                     {
-                        // Read the chunk header
-                        await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, 12), cancellationToken);
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                        var chunkIndex = currentIndex;
-                        currentIndex += 12; // Chunk header length
+                        videoReader.Read(frame);
+                        if (frame.Empty())
+                            break;
 
-                        // Get the chunk's content size in bytes from the header we just read
-                        var totalSize = buffer[chunkIndex] << 24 | buffer[chunkIndex + 1] << 16 | buffer[chunkIndex + 2] << 8 | buffer[chunkIndex + 3];
-                        if (totalSize > 0)
+                        if (frameCount % frameSkipInterval == 0)
                         {
-                            var totalRead = 0;
-                            while (totalRead < totalSize)
-                            {
-                                int read = await processOutputStream.ReadAsync(buffer.AsMemory(currentIndex, totalSize - totalRead), cancellationToken);
-                                currentIndex += read;
-                                totalRead += read;
-                            }
-                            continue;
+                            if (isScaleRequired)
+                                Cv2.Resize(frame, frame, emptySize, scaleFactor, scaleFactor);
+
+                            yield return new MatFrame(frame.Clone(), outframeRate);
                         }
 
-                        // If the size is 0 and is the end of the image
-                        if (totalSize == 0 && IsImageEnd(buffer, chunkIndex))
-                            break;
+                        frameCount++;
                     }
-
-                    yield return buffer[..currentIndex];
                 }
-
-                if (cancellationToken.IsCancellationRequested)
-                    ffmpegProcess.Kill();
+                await Task.Yield();
             }
+        }
+
+
+        private static async IAsyncEnumerable<MatFrame> ReadFramesInternalAsync(int deviceId, int? width = default, int? height = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            using (var videoReader = new VideoCapture(deviceId, VideoCaptureAPIs.DSHOW))
+            {
+                if (!videoReader.IsOpened())
+                    throw new Exception($"Failed to open device {deviceId}.");
+
+                var emptySize = new OpenCvSharp.Size(0, 0);
+                var isScaleRequired = width.HasValue || height.HasValue;
+                var scaleX = (width ?? videoReader.FrameWidth) / (double)videoReader.FrameWidth;
+                var scaleY = (height ?? videoReader.FrameHeight) / (double)videoReader.FrameHeight;
+                var scaleFactor = scaleX < 1 && scaleY < 1 ? Math.Max(scaleX, scaleY) : Math.Min(scaleX, scaleY);
+                using (var frame = new Mat())
+                {
+                    while (true)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        videoReader.Read(frame);
+                        if (frame.Empty())
+                            break;
+
+                        if (isScaleRequired)
+                            Cv2.Resize(frame, frame, emptySize, scaleFactor, scaleFactor);
+
+                        yield return new MatFrame(frame.Clone(), 0);
+                    }
+                }
+                await Task.Yield();
+            }
+        }
+
+
+        /// <summary>
+        /// Write the video frames
+        /// </summary>
+        /// <param name="videoFile">The output path.</param>
+        /// <param name="frames">The frames.</param>
+        /// <param name="framerate">The framerate.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        /// <exception cref="System.Exception">Failed to open VideoWriter..</exception>
+        private static async Task WriteFramesInternalAsync(string videoFile, IAsyncEnumerable<Mat> frames, float framerate, int width, int height, CancellationToken cancellationToken = default)
+        {
+            var fourcc = VideoWriter.FourCC(_configuration.VideoCodec);
+            var frameSize = new OpenCvSharp.Size(width, height);
+            await Task.Run(async () =>
+            {
+                using (var writer = new VideoWriter(videoFile, fourcc, framerate, frameSize))
+                {
+                    if (!writer.IsOpened())
+                        throw new Exception("Failed to open VideoWriter..");
+
+                    await foreach (var frame in frames)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        writer.Write(frame);
+                        frame.Dispose();
+                    }
+                }
+            }, cancellationToken);
         }
 
 
@@ -308,7 +359,7 @@ namespace OnnxStack.Core.Video
         /// Deletes the temporary file.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        private static void DeleteTempFile(string filename)
+        private static void DeleteFile(string filename)
         {
             try
             {
@@ -323,102 +374,83 @@ namespace OnnxStack.Core.Video
 
 
         /// <summary>
-        /// Creates FFMPEG video reader process.
+        /// OnnxImage to Mat.
         /// </summary>
-        /// <param name="inputFile">The input file.</param>
-        /// <param name="fps">The FPS.</param>
-        /// <returns></returns>
-        private static Process CreateReader(string inputFile, float fps)
+        /// <param name="image">The image.</param>
+        /// <returns>Mat.</returns>
+        public static Mat ImageToMat(OnnxImage image)
         {
-            var ffmpegProcess = new Process();
-            ffmpegProcess.StartInfo.FileName = _configuration.FFmpegPath;
-            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -hwaccel:v auto -i \"{inputFile}\" -c:v png  -r {fps} -f image2pipe -";
-            ffmpegProcess.StartInfo.RedirectStandardOutput = true;
-            ffmpegProcess.StartInfo.UseShellExecute = false;
-            ffmpegProcess.StartInfo.CreateNoWindow = true;
-            return ffmpegProcess;
+            return ImageToMat(image.GetImage());
         }
 
 
         /// <summary>
-        /// Creates FFMPEG video writer process.
+        /// ImageSharp to Mat.
         /// </summary>
-        /// <param name="outputFile">The output file.</param>
-        /// <param name="fps">The FPS.</param>
-        /// <param name="aspectRatio">The aspect ratio.</param>
-        /// <returns></returns>
-        private static Process CreateWriter(string outputFile, float fps, double aspectRatio, bool preserveTransparency)
+        /// <param name="image">The image.</param>
+        /// <returns>Mat.</returns>
+        private static Mat ImageToMat(Image<Rgba32> image)
         {
-            var ffmpegProcess = new Process();
-            var codec = preserveTransparency ? "png" : "libx264";
-            var format = preserveTransparency ? "yuva420p" : "yuv420p";
-            ffmpegProcess.StartInfo.FileName = _configuration.FFmpegPath;
-            ffmpegProcess.StartInfo.Arguments = $"-hide_banner -loglevel error -framerate {fps:F4} -hwaccel:v auto -i - -c:v {codec} -movflags +faststart -vf format={format} -aspect {aspectRatio} {outputFile}";
-            ffmpegProcess.StartInfo.RedirectStandardInput = true;
-            ffmpegProcess.StartInfo.UseShellExecute = false;
-            ffmpegProcess.StartInfo.CreateNoWindow = true;
-            return ffmpegProcess;
+            var mat = new Mat(image.Height, image.Width, MatType.CV_8UC3);
+            for (int y = 0; y < image.Height; y++)
+            {
+                var pixelRow = image.DangerousGetPixelRowMemory(y).Span;
+                for (int x = 0; x < image.Width; x++)
+                {
+                    var pixel = pixelRow[x];
+                    mat.Set(y, x, new Vec3b(pixel.B, pixel.G, pixel.R));
+                }
+            }
+            return mat;
         }
 
 
         /// <summary>
-        /// Creates the metadata reader.
+        /// Mat to ImageSharp
         /// </summary>
-        /// <param name="inputFile">The input file.</param>
-        /// <returns></returns>
-        private static Process CreateMetadataReader(string inputFile)
+        /// <param name="mat">The mat.</param>
+        /// <returns>Image&lt;Rgba32&gt;.</returns>
+        private static Image<Rgba32> MatToImage(Mat mat)
         {
-            var ffprobeProcess = new Process();
-            ffprobeProcess.StartInfo.FileName = _configuration.FFprobePath;
-            ffprobeProcess.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams {inputFile}";
-            ffprobeProcess.StartInfo.RedirectStandardOutput = true;
-            ffprobeProcess.StartInfo.UseShellExecute = false;
-            ffprobeProcess.StartInfo.CreateNoWindow = true;
-            return ffprobeProcess;
+            var image = new Image<Rgba32>(mat.Width, mat.Height);
+            for (int y = 0; y < mat.Rows; y++)
+            {
+                var pixelRow = image.DangerousGetPixelRowMemory(y).Span;
+                for (int x = 0; x < mat.Cols; x++)
+                {
+                    var vec = mat.Get<Vec3b>(y, x);
+                    pixelRow[x] = new Rgba32(vec.Item2, vec.Item1, vec.Item0, 255);
+                }
+            }
+            return image;
         }
 
 
         /// <summary>
-        /// Determines whether we are at the start of a PNG image in the specified buffer.
+        /// Converts to imageframes.
         /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns>
-        ///   <c>true</c> if the start of a PNG image sequence is detected<c>false</c>.
-        /// </returns>
-        private static bool IsImageHeader(byte[] buffer)
+        /// <param name="frames">The frames.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>List&lt;OnnxImage&gt;.</returns>
+        private static List<OnnxImage> ToImageFrames(MatFrame[] frames, CancellationToken cancellationToken)
         {
-            // PNG Header http://www.libpng.org/pub/png/spec/1.2/PNG-Structure.html#PNG-file-signature
-            if (buffer[0] != 0x89
-             || buffer[1] != 0x50
-             || buffer[2] != 0x4E
-             || buffer[3] != 0x47
-             || buffer[4] != 0x0D
-             || buffer[5] != 0x0A
-             || buffer[6] != 0x1A
-             || buffer[7] != 0x0A)
-                return false;
-
-            return true;
+            var results = new List<OnnxImage>(new OnnxImage[frames.Length]);
+            Parallel.For(0, frames.Length, (i) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                using (var frame = frames[i].Mat)
+                using (var image = MatToImage(frame))
+                {
+                    results[i] = new OnnxImage(image);
+                }
+            });
+            return results;
         }
 
 
         /// <summary>
-        /// Determines whether we are at the end of a PNG image in the specified buffer.
+        /// MatFrame
         /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns>
-        ///   <c>true</c> if the end of a PNG image sequence is detected<c>false</c>.
-        /// </returns>
-        private static bool IsImageEnd(byte[] buffer, int offset)
-        {
-            return buffer[offset + 4] == 0x49  // I
-                && buffer[offset + 5] == 0x45  // E
-                && buffer[offset + 6] == 0x4E  // N
-                && buffer[offset + 7] == 0x44; // D
-        }
+        private record struct MatFrame(Mat Mat, float FrameRate);
     }
-
-    #endregion
 }

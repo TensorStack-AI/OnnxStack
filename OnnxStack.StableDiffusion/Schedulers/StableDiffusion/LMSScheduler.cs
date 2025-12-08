@@ -8,9 +8,9 @@ using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
-    public sealed class LMSScheduler : SchedulerBase
+    public class LMSScheduler : SchedulerBase
     {
-        private float[] _sigmas;
+        private int _order = 4;
         private Queue<DenseTensor<float>> _derivatives;
 
         /// <summary>
@@ -32,19 +32,8 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// </summary>
         protected override void Initialize()
         {
-            _sigmas = null;
+            base.Initialize();
             _derivatives = new Queue<DenseTensor<float>>();
-
-            var betas = GetBetaSchedule();
-            var alphas = betas.Select(beta => 1 - beta);
-            var cumulativeProduct = alphas.Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b));
-
-            _sigmas = cumulativeProduct
-                .Select(alpha_prod => MathF.Sqrt((1 - alpha_prod) / alpha_prod))
-                .ToArray();
-
-            var initNoiseSigma = GetInitNoiseSigma(_sigmas);
-            SetInitNoiseSigma(initNoiseSigma);
         }
 
 
@@ -54,21 +43,23 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
+            var sigmas = Sigmas.ToArray();
             var timesteps = GetTimesteps();
-            var logSigmas = ArrayHelpers.Log(_sigmas);
-            var range = ArrayHelpers.Range(0, _sigmas.Length);
+            var logSigmas = ArrayHelpers.Log(sigmas);
+            var range = ArrayHelpers.Range(0, sigmas.Length, true);
 
-            var sigmas = Interpolate(timesteps, range, _sigmas);
+            sigmas = Interpolate(timesteps, range, sigmas);
             if (Options.UseKarrasSigmas)
             {
                 sigmas = ConvertToKarras(sigmas);
                 timesteps = SigmaToTimestep(sigmas, logSigmas);
             }
 
-            _sigmas = sigmas
-                .Append(0.000f)
-                .ToArray();
-            return timesteps.Select(x => (int)x)
+            Sigmas = [.. sigmas, 0f];
+
+            SetInitNoiseSigma();
+
+            return timesteps.Select(x => (int)Math.Round(x))
                  .OrderByDescending(x => x)
                  .ToArray();
         }
@@ -82,14 +73,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         public override DenseTensor<float> ScaleInput(DenseTensor<float> sample, int timestep)
         {
-            // Get step index of timestep from TimeSteps
-            int stepIndex = Timesteps.IndexOf(timestep);
-
-            // Get sigma at stepIndex
-            var sigma = _sigmas[stepIndex];
+            var stepIndex = Timesteps.IndexOf(timestep);
+            var sigma = Sigmas[stepIndex];
             sigma = MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f);
-
-            // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
             return sample.DivideTensorByFloat(sigma);
         }
 
@@ -102,10 +88,10 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16)
         {
             int stepIndex = Timesteps.IndexOf(timestep);
-            var sigma = _sigmas[stepIndex];
+            var sigma = Sigmas[stepIndex];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
             var predOriginalSample = GetPredictedSample(modelOutput, sample, sigma);
@@ -116,13 +102,13 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .DivideTensorByFloat(sigma);
 
             _derivatives.Enqueue(derivativeSample);
-            if (_derivatives.Count > order)
+            if (_derivatives.Count > _order)
                 _derivatives.Dequeue();
 
             // 3. compute linear multistep coefficients
-            order = Math.Min(stepIndex + 1, order);
-            var lmsCoeffs = Enumerable.Range(0, order)
-                .Select(currOrder => GetLmsCoefficient(order, stepIndex, currOrder));
+            _order = Math.Min(stepIndex + 1, _order);
+            var lmsCoeffs = Enumerable.Range(0, _order)
+                .Select(currOrder => GetLmsCoefficient(_order, stepIndex, currOrder));
 
             // 4. compute previous sample based on the derivative path
             // Reverse list of tensors this.derivatives
@@ -159,7 +145,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_lms_discrete.py#L439
             var sigma = timesteps
                 .Select(x => Timesteps.IndexOf(x))
-                .Select(x => _sigmas[x])
+                .Select(x => Sigmas[x])
                 .Max();
 
             return noise
@@ -177,27 +163,38 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         private float GetLmsCoefficient(int order, int t, int currentOrder)
         {
-            // python line 135 of scheduling_lms_discrete.py
-            // Compute a linear multistep coefficient.
-            double LmsDerivative(double tau)
-            {
-                double prod = 1.0;
-                for (int k = 0; k < order; k++)
-                {
-                    if (currentOrder == k)
-                    {
-                        continue;
-                    }
-                    prod *= (tau - _sigmas[t - k]) / (_sigmas[t - currentOrder] - _sigmas[t - k]);
-                }
-                return prod;
-            }
-            return MathHelpers.IntegrateOnClosedInterval(LmsDerivative, _sigmas[t], _sigmas[t + 1], 1e-4);
+            return MathHelpers.IntegrateOnClosedInterval(tau => GetLmsDerivative(tau, order, t, currentOrder), Sigmas[t], Sigmas[t + 1], 1e-4);
         }
 
+
+        /// <summary>
+        /// LMSs the derivative.
+        /// </summary>
+        /// <param name="tau">The tau.</param>
+        /// <param name="order">The order.</param>
+        /// <param name="t">The t.</param>
+        /// <param name="currentOrder">The current order.</param>
+        /// <returns>System.Double.</returns>
+        private double GetLmsDerivative(double tau, int order, int t, int currentOrder)
+        {
+            double prod = 1.0;
+            for (int k = 0; k < order; k++)
+            {
+                if (currentOrder == k)
+                    continue;
+
+                prod *= (tau - Sigmas[t - k]) / (Sigmas[t - currentOrder] - Sigmas[t - k]);
+            }
+            return prod;
+        }
+
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
         protected override void Dispose(bool disposing)
         {
-            _sigmas = null;
             _derivatives?.Clear();
             base.Dispose(disposing);
         }

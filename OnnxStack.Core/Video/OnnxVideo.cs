@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core.Image;
+using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,18 +12,48 @@ namespace OnnxStack.Core.Video
 {
     public sealed class OnnxVideo : IDisposable
     {
-        private readonly VideoInfo _info;
-        private readonly IReadOnlyList<OnnxImage> _frames;
+        private OnnxImage[] _frames;
+        private int _frameCount;
+        private int _height;
+        private int _width;
+        private float _frameRate;
+        private TimeSpan _duration;
+        private double _aspectRatio;
+
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OnnxVideo"/> class.
+        /// </summary>
+        /// <param name="frames">The frame count</param>
+        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        public OnnxVideo(int frameCount, float frameRate, int width, int height)
+        {
+            Initialize(frameCount, frameRate, width, height);
+        }
+
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OnnxVideo"/> class.
+        /// </summary>
+        /// <param name="imageFrames">The image frames.</param>
+        /// <param name="frameRate">The frame rate.</param>
+        public OnnxVideo(OnnxImage[] imageFrames, float frameRate)
+        {
+            InitializeFrames(imageFrames, frameRate);
+        }
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxVideo"/> class.
         /// </summary>
         /// <param name="info">The information.</param>
         /// <param name="frames">The frames.</param>
-        public OnnxVideo(VideoInfo info, List<OnnxImage> frames)
+        public OnnxVideo(IEnumerable<OnnxImage> imageFrames, float frameRate)
         {
-            _info = info;
-            _frames = frames;
+            var frames = imageFrames.ToArray();
+            InitializeFrames(frames, frameRate);
         }
 
 
@@ -31,13 +62,13 @@ namespace OnnxStack.Core.Video
         /// </summary>
         /// <param name="info">The information.</param>
         /// <param name="videoTensor">The video tensor.</param>
-        public OnnxVideo(VideoInfo info, DenseTensor<float> videoTensor)
+        public OnnxVideo(DenseTensor<float> videoTensor, float frameRate, ImageNormalizeType normalizeType = ImageNormalizeType.OneToOne)
         {
-            _info = info;
-            _frames = videoTensor
+            var frames = videoTensor
                 .SplitBatch()
-                .Select(x => new OnnxImage(x))
-                .ToList();
+                .Select(x => new OnnxImage(x, normalizeType))
+                .ToArray();
+            InitializeFrames(frames, frameRate);
         }
 
 
@@ -45,40 +76,42 @@ namespace OnnxStack.Core.Video
         /// Initializes a new instance of the <see cref="OnnxVideo"/> class.
         /// </summary>
         /// <param name="info">The information.</param>
-        /// <param name="videoTensors">The video tensors.</param>
-        public OnnxVideo(VideoInfo info, IEnumerable<DenseTensor<float>> videoTensors)
+        /// <param name="videoTensors">The video frame tensors.</param>
+        public OnnxVideo(List<DenseTensor<float>> frameTensors, float frameRate, ImageNormalizeType normalizeType = ImageNormalizeType.OneToOne)
         {
-            _info = info;
-            _frames = videoTensors
-                .Select(x => new OnnxImage(x))
-                .ToList();
+            var frames = new OnnxImage[frameTensors.Count];
+            Parallel.For(0, frameTensors.Count, index =>
+            {
+                frames[index] = new OnnxImage(frameTensors[index], normalizeType);
+            });
+            InitializeFrames(frames, frameRate);
         }
 
 
         /// <summary>
         /// Gets the height.
         /// </summary>
-        public int Height => _info.Height;
+        public int Height => _height;
 
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width => _info.Width;
+        public int Width => _width;
 
         /// <summary>
         /// Gets the frame rate.
         /// </summary>
-        public float FrameRate => _info.FrameRate;
+        public float FrameRate => _frameRate;
 
         /// <summary>
         /// Gets the duration.
         /// </summary>
-        public TimeSpan Duration => _info.Duration;
+        public TimeSpan Duration => _duration;
 
         /// <summary>
-        /// Gets the information.
+        /// Gets the frame count.
         /// </summary>
-        public VideoInfo Info => _info;
+        public int FrameCount => _frameCount;
 
         /// <summary>
         /// Gets the frames.
@@ -88,7 +121,7 @@ namespace OnnxStack.Core.Video
         /// <summary>
         /// Gets the aspect ratio.
         /// </summary>
-        public double AspectRatio => _info.AspectRatio;
+        public double AspectRatio => _aspectRatio;
 
         /// <summary>
         /// Gets a value indicating whether this instance has video.
@@ -109,7 +142,7 @@ namespace OnnxStack.Core.Video
         /// <returns></returns>
         public OnnxImage GetFrame(int index)
         {
-            if (_frames?.Count > index)
+            if (_frames?.Length > index)
                 return _frames[index];
 
             return null;
@@ -126,8 +159,38 @@ namespace OnnxStack.Core.Video
             foreach (var frame in _frames)
                 frame.Resize(height, width);
 
-            _info.Width = width;
-            _info.Height = height;
+            _width = width;
+            _height = height;
+        }
+
+
+        /// <summary>
+        /// Normalizes the frame brightness.
+        /// </summary>
+        public void NormalizeBrightness()
+        {
+            var averageBrightness = _frames.Average(x => x.GetBrightness());
+            foreach (var frame in _frames)
+            {
+                var frameBrightness = frame.GetBrightness();
+                var adjustmentFactor = averageBrightness / frameBrightness;
+                frame.SetBrightness(adjustmentFactor);
+            }
+        }
+
+
+        /// <summary>
+        /// Repeats the specified count.
+        /// </summary>
+        /// <param name="count">The count.</param>
+        public void Repeat(int count)
+        {
+            var frames = new List<OnnxImage>();
+            for (int i = 0; i < count; i++)
+            {
+                frames.AddRange(_frames);
+            }
+            InitializeFrames(frames.ToArray(), _frameRate);
         }
 
 
@@ -137,9 +200,9 @@ namespace OnnxStack.Core.Video
         /// <param name="filename">The filename.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public Task SaveAsync(string filename, bool preserveTransparency = false, CancellationToken cancellationToken = default)
+        public Task SaveAsync(string filename, CancellationToken cancellationToken = default)
         {
-            return VideoHelper.WriteVideoFramesAsync(this, filename, preserveTransparency, cancellationToken);
+            return VideoHelper.WriteVideoAsync(filename, this, cancellationToken);
         }
 
 
@@ -154,22 +217,67 @@ namespace OnnxStack.Core.Video
             }
         }
 
+
+        /// <summary>
+        /// Initializes video dimensions.
+        /// </summary>
+        /// <param name="frames">The frames.</param>
+        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        private void Initialize(int frameCount, float frameRate, int width, int height)
+        {
+            _width = width;
+            _height = height;
+            _frameRate = frameRate;
+            _frameCount = frameCount;
+            _aspectRatio = (double)_width / _height;
+            _duration = TimeSpan.FromSeconds(frameCount / _frameRate);
+        }
+
+
+        /// <summary>
+        /// Initializes the frames.
+        /// </summary>
+        /// <param name="frames">The frames.</param>
+        /// <param name="frameRate">The frame rate.</param>
+        private void InitializeFrames(OnnxImage[] frames, float frameRate)
+        {
+            _frames = frames;
+            var firstFrame = _frames[0];
+            Initialize(_frames.Length, frameRate, firstFrame.Width, firstFrame.Height);
+        }
+
+
         /// <summary>
         /// Load a video from file
         /// </summary>
         /// <param name="filename">The filename.</param>
-        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="frameRate">The desired frame rate.</param>
+        /// <param name="width">The desired width. (aspect will be preserved)</param>
+        /// <param name="height">The desired height. (aspect will be preserved)</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public static async Task<OnnxVideo> FromFileAsync(string filename, float? frameRate = default, CancellationToken cancellationToken = default)
+        public static async Task<OnnxVideo> FromFileAsync(string filename, float? frameRate = default, int? width = default, int? height = default, CancellationToken cancellationToken = default)
         {
             var videoBytes = await File.ReadAllBytesAsync(filename, cancellationToken);
-            var videoInfo = await VideoHelper.ReadVideoInfoAsync(videoBytes, cancellationToken);
-            if (frameRate.HasValue)
-                videoInfo = videoInfo with { FrameRate = Math.Min(videoInfo.FrameRate, frameRate.Value) };
-
-            var videoFrames = await VideoHelper.ReadVideoFramesAsync(videoBytes, videoInfo.FrameRate, cancellationToken);
-            return new OnnxVideo(videoInfo, videoFrames);
+            return await FromBytesAsync(videoBytes, frameRate, width, height, cancellationToken);
         }
+
+
+        /// <summary>
+        /// Load a video from bytes
+        /// </summary>
+        /// <param name="videoBytes">The video bytes.</param>
+        /// <param name="frameRate">The desired frame rate.</param>
+        /// <param name="width">The desired width. (aspect will be preserved)</param>
+        /// <param name="height">The desired height. (aspect will be preserved)</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A Task&lt;OnnxVideo&gt; representing the asynchronous operation.</returns>
+        public static async Task<OnnxVideo> FromBytesAsync(byte[] videoBytes, float? frameRate = default, int? width = default, int? height = default, CancellationToken cancellationToken = default)
+        {
+            return await Task.Run(() => VideoHelper.ReadVideoAsync(videoBytes, frameRate, width, height, cancellationToken));
+        }
+
     }
 }

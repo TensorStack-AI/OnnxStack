@@ -1,6 +1,4 @@
-﻿using Microsoft.ML.OnnxRuntime;
-using OnnxStack.Core.Config;
-using OnnxStack.Core.Image;
+﻿using OnnxStack.Core.Image;
 using OnnxStack.Core.Model;
 
 namespace OnnxStack.FeatureExtractor.Common
@@ -17,35 +15,32 @@ namespace OnnxStack.FeatureExtractor.Common
 
         public int OutputChannels => _configuration.OutputChannels;
         public int SampleSize => _configuration.SampleSize;
-        public bool NormalizeOutput => _configuration.NormalizeOutput;
         public bool SetOutputToInputAlpha => _configuration.SetOutputToInputAlpha;
         public ImageResizeMode InputResizeMode => _configuration.InputResizeMode;
         public ImageNormalizeType NormalizeType => _configuration.NormalizeType;
-        public bool NormalizeInput => _configuration.NormalizeInput;
+        public ImageNormalizeType NormalizeOutputType => _configuration.NormalizeOutputType;
+        public bool InvertOutput => _configuration.InvertOutput;
+
 
         public static FeatureExtractorModel Create(FeatureExtractorModelConfig configuration)
         {
             return new FeatureExtractorModel(configuration);
         }
 
-        public static FeatureExtractorModel Create(string modelFile, int sampleSize = 0, int outputChannels = 1, ImageNormalizeType normalizeType = ImageNormalizeType.ZeroToOne, bool normalizeInput = true, bool normalizeOutput = false, ImageResizeMode inputResizeMode = ImageResizeMode.Crop, bool setOutputToInputAlpha = false, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML)
+
+        public static FeatureExtractorModel Create(OnnxExecutionProvider executionProvider, string modelFile, int sampleSize = 0, int outputChannels = 1, ImageNormalizeType normalizeType = ImageNormalizeType.None, ImageNormalizeType normalizeOutputType = ImageNormalizeType.None, ImageResizeMode inputResizeMode = ImageResizeMode.Crop, bool setOutputToInputAlpha = false, bool invertOutput = false)
         {
             var configuration = new FeatureExtractorModelConfig
             {
-                DeviceId = deviceId,
-                ExecutionProvider = executionProvider,
-                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
-                InterOpNumThreads = 0,
-                IntraOpNumThreads = 0,
                 OnnxModelPath = modelFile,
-
+                ExecutionProvider = executionProvider,
                 SampleSize = sampleSize,
                 OutputChannels = outputChannels,
                 NormalizeType = normalizeType,
-                NormalizeInput = normalizeInput,
-                NormalizeOutput = normalizeOutput,
+                NormalizeOutputType = normalizeOutputType,
                 SetOutputToInputAlpha = setOutputToInputAlpha,
-                InputResizeMode = inputResizeMode
+                InputResizeMode = inputResizeMode,
+                InvertOutput = invertOutput
             };
             return new FeatureExtractorModel(configuration);
         }

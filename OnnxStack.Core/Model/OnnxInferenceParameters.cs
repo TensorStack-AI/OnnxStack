@@ -2,6 +2,7 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OnnxStack.Core.Model
 {
@@ -15,12 +16,13 @@ namespace OnnxStack.Core.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="OnnxInferenceParameters"/> class.
         /// </summary>
-        public OnnxInferenceParameters(OnnxMetadata metadata)
+        public OnnxInferenceParameters(OnnxMetadata metadata, CancellationToken cancellationToken = default)
         {
             _metadata = metadata;
             _runOptions = new RunOptions();
             _inputs = new OnnxValueCollection();
             _outputs = new OnnxValueCollection();
+            cancellationToken.Register(_runOptions.CancelSession, true);
         }
 
 
@@ -234,7 +236,7 @@ namespace OnnxStack.Core.Model
         {
             if (_inputs.Names.Count >= _metadata.Inputs.Count)
                 throw new ArgumentOutOfRangeException($"Too Many Inputs - No Metadata found for input index {_inputs.Names.Count - 1}");
-   
+
             return _metadata.Inputs[_inputs.Names.Count];
         }
 
@@ -245,5 +247,6 @@ namespace OnnxStack.Core.Model
 
             return _metadata.Outputs[_outputs.Names.Count];
         }
+
     }
 }

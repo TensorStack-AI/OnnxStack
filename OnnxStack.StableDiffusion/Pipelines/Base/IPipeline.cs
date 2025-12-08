@@ -4,7 +4,6 @@ using OnnxStack.Core.Video;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
-using OnnxStack.StableDiffusion.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -23,7 +22,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <summary>
         /// Gets the type of the pipeline.
         /// </summary>
-        DiffuserPipelineType PipelineType { get; }
+        PipelineType PipelineType { get; }
 
         /// <summary>
         /// Gets the pipelines supported diffusers.
@@ -44,19 +43,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
-        /// Gets the current unet mode.
-        /// </summary>
-        UnetModeType CurrentUnetMode { get; }
-
-
-        /// <summary>
-        /// Loads the pipeline.
-        /// </summary>
-        /// <returns></returns>
-        Task LoadAsync(UnetModeType unetMode = UnetModeType.Default);
-
-
-        /// <summary>
         /// Unloads the pipeline.
         /// </summary>
         /// <returns></returns>
@@ -64,97 +50,73 @@ namespace OnnxStack.StableDiffusion.Pipelines
 
 
         /// <summary>
-        /// Validates the inputs.
-        /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        void ValidateInputs(PromptOptions promptOptions, SchedulerOptions schedulerOptions);
-
-
-        /// <summary>
         /// Runs the pipeline.
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="controlNet">The control net.</param>
+        /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<DenseTensor<float>> RunAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<DenseTensor<float>> RunAsync(GenerateOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
         /// Runs the pipeline batch.
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="controlNet">The control net.</param>
+        /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<BatchResult> RunBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<BatchResult> RunBatchAsync(GenerateBatchOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
         /// Runs the pipeline returning the result as an OnnxImage.
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="controlNet">The control net.</param>
+        /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<OnnxImage> GenerateImageAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<OnnxImage> GenerateAsync(GenerateOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
         /// Runs the batch pipeline returning the result as an OnnxImage.
         /// </summary>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="controlNet">The control net.</param>
+        /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<BatchImageResult> GenerateImageBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<BatchImageResult> GenerateBatchAsync(GenerateBatchOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
         /// Runs the pipeline returning the result as an OnnxVideo.
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="controlNet">The control net.</param>
+        /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        Task<OnnxVideo> GenerateVideoAsync(PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        Task<OnnxVideo> GenerateVideoAsync(GenerateOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
-        /// Runs the batch pipeline returning the result as an OnnxVideo.
+        /// Runs the pipeline returning the result as an OnnxVideo.
         /// </summary>
-        /// <param name="batchOptions">The batch options.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="controlNet">The control net.</param>
+        /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<BatchVideoResult> GenerateVideoBatchAsync(BatchOptions batchOptions, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<OnnxImage> GenerateVideoFramesAsync(GenerateOptions options, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+
 
         /// <summary>
         /// Runs the video stream pipeline returning each frame as an OnnxImage.
         /// </summary>
+        /// <param name="options">The options.</param>
         /// <param name="videoFrames">The video frames.</param>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <param name="controlNet">The control net.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        IAsyncEnumerable<OnnxImage> GenerateVideoStreamAsync(IAsyncEnumerable<OnnxImage> videoFrames, PromptOptions promptOptions, SchedulerOptions schedulerOptions = default, ControlNetModel controlNet = default, Action<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<OnnxImage> GenerateVideoStreamAsync(GenerateOptions options, IAsyncEnumerable<OnnxImage> videoFrames, IProgress<DiffusionProgress> progressCallback = null, CancellationToken cancellationToken = default);
     }
 }

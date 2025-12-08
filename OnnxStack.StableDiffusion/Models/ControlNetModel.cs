@@ -1,8 +1,5 @@
-﻿
-using Microsoft.ML.OnnxRuntime;
-using OnnxStack.Core.Config;
+﻿using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
-using OnnxStack.StableDiffusion.Enums;
 
 namespace OnnxStack.StableDiffusion.Models
 {
@@ -15,24 +12,24 @@ namespace OnnxStack.StableDiffusion.Models
             _configuration = configuration;
         }
 
-        public ControlNetType Type => _configuration.Type;
+        public bool InvertInput => _configuration.InvertInput;
+        public int LayerCount => _configuration.LayerCount;
+        public bool DisablePooledProjection => _configuration.DisablePooledProjection;
 
         public static ControlNetModel Create(ControlNetModelConfig configuration)
         {
             return new ControlNetModel(configuration);
         }
 
-        public static ControlNetModel Create(string modelFile, ControlNetType type, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML)
+        public static ControlNetModel Create(OnnxExecutionProvider executionProvider, string modelFile, bool invertInput = false, int layerCount = 0, bool disablePooledProjection = false)
         {
             var configuration = new ControlNetModelConfig
             {
-                DeviceId = deviceId,
-                ExecutionProvider = executionProvider,
-                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
-                InterOpNumThreads = 0,
-                IntraOpNumThreads = 0,
                 OnnxModelPath = modelFile,
-                Type = type
+                ExecutionProvider = executionProvider,
+                InvertInput = invertInput,
+                LayerCount = layerCount,
+                DisablePooledProjection = disablePooledProjection
             };
             return new ControlNetModel(configuration);
         }
@@ -40,6 +37,9 @@ namespace OnnxStack.StableDiffusion.Models
 
     public record ControlNetModelConfig : OnnxModelConfig
     {
-        public ControlNetType Type { get; set; }
+        public string Name { get; set; }
+        public bool InvertInput { get; set; }
+        public int LayerCount { get; set; }
+        public bool DisablePooledProjection { get; set; }
     }
 }

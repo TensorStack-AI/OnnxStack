@@ -3,6 +3,8 @@ using OnnxStack.Core.Model;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 
 namespace OnnxStack.Core.Image
@@ -59,11 +61,11 @@ namespace OnnxStack.Core.Image
         /// </summary>
         /// <param name="sourceTensor">The source tensor.</param>
         /// <returns>TODO: Optimize</returns>
-        public static ImageTiles SplitImageTiles(this DenseTensor<float> sourceTensor, int overlap = 20)
+        public static ImageTiles SplitImageTiles(this DenseTensor<float> sourceTensor, TileMode tileMode, int overlap = 20)
         {
             var tileWidth = sourceTensor.Dimensions[3] / 2;
             var tileHeight = sourceTensor.Dimensions[2] / 2;
-            return new ImageTiles(tileWidth, tileHeight, overlap,
+            return new ImageTiles(tileWidth, tileHeight, tileMode, overlap,
                 SplitImageTile(sourceTensor, 0, 0, tileHeight + overlap, tileWidth + overlap),
                 SplitImageTile(sourceTensor, 0, tileWidth - overlap, tileHeight + overlap, tileWidth * 2),
                 SplitImageTile(sourceTensor, tileHeight - overlap, 0, tileHeight * 2, tileWidth + overlap),
@@ -151,17 +153,107 @@ namespace OnnxStack.Core.Image
                 }
             });
         }
+
+        public static ImageBlendingMode ToImageBlendingMode(this PixelColorBlendingMode pixelColorBlendingMode)
+        {
+            return Enum.Parse<ImageBlendingMode>(pixelColorBlendingMode.ToString());
+        }
+
+        public static PixelColorBlendingMode ToPixelColorBlendingMode(this ImageBlendingMode imageBlendingMode)
+        {
+            return Enum.Parse<PixelColorBlendingMode>(imageBlendingMode.ToString());
+        }
     }
 
     public enum ImageNormalizeType
     {
-        ZeroToOne = 0,
-        OneToOne = 1
+        None = 0,
+        ZeroToOne = 1,
+        OneToOne = 2,
+        MinMax = 3
     }
 
     public enum ImageResizeMode
     {
         Crop = 0,
         Stretch = 1
+    }
+
+    public enum ImageBlendingMode
+    {
+        /// <summary>
+        /// Default blending mode, also known as "Normal" or "Alpha Blending"
+        /// </summary>
+        Normal = 0,
+
+        /// <summary>
+        /// Blends the 2 values by multiplication.
+        /// </summary>
+        Multiply,
+
+        /// <summary>
+        /// Blends the 2 values by addition.
+        /// </summary>
+        Add,
+
+        /// <summary>
+        /// Blends the 2 values by subtraction.
+        /// </summary>
+        Subtract,
+
+        /// <summary>
+        /// Multiplies the complements of the backdrop and source values, then complements the result.
+        /// </summary>
+        Screen,
+
+        /// <summary>
+        /// Selects the minimum of the backdrop and source values.
+        /// </summary>
+        Darken,
+
+        /// <summary>
+        /// Selects the max of the backdrop and source values.
+        /// </summary>
+        Lighten,
+
+        /// <summary>
+        /// Multiplies or screens the values, depending on the backdrop vector values.
+        /// </summary>
+        Overlay,
+
+        /// <summary>
+        /// Multiplies or screens the colors, depending on the source value.
+        /// </summary>
+        HardLight,
+    }
+
+
+    public enum TileMode
+    {
+        /// <summary>
+        /// Joins the tiles overlapping edges.
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// Joins the tiles  overlapping the edges.
+        /// </summary>
+        Overlap,
+
+        /// <summary>
+        /// Joins the tiles blending the overlapped edges.
+        /// </summary>
+        Blend,
+
+        /// <summary>
+        /// Joins the tiles clipping the overlapped edges.
+        /// </summary>
+        Clip,
+
+        /// <summary>
+        /// Joins the tiles clipping and blending the overlapped edges.
+        /// </summary>
+        [Description("Clip + Blend")]
+        ClipBlend
     }
 }

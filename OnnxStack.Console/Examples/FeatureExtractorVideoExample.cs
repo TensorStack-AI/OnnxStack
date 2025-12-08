@@ -1,17 +1,15 @@
 ﻿using OnnxStack.Core.Video;
+using OnnxStack.FeatureExtractor.Common;
 using OnnxStack.FeatureExtractor.Pipelines;
-using OnnxStack.StableDiffusion.Config;
 
 namespace OnnxStack.Console.Runner
 {
     public sealed class FeatureExtractorVideoExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly StableDiffusionConfig _configuration;
 
-        public FeatureExtractorVideoExample(StableDiffusionConfig configuration)
+        public FeatureExtractorVideoExample()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(FeatureExtractorVideoExample));
             Directory.CreateDirectory(_outputDirectory);
         }
@@ -27,21 +25,24 @@ namespace OnnxStack.Console.Runner
         /// </summary>
         public async Task RunAsync()
         {
+            // Execution provider
+            var provider = Providers.DirectML(0);
+
             // Read Video
             var videoFile = "C:\\Users\\Deven\\Pictures\\parrot.mp4";
             var videoInfo = await VideoHelper.ReadVideoInfoAsync(videoFile);
 
             // Create pipeline
-            var pipeline = FeatureExtractorPipeline.CreatePipeline("D:\\Repositories\\controlnet_onnx\\annotators\\canny.onnx");
+            var pipeline = FeatureExtractorPipeline.CreatePipeline(provider, "D:\\Repositories\\controlnet_onnx\\annotators\\canny.onnx");
 
             // Create Video Stream
-            var videoStream = VideoHelper.ReadVideoStreamAsync(videoFile, videoInfo.FrameRate);
+            var videoStream = VideoHelper.ReadVideoStreamAsync(videoFile);
 
             // Create Pipeline Stream
-            var pipelineStream = pipeline.RunAsync(videoStream);
+            var pipelineStream = pipeline.RunAsync(videoStream, new FeatureExtractorOptions());
 
             // Write Video Stream
-            await VideoHelper.WriteVideoStreamAsync(videoInfo, pipelineStream, Path.Combine(_outputDirectory, $"Result.mp4"));
+            await VideoHelper.WriteVideoStreamAsync(Path.Combine(_outputDirectory, $"Result.mp4"), pipelineStream, videoInfo.FrameRate, videoInfo.Width, videoInfo.Height);
 
             //Unload
             await pipeline.UnloadAsync();

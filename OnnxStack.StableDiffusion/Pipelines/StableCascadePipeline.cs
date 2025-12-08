@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OnnxStack.Core;
-using OnnxStack.Core.Config;
 using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Common;
 using OnnxStack.StableDiffusion.Config;
@@ -10,9 +9,11 @@ using OnnxStack.StableDiffusion.Diffusers.StableCascade;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Helpers;
 using OnnxStack.StableDiffusion.Models;
+using OnnxStack.StableDiffusion.Tokenizers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OnnxStack.StableDiffusion.Pipelines
@@ -24,7 +25,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <summary>
         /// Initializes a new instance of the <see cref="StableCascadePipeline"/> class.
         /// </summary>
-        /// <param name="pipelineOptions">The pipeline options.</param>
+        /// <param name="name">The pipeline name.</param>
         /// <param name="tokenizer">The tokenizer.</param>
         /// <param name="textEncoder">The text encoder.</param>
         /// <param name="priorUnet">The prior unet.</param>
@@ -34,8 +35,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="diffusers">The diffusers.</param>
         /// <param name="defaultSchedulerOptions">The default scheduler options.</param>
         /// <param name="logger">The logger.</param>
-        public StableCascadePipeline(PipelineOptions pipelineOptions, TokenizerModel tokenizer, TextEncoderModel textEncoder, UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel imageDecoder, AutoEncoderModel imageEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, List<SchedulerType> schedulers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
-            : base(pipelineOptions, tokenizer, textEncoder, priorUnet, imageDecoder, imageEncoder, controlNet, diffusers, schedulers,defaultSchedulerOptions, logger)
+        public StableCascadePipeline(string name, ITokenizer tokenizer, TextEncoderModel textEncoder, UNetConditionModel priorUnet, UNetConditionModel decoderUnet, AutoEncoderModel imageDecoder, AutoEncoderModel imageEncoder, UNetConditionModel controlNet, List<DiffuserType> diffusers, List<SchedulerType> schedulers, SchedulerOptions defaultSchedulerOptions = default, ILogger logger = default)
+            : base(name, tokenizer, textEncoder, priorUnet, imageDecoder, imageEncoder, controlNet, diffusers, schedulers, defaultSchedulerOptions, logger)
         {
             _decoderUnet = decoderUnet;
             _supportedDiffusers = diffusers ?? new List<DiffuserType>
@@ -45,7 +46,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
             };
             _supportedSchedulers = schedulers ?? new List<SchedulerType>
             {
-                SchedulerType.DDPM,
                 SchedulerType.DDPMWuerstchen
             };
             _defaultSchedulerOptions = defaultSchedulerOptions ?? new SchedulerOptions
@@ -64,7 +64,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <summary>
         /// Gets the type of the pipeline.
         /// </summary>
-        public override DiffuserPipelineType PipelineType => DiffuserPipelineType.StableCascade;
+        public override PipelineType PipelineType => PipelineType.StableCascade;
 
         /// <summary>
         /// Gets the unet.
@@ -75,20 +75,6 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// Gets the unet.
         /// </summary>
         public UNetConditionModel DecoderUnet => _decoderUnet;
-
-
-        public override Task LoadAsync(UnetModeType unetMode = UnetModeType.Default)
-        {
-            if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
-                return base.LoadAsync(unetMode);
-
-            // Preload all models into VRAM
-            return Task.WhenAll
-            (
-                _decoderUnet.LoadAsync(),
-                base.LoadAsync(unetMode)
-            );
-        }
 
 
         /// <summary>
@@ -111,54 +97,53 @@ namespace OnnxStack.StableDiffusion.Pipelines
         {
             return diffuserType switch
             {
-                DiffuserType.TextToImage => new TextDiffuser(_unet, _decoderUnet, _vaeDecoder, _pipelineOptions.MemoryMode, _logger),
-                DiffuserType.ImageToImage => new ImageDiffuser(_unet, _decoderUnet, _vaeDecoder, _vaeEncoder, _pipelineOptions.MemoryMode, _logger),
+                DiffuserType.TextToImage => new TextDiffuser(_unet, _decoderUnet, _vaeDecoder, _logger),
+                DiffuserType.ImageToImage => new ImageDiffuser(_unet, _decoderUnet, _vaeDecoder, _vaeEncoder, _logger),
                 _ => throw new NotImplementedException()
             };
         }
 
 
         /// <summary>
-        /// Check if we should run guidance.
+        /// Checks the state of the pipeline.
         /// </summary>
-        /// <param name="schedulerOptions">The scheduler options.</param>
-        /// <returns></returns>
-        protected override bool ShouldPerformGuidance(SchedulerOptions schedulerOptions)
+        /// <param name="options">The options.</param>
+        protected override async Task CheckPipelineState(GenerateOptions options)
         {
-            return schedulerOptions.GuidanceScale > 1f || schedulerOptions.GuidanceScale2 > 1f;
+            await base.CheckPipelineState(options);
+            if (options.IsLowMemoryComputeEnabled && _decoderUnet?.Session is not null)
+                await _decoderUnet.UnloadAsync();
         }
 
 
         /// <summary>
         /// Creates the embeds using Tokenizer2 and TextEncoder2
         /// </summary>
-        /// <param name="promptOptions">The prompt options.</param>
-        /// <param name="isGuidanceEnabled">if set to <c>true</c> [is guidance enabled].</param>
+        /// <param name="options">The prompt options.</param>
         /// <returns></returns>
-        protected override async Task<PromptEmbeddingsResult> CreatePromptEmbedsAsync(PromptOptions promptOptions, bool isGuidanceEnabled)
+        protected override async Task<PromptEmbeddingsResult> CreatePromptEmbedsAsync(GenerateOptions options, CancellationToken cancellationToken = default)
         {
             /// Tokenize Prompt and NegativePrompt with Tokenizer2
-            var promptTokens = await DecodeTextAsLongAsync(promptOptions.Prompt);
-            var negativePromptTokens = await DecodeTextAsLongAsync(promptOptions.NegativePrompt);
+            var timestamp = _logger?.LogBegin();
+            var promptTokens = await DecodeTextAsLongAsync(options.Prompt, cancellationToken);
+            var negativePromptTokens = await DecodeTextAsLongAsync(options.NegativePrompt, cancellationToken);
             var maxPromptTokenCount = Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
+            _logger?.LogEnd(LogLevel.Debug, $"Tokenizer", timestamp);
+
 
             // Generate embeds for tokens
-            var promptEmbeddings = await GenerateEmbedsAsync(promptTokens, maxPromptTokenCount);
-            var negativePromptEmbeddings = await GenerateEmbedsAsync(negativePromptTokens, maxPromptTokenCount);
+            timestamp = _logger?.LogBegin();
+            var promptEmbeddings = await GenerateEmbedsAsync(promptTokens, maxPromptTokenCount, cancellationToken);
+            var negativePromptEmbeddings = await GenerateEmbedsAsync(negativePromptTokens, maxPromptTokenCount, cancellationToken);
+            _logger?.LogEnd(LogLevel.Debug, $"TextEncoder", timestamp);
 
             // Unload if required
-            if (_pipelineOptions.MemoryMode == MemoryModeType.Minimum)
+            if (options.IsLowMemoryTextEncoderEnabled)
             {
-                await _tokenizer.UnloadAsync();
                 await _textEncoder.UnloadAsync();
             }
 
-            if (isGuidanceEnabled)
-                return new PromptEmbeddingsResult(
-                    negativePromptEmbeddings.PromptEmbeds.Concatenate(promptEmbeddings.PromptEmbeds),
-                    negativePromptEmbeddings.PooledPromptEmbeds.Concatenate(promptEmbeddings.PooledPromptEmbeds));
-
-            return new PromptEmbeddingsResult(promptEmbeddings.PromptEmbeds, promptEmbeddings.PooledPromptEmbeds);
+            return new PromptEmbeddingsResult(promptEmbeddings.PromptEmbeds, promptEmbeddings.PooledPromptEmbeds, negativePromptEmbeddings.PromptEmbeds, negativePromptEmbeddings.PooledPromptEmbeds);
         }
 
 
@@ -167,24 +152,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         /// <param name="inputText">The input text.</param>
         /// <returns></returns>
-        private async Task<TokenizerResult> DecodeTextAsLongAsync(string inputText)
+        private async Task<TokenizerResult> DecodeTextAsLongAsync(string inputText, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(inputText))
                 return new TokenizerResult(Array.Empty<long>(), Array.Empty<long>());
 
-            var metadata = await _tokenizer.GetMetadataAsync();
-            var inputTensor = new DenseTensor<string>(new string[] { inputText }, new int[] { 1 });
-            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
-            {
-                inferenceParameters.AddInputTensor(inputTensor);
-                inferenceParameters.AddOutputBuffer();
-                inferenceParameters.AddOutputBuffer();
-
-                using (var results = _tokenizer.RunInference(inferenceParameters))
-                {
-                    return new TokenizerResult(results[0].ToArray<long>(), results[1].ToArray<long>());
-                }
-            }
+            return await _tokenizer.EncodeAsync(inputText);
         }
 
 
@@ -193,12 +166,12 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// </summary>
         /// <param name="tokenizedInput">The tokenized input.</param>
         /// <returns></returns>
-        private async Task<EncoderResult> EncodeTokensAsync(TokenizerResult tokenizedInput)
+        private async Task<EncoderResult> EncodeTokensAsync(TokenizerResult tokenizedInput, CancellationToken cancellationToken = default)
         {
-            var metadata = await _textEncoder.GetMetadataAsync();
+            var metadata = await _textEncoder.LoadAsync(cancellationToken: cancellationToken);
             var inputTensor = new DenseTensor<long>(tokenizedInput.InputIds, new[] { 1, tokenizedInput.InputIds.Length });
             var attentionTensor = new DenseTensor<long>(tokenizedInput.AttentionMask, new[] { 1, tokenizedInput.AttentionMask.Length });
-            using (var inferenceParameters = new OnnxInferenceParameters(metadata))
+            using (var inferenceParameters = new OnnxInferenceParameters(metadata, cancellationToken))
             {
                 inferenceParameters.AddInputTensor(inputTensor);
                 inferenceParameters.AddInputTensor(attentionTensor);
@@ -208,9 +181,11 @@ namespace OnnxStack.StableDiffusion.Pipelines
                 inferenceParameters.AddOutputBuffer(metadata.Outputs.Count - 1, new[] { 1, tokenizedInput.InputIds.Length, _tokenizer.TokenizerLength });
 
                 var results = await _textEncoder.RunInferenceAsync(inferenceParameters);
-                var promptEmbeds = results.Last().ToDenseTensor();
-                var promptEmbedsPooled = results.First().ToDenseTensor();
-                return new EncoderResult(promptEmbeds, promptEmbedsPooled);
+                using (var promptEmbeds = results.Last())
+                using (var promptEmbedsPooled = results.First())
+                {
+                    return new EncoderResult(promptEmbeds.ToDenseTensor(), promptEmbedsPooled.ToDenseTensor());
+                }
             }
         }
 
@@ -221,13 +196,13 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="inputTokens">The input tokens.</param>
         /// <param name="minimumLength">The minimum length.</param>
         /// <returns></returns>
-        private async Task<PromptEmbeddingsResult> GenerateEmbedsAsync(TokenizerResult inputTokens, int minimumLength)
+        private async Task<EncoderResult> GenerateEmbedsAsync(TokenizerResult inputTokens, int minimumLength, CancellationToken cancellationToken = default)
         {
             // If less than minimumLength pad with blank tokens
             if (inputTokens.InputIds.Length < minimumLength)
             {
                 inputTokens.InputIds = PadWithBlankTokens(inputTokens.InputIds, minimumLength, _tokenizer.PadTokenId).ToArray();
-                inputTokens.AttentionMask = PadWithBlankTokens(inputTokens.AttentionMask, minimumLength, 1).ToArray();
+                inputTokens.AttentionMask = PadWithBlankTokens(inputTokens.AttentionMask, minimumLength, 0).ToArray();
             }
 
             // The CLIP tokenizer only supports 77 tokens, batch process in groups of 77 and concatenate
@@ -236,20 +211,20 @@ namespace OnnxStack.StableDiffusion.Pipelines
             foreach (var tokenBatch in inputTokens.InputIds.Chunk(_tokenizer.TokenizerLimit))
                 tokenBatches.Add(PadWithBlankTokens(tokenBatch, _tokenizer.TokenizerLimit, _tokenizer.PadTokenId).ToArray());
             foreach (var attentionBatch in inputTokens.AttentionMask.Chunk(_tokenizer.TokenizerLimit))
-                attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 1).ToArray());
+                attentionBatches.Add(PadWithBlankTokens(attentionBatch, _tokenizer.TokenizerLimit, 0).ToArray());
 
             var promptEmbeddings = new List<float>();
             var pooledPromptEmbeddings = new List<float>();
             for (int i = 0; i < tokenBatches.Count; i++)
             {
-                var result = await EncodeTokensAsync(new TokenizerResult(tokenBatches[i], attentionBatches[i]));
+                var result = await EncodeTokensAsync(new TokenizerResult(tokenBatches[i], attentionBatches[i]), cancellationToken);
                 promptEmbeddings.AddRange(result.PromptEmbeds);
                 pooledPromptEmbeddings.AddRange(result.PooledPromptEmbeds);
             }
 
             var promptTensor = new DenseTensor<float>(promptEmbeddings.ToArray(), new[] { 1, promptEmbeddings.Count / _tokenizer.TokenizerLength, _tokenizer.TokenizerLength });
             var pooledTensor = new DenseTensor<float>(pooledPromptEmbeddings.ToArray(), new[] { 1, tokenBatches.Count, _tokenizer.TokenizerLength });
-            return new PromptEmbeddingsResult(promptTensor, pooledTensor);
+            return new EncoderResult(promptTensor, pooledTensor);
         }
 
 
@@ -264,7 +239,7 @@ namespace OnnxStack.StableDiffusion.Pipelines
             var config = modelSet with { };
             var priorUnet = new UNetConditionModel(config.UnetConfig.ApplyDefaults(config));
             var decoderUnet = new UNetConditionModel(config.Unet2Config.ApplyDefaults(config));
-            var tokenizer = new TokenizerModel(config.TokenizerConfig.ApplyDefaults(config));
+            var tokenizer = new ClipTokenizer(config.TokenizerConfig.ApplyDefaults(config));
             var textEncoder = new TextEncoderModel(config.TextEncoderConfig.ApplyDefaults(config));
             var imageDecoder = new AutoEncoderModel(config.VaeDecoderConfig.ApplyDefaults(config));
             var imageEncoder = new AutoEncoderModel(config.VaeEncoderConfig.ApplyDefaults(config));
@@ -272,8 +247,8 @@ namespace OnnxStack.StableDiffusion.Pipelines
             if (config.ControlNetUnetConfig is not null)
                 controlnet = new UNetConditionModel(config.ControlNetUnetConfig.ApplyDefaults(config));
 
-            var pipelineOptions = new PipelineOptions(config.Name, config.MemoryMode);
-            return new StableCascadePipeline(pipelineOptions, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, controlnet, config.Diffusers, config.Schedulers, config.SchedulerOptions, logger);
+            LogPipelineInfo(modelSet, logger);
+            return new StableCascadePipeline(config.Name, tokenizer, textEncoder, priorUnet, decoderUnet, imageDecoder, imageEncoder, controlnet, config.Diffusers, config.Schedulers, config.SchedulerOptions, logger);
         }
 
 
@@ -286,9 +261,9 @@ namespace OnnxStack.StableDiffusion.Pipelines
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public static new StableCascadePipeline CreatePipeline(string modelFolder, ModelType modelType = ModelType.Base, int deviceId = 0, ExecutionProvider executionProvider = ExecutionProvider.DirectML, MemoryModeType memoryMode = MemoryModeType.Maximum, ILogger logger = default)
+        public static new StableCascadePipeline CreatePipeline(OnnxExecutionProvider executionProvider, string modelFolder, ModelType modelType = ModelType.Base, ILogger logger = default)
         {
-            return CreatePipeline(ModelFactory.CreateModelSet(modelFolder, DiffuserPipelineType.StableCascade, modelType, deviceId, executionProvider, memoryMode), logger);
+            return CreatePipeline(ModelFactory.CreateStableCascadeModelSet(modelFolder, modelType).WithProvider(executionProvider), logger);
         }
     }
 }

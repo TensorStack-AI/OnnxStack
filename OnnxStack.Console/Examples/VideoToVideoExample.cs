@@ -1,6 +1,9 @@
 ﻿using OnnxStack.Core.Video;
+using OnnxStack.FeatureExtractor.Common;
+using OnnxStack.FeatureExtractor.Pipelines;
 using OnnxStack.StableDiffusion.Config;
 using OnnxStack.StableDiffusion.Enums;
+using OnnxStack.StableDiffusion.Models;
 using OnnxStack.StableDiffusion.Pipelines;
 
 namespace OnnxStack.Console.Runner
@@ -8,11 +11,9 @@ namespace OnnxStack.Console.Runner
     public sealed class VideoToVideoExample : IExampleRunner
     {
         private readonly string _outputDirectory;
-        private readonly StableDiffusionConfig _configuration;
 
-        public VideoToVideoExample(StableDiffusionConfig configuration)
+        public VideoToVideoExample()
         {
-            _configuration = configuration;
             _outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Examples", nameof(VideoToVideoExample));
             Directory.CreateDirectory(_outputDirectory);
         }
@@ -25,34 +26,54 @@ namespace OnnxStack.Console.Runner
 
         public async Task RunAsync()
         {
+            // Execution provider
+            var provider = Providers.DirectML(0);
+
             // Load Video
-            var videoInput = await OnnxVideo.FromFileAsync("C:\\Users\\Deven\\Pictures\\gidsgphy.gif");
+            var videoInput = await OnnxVideo.FromFileAsync("C:\\Users\\Deven\\Downloads\\FrameMerge\\FrameMerge\\Input.gif");
 
-            // Loop though the appsettings.json model sets
-            foreach (var modelSet in _configuration.ModelSets)
+            // Create Pipeline
+            var pipeline = StableDiffusionPipeline.CreatePipeline(provider, "M:\\Models\\stable-diffusion-instruct-pix2pix-onnx", ModelType.Instruct);
+
+            // Create ControlNet
+            var controlNet = ControlNetModel.Create(provider, "M:\\Models\\ControlNet-onnx\\SD\\Depth\\model.onnx");
+
+            // Create Feature Extractor
+            var featureExtractor = FeatureExtractorPipeline.CreatePipeline(provider, "M:\\Models\\FeatureExtractor-onnx\\SD\\Depth\\model.onnx", sampleSize: 512, normalizeOutputType: Core.Image.ImageNormalizeType.MinMax);
+
+            // Create Depth Image
+            var controlVideo = await featureExtractor.RunAsync(videoInput, new FeatureExtractorOptions());
+
+            // GenerateVideoOptions
+            var generateOptions = new GenerateOptions
             {
-                OutputHelpers.WriteConsole($"Loading Model `{modelSet.Name}`...", ConsoleColor.Cyan);
-
-                // Create Pipeline
-                var pipeline = PipelineBase.CreatePipeline(modelSet);
-
-                // Preload Models (optional)
-                await pipeline.LoadAsync();
-
-                // Add text and video to prompt
-                var promptOptions = new PromptOptions
+                Prompt = "make a 3D pixar cartoon",
+                Diffuser = DiffuserType.ControlNetImage,
+                InputVideo = videoInput,
+                InputContolVideo = controlVideo,
+                ControlNet = controlNet,
+                SchedulerOptions = pipeline.DefaultSchedulerOptions with
                 {
-                    Prompt = "Iron Man",
-                    DiffuserType = DiffuserType.ImageToImage,
-                    InputVideo = videoInput
-                };
+                    Seed = 302730660,
+                    GuidanceScale2 = 1f,
+                    ConditioningScale = 0.6f,
+                    SchedulerType = SchedulerType.Euler,
+                    GuidanceScale = 5f,
+                    InferenceSteps = 20,
+                    //TimestepSpacing = TimestepSpacingType.Linspace
+                    //Width = 512,
+                    //Height = 512
+                }
+            };
 
-                // Run pipeline
-                var result = await pipeline.GenerateVideoAsync(promptOptions, progressCallback: OutputHelpers.FrameProgressCallback);
+            // Run pipeline
+            var result = await pipeline.GenerateVideoAsync(generateOptions, progressCallback: OutputHelpers.FrameProgressCallback);
 
-                // Save Video File
-                await result.SaveAsync(Path.Combine(_outputDirectory, $"Result.mp4"));
-            }
+            // Save Video File
+            await result.SaveAsync(Path.Combine(_outputDirectory, $"Result_{generateOptions.SchedulerOptions.Seed}.mp4"));
+
+            // Unload
+            await pipeline.UnloadAsync();
         }
     }
 }

@@ -33,7 +33,7 @@ namespace OnnxStack.StableDiffusion.Common
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4);
+        SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16);
 
         /// <summary>
         /// Adds noise to the sample.

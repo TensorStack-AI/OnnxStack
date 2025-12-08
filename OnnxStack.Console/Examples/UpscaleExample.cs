@@ -1,5 +1,6 @@
 ﻿using OnnxStack.Core.Image;
 using OnnxStack.FeatureExtractor.Pipelines;
+using OnnxStack.ImageUpscaler.Common;
 
 namespace OnnxStack.Console.Runner
 {
@@ -21,14 +22,17 @@ namespace OnnxStack.Console.Runner
 
         public async Task RunAsync()
         {
+            // Execution provider
+            var provider = Providers.DirectML(0);
+
             // Load Input Image
             var inputImage = await OnnxImage.FromFileAsync("D:\\Repositories\\OnnxStack\\Assets\\Samples\\Img2Img_Start.bmp");
 
             // Create Pipeline
-            var pipeline = ImageUpscalePipeline.CreatePipeline("D:\\Repositories\\upscaler\\SwinIR\\003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x4_GAN.onnx", 4, 512);
+            var pipeline = ImageUpscalePipeline.CreatePipeline(provider, "D:\\Repositories\\upscaler\\SwinIR\\003_realSR_BSRGAN_DFO_s64w8_SwinIR-M_x4_GAN.onnx", 4, 512);
 
             // Run pipeline
-            var result = await pipeline.RunAsync(inputImage);
+            var result = await pipeline.RunAsync(inputImage, new UpscaleOptions());
          
             // Save Image File
             var outputFilename = Path.Combine(_outputDirectory, $"Upscaled.png");

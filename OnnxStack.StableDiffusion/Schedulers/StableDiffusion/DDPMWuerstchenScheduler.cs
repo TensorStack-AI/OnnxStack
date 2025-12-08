@@ -8,13 +8,12 @@ using System.Linq;
 
 namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
-    internal class DDPMWuerstchenScheduler : SchedulerBase
+    public sealed class DDPMWuerstchenScheduler : SchedulerBase
     {
         private float _s;
         private float _scaler;
         private float _initAlphaCumprod;
         private float _timestepRatio = 1000f;
-
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DDPMWuerstchenScheduler"/> class.
@@ -35,10 +34,10 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// </summary>
         protected override void Initialize()
         {
+            base.Initialize();
             _s = 0.008f;
             _scaler = 1.0f;
             _initAlphaCumprod = MathF.Pow(MathF.Cos(_s / (1f + _s) * MathF.PI * 0.5f), 2f);
-            SetInitNoiseSigma(1.0f);
         }
 
 
@@ -51,7 +50,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             var timesteps = ArrayHelpers.Linspace(0, _timestepRatio, Options.InferenceSteps + 1);
             return timesteps
                 .Skip(1)
-                .Select(x => (int)x)
+                .Select(x => (int)Math.Round(x))
                 .OrderByDescending(x => x)
                 .ToArray();
         }
@@ -79,7 +78,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         /// <exception cref="ArgumentException">Invalid prediction_type: {SchedulerOptions.PredictionType}</exception>
         /// <exception cref="NotImplementedException">DDPMScheduler Thresholding currently not implemented</exception>
-        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16)
         {
             var currentTimestep = timestep / _timestepRatio;
             var previousTimestep = GetPreviousTimestep(timestep) / _timestepRatio;
@@ -118,21 +117,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         }
 
 
-        /// <summary>
-        /// Gets the previous timestep.
-        /// </summary>
-        /// <param name="timestep">The timestep.</param>
-        /// <returns></returns>
-        protected override int GetPreviousTimestep(int timestep)
-        {
-            var index = Timesteps.IndexOf(timestep) + 1;
-            if (index > Timesteps.Count - 1)
-                return 0;
-
-            return Timesteps[index];
-        }
-
-
         private float GetAlphaCumprod(float timestep)
         {
             if (_scaler > 1.0f)
@@ -144,10 +128,5 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             return Math.Clamp(alphaCumprod, 0.0001f, 0.9999f);
         }
 
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-        }
     }
 }

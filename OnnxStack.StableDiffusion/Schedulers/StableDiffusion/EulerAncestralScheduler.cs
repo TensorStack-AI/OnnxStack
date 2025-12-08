@@ -10,8 +10,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
 {
     public sealed class EulerAncestralScheduler : SchedulerBase
     {
-        private float[] _sigmas;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="EulerAncestralScheduler"/> class.
         /// </summary>
@@ -31,17 +29,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// </summary>
         protected override void Initialize()
         {
-            _sigmas = null;
-
-            var betas = GetBetaSchedule();
-            var alphas = betas.Select(beta => 1.0f - beta);
-            var alphaCumProd = alphas.Select((alpha, i) => alphas.Take(i + 1).Aggregate((a, b) => a * b));
-            _sigmas = alphaCumProd
-                 .Select(alpha_prod => (float)Math.Sqrt((1 - alpha_prod) / alpha_prod))
-                 .ToArray();
-
-            var initNoiseSigma = GetInitNoiseSigma(_sigmas);
-            SetInitNoiseSigma(initNoiseSigma);
+            base.Initialize();
         }
 
 
@@ -51,11 +39,11 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         protected override int[] SetTimesteps()
         {
-            var sigmas = _sigmas.ToArray();
+            var sigmas = Sigmas.ToArray();
             var timesteps = GetTimesteps();
             var logSigmas = ArrayHelpers.Log(sigmas);
-            var range = ArrayHelpers.Range(0, _sigmas.Length);
-            sigmas = Interpolate(timesteps, range, _sigmas);
+            var range = ArrayHelpers.Range(0, sigmas.Length, true);
+            sigmas = Interpolate(timesteps, range, sigmas);
 
             if (Options.UseKarrasSigmas)
             {
@@ -63,11 +51,11 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 timesteps = SigmaToTimestep(sigmas, logSigmas);
             }
 
-            _sigmas = sigmas
-                .Append(0.000f)
-                .ToArray();
+            Sigmas = [.. sigmas, 0f];
 
-            return timesteps.Select(x => (int)x)
+            SetInitNoiseSigma();
+
+            return timesteps.Select(x => (int)Math.Round(x))
                  .OrderByDescending(x => x)
                  .ToArray();
         }
@@ -81,14 +69,9 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <returns></returns>
         public override DenseTensor<float> ScaleInput(DenseTensor<float> sample, int timestep)
         {
-            // Get step index of timestep from TimeSteps
-            int stepIndex = Timesteps.IndexOf(timestep);
-
-            // Get sigma at stepIndex
-            var sigma = _sigmas[stepIndex];
-            sigma = (float)Math.Sqrt(Math.Pow(sigma, 2) + 1);
-
-            // Divide sample tensor shape {2,4,(H/8),(W/8)} by sigma
+            var stepIndex = Timesteps.IndexOf(timestep);
+            var sigma = Sigmas[stepIndex];
+            sigma = MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f);
             return sample.DivideTensorByFloat(sigma);
         }
 
@@ -101,16 +84,16 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         /// <param name="sample">The sample.</param>
         /// <param name="order">The order.</param>
         /// <returns></returns>
-        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int order = 4)
+        public override SchedulerStepResult Step(DenseTensor<float> modelOutput, int timestep, DenseTensor<float> sample, int contextSize = 16)
         {
             var stepIndex = Timesteps.IndexOf(timestep);
-            var sigma = _sigmas[stepIndex];
+            var sigma = Sigmas[stepIndex];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
             var predOriginalSample = GetPredictedSample(modelOutput, sample, sigma);
 
-            var sigmaFrom = _sigmas[stepIndex];
-            var sigmaTo = _sigmas[stepIndex + 1];
+            var sigmaFrom = Sigmas[stepIndex];
+            var sigmaTo = Sigmas[stepIndex + 1];
 
             var sigmaFromLessSigmaTo = MathF.Pow(sigmaFrom, 2) - MathF.Pow(sigmaTo, 2);
             var sigmaUpResult = MathF.Pow(sigmaTo, 2) * sigmaFromLessSigmaTo / MathF.Pow(sigmaFrom, 2);
@@ -132,8 +115,6 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
         }
 
 
-
-
         /// <summary>
         /// Adds noise to the sample.
         /// </summary>
@@ -146,7 +127,7 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
             // Ref: https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_euler_ancestral_discrete.py#L389
             var sigma = timesteps
                 .Select(x => Timesteps.IndexOf(x))
-                .Select(x => _sigmas[x])
+                .Select(x => Sigmas[x])
                 .Max();
 
             return noise
@@ -154,10 +135,5 @@ namespace OnnxStack.StableDiffusion.Schedulers.StableDiffusion
                 .AddTensors(originalSamples);
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            _sigmas = null;
-            base.Dispose(disposing);
-        }
     }
 }

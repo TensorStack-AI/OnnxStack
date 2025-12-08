@@ -11,7 +11,6 @@
   * https://huggingface.co/rocca/swin-ir-onnx
     * This is the upscaler model.
   * https://huggingface.co/runwayml/stable-diffusion-v1-5
-  * https://huggingface.co/softwareweaver/InstaFlow-0.9B-Olive-Onnx
   * https://huggingface.co/SimianLuo/LCM_Dreamshaper_v7
   * https://huggingface.co/softwareweaver/stable-diffusion-xl-base-1.0-Olive-Onnx
 
@@ -66,7 +65,7 @@ _It might take some time to switch branches and download all of the `.onnx` file
 
 * Update the paths in `appsettings.json` to point to the downloaded models.  Update all the paths to point to the correct location of the downloaded models.
   * If the downloaded model repository does not contain a `Tokenizer` or `Tokenizer2` `.onnx` file, leave the path empty. 
-    * Note: When the path is empty, OnnxStack will use it's own 'built-in' _default_ tokenizer called `cliptokenizer.onnx`
+    * Note: When the path is empty, OnnxStack will use it's own 'built-in' ClipTokenizer
   * Example with empty path:
 ```json    
   {

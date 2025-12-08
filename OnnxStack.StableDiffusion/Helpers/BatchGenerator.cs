@@ -15,45 +15,53 @@ namespace OnnxStack.StableDiffusion.Helpers
         /// <param name="batchOptions">The batch options.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
         /// <returns></returns>
-        public static List<SchedulerOptions> GenerateBatch(IPipeline pipeline, BatchOptions batchOptions, SchedulerOptions schedulerOptions)
+        public static List<SchedulerOptions> GenerateBatch(IPipeline pipeline, GenerateBatchOptions batchOptions, SchedulerOptions schedulerOptions)
         {
             if (batchOptions.BatchType == BatchOptionType.Seed)
             {
-                return Enumerable.Range(0, Math.Max(1, (int)batchOptions.ValueTo))
-                    .Select(x => Random.Shared.Next())
+                var seed = schedulerOptions.Seed == 0 ? Random.Shared.Next() : schedulerOptions.Seed;
+                if (batchOptions.ValueTo <= 1)
+                    return [schedulerOptions with { Seed = seed }];
+
+                var random = new Random(seed);
+                return Enumerable.Range(0, Math.Max(1, (int)batchOptions.ValueTo - 1))
+                    .Select(x => random.Next())
+                    .Prepend(seed)
                     .Select(x => schedulerOptions with { Seed = x })
                     .ToList();
             }
-            else if (batchOptions.BatchType == BatchOptionType.Step)
-            {
-                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
-                return Enumerable.Range(0, totalIncrements)
-                  .Select(x => schedulerOptions with { InferenceSteps = (int)(batchOptions.ValueFrom + (batchOptions.Increment * x)) })
-                  .ToList();
-            }
-            else if (batchOptions.BatchType == BatchOptionType.Guidance)
-            {
-                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
-                return Enumerable.Range(0, totalIncrements)
-                  .Select(x => schedulerOptions with { GuidanceScale = batchOptions.ValueFrom + (batchOptions.Increment * x) })
-                  .ToList();
-            }
-            else if (batchOptions.BatchType == BatchOptionType.Strength)
-            {
-                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
-                return Enumerable.Range(0, totalIncrements)
-                  .Select(x => schedulerOptions with { Strength = batchOptions.ValueFrom + (batchOptions.Increment * x) })
-                  .ToList();
-            }
-            else if (batchOptions.BatchType == BatchOptionType.Scheduler)
+
+            if (batchOptions.BatchType == BatchOptionType.Scheduler)
             {
                 return pipeline.SupportedSchedulers
                   .Select(x => schedulerOptions with { SchedulerType = x })
                   .ToList();
             }
-            else if (batchOptions.BatchType == BatchOptionType.ConditioningScale)
+
+            var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment) + 1;
+            if (batchOptions.BatchType == BatchOptionType.Step)
             {
-                var totalIncrements = (int)Math.Max(1, (batchOptions.ValueTo - batchOptions.ValueFrom) / batchOptions.Increment);
+                return Enumerable.Range(0, totalIncrements)
+                   .Select(x => schedulerOptions with { InferenceSteps = (int)(batchOptions.ValueFrom + (batchOptions.Increment * x)) })
+                   .ToList();
+            }
+
+            if (batchOptions.BatchType == BatchOptionType.Guidance)
+            {
+                return Enumerable.Range(0, totalIncrements)
+                  .Select(x => schedulerOptions with { GuidanceScale = batchOptions.ValueFrom + (batchOptions.Increment * x) })
+                  .ToList();
+            }
+
+            if (batchOptions.BatchType == BatchOptionType.Strength)
+            {
+                return Enumerable.Range(0, totalIncrements)
+                  .Select(x => schedulerOptions with { Strength = batchOptions.ValueFrom + (batchOptions.Increment * x) })
+                  .ToList();
+            }
+
+            if (batchOptions.BatchType == BatchOptionType.ConditioningScale)
+            {
                 return Enumerable.Range(0, totalIncrements)
                   .Select(x => schedulerOptions with { ConditioningScale = batchOptions.ValueFrom + (batchOptions.Increment * x) })
                   .ToList();

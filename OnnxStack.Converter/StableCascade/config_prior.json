@@ -1,0 +1,89 @@
+{
+    "input_model": {
+        "type": "PyTorchModel",
+        "config": {
+            "model_loader": "prior_load",
+            "model_script": "models.py",
+            "io_config": {
+                "input_names": ["sample", "timestep_ratio", "clip_text_pooled", "clip_text", "clip_img" ],
+                "output_names": [ "out_sample" ],
+                "dynamic_axes": {
+                    "sample": { "0": "unet_sample_batch", "1": "unet_sample_channels", "2": "unet_sample_height", "3": "unet_sample_width" },
+                    "timestep_ratio": { "0": "unet_timestep_ratio" },
+                    "clip_text_pooled": { "0": "unet_clip_text_pooled_batch", "1": "unet_clip_text_pooled_size", "2": "unet_clip_text_pooled_length" },
+                    "clip_text": { "0": "unet_clip_text_batch", "1": "unet_clip_text_size", "2": "unet_clip_text_length" },
+                    "clip_img": { "0": "unet_clip_img_batch", "1": "unet_clip_img_size", "2": "unet_clip_img_length" }
+                }
+            },
+            "dummy_inputs_func": "prior_conversion_inputs"
+        }
+    },
+    "passes": {
+        "convert": {
+            "type": "OnnxConversion",
+            "config": {
+                "target_opset": 20,
+                "torch_dtype": "float32",
+                "save_as_external_data": true,
+                "all_tensors_to_one_file": true
+            }
+        },
+        "optimize": {
+            "type": "OrtTransformersOptimization",
+            "config": {
+                "model_type": "unet",
+                "opt_level": 0,
+                "float16": false,
+                "use_gpu": true,
+                "keep_io_types": true,
+                "save_as_external_data": true,
+                "all_tensors_to_one_file": true,
+                "optimization_options": {
+                    "enable_gelu": true,
+                    "enable_layer_norm": true,
+                    "enable_attention": true,
+                    "enable_rotary_embeddings": true,
+                    "use_multi_head_attention": false,
+                    "disable_multi_head_attention_bias": false,
+                    "enable_skip_layer_norm": true,
+                    "enable_embed_layer_norm": true,
+                    "enable_bias_skip_layer_norm": true,
+                    "enable_bias_gelu": true,
+                    "enable_gelu_approximation": false,
+                    "enable_qordered_matmul": true,
+                    "enable_shape_inference": true,
+                    "enable_gemm_fast_gelu": false,
+                    "group_norm_channels_last": true,
+                    "enable_nhwc_conv": true,
+                    "enable_group_norm": true,
+                    "enable_skip_group_norm": false,
+                    "enable_bias_splitgelu": true,
+                    "enable_packed_qkv": true,
+                    "enable_packed_kv": true,
+                    "enable_bias_add": true
+                }
+            }
+        }
+    },
+    "systems": {
+        "local_system": {
+            "type": "LocalSystem",
+            "config": {
+                "accelerators": [
+                    {
+                        "device": "gpu",
+                        "execution_providers": [
+                            "DmlExecutionProvider"
+                        ]
+                    }
+                ]
+            }
+        }
+    },
+    "engine": {
+        "target": "local_system",
+        "log_severity_level": 1,
+        "evaluate_input_model": false,
+        "output_dir": ".olive-cache/models/prior"
+    }
+}

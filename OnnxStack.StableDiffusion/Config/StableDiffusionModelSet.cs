@@ -1,7 +1,8 @@
-﻿using Microsoft.ML.OnnxRuntime;
-using OnnxStack.Core.Config;
+﻿using OnnxStack.Core.Config;
+using OnnxStack.Core.Model;
 using OnnxStack.StableDiffusion.Enums;
 using OnnxStack.StableDiffusion.Models;
+using OnnxStack.StableDiffusion.Tokenizers;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -10,32 +11,31 @@ namespace OnnxStack.StableDiffusion.Config
     public record StableDiffusionModelSet : IOnnxModelSetConfig
     {
         public string Name { get; set; }
-        public bool IsEnabled { get; set; }
-        public int DeviceId { get; set; }
-        public int InterOpNumThreads { get; set; }
-        public int IntraOpNumThreads { get; set; }
-        public ExecutionMode ExecutionMode { get; set; }
-        public ExecutionProvider ExecutionProvider { get; set; }
-        public OnnxModelPrecision Precision { get; set; }
-        public MemoryModeType MemoryMode { get; set; }
         public int SampleSize { get; set; } = 512;
-        public DiffuserPipelineType PipelineType { get; set; }
+        public PipelineType PipelineType { get; set; }
         public List<DiffuserType> Diffusers { get; set; }
+        public OnnxExecutionProvider ExecutionProvider { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<SchedulerType> Schedulers { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public TokenizerModelConfig TokenizerConfig { get; set; }
+        public TokenizerConfig TokenizerConfig { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public TokenizerModelConfig Tokenizer2Config { get; set; }
+        public TokenizerConfig Tokenizer2Config { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public TokenizerConfig Tokenizer3Config { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TextEncoderModelConfig TextEncoderConfig { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TextEncoderModelConfig TextEncoder2Config { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public TextEncoderModelConfig TextEncoder3Config { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public UNetConditionModelConfig UnetConfig { get; set; }
@@ -50,6 +50,12 @@ namespace OnnxStack.StableDiffusion.Config
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public UNetConditionModelConfig ControlNetUnetConfig { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public FlowEstimationModelConfig FlowEstimationConfig { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public ResampleModelConfig ResampleModelConfig { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public SchedulerOptions SchedulerOptions { get; set; }
